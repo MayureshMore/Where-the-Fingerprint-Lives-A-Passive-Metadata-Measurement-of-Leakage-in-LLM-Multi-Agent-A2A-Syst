@@ -439,8 +439,9 @@ def fig_confound_control() -> Path | None:
         ax.text(i - w/2, r[1] + 0.02, f"{r[1]:.2f}", ha="center", fontsize=8, color="#555")
     ax.set_xticks(xs); ax.set_xticklabels([r[0] for r in rows])
     ax.set_ylabel("macro-F1"); ax.set_ylim(0, 1.15); ax.legend(loc="lower left", fontsize=8)
+    max_delta = max(abs(r[2] - r[1]) for r in rows if r[4])
     ax.set_title("Confound audit: the SAME same-session control that breaks framework-ID\n"
-                 "leaves workflow / role / topology UNCHANGED (Δ ≤ 0.03) — the core attack is real,\n"
+                 f"leaves the core tasks within noise (|Δ| ≤ {max_delta:.2f}) — the core attack is real,\n"
                  "not a capture artefact (red = collapses to chance; green = survives)", fontsize=8.5)
     fig.tight_layout()
     p = FIGS / "confound_control.png"; fig.savefig(p, dpi=150); plt.close(fig)

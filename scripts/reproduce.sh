@@ -170,10 +170,10 @@ else
     # NB: this evaluator consumes RAW pcaps directly (extract_role_samples), not processed
     # features — so gate on the raw dirs it actually reads, else the stage silently skips.
     if have "data/raw_offtheshelf" "data/raw_offtheshelf_inst2"; then
-        run $PY scripts/evaluate_cross_instance_transfer.py; fi
+        run env MIN_N=10 $PY scripts/evaluate_cross_instance_transfer.py; fi   # MIN_N=10 = the committed 6-way setting
     stage "cross-instance transfer — NATURAL de-confound (§9b′; reads the natural inst-2 set)"
     if have "data/raw_offtheshelf" "data/raw_offtheshelf_inst2_natural"; then
-        run env CIT_OUT=cross_instance_transfer_natural.json \
+        run env MIN_N=10 CIT_OUT=cross_instance_transfer_natural.json \
             $PY scripts/evaluate_cross_instance_transfer.py --inst2 data/raw_offtheshelf_inst2_natural; fi
     stage "cross-FRAMEWORK replication on AutoGen (§10; reads AutoGen gRPC pcaps — external deployment ~/autogen-xframework)"
     if have "$HOME/autogen-xframework/data/raw" "data/raw_offtheshelf"; then

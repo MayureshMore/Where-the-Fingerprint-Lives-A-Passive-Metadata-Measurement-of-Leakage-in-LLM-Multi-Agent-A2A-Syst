@@ -42,8 +42,8 @@ base capture several times), so reproduce.sh runs it only under --full-suite.
 Usage:
     venv/bin/python scripts/sweep_defenses.py \
         --raw data/raw --processed data/processed \
-        --pad-cells 128 256 512 1024 2048 \
-        --rate-gaps-ms 1 2 5 10
+        --pad-cells 64 128 256 512 1024 2048 \
+        --rate-gaps-ms 25 50 100 200
 """
 from __future__ import annotations
 
@@ -361,8 +361,8 @@ def _parse() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Defense overhead–accuracy sweep (curve)")
     p.add_argument("--raw", default="data/raw", help="undefended base capture (pcaps)")
     p.add_argument("--processed", default="data/processed", help="labels.json source")
-    p.add_argument("--pad-cells", type=int, nargs="+", default=[128, 256, 512, 1024, 2048])
-    p.add_argument("--rate-gaps-ms", type=float, nargs="+", default=[1, 2, 5, 10])
+    p.add_argument("--pad-cells", type=int, nargs="+", default=[64, 128, 256, 512, 1024, 2048])
+    p.add_argument("--rate-gaps-ms", type=float, nargs="+", default=[25, 50, 100, 200])
     p.add_argument("--pad-wire-offset", type=int, default=PAD_WIRE_OFFSET,
                    help="wirelen − offset = SSE-event JSON size that the pad rounds "
                         "(HDR+HTTP/SSE framing; calibrated to the live pad set)")
