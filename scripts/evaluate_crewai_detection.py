@@ -17,7 +17,7 @@ separability is therefore behavioural/structural, NOT a transport artifact — t
 ("transport-framing") outcome of Exp 1 is definitionally excluded by construction here.
 
     positive = A2A flows    (a2a_mcp; a2a-sdk 0.3.26 JSON-RPC+SSE; data/raw_offtheshelf)
-    negative = CrewAI flows (crewai-1.15.2 brains served over a2a-sdk 0.3.26; ~/crewai-xframework)
+    negative = CrewAI flows (crewai-1.15.2 brains served over a2a-sdk 0.3.26; frameworks/crewai)
 
 Method = the project pipeline, and the SAME extractor for BOTH sides (extract_role_samples pools
 per-flow 35-dim features by server port; port is a LABEL only, never a feature). GBT
@@ -193,7 +193,7 @@ def main(args: argparse.Namespace) -> None:
     if not any(a2a_raw.glob("*.pcap")):
         raise SystemExit(f"BLOCKED: no A2A pcaps at {a2a_raw}")
     if not any(cw_raw.glob("*.pcap")):
-        raise SystemExit(f"BLOCKED: no CrewAI pcaps at {cw_raw} — run ~/crewai-xframework/collect_trips.sh")
+        raise SystemExit(f"BLOCKED: no CrewAI pcaps at {cw_raw} — run frameworks/crewai/collect_trips.sh")
 
     Xa, _, ga = extract_role_samples(a2a_raw)      # SAME extractor for both sides
     Xc, _, gc = extract_role_samples(cw_raw)
@@ -226,7 +226,6 @@ def main(args: argparse.Namespace) -> None:
     # a2a_mcp positive vs CrewAI negative are NOT matched on LLM/interaction/agent-count →
     # confounded=True caps the verdict at SCOPED (see confounds + band() docstring).
     verdict = band(full, shape, confounded=True)
-    survives = shape["auroc"] >= 0.90 and shape["auroc_ci95"][0] > 0.50
     out_dir = Path(os.environ.get("A2A_RESULTS_DIR", "data/results"))
     (out_dir / "figures").mkdir(parents=True, exist_ok=True)
     fig_png = out_dir / "figures" / "crewai_detection.png"
@@ -327,7 +326,7 @@ def main(args: argparse.Namespace) -> None:
 def _parse() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Exp 3 — A2A vs CrewAI same-transport detection (GBT)")
     p.add_argument("--a2a-raw", default="data/raw_offtheshelf")
-    p.add_argument("--crewai-raw", default="~/crewai-xframework/data/raw")
+    p.add_argument("--crewai-raw", default="data/raw_crewai")
     return p.parse_args()
 
 

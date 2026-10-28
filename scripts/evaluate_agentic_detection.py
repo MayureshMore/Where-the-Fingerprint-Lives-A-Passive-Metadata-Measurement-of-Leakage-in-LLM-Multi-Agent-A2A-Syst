@@ -5,7 +5,7 @@ AGENTIC-vs-AGENTIC DETECTION (Exp 1) — A2A flows vs AutoGen flows.
 Answers the referee's sharpest deployability point: the existing detection AUC 1.0
 (offtheshelf_detection.json) is only against NON-agentic negatives, so "detect an A2A system in
 the wild vs another agent framework" was untested. We now have real AutoGen gRPC traffic (§10;
-~/autogen-xframework/), so we run a binary detector:
+frameworks/autogen/), so we run a binary detector:
 
     positive = A2A flows     (a2a_mcp; Starlette/JSON-RPC/SSE over HTTP; data/raw_offtheshelf)
     negative = AutoGen flows (autogen-core distributed gRPC star-through-host; local ollama)
@@ -147,7 +147,7 @@ def main(args: argparse.Namespace) -> None:
     if not any(a2a_raw.glob("*.pcap")):
         raise SystemExit(f"BLOCKED: no A2A pcaps at {a2a_raw}")
     if not any(ag_raw.glob("trip_*.pcap")):
-        raise SystemExit(f"BLOCKED: no AutoGen pcaps at {ag_raw} — run ~/autogen-xframework/collect_trips.sh")
+        raise SystemExit(f"BLOCKED: no AutoGen pcaps at {ag_raw} — run frameworks/autogen/collect_trips.sh")
 
     Xa, _, ga = extract_a2a(a2a_raw)
     Xg, _, gg = extract_autogen_role_samples(ag_raw)
@@ -232,7 +232,7 @@ def main(args: argparse.Namespace) -> None:
 def _parse() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Exp 1 — A2A vs AutoGen agentic detection (GBT)")
     p.add_argument("--a2a-raw", default="data/raw_offtheshelf")
-    p.add_argument("--autogen-raw", default="~/autogen-xframework/data/raw")
+    p.add_argument("--autogen-raw", default="data/raw_autogen")
     return p.parse_args()
 
 

@@ -20,8 +20,8 @@
       },
       "committed_baseline": {
         "macro_f1": 0.707852434399029,
-        "ci_lo": 0.6724465579282759,
-        "ci_hi": 0.7425345147627138
+        "ci_lo": 0.6654258341978697,
+        "ci_hi": 0.7453628690103181
       },
       "committed_baseline_source": "committed closed_world_gbt_workflow.json (all topologies)",
       "verdict": "SURVIVES (interleaved within noise of committed \u2014 not a capture confound)",
@@ -57,7 +57,7 @@
       },
       "committed_baseline": {
         "macro_f1": 0.9949992186279106,
-        "ci_lo": 0.9884195238189172,
+        "ci_lo": 0.9887989602493703,
         "ci_hi": 1.0
       },
       "committed_baseline_source": "committed closed_world_gbt_topology.json (all topologies)",
@@ -78,8 +78,8 @@
       },
       "committed_baseline": {
         "macro_f1": 0.9887709365416372,
-        "ci_lo": 0.9788426814916141,
-        "ci_hi": 0.9963759019195975
+        "ci_lo": 0.9789498733783883,
+        "ci_hi": 0.9964026141773958
       },
       "committed_baseline_source": "committed closed_world_gbt_parallelism.json",
       "verdict": "SURVIVES (small drop, still far above chance)"
@@ -100,8 +100,8 @@
       },
       "committed_baseline": {
         "macro_f1": 0.8635233828420505,
-        "ci_lo": 0.8471564789541861,
-        "ci_hi": 0.8793574855499874
+        "ci_lo": 0.8465568989836822,
+        "ci_hi": 0.8805841699560912
       },
       "committed_baseline_source": "committed closed_world_gbt_role.json",
       "verdict": "SURVIVES (interleaved within noise of committed \u2014 not a capture confound)"

@@ -13,7 +13,6 @@ exceeding `idle_threshold_s` seconds.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 
 import numpy as np

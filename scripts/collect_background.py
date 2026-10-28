@@ -29,6 +29,11 @@ Requires root (sudo) for tcpdump BPF capture on loopback.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from features.extractor import TraceFeatures
+
 import argparse
 import asyncio
 import json
@@ -363,7 +368,7 @@ def _extract_bg_features(
     run_id: str,
     server_ports: set[int],
     use_scapy: bool = True,
-) -> "TraceFeatures | None":
+) -> TraceFeatures | None:
     from features.extractor import FeatureExtractor
     extractor = FeatureExtractor(agent_ports=server_ports, use_scapy=use_scapy)
     return extractor.extract(pcap_path, run_id=run_id)

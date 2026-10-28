@@ -239,16 +239,16 @@ def run(
     n_total = len(X_bg)
     print(f"  {'ALL BACKGROUND':<25} {'mixed':>6} {n_total:>5} {overall_rej*100:>11.1f}% {(1-overall_rej)*100:>9.1f}%")
     print()
-    print(f"  Realistic-base-rate precision (1% A2A vs 99% background):")
+    print("  Realistic-base-rate precision (1% A2A vs 99% background):")
     print(f"    TPR(A2A)       = {tpr:.3f}")
     print(f"    FPR(background)= {fpr_bg:.3f}")
     print(f"    Precision      = {precision_realistic:.3f}")
     print()
-    print(f"  Interpretation:")
-    print(f"    Soft negatives (web/download/REST) are expected to reject at ≥80%.")
-    print(f"    Hard negatives (JSON-RPC/multi-REST/LLM-direct) are the true test:")
-    print(f"    rejection < 60% on hard negatives means A2A structural signal is weak;")
-    print(f"    rejection > 80% means the timing + flow-count signal is robust.")
+    print("  Interpretation:")
+    print("    Soft negatives (web/download/REST) are expected to reject at ≥80%.")
+    print("    Hard negatives (JSON-RPC/multi-REST/LLM-direct) are the true test:")
+    print("    rejection < 60% on hard negatives means A2A structural signal is weak;")
+    print("    rejection > 80% means the timing + flow-count signal is robust.")
     print(sep)
 
     # ── Save results ──────────────────────────────────────────────────────────
@@ -283,6 +283,6 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description="Open-world evaluation with real background traffic")
     p.add_argument("--processed",    default="data/processed",
                    help="Agentic feature directory (default: data/processed)")
-    p.add_argument("--bg-processed", default="data/processed_background",
+    p.add_argument("--bg-processed", default="data/processed_background_sdk",
                    help="Background feature directory (default: data/processed_background)")
     main(p.parse_args())

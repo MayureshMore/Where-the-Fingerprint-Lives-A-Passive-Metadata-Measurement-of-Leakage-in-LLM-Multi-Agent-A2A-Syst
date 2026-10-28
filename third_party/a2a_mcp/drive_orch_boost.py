@@ -1,0 +1,84 @@
+"""Drive the a2a_mcp orchestrator (:10101) over A2A, MULTI-TURN — FAN-OUT-BOOSTED variant.
+
+Identical to drive_orch.py except the canned multi-turn ANSWER is DESTINATION-AGNOSTIC and
+completion-forcing. The original drive_orch.py hardcodes a Tokyo answer ("Use Narita (NRT) ...
+hotel near Shinjuku"), which is nonsensical for the 20 varied destinations used in instance-2 —
+the planner loops on clarifying questions, hits the turn limit, and never fans out to the
+air/hotel/car specialists (~6% fan-out observed). This variant answers generically and tells the
+planner to proceed and book all three, so a fully-specified query fans out reliably.
+
+Used only to accumulate specialist-role samples for the Phase-2 6-way cross-instance transfer.
+Same framework, same gemini-2.0-flash LITELLM_MODEL — the independence axes are unchanged.
+"""
+import asyncio
+import sys
+from uuid import uuid4
+
+import httpx
+from a2a.client import A2AClient, A2ACardResolver
+from a2a.types import MessageSendParams, SendStreamingMessageRequest
+
+ORCH = "http://localhost:10101"
+
+# Destination-agnostic, completion-forcing answer to ANY clarifying question.
+ANSWER = (
+    "Proceed with your best recommended options and complete ALL THREE bookings now: "
+    "the round-trip flight in economy, a reputable mid-range 4-star hotel near the city "
+    "centre for the requested nights, and a standard mid-size rental car. Use the nearest "
+    "major international airport for the destination I gave. Do not ask any further "
+    "questions — book the flight, the hotel, and the car."
+)
+
+
+def status_of(res):
+    st = getattr(res, "status", None)
+    if st is None:
+        return None, None
+    txt = ""
+    msg = getattr(st, "message", None)
+    if msg is not None:
+        for p in msg.parts:
+            r = getattr(p, "root", p)
+            txt += getattr(r, "text", "") or ""
+    return getattr(st, "state", None), txt
+
+
+async def drive(query: str) -> None:
+    context_id = uuid4().hex
+    msg = query
+    async with httpx.AsyncClient(timeout=240.0) as hc:
+        card = await A2ACardResolver(hc, ORCH).get_agent_card()
+        client = A2AClient(hc, card)
+        for turn in range(1, 7):
+            payload = {"message": {"role": "user", "parts": [{"kind": "text", "text": msg}],
+                                   "messageId": uuid4().hex, "contextId": context_id}}
+            req = SendStreamingMessageRequest(id=str(uuid4()), params=MessageSendParams(**payload))
+            final_state, question, chunks = None, None, 0
+            try:
+                async for chunk in client.send_message_streaming(req):
+                    chunks += 1
+                    res = getattr(chunk.root, "result", chunk.root)
+                    state, txt = status_of(res)
+                    if state is not None:
+                        s = str(state)
+                        if "input_required" in s:
+                            final_state, question = "input_required", txt
+                        elif "completed" in s:
+                            final_state = "completed"
+                        elif "working" in s and final_state is None:
+                            final_state = "working"
+            except Exception as e:  # noqa: BLE001
+                print(f"  turn {turn}: STREAM ERROR {type(e).__name__}: {str(e)[:160]}")
+                return
+            print(f"  turn {turn}: {chunks} chunks, final={final_state}"
+                  + (f", Q={question[:80]!r}" if question else ""))
+            if final_state == "input_required":
+                msg = ANSWER
+                continue
+            break
+        print("DONE")
+
+
+if __name__ == "__main__":
+    q = sys.argv[1] if len(sys.argv) > 1 else "Plan a trip."
+    asyncio.run(drive(q))

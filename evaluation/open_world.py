@@ -22,7 +22,6 @@ from typing import Any
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
-from .metrics import classification_metrics, TopologyMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +89,6 @@ class OpenWorldEval:
             "per_class": {},
         }
 
-        all_classes = self.classes + [UNKNOWN_LABEL]
         for cls in self.classes:
             tp = sum(1 for t, p in zip(all_true, preds) if t == cls and p == cls)
             fp = sum(1 for t, p in zip(all_true, preds) if t != cls and p == cls)

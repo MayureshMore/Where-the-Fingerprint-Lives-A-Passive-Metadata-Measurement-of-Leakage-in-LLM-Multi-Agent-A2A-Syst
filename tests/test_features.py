@@ -1,7 +1,7 @@
 """Unit tests for per-flow feature extraction (determinism + correctness)."""
 import numpy as np
 
-from features.per_flow import compute_per_flow, PerFlowFeatures
+from features.per_flow import compute_per_flow
 
 
 # synthetic packets: (timestamp, wire_size, direction)  direction 1=out, -1=in

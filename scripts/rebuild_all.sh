@@ -12,10 +12,8 @@
 #     NUM_PREDICT  Ollama output-token cap per call       (default 256)
 #
 # DATA LAYOUT (important):
-#   The ORIGINAL (pre-SDK, blocking-protocol) datasets live in root-owned dirs
-#   (data/raw_b, data/raw_amodel, ...) from the earlier sudo collection and are
-#   left UNTOUCHED as the archive.  New SSE data is written to fresh, user-owned
-#   "*_sdk" dirs so the two are never mixed.  Deployment A is the exception:
+#   Deployments B, A-model and B-logic are written to "*_sdk" dirs (the names
+#   the evaluation scripts and the published archive use).  Deployment A is the exception:
 #   evaluate.py hard-codes data/processed, so A re-collects into the (now empty,
 #   user-owned) data/raw -> data/processed.
 #
@@ -49,7 +47,6 @@ for d in data/raw data/processed \
          data/raw_background_sdk data/processed_background_sdk ; do
     rm -rf "$d" 2>/dev/null; mkdir -p "$d"
 done
-echo "  (original root-owned data/raw_b, data/raw_amodel, ... left intact as archive)" | tee -a "$LOG"
 
 # ── 1. Collect all four deployments ──────────────────────────────────────────
 stage "COLLECT A  (A-logic + llama3.2:3b)"

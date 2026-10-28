@@ -344,7 +344,7 @@ def main(args: argparse.Namespace) -> None:
     print("  " + "-" * 70)
     if validation:
         v = validation
-        print(f"  VALIDATION vs committed live points:")
+        print("  VALIDATION vs committed live points:")
         print(f"    identity  sim F1={v['identity_sim_macro_f1']:.3f}  "
               f"vs live none F1={v['committed_baseline_macro_f1']:.3f}")
         if v.get("pad512_sim_macro_f1") is not None:

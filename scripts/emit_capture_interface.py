@@ -45,26 +45,28 @@ _LOOPBACK_NAMES = {"localhost", "::1"}
 # never hand-set, so a wrong lineage entry shows up as a mismatch rather than a silent wrong label.
 _RESULT_LINEAGE: dict[str, list[str]] = {
     "closed_world/":                   ["data/raw"],
-    "model_vs_logic.json":             ["data/raw", "data/raw_amodel", "data/raw_blogic", "data/raw_b"],
-    "cross_deployment.json":           ["data/raw", "data/raw_b"],
+    "model_vs_logic.json":             ["data/raw", "data/raw_amodel_sdk", "data/raw_blogic_sdk", "data/raw_b_sdk"],
+    "cross_deployment.json":           ["data/raw", "data/raw_b_sdk"],
     "cross_framework.json":            ["data/raw", "data/raw_langgraph"],
     "runtime_traffic_diagnostic.json": ["data/raw", "data/raw_langgraph"],
     "c5_cross_network.json":           ["data/raw", "data/raw_wan"],
     "defense/defense_live.json":       ["data/raw", "data/raw_defense_rate", "data/raw_defense_pad"],
     "open_world/":                     ["data/raw"],
-    "open_world_background.json":      ["data/raw", "data/raw_background"],
+    "open_world_background.json":      ["data/raw", "data/raw_background_sdk"],
     "offtheshelf_detection.json":      ["data/raw_offtheshelf", "data/raw_background"],
     "offtheshelf_topology.json":       ["data/raw_offtheshelf"],
     "offtheshelf_fingerprint.json":    ["data/raw_offtheshelf"],
-    "framework_id.json":               ["data/raw", "data/raw_b", "data/raw_langgraph", "data/raw_offtheshelf"],
-    "framework_id_control.json":       ["data/raw_interleaved_a", "data/raw_interleaved_b"],
-    "confound_control.json":           ["data/raw_interleaved_a", "data/raw_interleaved_b"],
+    "framework_id.json":               ["data/raw", "data/raw_b_sdk", "data/raw_langgraph", "data/raw_offtheshelf"],
+    "framework_id_interleaved.json":   ["data/raw_interleaved_a", "data/raw_interleaved_b", "data/raw_interleaved_langgraph"],
+    "confound_control.json":           ["data/raw", "data/raw_interleaved_a_pwr", "data/raw_wf_interleaved",
+                                        "data/raw_wf_interleaved_full"],
     "cross_instance_transfer.json":    ["data/raw_offtheshelf", "data/raw_offtheshelf_inst2"],
-    "cross_framework_autogen.json":    ["data/raw_offtheshelf", "~/autogen-xframework/data/raw"],
-    "agentic_detection.json":          ["data/raw_offtheshelf", "~/autogen-xframework/data/raw"],
+    "cross_instance_transfer_natural.json": ["data/raw_offtheshelf", "data/raw_offtheshelf_inst2_natural"],
+    "cross_framework_autogen.json":    ["data/raw_offtheshelf", "data/raw_autogen"],
+    "agentic_detection.json":          ["data/raw_offtheshelf", "data/raw_autogen"],
     "mixing_degradation.json":         ["data/raw_offtheshelf", "data/raw_background"],
-    "crewai_detection.json":           ["data/raw_offtheshelf", "~/crewai-xframework/data/raw"],
-    "crewai_matched_detection.json":   ["data/raw", "~/crewai-xframework/data/raw_matched"],
+    "crewai_detection.json":           ["data/raw_offtheshelf", "data/raw_crewai"],
+    "crewai_matched_detection.json":   ["data/raw", "data/raw_crewai_matched"],
     "group_bootstrap_check.json":      ["data/raw", "data/raw_offtheshelf", "data/raw_offtheshelf_inst2"],
 }
 
@@ -206,14 +208,9 @@ def declared_interfaces(cfg_dir: Path) -> dict:
 
 def main(a: argparse.Namespace) -> None:
     root = Path(".")
-    raw_dirs = sorted([p for p in root.glob("data/raw*") if p.is_dir()])
-    ext = [Path(os.path.expanduser(p)) for p in
-           ("~/autogen-xframework/data/raw", "~/crewai-xframework/data/raw",
-            "~/crewai-xframework/data/raw_matched")]
-    per_dir = {}
-    for d in raw_dirs + [p for p in ext if p.exists()]:
-        key = str(d).replace(os.path.expanduser("~"), "~")
-        per_dir[key] = capture_interface_for(d)
+    # Only the capture sets that back a committed result (scratch/superseded dirs are ignored).
+    lineage_dirs = sorted({d for dirs in _RESULT_LINEAGE.values() for d in dirs})
+    per_dir = {d: capture_interface_for(Path(d)) for d in lineage_dirs if Path(d).is_dir()}
 
     declared = declared_interfaces(root / "configs")
 
@@ -250,7 +247,7 @@ def main(a: argparse.Namespace) -> None:
     for res, dirs in _RESULT_LINEAGE.items():
         entries = []
         for d in dirs:
-            key = d.replace(os.path.expanduser("~"), "~")
+            key = d
             info = per_dir.get(key) or capture_interface_for(Path(d))
             entries.append({"dir": key, "capture": info.get("capture", info.get("status"))})
         caps = {e["capture"] for e in entries}

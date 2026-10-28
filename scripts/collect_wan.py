@@ -25,12 +25,12 @@ Prereqs:
 
 Usage (on the US host) — once per topology, matching the remote:
     sudo venv/bin/python scripts/collect_wan.py \
-        --remote-host 203.0.113.7 --iface en0 \
+        --remote-host 203.0.113.7 --iface utun8 \
         --deployment a --topology star --n 50 --num-predict 256 --out data/raw_wan
 
 Then extract + evaluate:
     venv/bin/python scripts/extract_features.py --raw data/raw_wan --out data/processed_wan --scapy
-    venv/bin/python scripts/evaluate_cross_network.py --local data/processed --wan data/processed_wan
+    venv/bin/python scripts/evaluate_c5.py --local data/processed --wan data/processed_wan
 """
 
 from __future__ import annotations

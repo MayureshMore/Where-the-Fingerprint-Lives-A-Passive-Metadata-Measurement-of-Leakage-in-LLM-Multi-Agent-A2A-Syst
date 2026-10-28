@@ -51,7 +51,7 @@ workflow / role — THE ACTUAL ATTACK TARGETS:
 
 Usage:
     python scripts/evaluate_cross_deployment.py
-    python scripts/evaluate_cross_deployment.py --dir-a data/processed --dir-b data/processed_b
+    python scripts/evaluate_cross_deployment.py --dir-a data/processed --dir-b data/processed_b_sdk
     python scripts/evaluate_cross_deployment.py --task workflow role
     python scripts/evaluate_cross_deployment.py --no-bootstrap   # faster, no CIs
 """
@@ -481,8 +481,8 @@ def main(args: argparse.Namespace) -> None:
     if not b_exists:
         logger.warning(
             "Deployment B data not found at %s.  "
-            "Run: sudo venv/bin/python scripts/run_pilot.py --deployment b --n 50 --out data/raw_b  "
-            "then: python scripts/extract_features.py --raw data/raw_b --out %s --scapy",
+            "Run: sudo venv/bin/python scripts/run_pilot.py --deployment b --n 50 --out data/raw_b_sdk  "
+            "then: python scripts/extract_features.py --raw data/raw_b_sdk --out %s --scapy",
             dir_b, dir_b,
         )
         logger.warning("Running A→A internal-CV only.")
@@ -629,8 +629,8 @@ def _parse() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Cross-deployment generalization evaluation")
     p.add_argument("--dir-a", default="data/processed",
                    help="Processed features directory for deployment A (default: data/processed)")
-    p.add_argument("--dir-b", default="data/processed_b",
-                   help="Processed features directory for deployment B (default: data/processed_b)")
+    p.add_argument("--dir-b", default="data/processed_b_sdk",
+                   help="Processed features directory for deployment B (default: data/processed_b_sdk)")
     p.add_argument("--tasks", nargs="+", choices=_TASKS, default=_TASKS,
                    help="Tasks to evaluate (default: all four)")
     p.add_argument("--no-bootstrap", action="store_true",

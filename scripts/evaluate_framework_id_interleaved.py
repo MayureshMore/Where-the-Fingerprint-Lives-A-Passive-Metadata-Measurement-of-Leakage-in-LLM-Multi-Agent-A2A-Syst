@@ -204,7 +204,7 @@ def main(args: argparse.Namespace) -> None:
     print("=" * 74)
     print(f"  classes={list(counts)}  n_per_class={counts}  chance(3way)={chance:.3f}")
     if two:
-        print(f"  ★ HEADLINE  A↔C 2-way (asyncio vs LangGraph, balanced, chance 0.50):")
+        print("  ★ HEADLINE  A↔C 2-way (asyncio vs LangGraph, balanced, chance 0.50):")
         print(f"      interleaved macro-F1 = {ac2_f:.3f} [{two['macro_f1_ci_lo']:.3f}, {two['macro_f1_ci_hi']:.3f}]"
               f"   (no-timing {ac2_nt:.3f})")
     print(f"  full 3-way macro-F1 = {full['macro_f1']:.3f} "

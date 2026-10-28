@@ -28,15 +28,15 @@ If A→B_logic << A→B         → logic is the dominant factor; model is secon
 Data collection (run these first):
     # Model-only variant: A-logic + qwen2.5:7b
     sudo venv/bin/python scripts/run_pilot.py \\
-        --model qwen2.5:7b --n 50 --out data/raw_amodel
+        --model qwen2.5:7b --n 50 --out data/raw_amodel_sdk
 
     # Logic-only variant: B-logic + llama3.2:3b
     sudo venv/bin/python scripts/run_pilot.py --deployment b \\
-        --model llama3.2:3b --n 50 --out data/raw_blogic
+        --model llama3.2:3b --n 50 --out data/raw_blogic_sdk
 
     # Extract features for both
-    python scripts/extract_features.py --raw data/raw_amodel --out data/processed_amodel --scapy
-    python scripts/extract_features.py --raw data/raw_blogic --out data/processed_blogic --scapy
+    python scripts/extract_features.py --raw data/raw_amodel_sdk --out data/processed_amodel_sdk --scapy
+    python scripts/extract_features.py --raw data/raw_blogic_sdk --out data/processed_blogic_sdk --scapy
 
 Usage:
     python scripts/evaluate_model_vs_logic.py
@@ -51,7 +51,6 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 
@@ -213,7 +212,6 @@ def _print_task(task, results, do_ci):
     # Interpretation
     am_f1 = results.get("A_Amodel", {}).get("macro_f1")
     bl_f1 = results.get("A_Blogic", {}).get("macro_f1")
-    ab_f1 = results.get("AB",       {}).get("macro_f1")
 
     if am_f1 is None or bl_f1 is None:
         print()
@@ -261,15 +259,15 @@ def main(args):
     if not have_amodel or not have_blogic:
         missing = []
         if not have_amodel:
-            missing.append(f"  data/raw_amodel:  sudo venv/bin/python scripts/run_pilot.py "
-                           f"--model qwen2.5:7b --n 50 --out data/raw_amodel\n"
+            missing.append(f"  data/raw_amodel_sdk:  sudo venv/bin/python scripts/run_pilot.py "
+                           f"--model qwen2.5:7b --n 50 --out data/raw_amodel_sdk\n"
                            f"                   python scripts/extract_features.py "
-                           f"--raw data/raw_amodel --out {dir_amodel} --scapy")
+                           f"--raw data/raw_amodel_sdk --out {dir_amodel} --scapy")
         if not have_blogic:
-            missing.append(f"  data/raw_blogic:  sudo venv/bin/python scripts/run_pilot.py --deployment b "
-                           f"--model llama3.2:3b --n 50 --out data/raw_blogic\n"
+            missing.append(f"  data/raw_blogic_sdk:  sudo venv/bin/python scripts/run_pilot.py --deployment b "
+                           f"--model llama3.2:3b --n 50 --out data/raw_blogic_sdk\n"
                            f"                   python scripts/extract_features.py "
-                           f"--raw data/raw_blogic --out {dir_blogic} --scapy")
+                           f"--raw data/raw_blogic_sdk --out {dir_blogic} --scapy")
         print("\n" + "=" * 70)
         print("  MODEL-VS-LOGIC EXPERIMENT — DATA MISSING")
         print("=" * 70)
@@ -364,11 +362,11 @@ def _parse():
     p = argparse.ArgumentParser(description="Model-vs-logic disentanglement experiment")
     p.add_argument("--dir-a",      default="data/processed",
                    help="Deployment A processed features (baseline)")
-    p.add_argument("--dir-amodel", default="data/processed_amodel",
+    p.add_argument("--dir-amodel", default="data/processed_amodel_sdk",
                    help="Model-only variant: A-logic + qwen2.5:7b")
-    p.add_argument("--dir-blogic", default="data/processed_blogic",
+    p.add_argument("--dir-blogic", default="data/processed_blogic_sdk",
                    help="Logic-only variant: B-logic + llama3.2:3b")
-    p.add_argument("--dir-b",      default="data/processed_b",
+    p.add_argument("--dir-b",      default="data/processed_b_sdk",
                    help="Deployment B: B-logic + qwen2.5:7b (original cross-deployment)")
     p.add_argument("--tasks", nargs="+", choices=_TASKS, default=_TASKS)
     p.add_argument("--no-bootstrap", action="store_true")

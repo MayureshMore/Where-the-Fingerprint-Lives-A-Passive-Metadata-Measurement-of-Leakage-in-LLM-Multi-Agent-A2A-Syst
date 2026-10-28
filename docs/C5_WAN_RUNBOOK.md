@@ -228,10 +228,8 @@ impoverished" (low WAN-internal) from "the model doesn't transfer vantages"
 (high WAN-internal but low LAN→WAN). `data/results/c5_cross_network.json` is the
 **single source of truth** cited by [`RESULTS.md`](../RESULTS.md) §4 and the paper.
 
-> The earlier `scripts/evaluate_cross_network.py` (which wrote
-> `data/results/cross_network.json` — transfer-only, no CIs, an earlier n=395 run)
-> is **deprecated** and now forwards to `evaluate_c5.py`, so the canonical file
-> above is the only authoritative C5 result.
+> An earlier `evaluate_cross_network.py` (transfer-only, no CIs, an earlier n=395 run)
+> has been removed; `evaluate_c5.py` and the canonical file above are the only C5 result.
 
 ---
 

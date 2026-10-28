@@ -94,7 +94,7 @@ driver-confounded. This is a completeness call, ~$6–12, prepared and one comma
 ## Task 3 — AutoGen cross-framework replication + transfer — ✅ PILOT DONE
 
 > **STATUS UPDATE (this session): the AutoGen pilot is built and run.** Findings below;
-> `data/results/cross_framework_autogen.json`, RESULTS.md §10, deployment in `~/autogen-xframework/`,
+> `data/results/cross_framework_autogen.json`, RESULTS.md §10, deployment in `frameworks/autogen/`,
 > analysis in `scripts/evaluate_cross_framework_autogen.py`. The original plan follows for context
 > and for the CrewAI / robustness extensions that remain.
 

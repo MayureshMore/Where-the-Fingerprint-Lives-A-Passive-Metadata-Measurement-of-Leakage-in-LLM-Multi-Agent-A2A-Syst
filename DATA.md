@@ -12,17 +12,16 @@ figures you download a published data archive and unpack it into `data/`.
 
 ## Published archives
 
-| Archive | Contents | Size (approx) | Needed for |
+| Archive | Contents | Unpacked size | Needed for |
 |---|---|---|---|
-| `a2a-features.zip` | `data/processed*/` — the `.npz` feature matrices + `labels.json` for every deployment (A, B, amodel, blogic, **C/LangGraph**), background, defended sets, the C5 WAN capture, and (when captured) the **off-the-shelf** `a2a_mcp` set | small (tens of MB) | **all of `reproduce.sh`** except live-defense overhead |
-| `a2a-raw-pcaps.zip` | `data/raw*/` — header-only `.pcap` captures (96-byte snaplen, metadata only, no payload) + `.json` label sidecars | large (GBs) | live-defense **byte/latency overhead** only, and re-extracting features from scratch |
+| `a2a-features.zip` | the 17 `data/processed*/` sets listed below — `.npz` feature matrices + `labels.json` | ≈100 MB | the short demo, closed-world, transfer (model-vs-logic, A↔B, A↔C), WAN, open-world and confound stages |
+| `a2a-raw-pcaps.zip` | the 22 `data/raw*/` sets listed below — 96-byte-snaplen `.pcap` captures (metadata only, no payload) + `.json` label sidecars | ≈310 MB | the `a2a_mcp`, AutoGen and CrewAI stages (they read pcaps directly), defense overhead, mixing, and re-extracting features |
 
 **Archive location:** `<ARCHIVE_URL — to be filled in after the Zenodo/figshare/OSF upload>`
 **`a2a-features.zip` SHA-256:** `<SHA256 — from dist/SHA256SUMS.txt, filled in after upload>`
 
-Most reproduction needs only `a2a-features.zip` (≈50–80 MB unpacked). Download the
-raw-pcap archive only if you want the C4 defense *overhead* numbers (which are measured
-from the wire) or intend to re-run feature extraction.
+`bash scripts/reproduce.sh` (the short demo) needs only `a2a-features.zip`. The full suite
+(`--full-suite`) needs both archives.
 
 ## Verify, then unpack
 
@@ -34,10 +33,10 @@ From the repository root, **verify the download integrity first** (the release s
 shasum -a 256 a2a-features.zip        # compare against the SHA-256 above
 #   or, against the shipped manifest:  shasum -a 256 -c SHA256SUMS.txt
 
-# features only (enough for the deterministic table/figure reproduction)
+# features (enough for the short demo)
 unzip a2a-features.zip -d .        # creates data/processed*/...
 
-# optional: raw captures (only for defense-overhead numbers / re-extraction)
+# raw captures (needed for the full suite)
 unzip a2a-raw-pcaps.zip -d .       # creates data/raw*/...
 ```
 
@@ -45,18 +44,25 @@ After unpacking, the layout matches what the scripts expect:
 
 ```
 data/
-  processed/                 deployment A (llama3.2:3b) — the headline
-  processed_b_sdk/           deployment B (qwen2.5:7b)  — cross-deployment
-  processed_amodel_sdk/      A-logic + qwen2.5:7b       — model-vs-logic
-  processed_blogic_sdk/      B-logic + llama3.2:3b      — model-vs-logic
-  processed_background_sdk/  real background traffic    — open-world
-  processed_langgraph/       deployment C (LangGraph runtime, A's logic/prompts) — cross-framework runtime-invariance control
-  processed_offtheshelf/     Google a2a_mcp (external author) — Phase 5 detection / topology observability only (no transfer; see docs/PHASE5_A2A_MCP_PATCHES.md)
-  processed_wan/             US⇄India WAN capture       — C5
-  processed_defense_rate/    live "rate" defense
-  processed_defense_pad/     live "pad" defense
-  raw*/                      (only if you unpacked a2a-raw-pcaps.zip)
-  results/                   committed in the repo — the frozen canonical results
+  processed/, raw/                         deployment A (llama3.2:3b) — the headline (§5.1)
+  processed_b_sdk/, raw_b_sdk/             deployment B (qwen2.5:7b, sequential) — cross-deployment (§5.3)
+  processed_amodel_sdk/, raw_amodel_sdk/   A's logic + B's model — model-vs-logic (§5.2)
+  processed_blogic_sdk/, raw_blogic_sdk/   B's logic + A's model — model-vs-logic (§5.2)
+  processed_langgraph/, raw_langgraph/     deployment C (LangGraph runtime only) — runtime control (§5.2)
+  processed_background_sdk/, raw_background_sdk/   real non-agentic background — open world (§5.4)
+  processed_background/, raw_background/   background used by the mixing experiment (§5.11)
+  processed_defense_rate/, raw_defense_rate/   live rate/count defense (§5.5)
+  processed_defense_pad/, raw_defense_pad/     live size-padding defense (§5.5)
+  processed_wan/, raw_wan/                 US⇄India WAN capture (§5.6)
+  processed_offtheshelf/, raw_offtheshelf/ Google a2a_mcp, instance 1 (§5.7)
+  raw_offtheshelf_inst2/                   a2a_mcp instance 2, boosted specialist top-up (§5.9)
+  raw_offtheshelf_inst2_natural/           a2a_mcp instance 2, natural re-collection (§5.9)
+  processed_interleaved_{a,b,langgraph}/, raw_interleaved_{a,b,langgraph}/   same-session control (§5.8)
+  processed_interleaved_a_pwr/, raw_interleaved_a_pwr/                       powered interleaved A (§5.8)
+  processed_wf_interleaved{,_full}/, raw_wf_interleaved{,_full}/             workflow-diverse interleaved (§5.8)
+  raw_autogen/                             AutoGen gRPC deployment (§5.10–5.11)
+  raw_crewai/, raw_crewai_matched/         CrewAI over a2a-sdk; matched A-vs-CrewAI pair (§5.11)
+  results/                                 committed in the repo — the frozen canonical results
 ```
 
 Then follow **Reproducing the paper** in [README.md](README.md).

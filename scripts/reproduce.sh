@@ -154,6 +154,11 @@ else
     stage "off-the-shelf role fingerprint (Task #4 — a2a_mcp replication; needs off-the-shelf pcaps)"
     if have "data/raw_offtheshelf" "$A/labels.json"; then
         run $PY scripts/evaluate_offtheshelf_fingerprint.py --raw data/raw_offtheshelf --a-role "$A"; fi
+    stage "off-the-shelf topology from headers + A2A-vs-background detection (a2a_mcp)"
+    if have "data/raw_offtheshelf" "$A/labels.json" "data/processed_offtheshelf/labels.json" \
+            "data/processed_background/labels_background.json"; then
+        run $PY scripts/analyze_offtheshelf_topology.py
+        run $PY scripts/evaluate_offtheshelf_detection.py; fi
     stage "framework/implementation ID (Phase 1 recon; needs ≥3 impls' processed features)"
     if have "$A/labels.json" "$LANGGRAPH/labels.json"; then
         run $PY scripts/evaluate_framework_id.py; fi
@@ -175,20 +180,20 @@ else
     if have "data/raw_offtheshelf" "data/raw_offtheshelf_inst2_natural"; then
         run env MIN_N=10 CIT_OUT=cross_instance_transfer_natural.json \
             $PY scripts/evaluate_cross_instance_transfer.py --inst2 data/raw_offtheshelf_inst2_natural; fi
-    stage "cross-FRAMEWORK replication on AutoGen (§10; reads AutoGen gRPC pcaps — external deployment ~/autogen-xframework)"
-    if have "$HOME/autogen-xframework/data/raw" "data/raw_offtheshelf"; then
+    stage "cross-FRAMEWORK replication on AutoGen (§10; reads AutoGen gRPC pcaps — external deployment frameworks/autogen)"
+    if have "data/raw_autogen" "data/raw_offtheshelf"; then
         run $PY scripts/evaluate_cross_framework_autogen.py; fi
     stage "agentic detection A2A-vs-AutoGen (Exp 1 / §11; reads a2a_mcp + AutoGen pcaps)"
-    if have "data/raw_offtheshelf" "$HOME/autogen-xframework/data/raw"; then
+    if have "data/raw_offtheshelf" "data/raw_autogen"; then
         run $PY scripts/evaluate_agentic_detection.py; fi
     stage "mixing/multiplexing degradation (Exp 2 / §12; a2a_mcp flows + processed background)"
     if have "data/raw_offtheshelf" "data/processed_background/labels_background.json"; then
         run $PY scripts/evaluate_mixing_degradation.py; fi
-    stage "same-transport detection A2A-vs-CrewAI (Exp 3 / §13; reads a2a_mcp + CrewAI-over-a2a-sdk pcaps — external deployment ~/crewai-xframework)"
-    if have "data/raw_offtheshelf" "$HOME/crewai-xframework/data/raw"; then
+    stage "same-transport detection A2A-vs-CrewAI (Exp 3 / §13; reads a2a_mcp + CrewAI-over-a2a-sdk pcaps — external deployment frameworks/crewai)"
+    if have "data/raw_offtheshelf" "data/raw_crewai"; then
         run $PY scripts/evaluate_crewai_detection.py; fi
-    stage "matched-pair detection A-vs-CrewAI, ALL ELSE EQUAL (§13.1; reads deployment-A pcaps + matched CrewAI on A's roles/prompts — ~/crewai-xframework/data/raw_matched)"
-    if have "data/raw" "$HOME/crewai-xframework/data/raw_matched"; then
+    stage "matched-pair detection A-vs-CrewAI, ALL ELSE EQUAL (§13.1; reads deployment-A pcaps + matched CrewAI on A's roles/prompts — data/raw_crewai_matched)"
+    if have "data/raw" "data/raw_crewai_matched"; then
         run $PY scripts/evaluate_crewai_matched_detection.py; fi
     stage "capture-interface provenance manifest (C1; loopback vs cross-host, derived from traces)"
     if have "data/raw"; then

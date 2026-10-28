@@ -24,11 +24,11 @@
 #   BUDGET_USD=10 COST_PER_TRACE=0.11 bash scripts/collect_offtheshelf.sh 15   # calibration batch
 #   SPENT_SO_FAR=0.9 COST_PER_TRACE=0.06 BUDGET_USD=10 bash scripts/collect_offtheshelf.sh 140  # bulk
 #
-# Requires the 8 compat fixes already applied to ~/a2a-samples (.../a2a_mcp) and
+# Requires the 8 compat fixes already applied to $A2A_SAMPLES_DIR (default ~/a2a-samples) (.../a2a_mcp) and
 # its drive_orch.py multi-turn A2A driver.
 set -u
 
-SAMPLE_DIR="$HOME/a2a-samples/samples/python/agents/a2a_mcp"
+SAMPLE_DIR="${A2A_SAMPLES_DIR:-$HOME/a2a-samples}/samples/python/agents/a2a_mcp"   # set A2A_SAMPLES_DIR to your a2a-samples checkout
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$REPO_DIR/data/raw_offtheshelf"
 IFACE="lo0"; PORTS="10100-10105"
@@ -42,6 +42,7 @@ SPENT_SO_FAR="${SPENT_SO_FAR:-0}"          # USD already spent in earlier paid b
 MAX_RETRIES="${MAX_RETRIES:-2}"            # transient-429 (RPM/TPM) retries per trip before giving up
 BACKOFF_S="${BACKOFF_S:-30}"               # seconds to wait before retrying a transient 429
 
+[ -f "$SAMPLE_DIR/drive_orch.py" ] || cp "$REPO_DIR/third_party/a2a_mcp/drive_orch.py" "$SAMPLE_DIR/" 2>/dev/null
 [ -f "$SAMPLE_DIR/drive_orch.py" ] || { echo "ERROR: $SAMPLE_DIR/drive_orch.py missing"; exit 1; }
 grep -qE '^GOOGLE_API_KEY=.{10,}' "$SAMPLE_DIR/.env" 2>/dev/null || { echo "ERROR: GOOGLE_API_KEY not set in $SAMPLE_DIR/.env"; exit 1; }
 mkdir -p "$OUT" "$SAMPLE_DIR/logs"

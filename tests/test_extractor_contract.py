@@ -10,7 +10,6 @@ biggest cross-community bridge (TraceLabeler / WorkflowRun + flow canonicalizati
   2. WorkflowRun sidecar round-trips through TraceLabeler and carries every field
      the feature extractor / evaluation consume.
 """
-from pathlib import Path
 
 import pytest
 

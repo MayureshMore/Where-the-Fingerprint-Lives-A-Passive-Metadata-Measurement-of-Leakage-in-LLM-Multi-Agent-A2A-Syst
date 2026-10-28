@@ -35,7 +35,7 @@
 #   MIN_N=10 venv/bin/python scripts/evaluate_cross_instance_transfer.py --inst2 data/raw_offtheshelf_inst2_natural
 set -u
 
-SAMPLE_DIR="$HOME/a2a-samples/samples/python/agents/a2a_mcp"
+SAMPLE_DIR="${A2A_SAMPLES_DIR:-$HOME/a2a-samples}/samples/python/agents/a2a_mcp"   # set A2A_SAMPLES_DIR to your a2a-samples checkout
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$REPO_DIR/data/raw_offtheshelf_inst2"                # seed source (natural trips reused)
 OUT="$REPO_DIR/data/raw_offtheshelf_inst2_natural"        # clean natural-only instance-2 set
@@ -53,6 +53,7 @@ SPENT_SO_FAR="${SPENT_SO_FAR:-0}"
 MAX_RETRIES="${MAX_RETRIES:-2}"
 BACKOFF_S="${BACKOFF_S:-30}"
 
+[ -f "$SAMPLE_DIR/$DRIVER" ] || cp "$REPO_DIR/third_party/a2a_mcp/$DRIVER" "$SAMPLE_DIR/" 2>/dev/null
 [ -f "$SAMPLE_DIR/$DRIVER" ] || { echo "BLOCKED: $SAMPLE_DIR/$DRIVER missing"; exit 1; }
 grep -qE '^GOOGLE_API_KEY=.{10,}' "$SAMPLE_DIR/.env" 2>/dev/null || { echo "BLOCKED: GOOGLE_API_KEY not set in $SAMPLE_DIR/.env"; exit 1; }
 mkdir -p "$OUT" "$SAMPLE_DIR/logs"

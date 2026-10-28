@@ -286,7 +286,7 @@ def run(processed: Path, background: Path, offtheshelf: Path, results_dir: Path)
     if novelty:
         print(f"  context — workflow-novelty (WRONG tool): AUC {novelty['auc_offtheshelf_vs_background']:.3f} "
               f"(< 0.5 ⇒ fails; different workflow)")
-    print(f"  caveat: easy negatives — see JSON; harder negatives (other frameworks) = future work")
+    print("  caveat: easy negatives — see JSON; harder negatives (other frameworks) = future work")
     print(f"  scope: DETECTION only — no transfer claim\n{sep}")
     logger.info("Wrote %s", results_dir / "offtheshelf_detection.json")
 

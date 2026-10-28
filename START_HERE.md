@@ -69,7 +69,8 @@ bash scripts/reproduce.sh
 Re-analyses the published feature matrices into a **sandbox** (`data/results_demo/`) and
 prints a side-by-side check against the committed canonical results — it **never overwrites
 `data/results/`**. Download/unpack the feature archive first; layout and the archive URL are
-in [DATA.md](DATA.md). Add `--full-suite` to run the whole evaluation suite (RF+GBT); add
+in [DATA.md](DATA.md). Add `--full-suite` to run the whole evaluation suite (RF+GBT; needs the raw-pcap
+archive too); add
 `--with-deep` on top (`--full-suite --with-deep`) to also train the CNN/Transformer.
 
 ---

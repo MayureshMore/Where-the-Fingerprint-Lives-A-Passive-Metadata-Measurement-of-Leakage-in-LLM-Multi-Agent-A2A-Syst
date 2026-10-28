@@ -80,7 +80,7 @@ DEPLOYMENTS: dict[str, dict] = {
         "retriever": RetrieverB,
         "validator": ValidatorB,
         "default_model": "qwen2.5:7b",
-        "default_out": "data/raw_b",
+        "default_out": "data/raw_b_sdk",
     },
     # Deployment C — runtime-invariance control (LangGraph StateGraph orchestrator).
     # Reuses A's specialists, call structure, and prompts unchanged (label alignment);

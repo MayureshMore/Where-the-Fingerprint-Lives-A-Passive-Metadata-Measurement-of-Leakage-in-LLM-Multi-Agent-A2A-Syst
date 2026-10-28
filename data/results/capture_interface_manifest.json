@@ -28,26 +28,6 @@
       "single_host_kind": "loopback",
       "interface_class": "lo (single host, tcpdump on loopback)"
     },
-    "data/raw_amodel": {
-      "dir": "data/raw_amodel",
-      "capture": "single_host",
-      "n_distinct_hosts": 1,
-      "distinct_hosts": [
-        "127.0.0.1"
-      ],
-      "served_agent_hosts": [
-        "127.0.0.1"
-      ],
-      "wire_hosts": [
-        "127.0.0.1"
-      ],
-      "agents_colocated": true,
-      "n_traces_with_endpoints": 600,
-      "evidence_source": "pcap packets (authoritative for host count) \u222a sidecar agent_endpoints",
-      "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
-      "single_host_kind": "loopback",
-      "interface_class": "lo (single host, tcpdump on loopback)"
-    },
     "data/raw_amodel_sdk": {
       "dir": "data/raw_amodel_sdk",
       "capture": "single_host",
@@ -68,21 +48,19 @@
       "single_host_kind": "loopback",
       "interface_class": "lo (single host, tcpdump on loopback)"
     },
-    "data/raw_b": {
-      "dir": "data/raw_b",
+    "data/raw_autogen": {
+      "dir": "data/raw_autogen",
       "capture": "single_host",
       "n_distinct_hosts": 1,
       "distinct_hosts": [
         "127.0.0.1"
       ],
-      "served_agent_hosts": [
-        "127.0.0.1"
-      ],
+      "served_agent_hosts": [],
       "wire_hosts": [
         "127.0.0.1"
       ],
       "agents_colocated": true,
-      "n_traces_with_endpoints": 600,
+      "n_traces_with_endpoints": 0,
       "evidence_source": "pcap packets (authoritative for host count) \u222a sidecar agent_endpoints",
       "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
       "single_host_kind": "loopback",
@@ -144,26 +122,6 @@
       "single_host_kind": "loopback",
       "interface_class": "lo (single host, tcpdump on loopback)"
     },
-    "data/raw_blogic": {
-      "dir": "data/raw_blogic",
-      "capture": "single_host",
-      "n_distinct_hosts": 1,
-      "distinct_hosts": [
-        "127.0.0.1"
-      ],
-      "served_agent_hosts": [
-        "127.0.0.1"
-      ],
-      "wire_hosts": [
-        "127.0.0.1"
-      ],
-      "agents_colocated": true,
-      "n_traces_with_endpoints": 600,
-      "evidence_source": "pcap packets (authoritative for host count) \u222a sidecar agent_endpoints",
-      "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
-      "single_host_kind": "loopback",
-      "interface_class": "lo (single host, tcpdump on loopback)"
-    },
     "data/raw_blogic_sdk": {
       "dir": "data/raw_blogic_sdk",
       "capture": "single_host",
@@ -179,6 +137,42 @@
       ],
       "agents_colocated": true,
       "n_traces_with_endpoints": 590,
+      "evidence_source": "pcap packets (authoritative for host count) \u222a sidecar agent_endpoints",
+      "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
+      "single_host_kind": "loopback",
+      "interface_class": "lo (single host, tcpdump on loopback)"
+    },
+    "data/raw_crewai": {
+      "dir": "data/raw_crewai",
+      "capture": "single_host",
+      "n_distinct_hosts": 1,
+      "distinct_hosts": [
+        "127.0.0.1"
+      ],
+      "served_agent_hosts": [
+        "127.0.0.1"
+      ],
+      "wire_hosts": [],
+      "agents_colocated": true,
+      "n_traces_with_endpoints": 30,
+      "evidence_source": "pcap packets (authoritative for host count) \u222a sidecar agent_endpoints",
+      "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
+      "single_host_kind": "loopback",
+      "interface_class": "lo (single host, tcpdump on loopback)"
+    },
+    "data/raw_crewai_matched": {
+      "dir": "data/raw_crewai_matched",
+      "capture": "single_host",
+      "n_distinct_hosts": 1,
+      "distinct_hosts": [
+        "127.0.0.1"
+      ],
+      "served_agent_hosts": [
+        "127.0.0.1"
+      ],
+      "wire_hosts": [],
+      "agents_colocated": true,
+      "n_traces_with_endpoints": 39,
       "evidence_source": "pcap packets (authoritative for host count) \u222a sidecar agent_endpoints",
       "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
       "single_host_kind": "loopback",
@@ -399,69 +393,6 @@
       "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
       "interface_class": "cross-host capture: 2 machines exchanged packets on a real network path \u2014 but the SERVED agents are CO-LOCATED on a single host, so this is a real network path with a remote client/orchestrator, NOT a geo-distributed agent mesh"
     },
-    "data/raw_wan_poc": {
-      "dir": "data/raw_wan_poc",
-      "capture": "cross_host",
-      "n_distinct_hosts": 2,
-      "distinct_hosts": [
-        "10.16.0.35",
-        "192.168.3.5"
-      ],
-      "served_agent_hosts": [
-        "10.16.0.35"
-      ],
-      "wire_hosts": [
-        "10.16.0.35",
-        "192.168.3.5"
-      ],
-      "agents_colocated": true,
-      "n_traces_with_endpoints": 4,
-      "evidence_source": "pcap packets (authoritative for host count) \u222a sidecar agent_endpoints",
-      "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
-      "interface_class": "cross-host capture: 2 machines exchanged packets on a real network path \u2014 but the SERVED agents are CO-LOCATED on a single host, so this is a real network path with a remote client/orchestrator, NOT a geo-distributed agent mesh"
-    },
-    "data/raw_wan_poc2": {
-      "dir": "data/raw_wan_poc2",
-      "capture": "cross_host",
-      "n_distinct_hosts": 2,
-      "distinct_hosts": [
-        "10.16.0.35",
-        "192.168.3.5"
-      ],
-      "served_agent_hosts": [
-        "10.16.0.35"
-      ],
-      "wire_hosts": [
-        "10.16.0.35",
-        "192.168.3.5"
-      ],
-      "agents_colocated": true,
-      "n_traces_with_endpoints": 2,
-      "evidence_source": "pcap packets (authoritative for host count) \u222a sidecar agent_endpoints",
-      "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
-      "interface_class": "cross-host capture: 2 machines exchanged packets on a real network path \u2014 but the SERVED agents are CO-LOCATED on a single host, so this is a real network path with a remote client/orchestrator, NOT a geo-distributed agent mesh"
-    },
-    "data/raw_wan_poc3": {
-      "dir": "data/raw_wan_poc3",
-      "capture": "cross_host",
-      "n_distinct_hosts": 2,
-      "distinct_hosts": [
-        "10.16.0.35",
-        "192.168.3.5"
-      ],
-      "served_agent_hosts": [
-        "10.16.0.35"
-      ],
-      "wire_hosts": [
-        "10.16.0.35",
-        "192.168.3.5"
-      ],
-      "agents_colocated": true,
-      "n_traces_with_endpoints": 2,
-      "evidence_source": "pcap packets (authoritative for host count) \u222a sidecar agent_endpoints",
-      "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
-      "interface_class": "cross-host capture: 2 machines exchanged packets on a real network path \u2014 but the SERVED agents are CO-LOCATED on a single host, so this is a real network path with a remote client/orchestrator, NOT a geo-distributed agent mesh"
-    },
     "data/raw_wf_interleaved": {
       "dir": "data/raw_wf_interleaved",
       "capture": "single_host",
@@ -501,60 +432,6 @@
       "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
       "single_host_kind": "loopback",
       "interface_class": "lo (single host, tcpdump on loopback)"
-    },
-    "~/autogen-xframework/data/raw": {
-      "dir": "/Users/mayureshmore/autogen-xframework/data/raw",
-      "capture": "single_host",
-      "n_distinct_hosts": 1,
-      "distinct_hosts": [
-        "127.0.0.1"
-      ],
-      "served_agent_hosts": [],
-      "wire_hosts": [
-        "127.0.0.1"
-      ],
-      "agents_colocated": true,
-      "n_traces_with_endpoints": 0,
-      "evidence_source": "pcap packets (authoritative for host count) \u222a sidecar agent_endpoints",
-      "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
-      "single_host_kind": "loopback",
-      "interface_class": "lo (single host, tcpdump on loopback)"
-    },
-    "~/crewai-xframework/data/raw": {
-      "dir": "/Users/mayureshmore/crewai-xframework/data/raw",
-      "capture": "single_host",
-      "n_distinct_hosts": 1,
-      "distinct_hosts": [
-        "127.0.0.1"
-      ],
-      "served_agent_hosts": [
-        "127.0.0.1"
-      ],
-      "wire_hosts": [],
-      "agents_colocated": true,
-      "n_traces_with_endpoints": 30,
-      "evidence_source": "pcap packets (authoritative for host count) \u222a sidecar agent_endpoints",
-      "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
-      "single_host_kind": "loopback",
-      "interface_class": "lo (single host, tcpdump on loopback)"
-    },
-    "~/crewai-xframework/data/raw_matched": {
-      "dir": "/Users/mayureshmore/crewai-xframework/data/raw_matched",
-      "capture": "single_host",
-      "n_distinct_hosts": 1,
-      "distinct_hosts": [
-        "127.0.0.1"
-      ],
-      "served_agent_hosts": [
-        "127.0.0.1"
-      ],
-      "wire_hosts": [],
-      "agents_colocated": true,
-      "n_traces_with_endpoints": 39,
-      "evidence_source": "pcap packets (authoritative for host count) \u222a sidecar agent_endpoints",
-      "derivation": ">=2 distinct hosts exchanged packets -> cross_host; all endpoints on ONE host (loopback OR a single routable addr) -> single_host. Loopback aliases collapsed.",
-      "single_host_kind": "loopback",
-      "interface_class": "lo (single host, tcpdump on loopback)"
     }
   },
   "results_lineage": {
@@ -574,15 +451,15 @@
           "capture": "single_host"
         },
         {
-          "dir": "data/raw_amodel",
+          "dir": "data/raw_amodel_sdk",
           "capture": "single_host"
         },
         {
-          "dir": "data/raw_blogic",
+          "dir": "data/raw_blogic_sdk",
           "capture": "single_host"
         },
         {
-          "dir": "data/raw_b",
+          "dir": "data/raw_b_sdk",
           "capture": "single_host"
         }
       ],
@@ -595,7 +472,7 @@
           "capture": "single_host"
         },
         {
-          "dir": "data/raw_b",
+          "dir": "data/raw_b_sdk",
           "capture": "single_host"
         }
       ],
@@ -673,7 +550,7 @@
           "capture": "single_host"
         },
         {
-          "dir": "data/raw_background",
+          "dir": "data/raw_background_sdk",
           "capture": "single_host"
         }
       ],
@@ -717,7 +594,7 @@
           "capture": "single_host"
         },
         {
-          "dir": "data/raw_b",
+          "dir": "data/raw_b_sdk",
           "capture": "single_host"
         },
         {
@@ -731,7 +608,7 @@
       ],
       "capture_summary": "single_host (one machine; loopback)"
     },
-    "framework_id_control.json": {
+    "framework_id_interleaved.json": {
       "sources": [
         {
           "dir": "data/raw_interleaved_a",
@@ -739,6 +616,10 @@
         },
         {
           "dir": "data/raw_interleaved_b",
+          "capture": "single_host"
+        },
+        {
+          "dir": "data/raw_interleaved_langgraph",
           "capture": "single_host"
         }
       ],
@@ -747,11 +628,19 @@
     "confound_control.json": {
       "sources": [
         {
-          "dir": "data/raw_interleaved_a",
+          "dir": "data/raw",
           "capture": "single_host"
         },
         {
-          "dir": "data/raw_interleaved_b",
+          "dir": "data/raw_interleaved_a_pwr",
+          "capture": "single_host"
+        },
+        {
+          "dir": "data/raw_wf_interleaved",
+          "capture": "single_host"
+        },
+        {
+          "dir": "data/raw_wf_interleaved_full",
           "capture": "single_host"
         }
       ],
@@ -770,6 +659,19 @@
       ],
       "capture_summary": "single_host (one machine; loopback)"
     },
+    "cross_instance_transfer_natural.json": {
+      "sources": [
+        {
+          "dir": "data/raw_offtheshelf",
+          "capture": "single_host"
+        },
+        {
+          "dir": "data/raw_offtheshelf_inst2_natural",
+          "capture": "single_host"
+        }
+      ],
+      "capture_summary": "single_host (one machine; loopback)"
+    },
     "cross_framework_autogen.json": {
       "sources": [
         {
@@ -777,7 +679,7 @@
           "capture": "single_host"
         },
         {
-          "dir": "~/autogen-xframework/data/raw",
+          "dir": "data/raw_autogen",
           "capture": "single_host"
         }
       ],
@@ -790,7 +692,7 @@
           "capture": "single_host"
         },
         {
-          "dir": "~/autogen-xframework/data/raw",
+          "dir": "data/raw_autogen",
           "capture": "single_host"
         }
       ],
@@ -816,7 +718,7 @@
           "capture": "single_host"
         },
         {
-          "dir": "~/crewai-xframework/data/raw",
+          "dir": "data/raw_crewai",
           "capture": "single_host"
         }
       ],
@@ -829,7 +731,7 @@
           "capture": "single_host"
         },
         {
-          "dir": "~/crewai-xframework/data/raw_matched",
+          "dir": "data/raw_crewai_matched",
           "capture": "single_host"
         }
       ],

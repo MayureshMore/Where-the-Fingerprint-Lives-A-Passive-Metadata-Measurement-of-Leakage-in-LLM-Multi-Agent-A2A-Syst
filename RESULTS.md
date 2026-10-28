@@ -3,8 +3,8 @@
 Headline results, with honest scope and caveats. All numbers are read from the
 committed JSONs under [`data/results/`](data/results/) and regenerate deterministically
 via `bash scripts/reproduce.sh --full-suite` (RF/GBT seed-fixed; deep models opt-in via
-`--with-deep`). Metric is **macro-F1** unless stated; 95% CIs are percentile bootstrap
-(2000 resamples, seed 42).
+`--with-deep`). Metric is **macro-F1** unless stated; 95% CIs are cluster (group) bootstrap
+— whole prompt-groups or trips are resampled (2000 resamples, seed 42).
 
 > **Reporting conventions.** (1) **macro-F1** is the headline metric everywhere (accuracy
 > is reported only as context). (2) **Bandwidth only** — latency/duration overheads are
@@ -101,8 +101,8 @@ Transfer stays near the within-A ceiling. The companion diagnostic
 > **Honest scope:** C is a **control**, not a generalization result — it shares A's exact
 > structure, so it cannot speak to *cross-framework generalization*. Read §2 and §3
 > together: change the **runtime** → survives (A→C 0.64/0.83); change the **structure** →
-> breaks (A→B 0.29/0.57). Generalization across independently-structured frameworks
-> (AutoGen, CrewAI, …) remains future work.
+> breaks (A→B 0.29/0.57). Independently-structured frameworks were tested later: AutoGen in
+> §10 (role replicates; cross-framework transfer does not) and CrewAI in §13.
 
 ---
 
@@ -230,8 +230,8 @@ vs. supervised), not a contradiction.** Honest limit: **every negative is non-ag
 (multi-flow but non-SSE)**, and the detector keys on A2A's SSE-streaming + orchestrator
 fan-out signature — so this measures **"A2A vs non-agentic traffic," not "A2A vs other agent
 frameworks."** Separability from another **independent agentic framework** is now tested in
-**§11** (A2A vs AutoGen, AUC 1.0 — but transport-driven; a same-transport SSE framework like
-CrewAI remains future work), and the loss-of-port-isolation concern is quantified in **§12**.
+**§11** (A2A vs AutoGen, AUC 1.0 — but transport-driven), the same-transport case in **§13**
+(CrewAI over a2a-sdk), and the loss-of-port-isolation concern is quantified in **§12**.
 
 ---
 
@@ -299,8 +299,8 @@ coordinator-vs-specialist; A has **only** specialists, so the definable directio
 **a2a_mcp→A**: an a2a_mcp-trained coordinator-vs-specialist model classifies **67%** of A's
 specialists correctly (specialist recall 0.671, n=1747) — a **partial** transfer (the
 "specialist" traffic-shape partly generalises; the rest reads as coordinator). The reverse is
-undefined. **True cross-*framework* label transfer needs a framework sharing A's role taxonomy
-(AutoGen/CrewAI) — future work.**
+undefined. **True cross-*framework* label transfer needs a framework sharing a role taxonomy —
+tested in §10 (AutoGen): it does not transfer.**
 
 **No workflow closed-world (and why).** a2a_mcp's routing is **LLM-planned**, so requests do not
 map to a clean specialist fan-out: a live probe found a *flight-only* request triggered **no**

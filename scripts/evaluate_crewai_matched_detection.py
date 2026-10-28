@@ -85,7 +85,7 @@ def main(args: argparse.Namespace) -> None:
     if not any(a_raw.glob("*.pcap")):
         raise SystemExit(f"BLOCKED: no deployment-A pcaps at {a_raw}")
     if not any(cw_raw.glob("*.pcap")):
-        raise SystemExit(f"BLOCKED: no matched CrewAI pcaps at {cw_raw} — run ~/crewai-xframework/collect_matched.sh")
+        raise SystemExit(f"BLOCKED: no matched CrewAI pcaps at {cw_raw} — run frameworks/crewai/collect_matched.sh")
 
     a_subset = _balanced_chain_subset(a_raw, per_wf=args.per_wf)
     Xa, _, ga = extract_role_samples(a_subset)
@@ -239,7 +239,7 @@ def main(args: argparse.Namespace) -> None:
 def _parse() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="§13.1 — deployment A vs CrewAI matched-pair detection")
     p.add_argument("--a-raw", default="data/raw")
-    p.add_argument("--matched-raw", default="~/crewai-xframework/data/raw_matched")
+    p.add_argument("--matched-raw", default="data/raw_crewai_matched")
     p.add_argument("--per-wf", type=int, default=10)
     return p.parse_args()
 

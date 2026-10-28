@@ -486,23 +486,23 @@ def print_results(closed: dict, open_: dict) -> None:
                 print(f"    {tnm}: GBT F1={f1s}")
 
         print()
-        print(f"  STRUCTURAL BASELINE note (topology + parallelism):")
-        print(f"  These tasks achieve near-perfect accuracy but reflect the routing")
-        print(f"  graph, which is directly observable from IP headers without any ML.")
-        print(f"  An on-path observer needs no classifier to see which hosts connect.")
-        print(f"  topology/rf__ablated confirms system scalars are redundant with")
-        print(f"  pf_top1/pf_top2 structural features.  parallelism/rf__ablated confirms")
-        print(f"  the signal survives zeroing max_concurrent/flow_start/end_spread — but")
-        print(f"  this is still structural (B runs star/mesh sequentially yet transfers")
-        print(f"  at 100% A→B; see cross-deployment results).")
+        print("  STRUCTURAL BASELINE note (topology + parallelism):")
+        print("  These tasks achieve near-perfect accuracy but reflect the routing")
+        print("  graph, which is directly observable from IP headers without any ML.")
+        print("  An on-path observer needs no classifier to see which hosts connect.")
+        print("  topology/rf__ablated confirms system scalars are redundant with")
+        print("  pf_top1/pf_top2 structural features.  parallelism/rf__ablated confirms")
+        print("  the signal survives zeroing max_concurrent/flow_start/end_spread — but")
+        print("  this is still structural (B runs star/mesh sequentially yet transfers")
+        print("  at 100% A→B; see cross-deployment results).")
 
         # Size ablation — above-chance retention table
         _sz_keys = sorted(k for k in closed if "__size_ablated" in k)
         if _sz_keys:
             _n_cls_map = {"workflow": 4, "role": 3, "parallelism": 2, "topology": 3}
             print()
-            print(f"  SIZE ABLATION — above-chance signal retained after zeroing size features:")
-            print(f"  retention = (no_size_acc − random) / (full_rf_acc − random)")
+            print("  SIZE ABLATION — above-chance signal retained after zeroing size features:")
+            print("  retention = (no_size_acc − random) / (full_rf_acc − random)")
             print(f"  {'Task':<20} {'Full RF':>8} {'No-Size':>9} {'Random':>7} {'Above-chance ret':>17}")
             print(f"  {'-'*63}")
             for _sz_key in _sz_keys:
@@ -518,18 +518,18 @@ def print_results(closed: dict, open_: dict) -> None:
                 _ret  = (_aa - _rand) / max(_af - _rand, 1e-9)
                 print(f"  {_tnm:<20} {_af:>8.3f} {_aa:>9.3f} {_rand:>7.3f} {_ret:>16.1%}")
             print()
-            print(f"  Gradient: <30% → timing/structure signal dominates.")
-            print(f"  30–70%   → size and structure contribute roughly equally.")
-            print(f"  >70%     → size is the primary discriminant.")
+            print("  Gradient: <30% → timing/structure signal dominates.")
+            print("  30–70%   → size and structure contribute roughly equally.")
+            print("  >70%     → size is the primary discriminant.")
             print()
 
         # Deep model footnote
         if any("/transformer" in k or "/cnn" in k for k in closed):
-            print(f"  * CNN1D/Transformer in summary.json (run with --full-suite).")
+            print("  * CNN1D/Transformer in summary.json (run with --full-suite).")
         else:
-            print(f"  * CNN1D + Transformer excluded from headline (data-starved at N≈600;")
-            print(f"    transformer F1≈32% for workflow is near-random).  Re-enable with")
-            print(f"    --full-suite once dataset exceeds ~1,500 samples/class.")
+            print("  * CNN1D + Transformer excluded from headline (data-starved at N≈600;")
+            print("    transformer F1≈32% for workflow is near-random).  Re-enable with")
+            print("    --full-suite once dataset exceeds ~1,500 samples/class.")
 
     if open_:
         print(f"\n{sep}")
@@ -561,16 +561,16 @@ def print_results(closed: dict, open_: dict) -> None:
         )
         if _has_unit_T:
             print()
-            print(f"  CAUTION T≈1.000: The testbed is too deterministic for threshold-based")
-            print(f"  rejection to be meaningful.  Near-perfect A2A class separation drives the")
-            print(f"  5th-pct calibrated confidence to ≈1.0, so the threshold is a no-op.")
-            print(f"  This is NOT an N<D feature-selection problem.  Fix requires:")
-            print(f"    Phase 3: hard background negatives (bare JSON-RPC, REST polling,")
-            print(f"             direct LLM API calls — see scripts/collect_background.py)")
-            print(f"    Phase 5: WAN timing variance (US↔India latency distributions)")
+            print("  CAUTION T≈1.000: The testbed is too deterministic for threshold-based")
+            print("  rejection to be meaningful.  Near-perfect A2A class separation drives the")
+            print("  5th-pct calibrated confidence to ≈1.0, so the threshold is a no-op.")
+            print("  This is NOT an N<D feature-selection problem.  Fix requires:")
+            print("    Phase 3: hard background negatives (bare JSON-RPC, REST polling,")
+            print("             direct LLM API calls — see scripts/collect_background.py)")
+            print("    Phase 5: WAN timing variance (US↔India latency distributions)")
 
     print(f"\n{sep}")
-    print(f"  Full JSON results in data/results/")
+    print("  Full JSON results in data/results/")
     print(sep)
 
 

@@ -60,18 +60,19 @@ features/                 burst.py · per_flow.py · per_system.py · extractor.
 models/                   random_forest.py · gradient_boosted.py · cnn1d.py · transformer.py
 defense/                  scheduling.py (rate/jitter) · dummy.py (spurious calls)
 evaluation/               closed_world.py · open_world.py · metrics.py · stats.py (bootstrap CIs)
-scripts/                  27 entry points — collect / extract / train / evaluate / diagnose /
-                            reproduce / rebuild (full inventory in §8)
-third_party/a2a_mcp/      compat patch + driver for the external system (no vendored code)
+scripts/                  43 entry points — collect / extract / train / evaluate / diagnose /
+                            reproduce / rebuild / package (full inventory in §8)
+frameworks/autogen/       AutoGen gRPC deployment + collector (own requirements.txt)
+frameworks/crewai/        CrewAI-over-a2a-sdk deployment, matched pair + collectors (own requirements.txt)
+third_party/a2a_mcp/      compat patch + the three drivers for Google's a2a_mcp sample
 tests/                    8 test modules (features, defense, metrics, stats/SSE, deep shapes,
                             agents, extractor contract)
-data/results/             the 36 committed canonical result JSONs — the FROZEN paper output
+data/results/             the 43 committed canonical result JSONs + figures — the FROZEN paper output
 docs/                     C5_WAN_RUNBOOK · CROSS_FRAMEWORK_PLAN · DEEP_MODEL_APPENDIX ·
-                            PHASE5_A2A_MCP_PATCHES
+                            PHASE5_A2A_MCP_PATCHES · TASK2_TASK3_PREP (pre-registered verdict bands)
 ```
 
-> **To hand the project to someone else to recreate,** give them the git repo (all 132
-> tracked files). Optionally add the two data archives from [DATA.md](DATA.md) so they can
+> **To hand the project to someone else to recreate,** give them the git repo. Optionally add the two data archives from [DATA.md](DATA.md) so they can
 > take the fast Level-A path instead of re-collecting.
 
 ---
@@ -192,12 +193,61 @@ $0.043/trace; the paper collected 150 traces for $6.39).
 ```bash
 scripts/collect_offtheshelf.sh                    # drive orchestrator over A2A + capture (ports 10100–10105)
 python scripts/extract_offtheshelf.py             # features (IPv4 AND IPv6 — the sample binds ::1)
+python scripts/evaluate_offtheshelf_fingerprint.py  # six-way role fingerprint on a2a_mcp (paper §5.7)
 python scripts/evaluate_offtheshelf_detection.py  # binary A2A-vs-background detection (AUC)
 python scripts/analyze_offtheshelf_topology.py    # hub-and-spoke recovery from headers alone
 ```
 
-Labels don't align with our taxonomy, so this corroborates **detection** and **topology
-observability** only — no role/workflow transfer number.
+Point the collectors at your patched checkout with `A2A_SAMPLES_DIR=/path/to/a2a-samples`
+(default `~/a2a-samples`); they copy the needed driver from `third_party/a2a_mcp/` if missing.
+
+**Second, independent instance (cross-instance transfer, paper §5.9).** Same framework, a
+different LLM (`gemini-2.0-flash`), reworded prompts, a separate session:
+
+```bash
+BUDGET_USD=3 bash scripts/collect_offtheshelf_inst2.sh 120                       # → data/raw_offtheshelf_inst2
+BUDGET_USD=8 TARGET_SPECIALISTS=15 bash scripts/collect_offtheshelf_6way.sh       # boosted specialist top-up
+MIN_N=10 python scripts/evaluate_cross_instance_transfer.py                     # → cross_instance_transfer.json
+BUDGET_USD=15 TARGET_SPECIALISTS=15 bash scripts/collect_offtheshelf_natural.sh   # → data/raw_offtheshelf_inst2_natural
+MIN_N=10 CIT_OUT=cross_instance_transfer_natural.json \
+    python scripts/evaluate_cross_instance_transfer.py --inst2 data/raw_offtheshelf_inst2_natural
+```
+
+---
+
+## 7b. Same-session confound controls (paper §5.8)
+
+Re-collect the deployments round-robined in one continuous session so capture drift cannot
+track the label, then re-run the claims on the interleaved data:
+
+```bash
+bash scripts/collect_interleaved.sh            # A / B / C interleaved → data/raw_interleaved_*
+bash scripts/collect_wf_interleaved.sh         # workflow-diverse interleaved → data/raw_wf_interleaved*
+# extract each raw_interleaved_* / raw_wf_interleaved* set with scripts/extract_features.py, then:
+python scripts/evaluate_framework_id_interleaved.py   # framework-ID collapses 0.997 → 0.46
+python scripts/evaluate_confound_control.py           # core tasks hold (|Δ| ≤ 0.06)
+```
+
+---
+
+## 7c. Independent frameworks — AutoGen and CrewAI (paper §5.10–5.11)
+
+Both run on local Ollama models (no API spend). Each has its own virtualenv; captures land in
+the repo's `data/` (gitignored).
+
+```bash
+cd frameworks/autogen && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+N=30 bash collect_trips.sh                     # → data/raw_autogen
+cd ../crewai && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+N=30 bash collect_trips.sh                     # same-transport CrewAI   → data/raw_crewai
+N=40 bash collect_matched.sh                   # matched A-vs-CrewAI pair → data/raw_crewai_matched
+cd ../..
+python scripts/evaluate_cross_framework_autogen.py      # role replication + cross-framework transfer
+python scripts/evaluate_agentic_detection.py            # A2A vs AutoGen detection
+python scripts/evaluate_crewai_detection.py             # same-transport A2A vs CrewAI
+python scripts/evaluate_crewai_matched_detection.py     # fully matched pair
+python scripts/evaluate_mixing_degradation.py           # loss of flow isolation (ρ sweep)
+```
 
 ---
 
@@ -216,9 +266,22 @@ observability** only — no role/workflow transfer number.
 | §6 real-background novelty | `evaluate_open_world_background.py` | A, background | `open_world_background.json` |
 | §7 off-the-shelf detection | `evaluate_offtheshelf_detection.py` | A, background, offtheshelf | `offtheshelf_detection.json` |
 | §7 off-the-shelf topology | `analyze_offtheshelf_topology.py` | raw_offtheshelf | `offtheshelf_topology.json` |
-| figures/tables | `make_paper_artifacts.py` | the JSONs above | `figures/*.png` |
+| §7.1 off-the-shelf role fingerprint | `evaluate_offtheshelf_fingerprint.py` | raw_offtheshelf | `offtheshelf_fingerprint.json` |
+| §8 framework/implementation ID | `evaluate_framework_id.py` | A, B, langgraph, offtheshelf | `framework_id.json` |
+| §8.1 same-session framework-ID | `evaluate_framework_id_interleaved.py` | interleaved_a/b/langgraph | `framework_id_interleaved.json` |
+| §8.2 confound audit | `evaluate_confound_control.py` | A, interleaved_a_pwr, wf_interleaved(_full) | `confound_control.json` |
+| §9 cross-instance transfer | `evaluate_cross_instance_transfer.py` (`MIN_N=10`) | raw_offtheshelf, raw_offtheshelf_inst2(_natural) | `cross_instance_transfer*.json` |
+| §10 AutoGen replication + transfer | `evaluate_cross_framework_autogen.py` | raw_offtheshelf, raw_autogen | `cross_framework_autogen.json` |
+| §11 A2A vs AutoGen detection | `evaluate_agentic_detection.py` | raw_offtheshelf, raw_autogen | `agentic_detection.json` |
+| §12 mixing degradation | `evaluate_mixing_degradation.py` | raw_offtheshelf, processed_background | `mixing_degradation.json` |
+| §13 A2A vs CrewAI (same transport) | `evaluate_crewai_detection.py` | raw_offtheshelf, raw_crewai | `crewai_detection.json` |
+| §13.1 matched A vs CrewAI | `evaluate_crewai_matched_detection.py` | raw, raw_crewai_matched | `crewai_matched_detection.json` |
+| §5.1 defense sweep | `sweep_defenses.py` | raw, A | `defense_curve.json` |
+| CI convention check | `check_group_bootstrap.py` | A, raw_offtheshelf(_inst2) | `group_bootstrap_check.json` |
+| capture provenance | `emit_capture_interface.py` | every `data/raw*` | `capture_interface_manifest.json` |
+| figures/tables | `make_paper_artifacts.py` | the JSONs above | `figures/*.png` + `PAPER_ARTIFACTS.md` |
 
-Other scripts: `train_models.py` (standalone model training), `ablation_retriever.py`,
+Other scripts: `train_models.py` (standalone model training),
 `analyze_sse_sizes.py` (pad-cell vs SSE size check), `package_data.sh` (build the archives),
 `resume_wan.sh` (resume an interrupted WAN run), `reproduce.sh` (the Level-A demo).
 

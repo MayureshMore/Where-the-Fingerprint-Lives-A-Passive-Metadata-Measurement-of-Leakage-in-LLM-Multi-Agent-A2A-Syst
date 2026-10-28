@@ -5,7 +5,7 @@ NON-A2A framework?  AutoGen's distributed gRPC runtime (autogen-core 0.7.5) is a
 different networked multi-agent system: a message-routing HOST with worker/orchestrator
 agents as gRPC CLIENTS (star-through-host), not a2a's per-agent HTTP/JSON-RPC servers.
 
-Deployment (see ~/autogen-xframework/): an ORCHESTRATOR routes sub-tasks to three SPECIALIST
+Deployment (see frameworks/autogen/): an ORCHESTRATOR routes sub-tasks to three SPECIALIST
 workers (researcher / writer / reviewer), each calling a LOCAL ollama LLM (llama3.2:3b — no
 API spend).  Each agent runs in its OWN process ⇒ its own gRPC channel ⇒ one TCP flow to the
 host with a distinct ephemeral port.  collect_trips.sh captures lo0:50051 at 96-byte snaplen
@@ -28,7 +28,7 @@ macro-F1 + bootstrap 95% CI, seed 42.  Pre-registered §4 bands (no re-stamp):
   0.40–0.70 → PARTIAL; <0.40 or CI touches chance → BOUNDED (does not replicate here).
 
 Writes ${A2A_RESULTS_DIR:-data/results}/cross_framework_autogen.json.  Additive; touches no
-committed data.  Reads pcaps + labels from --raw (default ~/autogen-xframework/data/raw).
+committed data.  Reads pcaps + labels from --raw (default data/raw_autogen).
 
 Usage: venv/bin/python scripts/evaluate_cross_framework_autogen.py
 """
@@ -159,7 +159,7 @@ def closed_world(X, y, groups, label: str, mask=None) -> dict:
 def main(args: argparse.Namespace) -> None:
     raw = Path(os.path.expanduser(args.raw))
     if not any(raw.glob("trip_*.pcap")):
-        raise SystemExit(f"blocked: no trip_*.pcap in {raw} — run ~/autogen-xframework/collect_trips.sh first")
+        raise SystemExit(f"blocked: no trip_*.pcap in {raw} — run frameworks/autogen/collect_trips.sh first")
 
     X, y, groups = extract_autogen_role_samples(raw)
     if len(X) < 20:
@@ -278,7 +278,7 @@ def main(args: argparse.Namespace) -> None:
 
 def _parse() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Task 3 pilot — role fingerprint on AutoGen")
-    p.add_argument("--raw", default="~/autogen-xframework/data/raw")
+    p.add_argument("--raw", default="data/raw_autogen")
     p.add_argument("--a2a-raw", default="data/raw_offtheshelf",
                    help="a2a_mcp pcaps for the cross-framework coord/spec transfer")
     return p.parse_args()

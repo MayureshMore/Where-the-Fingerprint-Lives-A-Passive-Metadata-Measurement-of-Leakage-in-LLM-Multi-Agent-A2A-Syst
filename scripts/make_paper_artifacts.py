@@ -390,7 +390,7 @@ def fig_framework_id_control() -> Path | None:
     mf, ci = hl.get("macro_f1_full"), hl.get("macro_f1_full_ci")
     fig, ax = plt.subplots(figsize=(6.6, 4.5))
     xs = [0, 1]
-    bars = ax.bar(xs, [orig_sep, ctrl_sep], 0.5, color=["#c6553b", "#3182bd"])
+    ax.bar(xs, [orig_sep, ctrl_sep], 0.5, color=["#c6553b", "#3182bd"])
     ax.set_xticks(xs)
     ax.set_xticklabels(["separate-session\n(confounded)", "same-session\ninterleaved\n(controlled)"])
     for x, v in zip(xs, [orig_sep, ctrl_sep]):

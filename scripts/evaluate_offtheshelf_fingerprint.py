@@ -43,7 +43,6 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from evaluation.stats import bootstrap_ci  # noqa: E402
 from features.extractor import FeatureExtractor  # noqa: E402
 from features.per_flow import compute_per_flow  # noqa: E402
 from models.gradient_boosted import GBTClassifier  # noqa: E402

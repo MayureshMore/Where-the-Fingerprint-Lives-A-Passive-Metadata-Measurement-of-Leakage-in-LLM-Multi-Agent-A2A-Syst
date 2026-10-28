@@ -46,9 +46,11 @@ git -C ~/a2a-samples checkout 22b48d5
 # 2. Apply our compatibility patch
 git -C ~/a2a-samples apply /path/to/this-repo/third_party/a2a_mcp/a2a_mcp_compat.patch
 
-# 3. Drop in the multi-turn driver (untracked NEW file)
+# 3. Drop in the multi-turn driver (untracked NEW file). The collection scripts also copy
+#    drive_orch_boost.py / drive_orch_natural_fixed.py in automatically when they need them.
 cp /path/to/this-repo/third_party/a2a_mcp/drive_orch.py \
    ~/a2a-samples/samples/python/agents/a2a_mcp/drive_orch.py
+#    If you clone somewhere other than ~/a2a-samples, export A2A_SAMPLES_DIR=/that/path
 
 # 4. Provide the Gemini key locally (NOT committed)
 cd ~/a2a-samples/samples/python/agents/a2a_mcp

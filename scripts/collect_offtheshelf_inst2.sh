@@ -13,13 +13,13 @@
 # Writes to data/raw_offtheshelf_inst2/ (NEVER instance 1). Budget-guarded + circuit-broken,
 # so it stops cleanly if the prepaid credit runs low. Additive — no committed file changes.
 #
-# Prereq: the external checkout at ~/a2a-samples/.../a2a_mcp with the 8 compat patches +
+# Prereq: the external checkout at $A2A_SAMPLES_DIR (default ~/a2a-samples)/.../a2a_mcp with the 8 compat patches +
 # drive_orch.py + a Gemini key in .env, and non-sudo BPF (chmod o+r /dev/bpf*).
 #
 # Usage:  BUDGET_USD=3.00 bash scripts/collect_offtheshelf_inst2.sh 120
 set -u
 
-SAMPLE_DIR="$HOME/a2a-samples/samples/python/agents/a2a_mcp"
+SAMPLE_DIR="${A2A_SAMPLES_DIR:-$HOME/a2a-samples}/samples/python/agents/a2a_mcp"   # set A2A_SAMPLES_DIR to your a2a-samples checkout
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$REPO_DIR/data/raw_offtheshelf_inst2"
 IFACE="lo0"; PORTS="10100-10105"
@@ -34,6 +34,7 @@ SPENT_SO_FAR="${SPENT_SO_FAR:-0}"
 MAX_RETRIES="${MAX_RETRIES:-2}"
 BACKOFF_S="${BACKOFF_S:-30}"
 
+[ -f "$SAMPLE_DIR/drive_orch.py" ] || cp "$REPO_DIR/third_party/a2a_mcp/drive_orch.py" "$SAMPLE_DIR/" 2>/dev/null
 [ -f "$SAMPLE_DIR/drive_orch.py" ] || { echo "BLOCKED: $SAMPLE_DIR/drive_orch.py missing"; exit 1; }
 grep -qE '^GOOGLE_API_KEY=.{10,}' "$SAMPLE_DIR/.env" 2>/dev/null || { echo "BLOCKED: GOOGLE_API_KEY not set in $SAMPLE_DIR/.env"; exit 1; }
 mkdir -p "$OUT" "$SAMPLE_DIR/logs"
