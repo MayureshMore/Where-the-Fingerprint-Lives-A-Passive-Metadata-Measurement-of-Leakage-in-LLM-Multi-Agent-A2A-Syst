@@ -77,8 +77,13 @@ bash scripts/package_data.sh   # writes dist/a2a-features.zip, dist/a2a-raw-pcap
 ```
 
 Upload the two zips **and `dist/SHA256SUMS.txt`** to the data host, then paste the DOI/URL
-into the **Archive location** line above (and the header of `scripts/reproduce.sh`), and the
-`a2a-features.zip` SHA-256 into the **SHA-256** line above so downloaders can verify.
+into the **Archive location** line above and both SHA-256 values into the **SHA-256** lines,
+so downloaders can verify. This file is the only place they are recorded.
+
+Once the TLS control has been collected (`scripts/run_tls_overnight.sh`), the packager adds
+its four sets automatically (`processed_tlspair_clear`, `processed_tlspair_tls`,
+`raw_tlspair_clear`, `raw_tlspair_tls`), making 19 feature sets and 24 raw sets; rebuild and
+upload after that run so the checksums match.
 
 ## Provenance & ethics
 

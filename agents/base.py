@@ -120,10 +120,12 @@ class AgentConfig(BaseModel):
     #            defense, orchestrator-side) — the A2A-specific defense
     #   "both" — pad + rate
     defense: str = "none"
+    # Serve HTTPS: True/False, or None for the process-wide default (agents/tls.py)
+    tls: bool | None = None
 
     def base_url(self) -> str:
         from agents import tls
-        return f"{tls.scheme()}://{self.host}:{self.port}"
+        return f"{tls.scheme(self.tls)}://{self.host}:{self.port}"
 
 
 class A2ATaskResult(BaseModel):
@@ -358,7 +360,7 @@ class BaseA2AAgent:
         from agents import tls
         config = uvicorn.Config(
             app, host=self.config.host, port=self.config.port, log_level="warning",
-            **tls.server_kwargs(),
+            **tls.server_kwargs(self.config.tls),
         )
         self._server = uvicorn.Server(config)
         logger.info(

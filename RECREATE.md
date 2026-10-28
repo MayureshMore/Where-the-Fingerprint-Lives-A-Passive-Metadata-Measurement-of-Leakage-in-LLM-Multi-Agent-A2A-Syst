@@ -256,22 +256,36 @@ python scripts/evaluate_mixing_degradation.py           # loss of flow isolation
 
 ---
 
-## 7d. TLS control (optional; deployment A with TLS on every agent link)
+## 7d. TLS control (deployment A, cleartext and TLS in one session)
 
-All other experiments use cleartext HTTP. This control re-collects deployment A with every agent
-serving HTTPS and every client verifying against a throwaway local CA, then measures how much of
-the fingerprint survives and whether a cleartext-trained model transfers to TLS traffic.
+All other experiments use cleartext HTTP. This control measures how much of the fingerprint
+survives real TLS. Comparing a new TLS capture with the earlier cleartext capture would mix the
+TLS effect with session drift (the artifact the temporal-interleaving control exposed), so both
+arms are collected **in one session**: a cleartext agent set (ports 8000-8003) and a TLS set
+(8040-8043, HTTPS verified against a throwaway local CA) run side by side and alternate trace by
+trace, the two traces of a pair share one prompt, arm order is counterbalanced, and prompts come
+from a pool disjoint from the main collections (`--seed-offset 1000`). 12 conditions × 36 pairs =
+864 traces, about 8 hours.
 
 ```bash
-bash scripts/make_tls_certs.sh                       # CA + agent cert for 127.0.0.1 → data/tls (gitignored)
-sudo venv/bin/python scripts/run_pilot.py --tls-dir data/tls --n 36 --seed-offset 1000 \
-    --out data/raw_tls                                # 12 conditions × 36 = 432 traces
-python scripts/extract_features.py --raw data/raw_tls --out data/processed_tls --scapy
-python scripts/evaluate_tls_control.py               # → data/results/tls_control.json + figure
+sudo chmod o+r /dev/bpf*                  # capture access for tcpdump (until reboot) — revert afterwards
+bash scripts/run_tls_overnight.sh         # preflight → pilot gate → collect → record check → extract → evaluate
+sudo chmod o-r /dev/bpf*                  # the script tries this itself and otherwise reminds you
 ```
 
-`--seed-offset` draws prompts disjoint from the cleartext set, so cleartext→TLS transfer is not
-helped by repeated prompts.
+`run_tls_overnight.sh` stops after the one-pair pilot unless the raw TLS pcap shows TLS records
+(`0x16 0x03` handshake, `0x17 0x03 0x03` application data) and no cleartext HTTP, and the
+cleartext pcap the reverse (`scripts/check_tls_capture.py`). The same check runs on the full
+captures before anything is stripped and is saved as `data/raw_tlspair_tls/tls_check.json`
+(TLS handshakes per connection, connections per trace and per agent, HTTP requests per
+connection). The negotiated TLS version, cipher and HTTP version are recorded in
+`data/raw_tlspair_tls/session_meta.json`. `N=3 bash scripts/run_tls_overnight.sh` is a ~45-minute
+dry run into separate `*_n3` dirs and `data/results_demo`.
+
+`scripts/evaluate_tls_control.py` writes `data/results/tls_control.json` and
+`figures/tls_control.png`: within-cleartext and within-TLS (group CV), and cleartext→TLS
+cross-fitted so no test prompt is ever in training; the original 600-trace cleartext capture →
+TLS is reported only as a secondary, cross-session comparison.
 
 ---
 
@@ -301,6 +315,7 @@ helped by repeated prompts.
 | §13 A2A vs CrewAI (same transport) | `evaluate_crewai_detection.py` | raw_offtheshelf, raw_crewai | `crewai_detection.json` |
 | §13.1 matched A vs CrewAI | `evaluate_crewai_matched_detection.py` | raw, raw_crewai_matched | `crewai_matched_detection.json` |
 | §5.1 defense sweep | `sweep_defenses.py` | raw, A | `defense_curve.json` |
+| §7d TLS control (same session) | `evaluate_tls_control.py` | raw_tlspair_{clear,tls}, processed_tlspair_{clear,tls} | `tls_control.json` + figure |
 | CI convention check | `check_group_bootstrap.py` | A, raw_offtheshelf(_inst2) | `group_bootstrap_check.json` |
 | capture provenance | `emit_capture_interface.py` | every `data/raw*` | `capture_interface_manifest.json` |
 | figures/tables | `make_paper_artifacts.py` | the JSONs above | `figures/*.png` + `PAPER_ARTIFACTS.md` |

@@ -124,9 +124,10 @@ TOPO_EDGES: dict[str, list[list[str]]] = {
 }
 
 
-def _url(role: str, ports: dict[str, int], host: str = "127.0.0.1") -> str:
+def _url(role: str, ports: dict[str, int], host: str = "127.0.0.1",
+         tls_on: bool | None = None) -> str:
     from agents import tls
-    return f"{tls.scheme()}://{host}:{ports[role]}"
+    return f"{tls.scheme(tls_on)}://{host}:{ports[role]}"
 
 
 # ── Agent config builders ─────────────────────────────────────────────────────
@@ -135,7 +136,8 @@ def _agent_configs(dep: dict, topology: str, model: str,
                    n_retrieval_phases: int = 3,
                    num_predict: int | None = None,
                    defense: str = "none",
-                   ollama_url: str = "http://localhost:11434") -> dict[str, AgentConfig]:
+                   ollama_url: str = "http://localhost:11434",
+                   tls_on: bool | None = None) -> dict[str, AgentConfig]:
     """
     Per-role AgentConfig for executor/retriever/validator with downstream routing
     for the topology.  n_retrieval_phases controls deployment-A retriever depth
@@ -149,7 +151,7 @@ def _agent_configs(dep: dict, topology: str, model: str,
         return AgentConfig(
             role=role, port=port, downstream_agents=downstream,
             ollama_model=model, ollama_num_predict=num_predict, defense=defense,
-            ollama_base_url=ollama_url,
+            ollama_base_url=ollama_url, tls=tls_on,
             **({"n_retrieval_phases": phases} if phases is not None else {}),
         )
 
@@ -170,8 +172,8 @@ def _agent_configs(dep: dict, topology: str, model: str,
         # validator); the mesh distinction is purely the orchestrator fan-out
         # (see _orchestrator), which gives retriever a second inbound flow.
         return {
-            "executor":  _cfg(AgentRole.EXECUTOR,  ports["executor"],  [_url("retriever", ports)]),
-            "retriever": _retriever_cfg([_url("validator", ports)]),
+            "executor":  _cfg(AgentRole.EXECUTOR,  ports["executor"],  [_url("retriever", ports, tls_on=tls_on)]),
+            "retriever": _retriever_cfg([_url("validator", ports, tls_on=tls_on)]),
             "validator": _cfg(AgentRole.VALIDATOR, ports["validator"], []),
         }
 
@@ -181,16 +183,14 @@ def _agent_configs(dep: dict, topology: str, model: str,
 def _orchestrator(dep: dict, topology: str, model: str,
                   num_predict: int | None = None,
                   defense: str = "none",
-                  ollama_url: str = "http://localhost:11434"):
+                  ollama_url: str = "http://localhost:11434",
+                  tls_on: bool | None = None):
     ports = dep["ports"]
-    if topology == "star":
-        downstream = [_url("executor", ports), _url("retriever", ports), _url("validator", ports)]
-    elif topology == "chain":
-        downstream = [_url("executor", ports)]
-    elif topology == "mesh":
-        downstream = [_url("executor", ports), _url("retriever", ports)]
-    else:
+    roles = {"star": ["executor", "retriever", "validator"], "chain": ["executor"],
+             "mesh": ["executor", "retriever"]}
+    if topology not in roles:
         raise ValueError(f"Unknown topology: {topology}")
+    downstream = [_url(r, ports, tls_on=tls_on) for r in roles[topology]]
 
     cfg = AgentConfig(
         role=AgentRole.ORCHESTRATOR,
@@ -200,6 +200,7 @@ def _orchestrator(dep: dict, topology: str, model: str,
         ollama_num_predict=num_predict,
         defense=defense,
         ollama_base_url=ollama_url,
+        tls=tls_on,
     )
     return dep["orchestrator"](cfg)
 
@@ -219,8 +220,9 @@ async def _kill_port(port: int) -> None:
     await proc.wait()
 
 
-async def _wait_ready(role: str, ports: dict[str, int], retries: int = 30) -> bool:
-    url = _url(role, ports)
+async def _wait_ready(role: str, ports: dict[str, int], retries: int = 30,
+                      tls_on: bool | None = None) -> bool:
+    url = _url(role, ports, tls_on=tls_on)
     for attempt in range(retries):
         try:
             from agents import tls

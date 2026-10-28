@@ -59,7 +59,8 @@ direction is assigned from the known agent ports; ports never enter the feature 
 speaks cleartext HTTP, and AutoGen uses an insecure gRPC channel. The observer is *restricted*
 to the metadata that TLS would leave visible — on-wire packet sizes, timing, and direction — and
 never reads content. TLS adds per-record overhead and a handshake per connection, which shift
-sizes and packet counts; its effect on these results is not measured here. The WAN capture
+sizes and packet counts. A same-session TLS control for deployment A (RECREATE §7d) measures
+that effect; the other deployments are not re-measured under TLS. The WAN capture
 (§5.6) was taken post-decapsulation on the VPN tunnel interface, i.e. at the tunnel endpoint:
 an on-path observer outside the tunnel would see one encrypted, multiplexed flow, the case
 excluded above.

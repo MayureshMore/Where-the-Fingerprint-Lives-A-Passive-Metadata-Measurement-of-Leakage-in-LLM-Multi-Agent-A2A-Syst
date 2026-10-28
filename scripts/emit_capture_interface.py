@@ -68,6 +68,7 @@ _RESULT_LINEAGE: dict[str, list[str]] = {
     "crewai_detection.json":           ["data/raw_offtheshelf", "data/raw_crewai"],
     "crewai_matched_detection.json":   ["data/raw", "data/raw_crewai_matched"],
     "group_bootstrap_check.json":      ["data/raw", "data/raw_offtheshelf", "data/raw_offtheshelf_inst2"],
+    "tls_control.json":                ["data/raw_tlspair_clear", "data/raw_tlspair_tls"],
 }
 
 

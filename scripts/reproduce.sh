@@ -195,8 +195,9 @@ else
     stage "matched-pair detection A-vs-CrewAI, ALL ELSE EQUAL (§13.1; reads deployment-A pcaps + matched CrewAI on A's roles/prompts — data/raw_crewai_matched)"
     if have "data/raw" "data/raw_crewai_matched"; then
         run $PY scripts/evaluate_crewai_matched_detection.py; fi
-    stage "TLS control (deployment A re-collected with TLS on every agent link; scripts/run_pilot.py --tls-dir)"
-    if have "$A/labels.json" "data/processed_tls/labels.json" "data/raw" "data/raw_tls"; then
+    stage "TLS control (deployment A, cleartext and TLS alternating in one session; scripts/run_tls_overnight.sh)"
+    if have "data/processed_tlspair_clear/labels.json" "data/processed_tlspair_tls/labels.json" \
+            "data/raw_tlspair_clear" "data/raw_tlspair_tls"; then
         run $PY scripts/evaluate_tls_control.py; fi
     stage "capture-interface provenance manifest (C1; loopback vs cross-host, derived from traces)"
     if have "data/raw"; then

@@ -44,6 +44,11 @@ RAW=(raw raw_amodel_sdk raw_b_sdk raw_blogic_sdk raw_langgraph raw_background ra
      raw_offtheshelf_inst2_natural raw_interleaved_a raw_interleaved_a_pwr raw_interleaved_b
      raw_interleaved_langgraph raw_wf_interleaved raw_wf_interleaved_full
      raw_autogen raw_crewai raw_crewai_matched)
+# Packaged only once collected (scripts/run_tls_overnight.sh).
+OPTIONAL_PROCESSED=(processed_tlspair_clear processed_tlspair_tls)
+OPTIONAL_RAW=(raw_tlspair_clear raw_tlspair_tls)
+for n in "${OPTIONAL_PROCESSED[@]}"; do [ -d "data/$n" ] && PROCESSED+=("$n"); done
+for n in "${OPTIONAL_RAW[@]}"; do [ -d "data/$n" ] && RAW+=("$n"); done
 
 PY="${PYTHON:-python3}"
 case "$PY" in */*) PY="$(cd "$(dirname "$PY")" && pwd)/$(basename "$PY")" ;; esac   # absolute, survives cd
@@ -71,14 +76,14 @@ pack "$OUT/a2a-features.zip" . "${PROCESSED[@]}"
 # cleartext payload per packet. Strip every packet to its headers on a staging copy
 # (timestamps and on-wire lengths kept, so features are unchanged), verify, then zip.
 echo "== stripping payload bytes from raw captures =="
-rm -rf "dist/stage_stripped"
+rm -rf "$STAGE"
 raw_paths=(); for n in "${RAW[@]}"; do raw_paths+=("data/$n"); done
 "$PY" scripts/strip_payload.py --out "$STAGE" "${raw_paths[@]}"
 ( cd "$STAGE" && "$PY" "$REPO/scripts/strip_payload.py" --check data/* )
 
 echo "== packaging raw captures (header-only) =="
 pack "$OUT/a2a-raw-pcaps.zip" "$STAGE" "${RAW[@]}"
-rm -rf "dist/stage_stripped"
+rm -rf "$STAGE"
 
 # ── Checksums (so a downloader can verify integrity before reproducing) ───────
 echo "== writing checksums =="
