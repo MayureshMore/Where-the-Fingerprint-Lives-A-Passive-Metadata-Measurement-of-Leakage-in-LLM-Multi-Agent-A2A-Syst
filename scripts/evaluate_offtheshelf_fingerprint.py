@@ -131,6 +131,7 @@ def closed_world(X, y, groups, label: str) -> dict:
     return {
         "labels": label, "n": int(len(y)), "n_classes": len(classes), "classes": classes,
         "chance": chance, "macro_f1": f["mean"], "ci_lo": f["ci_lo"], "ci_hi": f["ci_hi"],
+        "ci_method": res["ci_method"], "ci_n_clusters": res["ci_n_clusters"],
         "accuracy": res["accuracy"]["mean"],
     }
 
@@ -153,7 +154,7 @@ def main(args: argparse.Namespace) -> None:
         "model": "GBTClassifier(task=role) — same as the main role attacker",
         "representation": "35-dim per-agent per-flow vector (features/per_flow.py); "
                           "port used ONLY for the label, never as a feature",
-        "cv": "group-safe 5-fold by trip; macro-F1 with bootstrap 95% CI (seed 42)",
+        "cv": "group-safe 5-fold by trip; macro-F1 with cluster (group) bootstrap 95% CI by trip (seed 42)",
         "n_pcaps": len(sorted(raw.glob('*.pcap'))),
         "primary_role_closed_world": {
             "role_6way": closed_world(X, y_role, groups, "role_6way"),

@@ -81,6 +81,7 @@ def _cv(X, y, g, task):
     r = GBTClassifier(task=task).cross_validate(X, list(y), n_splits=5, groups=g)
     f = r["f1_macro"]
     return {"macro_f1": f["mean"], "ci_lo": f["ci_lo"], "ci_hi": f["ci_hi"],
+            "ci_method": r["ci_method"], "ci_n_clusters": r["ci_n_clusters"],
             "n": int(len(X)), "n_classes": len(set(y)), "chance": 1.0 / len(set(y)),
             "prompt_groups_per_class": {k: len(v) for k, v in _pg(y, g).items()}}
 
@@ -202,7 +203,7 @@ def main(_: argparse.Namespace) -> None:
                  "This re-runs the CORE tasks (workflow/role/topology/parallelism) on interleaved "
                  "captures. If they hold within noise of the committed baselines, they are NOT capture "
                  "artefacts — the same control that broke framework-ID leaves the real attack intact.",
-        "method": "GBT; group-safe 5-fold StratifiedGroupKFold by prompt_group; macro-F1 + bootstrap "
+        "method": "GBT; group-safe 5-fold StratifiedGroupKFold by prompt_group; macro-F1 + cluster (group) bootstrap "
                   "95% CI; seed 42. Port never a feature.",
         "results": results,
         "summary": {

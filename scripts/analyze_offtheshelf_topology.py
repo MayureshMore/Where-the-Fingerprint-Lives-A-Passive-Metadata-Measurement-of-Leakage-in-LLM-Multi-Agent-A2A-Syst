@@ -13,7 +13,7 @@ recovers the agent connection graph of a system it did not build, directly from
 flow metadata (IP/port headers), with no payload and no ML.
 
 Method:
-  1. Read header-only pcaps from data/raw_offtheshelf/ (96-byte snaplen).
+  1. Read pcaps from data/raw_offtheshelf/ (96-byte snaplen; only IP/port headers are used).
   2. Extract TCP flows with the SAME canonical convention as
      features/extractor.py: the agent/server port is always the right-hand
      endpoint of a flow, so each flow names the agent that was CALLED.

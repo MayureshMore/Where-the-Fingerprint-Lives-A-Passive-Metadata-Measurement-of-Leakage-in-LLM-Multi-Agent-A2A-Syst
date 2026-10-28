@@ -60,7 +60,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 _TASKS = ["workflow", "role"]  # topology/parallelism are structural; excluded here
-_N_BOOTSTRAP = 1000
 _RNG_SEED = 42
 
 _N_CLS = {"workflow": 4, "role": 3}
@@ -111,23 +110,10 @@ def _f1(yt, yp, classes):
     return float(f1_score(yt, yp, labels=classes, average="macro", zero_division=0))
 
 
-def _bootstrap(yt, yp, classes, n=_N_BOOTSTRAP, seed=_RNG_SEED):
-    rng = np.random.default_rng(seed)
-    idx = np.arange(len(yt))
-    yta, ypa = np.array(yt), np.array(yp)
-    accs, f1s = [], []
-    for _ in range(n):
-        s = rng.choice(idx, len(idx), replace=True)
-        accs.append(_accuracy(yta[s].tolist(), ypa[s].tolist()))
-        f1s.append(_f1(yta[s].tolist(), ypa[s].tolist(), classes))
-    return {
-        "accuracy": _accuracy(yt, yp),
-        "accuracy_ci_lo": float(np.percentile(accs, 2.5)),
-        "accuracy_ci_hi": float(np.percentile(accs, 97.5)),
-        "macro_f1": _f1(yt, yp, classes),
-        "macro_f1_ci_lo": float(np.percentile(f1s, 2.5)),
-        "macro_f1_ci_hi": float(np.percentile(f1s, 97.5)),
-    }
+def _bootstrap(yt, yp, classes, groups):
+    """95% CI resampling whole prompt-groups (project convention, evaluation/stats.py)."""
+    from evaluation.stats import bootstrap_ci
+    return bootstrap_ci(yt, yp, classes, groups=groups)
 
 
 def _internal_cv(X, y, groups, task, n_splits=5):
@@ -139,7 +125,7 @@ def _internal_cv(X, y, groups, task, n_splits=5):
     skf = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=_RNG_SEED)
     ya, ga = np.array(y), np.array(groups)
     accs, f1s = [], []
-    oof_t, oof_p = [], []
+    oof_t, oof_p, oof_g = [], [], []
     for _, (tr, te) in enumerate(skf.split(X, ya, ga)):
         clf = RFClassifier(task=task)
         clf.fit(X[tr], ya[tr].tolist())
@@ -148,24 +134,26 @@ def _internal_cv(X, y, groups, task, n_splits=5):
         f1s.append(_f1(ya[te].tolist(), preds, classes))
         oof_t.extend(ya[te].tolist())
         oof_p.extend(list(preds))
-    # 95 % bootstrap CI on pooled out-of-fold preds — same method as the transfers.
-    bs = _bootstrap(oof_t, oof_p, classes)
+        oof_g.extend(ga[te].tolist())
+    # 95 % cluster-bootstrap CI on pooled out-of-fold preds — same method as the transfers.
+    bs = _bootstrap(oof_t, oof_p, classes, oof_g)
     return {
         "accuracy": float(np.mean(accs)), "accuracy_std": float(np.std(accs)),
         "accuracy_ci_lo": bs["accuracy_ci_lo"], "accuracy_ci_hi": bs["accuracy_ci_hi"],
         "macro_f1": float(np.mean(f1s)), "macro_f1_std": float(np.std(f1s)),
         "macro_f1_ci_lo": bs["macro_f1_ci_lo"], "macro_f1_ci_hi": bs["macro_f1_ci_hi"],
+        "ci_method": bs["ci_method"], "ci_n_clusters": bs.get("n_clusters"),
     }
 
 
-def _transfer(X_tr, y_tr, X_te, y_te, task, do_bootstrap):
+def _transfer(X_tr, y_tr, X_te, y_te, task, do_bootstrap, groups_te=None):
     from models.random_forest import RFClassifier
     classes = sorted(set(y_tr + y_te))
     clf = RFClassifier(task=task)
     clf.fit(X_tr, y_tr)
     preds = clf.predict(X_te)
     if do_bootstrap:
-        return _bootstrap(y_te, preds, classes)
+        return _bootstrap(y_te, preds, classes, groups_te)
     return {"accuracy": _accuracy(y_te, preds), "macro_f1": _f1(y_te, preds, classes)}
 
 
@@ -299,23 +287,23 @@ def main(args):
 
         # A → A_model (model-only)
         if have_amodel:
-            Xam, yam, _ = _load(dir_amodel, task)
+            Xam, yam, gam = _load(dir_amodel, task)
             if Xam is not None:
-                results["A_Amodel"] = _transfer(Xa, ya, Xam, yam, task, do_bs)
+                results["A_Amodel"] = _transfer(Xa, ya, Xam, yam, task, do_bs, gam)
                 logger.info("A→A_model  task=%s  F1=%.3f", task, results["A_Amodel"]["macro_f1"])
 
         # A → B_logic (logic-only)
         if have_blogic:
-            Xbl, ybl, _ = _load(dir_blogic, task)
+            Xbl, ybl, gbl = _load(dir_blogic, task)
             if Xbl is not None:
-                results["A_Blogic"] = _transfer(Xa, ya, Xbl, ybl, task, do_bs)
+                results["A_Blogic"] = _transfer(Xa, ya, Xbl, ybl, task, do_bs, gbl)
                 logger.info("A→B_logic  task=%s  F1=%.3f", task, results["A_Blogic"]["macro_f1"])
 
         # A → B (both changed — original result for comparison)
         if have_b:
-            Xb, yb, _ = _load(dir_b, task)
+            Xb, yb, gb = _load(dir_b, task)
             if Xb is not None:
-                results["AB"] = _transfer(Xa, ya, Xb, yb, task, do_bs)
+                results["AB"] = _transfer(Xa, ya, Xb, yb, task, do_bs, gb)
                 logger.info("A→B  task=%s  F1=%.3f", task, results["AB"]["macro_f1"])
 
         _print_task(task, results, do_ci=do_bs)

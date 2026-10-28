@@ -25,7 +25,7 @@ python scripts/run_poc.py --mode local --use-llm --model llama3.2:3b
 
 Expect `OVERALL : PASS`. (Drop `--use-llm --model …` for a no-Ollama loopback check.)
 
-## 3. Capture (metadata-only: 96-byte snaplen, BPF-scoped to the agent ports)
+## 3. Capture (96-byte snaplen, BPF-scoped to the agent ports)
 
 ```bash
 mkdir -p logs && sudo venv/bin/python scripts/run_pilot.py --n 50 --out data/raw 2>&1 | tee logs/pilot.log
@@ -33,7 +33,8 @@ mkdir -p logs && sudo venv/bin/python scripts/run_pilot.py --n 50 --out data/raw
 
 Collects all 12 topology×workflow pairs (50 runs each = 600 traces). `sudo` is only for
 tcpdump's BPF access (macOS: `chmod o+r /dev/bpf*` once lets you drop `sudo`; on Linux use
-`sudo`, or `setcap cap_net_raw+ep $(command -v tcpdump)`). Payloads are never written to disk.
+`sudo`, or `setcap cap_net_raw+ep $(command -v tcpdump)`). The 96-byte snaplen keeps a short slice of
+payload per packet; `scripts/package_data.sh` strips captures to headers before any release.
 
 ## 4. Extract features (195-dim flat vector)
 

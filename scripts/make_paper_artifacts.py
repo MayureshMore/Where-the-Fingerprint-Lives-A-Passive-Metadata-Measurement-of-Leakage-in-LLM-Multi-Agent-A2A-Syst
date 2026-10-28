@@ -419,11 +419,13 @@ def fig_confound_control() -> Path | None:
         r = R.get(task)
         if not r:
             continue
-        rows.append((task, r["committed_baseline"]["macro_f1"], r["interleaved"]["macro_f1"],
-                     r["interleaved"]["chance"], True))
+        cb, it = r["committed_baseline"], r["interleaved"]
+        rows.append((task, cb["macro_f1"], it["macro_f1"], it["chance"], True,
+                     (cb.get("ci_lo"), cb.get("ci_hi")), (it.get("ci_lo"), it.get("ci_hi"))))
     f = R.get("framework_id_A_vs_C")
     if f:
-        rows.append(("framework-ID\n(A↔C)", f["separate_session"], f["interleaved"], 0.5, False))
+        rows.append(("framework-ID\n(A↔C)", f["separate_session"], f["interleaved"], 0.5, False,
+                     (None, None), (None, None)))
     if not rows:
         return None
     fig, ax = plt.subplots(figsize=(7.6, 4.6))
@@ -435,14 +437,21 @@ def fig_confound_control() -> Path | None:
            color=["#2e7d32" if s else "#c62828" for s in surv])
     for i, r in enumerate(rows):
         ax.hlines(r[3], i - 0.45, i + 0.45, colors="crimson", linestyles="--", lw=1.1)
-        ax.text(i + w/2, r[2] + 0.02, f"{r[2]:.2f}", ha="center", fontsize=9, fontweight="bold")
-        ax.text(i - w/2, r[1] + 0.02, f"{r[1]:.2f}", ha="center", fontsize=8, color="#555")
+        tops = []
+        for x, val, (lo, hi) in ((i - w/2, r[1], r[5]), (i + w/2, r[2], r[6])):
+            if lo is not None and hi is not None:     # 95% cluster-bootstrap CI
+                ax.errorbar(x, val, yerr=[[val - lo], [hi - val]], fmt="none", ecolor="black",
+                            elinewidth=1, capsize=3)
+            tops.append(hi if hi is not None else val)
+        ax.text(i + w/2, tops[1] + 0.02, f"{r[2]:.2f}", ha="center", fontsize=9, fontweight="bold")
+        ax.text(i - w/2, tops[0] + 0.02, f"{r[1]:.2f}", ha="center", fontsize=8, color="#555")
     ax.set_xticks(xs); ax.set_xticklabels([r[0] for r in rows])
     ax.set_ylabel("macro-F1"); ax.set_ylim(0, 1.15); ax.legend(loc="lower left", fontsize=8)
     max_delta = max(abs(r[2] - r[1]) for r in rows if r[4])
     ax.set_title("Confound audit: the SAME same-session control that breaks framework-ID\n"
                  f"leaves the core tasks within noise (|Δ| ≤ {max_delta:.2f}) — the core attack is real,\n"
-                 "not a capture artefact (red = collapses to chance; green = survives)", fontsize=8.5)
+                 "not a capture artefact (red = collapses to chance; green = survives; bars = 95% cluster-bootstrap CI)",
+                 fontsize=8.5)
     fig.tight_layout()
     p = FIGS / "confound_control.png"; fig.savefig(p, dpi=150); plt.close(fig)
     return p

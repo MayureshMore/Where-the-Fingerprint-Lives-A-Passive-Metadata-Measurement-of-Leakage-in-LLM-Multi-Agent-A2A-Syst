@@ -125,7 +125,8 @@ TOPO_EDGES: dict[str, list[list[str]]] = {
 
 
 def _url(role: str, ports: dict[str, int], host: str = "127.0.0.1") -> str:
-    return f"http://{host}:{ports[role]}"
+    from agents import tls
+    return f"{tls.scheme()}://{host}:{ports[role]}"
 
 
 # ── Agent config builders ─────────────────────────────────────────────────────
@@ -222,7 +223,8 @@ async def _wait_ready(role: str, ports: dict[str, int], retries: int = 30) -> bo
     url = _url(role, ports)
     for attempt in range(retries):
         try:
-            async with httpx.AsyncClient(timeout=2.0) as c:
+            from agents import tls
+            async with httpx.AsyncClient(timeout=2.0, verify=tls.client_verify()) as c:
                 r = await c.get(f"{url}/.well-known/agent.json")
                 if r.status_code == 200:
                     return True
@@ -481,8 +483,15 @@ def _parse() -> argparse.Namespace:
                         "Point deployment B at a SECOND Ollama instance (e.g. "
                         "http://127.0.0.1:11435) to run A and B in parallel without "
                         "LLM contention corrupting the timing features.")
+    p.add_argument("--tls-dir", dest="tls_dir", default=None,
+                   help="Serve and call every agent over TLS using the CA + certificate in this "
+                        "directory (made by scripts/make_tls_certs.sh). Default: cleartext HTTP.")
     return p.parse_args()
 
 
 if __name__ == "__main__":
-    asyncio.run(main(_parse()))
+    _args = _parse()
+    if _args.tls_dir:
+        from agents import tls
+        tls.configure(_args.tls_dir)
+    asyncio.run(main(_args))

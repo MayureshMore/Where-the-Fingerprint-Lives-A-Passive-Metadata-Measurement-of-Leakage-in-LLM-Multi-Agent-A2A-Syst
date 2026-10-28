@@ -92,6 +92,12 @@ class AgentRole(str, enum.Enum):
     VALIDATOR = "validator"
 
 
+def _new_http_client() -> httpx.AsyncClient:
+    """Client for agent-to-agent calls; verifies against the local CA when TLS is on."""
+    from agents import tls
+    return httpx.AsyncClient(timeout=httpx.Timeout(180.0), verify=tls.client_verify())
+
+
 class AgentConfig(BaseModel):
     role: AgentRole
     host: str = "0.0.0.0"
@@ -116,7 +122,8 @@ class AgentConfig(BaseModel):
     defense: str = "none"
 
     def base_url(self) -> str:
-        return f"http://{self.host}:{self.port}"
+        from agents import tls
+        return f"{tls.scheme()}://{self.host}:{self.port}"
 
 
 class A2ATaskResult(BaseModel):
@@ -348,8 +355,10 @@ class BaseA2AAgent:
         import uvicorn
 
         app = self.build_app()
+        from agents import tls
         config = uvicorn.Config(
-            app, host=self.config.host, port=self.config.port, log_level="warning"
+            app, host=self.config.host, port=self.config.port, log_level="warning",
+            **tls.server_kwargs(),
         )
         self._server = uvicorn.Server(config)
         logger.info(
@@ -371,7 +380,7 @@ class BaseA2AAgent:
 
     async def _get_http_client(self) -> httpx.AsyncClient:
         if self._http_client is None or self._http_client.is_closed:
-            self._http_client = httpx.AsyncClient(timeout=httpx.Timeout(180.0))
+            self._http_client = _new_http_client()
         return self._http_client
 
     async def _resolve_card(
@@ -383,7 +392,7 @@ class BaseA2AAgent:
         return self._card_cache[target_url]
 
     async def __aenter__(self):
-        self._http_client = httpx.AsyncClient(timeout=httpx.Timeout(180.0))
+        self._http_client = _new_http_client()
         return self
 
     async def __aexit__(self, *_):

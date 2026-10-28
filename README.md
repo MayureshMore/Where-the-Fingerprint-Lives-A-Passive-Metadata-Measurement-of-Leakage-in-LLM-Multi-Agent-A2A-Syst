@@ -37,7 +37,7 @@ All numbers are macro-F1 with 95% cluster-bootstrap CIs, from the committed JSON
 | Same-session control: framework-ID collapses, core tasks hold (§5.8) | 0.997 → 0.46 | 0.500 | `confound_control.json` |
 | Cross-instance `a2a_mcp`, coordinator layer (§5.9) | 0.87 (82 trips); 0.94 (102 trips) | 0.333 | `cross_instance_transfer*.json` |
 | AutoGen over gRPC (not ours), four-way role (§5.10) | **0.966** | 0.250 | `cross_framework_autogen.json` |
-| Cross-framework transfer, two-way coordinator/specialist (§5.10) | 0.43 — below chance | 0.500 | `cross_framework_autogen.json` |
+| Cross-framework transfer, `a2a_mcp` → AutoGen, coordinator vs specialist (§5.10) | 0.43 — collapses to predicting every flow "specialist" (accuracy 0.75 = the specialist share) | | `cross_framework_autogen.json` |
 
 Every value above regenerates exactly from the frozen features — see [Reproducing the paper](#reproducing-the-paper).
 
@@ -55,7 +55,18 @@ load balancer on port 443); separating target flows from such background is not 
 The role task additionally assumes flows can be attributed to individual agents. Packet
 direction is assigned from the known agent ports; ports never enter the feature vector.
 
-Captures use a **96-byte snaplen**: payload bytes are never written to disk.
+**The testbed traffic itself is not encrypted.** Every deployment (A, B, C, `a2a_mcp`, CrewAI)
+speaks cleartext HTTP, and AutoGen uses an insecure gRPC channel. The observer is *restricted*
+to the metadata that TLS would leave visible — on-wire packet sizes, timing, and direction — and
+never reads content. TLS adds per-record overhead and a handshake per connection, which shift
+sizes and packet counts; its effect on these results is not measured here. The WAN capture
+(§5.6) was taken post-decapsulation on the VPN tunnel interface, i.e. at the tunnel endpoint:
+an on-path observer outside the tunnel would see one encrypted, multiplexed flow, the case
+excluded above.
+
+Captures use a **96-byte snaplen**. On loopback that still keeps a 20-40 byte slice of payload
+per packet, so the released captures are stripped to their link, IP and TCP headers
+(`scripts/strip_payload.py`); every feature reads only timestamps and on-wire lengths.
 
 ---
 
@@ -206,7 +217,8 @@ described in [DATA.md](DATA.md).
 All experiments ran on researcher-owned, isolated infrastructure with synthetic tasks and
 locally hosted models; no real users, third-party services, or production systems were
 observed. Captures are constrained to the agents under test by an explicit BPF filter and a
-96-byte snaplen, so payload bytes are never recorded. The work characterizes and bounds a
+96-byte snaplen, and the released captures are stripped to packet headers, so no payload is
+published. The work characterizes and bounds a
 privacy risk and pairs the attack with a defense analysis. Do not use this code to observe
 multi-agent systems without the explicit authorization of their owner.
 
@@ -220,7 +232,7 @@ multi-agent systems without the explicit authorization of their owner.
             in LLM Multi-Agent (A2A) Systems},
   author = {More, Mayuresh Sanjay},
   year   = {2026},
-  note   = {Code and data: https://github.com/MayureshMore/Passive-Inference-of-Topology-Roles-and-Workflows-in-LLM-Multi-Agent-via-Encrypted-Traffic-Analysis}
+  note   = {Code and data: https://github.com/MayureshMore/Where-the-Fingerprint-Lives-A-Passive-Metadata-Measurement-of-Leakage-in-LLM-Multi-Agent-A2A-Syst}
 }
 ```
 

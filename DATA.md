@@ -15,10 +15,11 @@ figures you download a published data archive and unpack it into `data/`.
 | Archive | Contents | Unpacked size | Needed for |
 |---|---|---|---|
 | `a2a-features.zip` | the 17 `data/processed*/` sets listed below — `.npz` feature matrices + `labels.json` | ≈100 MB | the short demo, closed-world, transfer (model-vs-logic, A↔B, A↔C), WAN, open-world and confound stages |
-| `a2a-raw-pcaps.zip` | the 22 `data/raw*/` sets listed below — 96-byte-snaplen `.pcap` captures (metadata only, no payload) + `.json` label sidecars | ≈310 MB | the `a2a_mcp`, AutoGen and CrewAI stages (they read pcaps directly), defense overhead, mixing, and re-extracting features |
+| `a2a-raw-pcaps.zip` | the 22 `data/raw*/` sets listed below — `.pcap` captures stripped to packet headers (timestamps and on-wire lengths kept; no payload bytes) + `.json` label sidecars | ≈310 MB | the `a2a_mcp`, AutoGen and CrewAI stages (they read pcaps directly), defense overhead, mixing, and re-extracting features |
 
 **Archive location:** `<ARCHIVE_URL — to be filled in after the Zenodo/figshare/OSF upload>`
 **`a2a-features.zip` SHA-256:** `<SHA256 — from dist/SHA256SUMS.txt, filled in after upload>`
+**`a2a-raw-pcaps.zip` SHA-256:** `<SHA256 — from dist/SHA256SUMS.txt, filled in after upload>`
 
 `bash scripts/reproduce.sh` (the short demo) needs only `a2a-features.zip`. The full suite
 (`--full-suite`) needs both archives.
@@ -81,8 +82,12 @@ into the **Archive location** line above (and the header of `scripts/reproduce.s
 
 ## Provenance & ethics
 
-- Captures are **metadata only**: tcpdump ran with a 96-byte snaplen and a BPF
-  filter scoped to the agent host:port flows. No payload bytes were ever written.
+- tcpdump ran with a 96-byte snaplen and a BPF filter scoped to the agent host:port
+  flows. That snaplen still kept a 20-40 byte slice of cleartext payload per packet,
+  so before release every packet is cut to its link, IP and TCP headers
+  (`scripts/strip_payload.py`, run by `scripts/package_data.sh`). Timestamps and
+  on-wire lengths are preserved, and features re-extracted from the stripped
+  captures are identical to the published ones.
 - All traffic was generated on infrastructure owned by the researchers; no
   external systems were targeted.
 - Raw collection is stochastic (LLM generation over a live network), so a fresh

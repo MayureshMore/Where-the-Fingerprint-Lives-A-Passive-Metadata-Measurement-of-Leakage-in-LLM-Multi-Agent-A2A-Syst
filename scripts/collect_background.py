@@ -2,7 +2,7 @@
 """
 Collect background (non-A2A) traffic for open-world evaluation.
 
-Captures ~150 traces across six categories using snaplen=96 (header-only,
+Captures ~150 traces across six categories using snaplen=96 (truncated,
 same as A2A collection).  Saves pcaps to data/raw_background/ and extracts
 195-dim flat feature vectors to data/processed_background/.
 
@@ -337,7 +337,7 @@ def _start_tcpdump(out_pcap: Path, interface: str = "lo0") -> subprocess.Popen:
     cmd = [
         "tcpdump",
         "-i", interface,
-        "-s", "96",          # snaplen=96 — header only, no payload
+        "-s", "96",          # snaplen=96 — truncated (stripped to headers before release)
         "-n",
         "-w", str(out_pcap),
         _build_port_filter(),

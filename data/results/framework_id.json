@@ -25,6 +25,8 @@
     "macro_f1": 0.9981811732991357,
     "macro_f1_ci_lo": 0.9962492124228235,
     "macro_f1_ci_hi": 0.999580584533198,
+    "ci_method": "group_bootstrap",
+    "ci_n_clusters": 439,
     "accuracy": 0.9978156966096396,
     "per_class": {
       "A": {
@@ -151,6 +153,8 @@
       "macro_f1": 0.9927607079375447,
       "macro_f1_ci_lo": 0.9891755183175551,
       "macro_f1_ci_hi": 0.99606839478584,
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 439,
       "accuracy": 0.991283461594282,
       "per_class": {
         "A": {

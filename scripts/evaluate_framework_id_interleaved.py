@@ -152,7 +152,7 @@ def main(args: argparse.Namespace) -> None:
                "drift is shared across labels. A & C share model+logic, differ only in runtime.",
         "method": "IDENTICAL to evaluate_framework_id.py (190-dim traffic-shape vector = 195 minus 5 "
                   "structural counts; GBT; group-safe 5-fold StratifiedGroupKFold by prompt_group; "
-                  "macro-F1 + pooled-OOF bootstrap 95% CI; timing ablation). Port never a feature.",
+                  "macro-F1 + pooled-OOF cluster (group) bootstrap 95% CI; timing ablation). Port never a feature.",
         "n_classes": len(counts), "chance": chance, "n_per_class": counts,
         "headline_A_vs_C_2way_balanced": {
             "note": "THE control result — dedicated GBT on A vs C_langgraph only (asyncio vs "

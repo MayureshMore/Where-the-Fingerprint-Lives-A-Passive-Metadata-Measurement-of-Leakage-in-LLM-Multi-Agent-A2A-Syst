@@ -1,10 +1,9 @@
 """
 Packet capture wrapper around tcpdump.
 
-Records metadata-only captures (no payload) of A2A inter-agent traffic.
-Each capture produces a .pcap file that is later processed by the feature
-extractor.  Never store packet payload — use BPF filters to limit capture
-to the relevant host pairs and ports.
+Records truncated captures of A2A inter-agent traffic for the feature
+extractor, which reads only packet timestamps and on-wire lengths.  Use BPF
+filters to limit capture to the relevant host pairs and ports.
 """
 
 from __future__ import annotations
@@ -19,8 +18,10 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# tcpdump flags that strip payload (snaplen=96 captures only Ethernet+IP+TCP
-# headers, leaving no application-layer content).
+# snaplen=96 truncates each packet, but on loopback/tunnel links the link+IP+TCP
+# headers are only ~56-76 bytes, so 20-40 bytes of (cleartext) payload remain per
+# packet. Released captures are stripped to headers by scripts/strip_payload.py
+# (run by scripts/package_data.sh); timestamps and on-wire lengths are kept.
 _SNAPLEN = 96
 _TCPDUMP_BASE = ["tcpdump", "-n", "-s", str(_SNAPLEN), "-w"]
 

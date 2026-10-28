@@ -190,6 +190,22 @@ def inst2_specialist_mode(r2, y2, g2):
             "n_natural": int(n_nat), "n_unknown_legacy": int(n_unknown), "drivers": sorted(drivers)}
 
 
+def legacy_mask(r2, y2, g2):
+    """True for instance-2 SPECIALIST samples whose trip sidecar has no natural/boosted tag
+    (collected before the tag existed — counted as n_unknown_legacy above)."""
+    mask = []
+    for role, trip in zip(np.asarray(y2), np.asarray(g2)):
+        tagged = False
+        sc = Path(r2) / f"{trip}.json"
+        if role in SPECIALISTS and sc.exists():
+            try:
+                tagged = json.loads(sc.read_text()).get("boosted") in (True, False)
+            except Exception:
+                pass
+        mask.append(role in SPECIALISTS and not tagged)
+    return np.asarray(mask, dtype=bool)
+
+
 def main(args: argparse.Namespace) -> None:
     r1, r2 = Path(args.inst1), Path(args.inst2)
     if not any(r1.glob("*.pcap")):
@@ -304,6 +320,25 @@ def main(args: argparse.Namespace) -> None:
     spec_mode = inst2_specialist_mode(r2, y2, g2)
     mode = spec_mode["mode"]
 
+    # Sensitivity: drop the untagged (legacy) instance-2 specialist samples and re-run the
+    # six-way transfer under the same MIN_N rule. Reported alongside, never replacing, the main number.
+    legacy_out = None
+    if spec_mode["n_unknown_legacy"] and specialists_in_way:
+        keep = ~legacy_mask(r2, y2, g2)
+        X2l, y2l, g2l = X2[keep], np.asarray(y2)[keep], np.asarray(g2)[keep]
+        c2l = counts(y2l)
+        common_l = sorted({r for r in set(c1) & set(c2l) if c1[r] >= MIN_N and c2l[r] >= MIN_N})
+        legacy_out = {"n_excluded": int((~keep).sum()), "roles_present_instance2": c2l,
+                      "common_roles_used": common_l, "n_way": len(common_l),
+                      "roles_dropped_below_min_n": sorted(set(common) - set(common_l))}
+        if len(common_l) >= 2:
+            X1l, y1l, g1l = restrict(X1, y1, g1, common_l)
+            X2lc, y2lc, g2lc = restrict(X2l, y2l, g2l, common_l)
+            l12 = transfer(X1l, y1l, X2lc, y2lc, g2lc, f"{len(common_l)}-way legacy-excluded inst1→inst2")
+            l21 = transfer(X2lc, y2lc, X1l, y1l, g1l, f"{len(common_l)}-way legacy-excluded inst2→inst1")
+            legacy_out.update({"inst1_to_inst2": l12, "inst2_to_inst1": l21,
+                               "weaker_direction_macro_f1": min(l12["macro_f1"], l21["macro_f1"])})
+
     if not specialists_in_way:
         driver_interpretation = ("No specialists met the ≥%d bar — coordinator-layer result; the "
                                  "specialist-collection axis does not apply." % MIN_N)
@@ -368,7 +403,7 @@ def main(args: argparse.Namespace) -> None:
         "representation": "35-dim per-agent traffic-shape vector (features/per_flow.py); port is "
                           "the LABEL only, never a feature.",
         "method": "fit GBT on train instance, predict test instance (_transfer pattern); macro-F1 "
-                  "with bootstrap 95% CI (seed 42); chance = 1/n_test_roles.",
+                  "with cluster (group) bootstrap 95% CI by trip (seed 42); chance = 1/n_test_roles.",
         "roles_present_instance1": c1,
         "roles_present_instance2": c2,
         "common_roles_used": common,
@@ -379,6 +414,7 @@ def main(args: argparse.Namespace) -> None:
             "inst2_to_inst1": f_2to1,
             "weaker_direction_macro_f1": weak,
         },
+        "legacy_excluded": legacy_out,
         "coordinator_layer_3way_clean": coord_out,
         "coordinator_shape_only_ablation": shape_out,
         "coordinator_vs_specialist": coarse_out,

@@ -1,7 +1,7 @@
 {
   "task": "Phase-1 CONFOUND CONTROL \u2014 framework ID on same-session interleaved capture",
   "why": "Original framework_id.json separability may be capture-session/batch confounded; this re-runs the identical analysis on round-robin interleaved A/B/C so session drift is shared across labels. A & C share model+logic, differ only in runtime.",
-  "method": "IDENTICAL to evaluate_framework_id.py (190-dim traffic-shape vector = 195 minus 5 structural counts; GBT; group-safe 5-fold StratifiedGroupKFold by prompt_group; macro-F1 + pooled-OOF bootstrap 95% CI; timing ablation). Port never a feature.",
+  "method": "IDENTICAL to evaluate_framework_id.py (190-dim traffic-shape vector = 195 minus 5 structural counts; GBT; group-safe 5-fold StratifiedGroupKFold by prompt_group; macro-F1 + pooled-OOF cluster (group) bootstrap 95% CI; timing ablation). Port never a feature.",
   "n_classes": 3,
   "chance": 0.3333333333333333,
   "n_per_class": {
@@ -27,6 +27,8 @@
     "macro_f1": 0.6055097052786927,
     "macro_f1_ci_lo": 0.6011534176275566,
     "macro_f1_ci_hi": 0.718262987012987,
+    "ci_method": "group_bootstrap",
+    "ci_n_clusters": 12,
     "accuracy": 0.561835075493612,
     "per_class": {
       "A": {
@@ -93,6 +95,8 @@
       "macro_f1": 0.5839280737095383,
       "macro_f1_ci_lo": 0.5617667378283816,
       "macro_f1_ci_hi": 0.689586838238799,
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 12,
       "accuracy": 0.5188734030197445,
       "per_class": {
         "A": {

@@ -25,10 +25,10 @@
 # Determinism: RF/GBT/transfer point estimates use fixed random_state=42 and
 # reproduce the committed numbers; CNN/Transformer are stochastic, footnote-only.
 #
-# Inputs: the published feature archive unpacked into data/  (see DATA.md).
-#   Data archive: <ARCHIVE_URL — filled in after the Zenodo/figshare/OSF upload>
-# Only the live-defense OVERHEAD stage needs raw pcaps; everything else runs from
-# features alone, and each stage auto-skips if its inputs are absent.
+# Inputs: the published archives unpacked into data/ — location, checksums and which stage
+# needs which archive are in DATA.md (the single place the archive DOI is recorded).
+# The short demo needs only the feature archive; --full-suite also reads the raw captures.
+# Each stage auto-skips if its inputs are absent.
 #
 # Usage:
 #   bash scripts/reproduce.sh                          # short demo (sandbox)
@@ -195,6 +195,9 @@ else
     stage "matched-pair detection A-vs-CrewAI, ALL ELSE EQUAL (§13.1; reads deployment-A pcaps + matched CrewAI on A's roles/prompts — data/raw_crewai_matched)"
     if have "data/raw" "data/raw_crewai_matched"; then
         run $PY scripts/evaluate_crewai_matched_detection.py; fi
+    stage "TLS control (deployment A re-collected with TLS on every agent link; scripts/run_pilot.py --tls-dir)"
+    if have "$A/labels.json" "data/processed_tls/labels.json" "data/raw" "data/raw_tls"; then
+        run $PY scripts/evaluate_tls_control.py; fi
     stage "capture-interface provenance manifest (C1; loopback vs cross-host, derived from traces)"
     if have "data/raw"; then
         run $PY scripts/emit_capture_interface.py; fi

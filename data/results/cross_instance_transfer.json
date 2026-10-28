@@ -17,7 +17,7 @@
     "drivers": []
   },
   "representation": "35-dim per-agent traffic-shape vector (features/per_flow.py); port is the LABEL only, never a feature.",
-  "method": "fit GBT on train instance, predict test instance (_transfer pattern); macro-F1 with bootstrap 95% CI (seed 42); chance = 1/n_test_roles.",
+  "method": "fit GBT on train instance, predict test instance (_transfer pattern); macro-F1 with cluster (group) bootstrap 95% CI by trip (seed 42); chance = 1/n_test_roles.",
   "roles_present_instance1": {
     "air_ticketing": 17,
     "car_rental": 17,
@@ -82,6 +82,64 @@
       "ci_n_clusters": 150
     },
     "weaker_direction_macro_f1": 0.6051366684043133
+  },
+  "legacy_excluded": {
+    "n_excluded": 12,
+    "roles_present_instance2": {
+      "air_ticketing": 11,
+      "car_rental": 11,
+      "hotel": 11,
+      "mcp": 82,
+      "orchestrator": 82,
+      "planner": 82
+    },
+    "common_roles_used": [
+      "air_ticketing",
+      "car_rental",
+      "hotel",
+      "mcp",
+      "orchestrator",
+      "planner"
+    ],
+    "n_way": 6,
+    "roles_dropped_below_min_n": [],
+    "inst1_to_inst2": {
+      "macro_f1": 0.678619976359338,
+      "ci_lo": 0.6391247206978797,
+      "ci_hi": 0.7136599606977582,
+      "accuracy": 0.8279569892473119,
+      "n_test": 279,
+      "chance": 0.16666666666666666,
+      "test_classes": [
+        "air_ticketing",
+        "car_rental",
+        "hotel",
+        "mcp",
+        "orchestrator",
+        "planner"
+      ],
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 82
+    },
+    "inst2_to_inst1": {
+      "macro_f1": 0.7017757229927666,
+      "ci_lo": 0.6534856480734349,
+      "ci_hi": 0.7430330678712862,
+      "accuracy": 0.9401197604790419,
+      "n_test": 501,
+      "chance": 0.16666666666666666,
+      "test_classes": [
+        "air_ticketing",
+        "car_rental",
+        "hotel",
+        "mcp",
+        "orchestrator",
+        "planner"
+      ],
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 150
+    },
+    "weaker_direction_macro_f1": 0.678619976359338
   },
   "coordinator_layer_3way_clean": {
     "note": "NATURAL both instances (coordinators fire on every trip; no boosted driver) \u2014 the clean, unconfounded deployable result.",

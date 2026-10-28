@@ -374,8 +374,8 @@ apart **structurally-distinct** frameworks, because that is just topology recove
 ### 8.2 Confound audit — the SAME control leaves the core attack UNCHANGED
 
 §8.1 raises the obvious question a reviewer will ask next: *if the framework-ID number was a
-capture-session artefact, why trust workflow / role / topology?* We answer it directly — by
-re-running the **three core closed-world tasks on same-session interleaved captures** and comparing
+capture-session artefact, why trust workflow / role / topology / parallelism?* We answer it directly — by
+re-running the **four core closed-world tasks on same-session interleaved captures** and comparing
 to the committed (batch-collected) baselines. `data/results/confound_control.json` +
 [`figures/confound_control.png`](data/results/figures/confound_control.png).
 
@@ -416,7 +416,7 @@ within-capture controls plus the cross-capture transfers together cover every cl
 > **A note on scientific honesty (why this section exists).** We went looking for the confound that
 > would sink this paper, found one (framework-ID), and report it as a clean negative — then showed
 > with the identical instrument that the core claims are unaffected. That asymmetry (one auxiliary
-> claim demoted, three core claims corroborated) is *stronger* evidence than an unaudited table of
+> claim demoted, four core claims corroborated) is *stronger* evidence than an unaudited table of
 > high numbers: it demonstrates the numbers that remain are not capture artefacts.
 
 ---
@@ -523,6 +523,12 @@ cross-instance transfer is **genuinely PARTIAL (~0.59), robust to the driver con
 gap owed to legitimate cross-instance independence. (The coordinator layer in the same natural run
 **corroborates §9a even more strongly: weaker 0.942, shape-only 0.942 — DEPLOYABLE**.)
 
+**Untagged-sample sensitivity.** 12 of the 45 instance-2 specialist samples in the natural set come
+from trips collected before the natural/boosted sidecar tag existed (`n_unknown_legacy`). Dropping
+them (11 per specialist remain, still ≥ `MIN_N`) and re-running the six-way transfer gives a weaker
+direction of **0.588** versus 0.594 with them — the result holds (`legacy_excluded` in
+`cross_instance_transfer_natural.json`; the boosted file carries the same block).
+
 **Coordinator-vs-specialist (2-way):** weaker direction **0.758 [0.690, 0.811]**, stronger 0.875 —
 transfers, but flagged **partly structural** (hub-vs-leaf rides on connection volume like topology).
 
@@ -551,7 +557,8 @@ connection volume. The vulnerability class is **not A2A-specific**.
 **(b) But a trained classifier does NOT portably transfer across frameworks.** On the only shared
 label space (coordinator-vs-specialist), cross-framework transfer is **asymmetric**: AutoGen→a2a_mcp
 **0.786 [0.721, 0.839]**, but a2a_mcp→AutoGen **0.429** (a2a's HTTP/JSON-RPC coordinators don't match
-AutoGen's gRPC orchestrator signature → predicts all-specialist). **Weaker direction 0.429 → BOUNDED**
+AutoGen's gRPC orchestrator signature → predicts all-specialist: accuracy 0.75, the specialist share
+of AutoGen's flows, and macro-F1 0.429, the floor of that degenerate predictor). **Weaker direction 0.429 → BOUNDED**
 (§4, no re-stamp; shape-only identical). This **bounds portability, not the vulnerability**, and is
 consistent with the paper's **implementation-specificity** thesis: every framework is fingerprintable
 when you retrain on it, but the fingerprint is framework-specific — a defender cannot assume an

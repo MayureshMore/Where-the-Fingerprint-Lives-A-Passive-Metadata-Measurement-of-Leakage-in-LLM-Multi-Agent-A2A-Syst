@@ -109,6 +109,10 @@ JSON-RPC/SSE and that the capture actually sees the flows.
 
 ## 5. Full rebuild in one command (Deployments A/B + swaps + defenses + background)
 
+> **Transport.** All deployments serve cleartext HTTP (AutoGen: an insecure gRPC channel); no
+> TLS is configured. The analysis uses only what TLS would leave visible (on-wire sizes, timing,
+> direction). The WAN capture (§6) is taken post-decapsulation on the tunnel interface.
+
 `scripts/rebuild_all.sh` **is** the from-scratch driver for the LAN experiments. It resets
 the working dirs, collects all four deployments + two live-defended sets + real background,
 extracts features for each, and re-runs the whole LAN evaluation suite:
@@ -136,8 +140,9 @@ open-world-vs-background, and the live C4 defense overhead+degradation. Results 
 > **Capture privileges:** collection needs BPF access. On the paper's Mac testbed, BPF perms
 > allowed capture without `sudo`; otherwise prefix with `sudo`, or grant once with
 > `chmod o+r /dev/bpf*` (macOS) / `setcap cap_net_raw+ep $(command -v tcpdump)` (Linux).
-> Snaplen is fixed at 96 bytes and the BPF filter is scoped to the agent ports — **header
-> metadata only, never payload**.
+> Snaplen is fixed at 96 bytes and the BPF filter is scoped to the agent ports. The 96 bytes
+> still include a short slice of cleartext payload per packet; `scripts/package_data.sh`
+> strips captures to headers before release.
 
 ### Deployment C (LangGraph runtime-invariance control) — separate step
 
@@ -251,6 +256,25 @@ python scripts/evaluate_mixing_degradation.py           # loss of flow isolation
 
 ---
 
+## 7d. TLS control (optional; deployment A with TLS on every agent link)
+
+All other experiments use cleartext HTTP. This control re-collects deployment A with every agent
+serving HTTPS and every client verifying against a throwaway local CA, then measures how much of
+the fingerprint survives and whether a cleartext-trained model transfers to TLS traffic.
+
+```bash
+bash scripts/make_tls_certs.sh                       # CA + agent cert for 127.0.0.1 → data/tls (gitignored)
+sudo venv/bin/python scripts/run_pilot.py --tls-dir data/tls --n 36 --seed-offset 1000 \
+    --out data/raw_tls                                # 12 conditions × 36 = 432 traces
+python scripts/extract_features.py --raw data/raw_tls --out data/processed_tls --scapy
+python scripts/evaluate_tls_control.py               # → data/results/tls_control.json + figure
+```
+
+`--seed-offset` draws prompts disjoint from the cleartext set, so cleartext→TLS transfer is not
+helped by repeated prompts.
+
+---
+
 ## 8. Experiment → data → script → result (the full map)
 
 | Result (RESULTS.md §) | Eval script | Reads | Writes to `data/results/` |
@@ -308,8 +332,9 @@ in [RESULTS.md](RESULTS.md); they will not equal the frozen digits, and that's c
 
 ## 10. Ethics (non-negotiable, baked into the tooling)
 
-- **Metadata only** — 96-byte snaplen, BPF filter scoped to the agent host:port flows; no
-  payload is ever written to disk (`capture/recorder.py` enforces this).
+- **Metadata only in what is analysed and released** — 96-byte snaplen and a BPF filter scoped
+  to the agent host:port flows; features read only timestamps and on-wire lengths, and the
+  released captures are stripped to packet headers (`scripts/strip_payload.py`).
 - **Owned infrastructure only** — never point the collector at systems you don't operate.
   The off-the-shelf capture drives a *local* copy of `a2a_mcp` you run yourself.
 - **Defenses evaluated before release** — C4 mitigation numbers ship alongside the attack.

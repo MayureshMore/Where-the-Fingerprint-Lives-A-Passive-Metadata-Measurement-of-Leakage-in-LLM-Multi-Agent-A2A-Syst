@@ -3,72 +3,88 @@
     "AA": {
       "accuracy": 0.6783333333333333,
       "accuracy_std": 0.041028445416970566,
-      "accuracy_ci_lo": 0.6416666666666667,
-      "accuracy_ci_hi": 0.7166666666666667,
+      "accuracy_ci_lo": 0.6367831445378968,
+      "accuracy_ci_hi": 0.7198018115759196,
       "macro_f1": 0.6782481615313063,
       "macro_f1_std": 0.04124252665385283,
-      "macro_f1_ci_lo": 0.6399859212185132,
-      "macro_f1_ci_hi": 0.716368604576696
+      "macro_f1_ci_lo": 0.636500765021529,
+      "macro_f1_ci_hi": 0.7155723545242426,
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 289
     },
     "A_Amodel": {
       "accuracy": 0.5916666666666667,
-      "accuracy_ci_lo": 0.5516666666666666,
-      "accuracy_ci_hi": 0.6316666666666667,
+      "accuracy_ci_lo": 0.5506782777991034,
+      "accuracy_ci_hi": 0.6335195580110498,
       "macro_f1": 0.5878333071100204,
-      "macro_f1_ci_lo": 0.5488569737357769,
-      "macro_f1_ci_hi": 0.6264165732198704
+      "macro_f1_ci_lo": 0.54873537276585,
+      "macro_f1_ci_hi": 0.6246272302619962,
+      "ci_method": "group_bootstrap",
+      "n_clusters": 289
     },
     "A_Blogic": {
       "accuracy": 0.3440677966101695,
-      "accuracy_ci_lo": 0.3050847457627119,
-      "accuracy_ci_hi": 0.3847457627118644,
+      "accuracy_ci_lo": 0.30134274214223455,
+      "accuracy_ci_hi": 0.3892774960887092,
       "macro_f1": 0.32087621853058695,
-      "macro_f1_ci_lo": 0.2832771241294047,
-      "macro_f1_ci_hi": 0.3585016031208552
+      "macro_f1_ci_lo": 0.2787418010865531,
+      "macro_f1_ci_hi": 0.3608067357739704,
+      "ci_method": "group_bootstrap",
+      "n_clusters": 285
     },
     "AB": {
       "accuracy": 0.31,
-      "accuracy_ci_lo": 0.2733333333333333,
-      "accuracy_ci_hi": 0.35,
+      "accuracy_ci_lo": 0.26873719153974773,
+      "accuracy_ci_hi": 0.3501780843113882,
       "macro_f1": 0.28875594935090054,
-      "macro_f1_ci_lo": 0.25506526997825235,
-      "macro_f1_ci_hi": 0.32602399059979104
+      "macro_f1_ci_lo": 0.24670443526159772,
+      "macro_f1_ci_hi": 0.32671936538741414,
+      "ci_method": "group_bootstrap",
+      "n_clusters": 289
     }
   },
   "role": {
     "AA": {
       "accuracy": 0.8580556574627737,
       "accuracy_std": 0.012713019829473385,
-      "accuracy_ci_lo": 0.8414424728105323,
-      "accuracy_ci_hi": 0.874084144247281,
+      "accuracy_ci_lo": 0.840423180909839,
+      "accuracy_ci_hi": 0.8741621931043893,
       "macro_f1": 0.8558451984184904,
       "macro_f1_std": 0.012661199709180605,
-      "macro_f1_ci_lo": 0.8387670322899641,
-      "macro_f1_ci_hi": 0.8722238727224272
+      "macro_f1_ci_lo": 0.8381669157016228,
+      "macro_f1_ci_hi": 0.872419859355102,
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 289
     },
     "A_Amodel": {
       "accuracy": 0.8311390955924441,
-      "accuracy_ci_lo": 0.8133800801373784,
-      "accuracy_ci_hi": 0.8483257012020606,
+      "accuracy_ci_lo": 0.8135043423222112,
+      "accuracy_ci_hi": 0.8496147819200197,
       "macro_f1": 0.8287449752740947,
-      "macro_f1_ci_lo": 0.8097633109764307,
-      "macro_f1_ci_hi": 0.8460890752050081
+      "macro_f1_ci_lo": 0.8104443572348045,
+      "macro_f1_ci_hi": 0.8478674003455218,
+      "ci_method": "group_bootstrap",
+      "n_clusters": 289
     },
     "A_Blogic": {
       "accuracy": 0.5106017191977077,
-      "accuracy_ci_lo": 0.4882378223495702,
-      "accuracy_ci_hi": 0.5335386819484241,
+      "accuracy_ci_lo": 0.48696567959945686,
+      "accuracy_ci_hi": 0.5354035038830754,
       "macro_f1": 0.5168515790063655,
-      "macro_f1_ci_lo": 0.4942772448899622,
-      "macro_f1_ci_hi": 0.5397189156075893
+      "macro_f1_ci_lo": 0.49013870131523213,
+      "macro_f1_ci_hi": 0.5437810622148086,
+      "ci_method": "group_bootstrap",
+      "n_clusters": 285
     },
     "AB": {
       "accuracy": 0.5683333333333334,
-      "accuracy_ci_lo": 0.5460972222222222,
-      "accuracy_ci_hi": 0.5916805555555555,
+      "accuracy_ci_lo": 0.5462427336554432,
+      "accuracy_ci_hi": 0.590232836023066,
       "macro_f1": 0.568209794999444,
-      "macro_f1_ci_lo": 0.5454952852256513,
-      "macro_f1_ci_hi": 0.5914198714928254
+      "macro_f1_ci_lo": 0.5431048829383581,
+      "macro_f1_ci_hi": 0.5920990663635036,
+      "ci_method": "group_bootstrap",
+      "n_clusters": 289
     }
   }
 }

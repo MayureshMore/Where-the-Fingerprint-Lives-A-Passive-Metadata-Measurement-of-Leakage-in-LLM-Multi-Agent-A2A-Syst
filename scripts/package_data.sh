@@ -5,7 +5,8 @@
 # Produces two zips under dist/ :
 #   dist/a2a-features.zip    the processed feature sets listed below (.npz + labels.json)
 #                            — the closed-world, transfer, WAN and confound stages
-#   dist/a2a-raw-pcaps.zip   the raw capture sets listed below (96-byte pcaps + label sidecars)
+#   dist/a2a-raw-pcaps.zip   the raw capture sets listed below, stripped to packet headers
+#                            (scripts/strip_payload.py) + label sidecars
 #                            — needed by the a2a_mcp, AutoGen, CrewAI, defense-overhead and
 #                              mixing stages, and to re-extract features from scratch
 #
@@ -14,8 +15,8 @@
 #
 # The canonical results (data/results/) are committed in the repo and are NOT
 # packaged here.  Upload the two zips to Zenodo/figshare/OSF, then paste the
-# resulting DOI/URL AND the SHA-256 from dist/SHA256SUMS.txt into DATA.md (and
-# the DOI/URL into scripts/reproduce.sh).  The checksum lets an artifact
+# resulting DOI/URL and both SHA-256 values from dist/SHA256SUMS.txt into DATA.md
+# (the single place they are recorded).  The checksum lets an artifact
 # evaluator verify the download matches the release before reproducing.
 #
 # Usage:
@@ -44,24 +45,40 @@ RAW=(raw raw_amodel_sdk raw_b_sdk raw_blogic_sdk raw_langgraph raw_background ra
      raw_interleaved_langgraph raw_wf_interleaved raw_wf_interleaved_full
      raw_autogen raw_crewai raw_crewai_matched)
 
-# Zip a list of data/<name>/ sets into one archive, failing loudly on any missing set.
+PY="${PYTHON:-python3}"
+case "$PY" in */*) PY="$(cd "$(dirname "$PY")" && pwd)/$(basename "$PY")" ;; esac   # absolute, survives cd
+REPO="$PWD"
+STAGE="$OUT/stage_stripped"
+
+# Zip a list of <root>/data/<name>/ sets into one archive (paths inside the zip start at
+# data/), failing loudly on any missing set.
 pack() {
-  local zipfile="$1"; shift
-  local dirs=() n
+  local name="$1" root="$2"; shift 2
+  local zipfile="$REPO/$name" dirs=() n
   for n in "$@"; do
-    [ -d "data/$n" ] || { echo "  MISSING data/$n — collect or unpack it first" >&2; exit 1; }
+    [ -d "$root/data/$n" ] || { echo "  MISSING data/$n — collect or unpack it first" >&2; exit 1; }
     dirs+=("data/$n/")
   done
   rm -f "$zipfile"
-  zip -r -q "$zipfile" "${dirs[@]}" "${EXCLUDES[@]}"
-  echo "  wrote $zipfile (${#dirs[@]} sets, $(du -h "$zipfile" | cut -f1))"
+  ( cd "$root" && zip -r -q "$zipfile" "${dirs[@]}" "${EXCLUDES[@]}" )
+  echo "  wrote $name (${#dirs[@]} sets, $(du -h "$zipfile" | cut -f1))"
 }
 
 echo "== packaging feature matrices =="
-pack "$OUT/a2a-features.zip" "${PROCESSED[@]}"
+pack "$OUT/a2a-features.zip" . "${PROCESSED[@]}"
 
-echo "== packaging raw captures =="
-pack "$OUT/a2a-raw-pcaps.zip" "${RAW[@]}"
+# Raw captures are stored at a 96-byte snaplen, which keeps a 20-40 byte slice of
+# cleartext payload per packet. Strip every packet to its headers on a staging copy
+# (timestamps and on-wire lengths kept, so features are unchanged), verify, then zip.
+echo "== stripping payload bytes from raw captures =="
+rm -rf "dist/stage_stripped"
+raw_paths=(); for n in "${RAW[@]}"; do raw_paths+=("data/$n"); done
+"$PY" scripts/strip_payload.py --out "$STAGE" "${raw_paths[@]}"
+( cd "$STAGE" && "$PY" "$REPO/scripts/strip_payload.py" --check data/* )
+
+echo "== packaging raw captures (header-only) =="
+pack "$OUT/a2a-raw-pcaps.zip" "$STAGE" "${RAW[@]}"
+rm -rf "dist/stage_stripped"
 
 # ── Checksums (so a downloader can verify integrity before reproducing) ───────
 echo "== writing checksums =="
@@ -76,5 +93,4 @@ fi
 echo ""
 echo "Done. Next steps:"
 echo "  1. Upload dist/*.zip + dist/SHA256SUMS.txt to Zenodo/figshare/OSF (human step)."
-echo "  2. Paste the DOI/URL into DATA.md (Archive location) + scripts/reproduce.sh header,"
-echo "     and the a2a-features.zip SHA-256 into DATA.md so downloaders can verify."
+echo "  2. Paste the DOI/URL and both SHA-256 values into DATA.md so downloaders can verify."

@@ -128,6 +128,7 @@ def run_cv(X, y, groups, chance):
     cm = res["confusion_matrix"]
     return {
         "macro_f1": f["mean"], "macro_f1_ci_lo": f["ci_lo"], "macro_f1_ci_hi": f["ci_hi"],
+        "ci_method": res["ci_method"], "ci_n_clusters": res["ci_n_clusters"],
         "accuracy": res["accuracy"]["mean"],
         "per_class": per_class_from_cm(cm),
         "confusion_matrix": cm,
