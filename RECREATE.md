@@ -263,9 +263,10 @@ survives real TLS. Comparing a new TLS capture with the earlier cleartext captur
 TLS effect with session drift (the artifact the temporal-interleaving control exposed), so both
 arms are collected **in one session**: a cleartext agent set (ports 8000-8003) and a TLS set
 (8040-8043, HTTPS verified against a throwaway local CA) run side by side and alternate trace by
-trace, the two traces of a pair share one prompt, arm order is counterbalanced, and prompts come
-from a pool disjoint from the main collections (`--seed-offset 1000`). 12 conditions × 36 pairs =
-864 traces, about 8 hours.
+trace, the two traces of a pair share one prompt, and arm order is counterbalanced. Prompts are
+drawn with a new seed (`--seed-offset 1000`), but the generators use small template pools, so
+81% of them also occur in the main collection; every transfer is therefore cross-fitted by prompt
+group. 12 conditions × 36 pairs = 864 traces, about 8 hours.
 
 ```bash
 sudo chmod o+r /dev/bpf*                  # capture access for tcpdump (until reboot) — revert afterwards
@@ -285,7 +286,7 @@ dry run into separate `*_n3` dirs and `data/results_demo`.
 `scripts/evaluate_tls_control.py` writes `data/results/tls_control.json` and
 `figures/tls_control.png`: within-cleartext and within-TLS (group CV), and cleartext→TLS
 cross-fitted so no test prompt is ever in training; the original 600-trace cleartext capture →
-TLS is reported only as a secondary, cross-session comparison.
+TLS, cross-fitted the same way, is reported only as a secondary, cross-session comparison.
 
 ---
 
@@ -315,6 +316,7 @@ TLS is reported only as a secondary, cross-session comparison.
 | §13 A2A vs CrewAI (same transport) | `evaluate_crewai_detection.py` | raw_offtheshelf, raw_crewai | `crewai_detection.json` |
 | §13.1 matched A vs CrewAI | `evaluate_crewai_matched_detection.py` | raw, raw_crewai_matched | `crewai_matched_detection.json` |
 | §5.1 defense sweep | `sweep_defenses.py` | raw, A | `defense_curve.json` |
+| §2a prompt-disjoint transfers | `evaluate_transfer_crossfit.py` | A, amodel, blogic, B, langgraph, wan, rate, pad | `transfer_crossfit.json` |
 | §7d TLS control (same session) | `evaluate_tls_control.py` | raw_tlspair_{clear,tls}, processed_tlspair_{clear,tls} | `tls_control.json` + figure |
 | CI convention check | `check_group_bootstrap.py` | A, raw_offtheshelf(_inst2) | `group_bootstrap_check.json` |
 | capture provenance | `emit_capture_interface.py` | every `data/raw*` | `capture_interface_manifest.json` |

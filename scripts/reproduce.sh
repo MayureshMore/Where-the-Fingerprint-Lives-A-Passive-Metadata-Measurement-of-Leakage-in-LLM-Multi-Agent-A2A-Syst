@@ -145,6 +145,10 @@ else
     stage "C5 cross-network"
     if have "$A/labels.json" "$WAN/labels.json"; then
         run $PY scripts/evaluate_c5.py --local "$A" --wan "$WAN"; fi
+    stage "prompt-disjoint (cross-fitted) re-analysis of the cross-collection transfers"
+    if have "$A/labels.json" "$AMODEL/labels.json" "$BLOGIC/labels.json" "$B/labels.json" \
+            "$LANGGRAPH/labels.json" "$WAN/labels.json" "$RATE/labels.json" "$PAD/labels.json"; then
+        run $PY scripts/evaluate_transfer_crossfit.py; fi
     stage "SSE size analysis vs 512 B pad cell (needs raw pcaps; logs only)"
     if have "data/raw" "data/raw_defense_pad"; then
         run $PY scripts/analyze_sse_sizes.py; fi

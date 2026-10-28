@@ -308,8 +308,9 @@ async def run_topology(
         wf_instance = WORKFLOW_REGISTRY[wf_class]()
         # Same seed formula across deployments → identical prompts, so A vs B
         # differences are due to implementation, not input.  `seed_offset` (default 0 →
-        # unchanged) lets a caller draw a DISJOINT prompt sample on repeated runs, e.g. a
-        # temporal-interleaving confound control that must spread distinct prompts across time.
+        # unchanged) lets a caller draw a different prompt sample on repeated runs (the
+        # generators use small template pools, so samples still overlap; evaluate by prompt
+        # group), e.g. a temporal-interleaving confound control that spreads prompts across time.
         _TOPOS = ["star", "chain", "mesh"]
         _WFS   = [wf.value for wf in WorkflowClass]
         _seed  = _TOPOS.index(topology) * len(_WFS) + _WFS.index(wf_name) + 100 + seed_offset
@@ -472,8 +473,9 @@ def _parse() -> argparse.Namespace:
                         "Set 0 for unlimited. Lower = faster collection.")
     p.add_argument("--seed-offset", type=int, default=0, dest="seed_offset",
                    help="Added to the per-workflow prompt seed (default 0 → unchanged). Vary "
-                        "across repeated runs to draw DISJOINT prompt samples — e.g. a temporal-"
-                        "interleaving confound control that spreads distinct prompts across time.")
+                        "across repeated runs to draw a different prompt sample (it still overlaps: the "
+                        "generators use small template pools) — e.g. a temporal-interleaving "
+                        "confound control that spreads prompts across time.")
     p.add_argument("--defense", default="none",
                    choices=["none", "pad", "rate", "both"],
                    help="Live C4 network defense applied during collection: none; "

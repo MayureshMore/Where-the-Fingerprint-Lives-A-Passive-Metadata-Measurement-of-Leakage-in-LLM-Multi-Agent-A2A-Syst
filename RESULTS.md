@@ -106,6 +106,45 @@ Transfer stays near the within-A ceiling. The companion diagnostic
 
 ---
 
+### 3a. Prompt-disjoint check on every cross-collection transfer
+
+A, A-model, B-logic, B, C, the WAN capture and both defended sets were collected with the same
+prompt seeds, so 94–100% of each target's traces carry a prompt that is also in the training
+set, and a prompt fixes its request sizes. The transfers above train on all of the source, so a
+model could partly match prompt-specific sizes. `scripts/evaluate_transfer_crossfit.py` re-runs
+each one with the same classifier and loader: for each of 5 prompt-group folds of the target it
+trains only on source traces of other prompts (**crossfit**). A **size-matched** arm drops the
+same number of source groups at random, separating the smaller training set from the
+shared-prompt effect. Every "full" value reproduces the published number exactly.
+`data/results/transfer_crossfit.json`.
+
+| Transfer | Task | published (full) | size-matched | **crossfit [95% CI]** | chance |
+|---|---|---|---|---|---|
+| model swap A→A-model | workflow | 0.588 | 0.566 | **0.532 [0.484, 0.575]** | 0.25 |
+| model swap A→A-model | role | 0.829 | 0.820 | **0.822 [0.803, 0.841]** | 0.33 |
+| logic swap A→B-logic | workflow | 0.321 | 0.303 | **0.315 [0.267, 0.360]** | 0.25 |
+| logic swap A→B-logic | role | 0.517 | 0.486 | **0.500 [0.474, 0.526]** | 0.33 |
+| A→B | workflow | 0.289 | 0.325 | **0.289 [0.248, 0.326]** | 0.25 |
+| A→B | role | 0.568 | 0.558 | **0.530 [0.505, 0.552]** | 0.33 |
+| B→A | role | 0.192 | 0.175 | **0.172 [0.162, 0.183]** | 0.33 |
+| runtime A→C | workflow | 0.644 | 0.624 | **0.606 [0.560, 0.651]** | 0.25 |
+| runtime A→C | role | 0.830 | 0.832 | **0.831 [0.811, 0.849]** | 0.33 |
+| runtime C→A | workflow | 0.579 | 0.605 | **0.533 [0.489, 0.572]** | 0.25 |
+| runtime C→A | role | 0.843 | 0.843 | **0.830 [0.811, 0.847]** | 0.33 |
+| LAN→WAN | workflow | 0.196 | 0.218 | **0.223 [0.186, 0.265]** | 0.25 |
+| defense rate (A→defended) | workflow | 0.531 | 0.510 | **0.507 [0.455, 0.552]** | 0.25 |
+| defense pad (A→defended) | workflow | 0.544 | 0.550 | **0.505 [0.461, 0.545]** | 0.25 |
+
+**Reading.** Role is unaffected (model swap 0.829 → 0.822, A→C 0.830 → 0.831). Workflow loses
+about 0.04–0.06 where it transferred (model swap 0.588 → 0.532, A→C 0.644 → 0.606, C→A 0.579 →
+0.533), part of it training size. The model-vs-logic contrast holds and stays separated: model swap 0.532
+[0.484, 0.575] vs logic swap 0.315 [0.267, 0.360] for workflow, 0.822 vs 0.500 for role. The
+collapses stay collapsed (A→B, B→A, LAN→WAN). Against the defended sets the attack scores
+slightly lower than published, so the published defense drops are, if anything, understated.
+Parallelism and topology rows are in the JSON.
+
+---
+
 ## 4. Cross-network — US ⇄ India WAN (C5)
 
 `data/results/c5_cross_network.json`.

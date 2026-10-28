@@ -7,7 +7,9 @@ observer to the metadata TLS would leave visible. TLS still changes that
 metadata (per-record overhead, a handshake per connection), so this control
 collects deployment A in ONE session with cleartext and TLS traces alternating
 (scripts/run_tls_session.py; same prompt for both traces of a pair), so session
-drift cannot masquerade as a TLS effect. For workflow and role it reports:
+drift cannot masquerade as a TLS effect. The generators draw from small template
+pools, so prompts recur across collections; every transfer below is therefore
+cross-fitted (evaluation/crossfit.py). For workflow and role it reports:
 
   1. within-cleartext — GBT, 5-fold group-safe CV on the session's cleartext arm
   2. within-TLS       — the same CV on the TLS arm
@@ -20,7 +22,8 @@ plus the on-wire overhead (bytes, packets, TCP connections per trace and per
 agent port, read from packet headers), the negotiated TLS parameters recorded
 at collection (session_meta.json) and the pre-strip record check
 (tls_check.json, scripts/check_tls_capture.py). A cross-session comparison
-(the original cleartext capture → TLS) is reported as secondary only. Every
+(the original cleartext capture → TLS, also cross-fitted) is reported as
+secondary only. Every
 interval is a cluster bootstrap over prompt groups.
 
 Usage:
@@ -41,10 +44,9 @@ from collections import Counter
 from pathlib import Path
 
 import numpy as np
-from sklearn.model_selection import StratifiedGroupKFold
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from evaluation.crossfit import crossfit_predict, shared_prompt_fraction  # noqa: E402
 from evaluation.stats import bootstrap_ci  # noqa: E402
 from models.gradient_boosted import GBTClassifier  # noqa: E402
 from scripts.check_tls_capture import _parse  # noqa: E402
@@ -75,20 +77,11 @@ def _scored(yt, yp, gt, classes, **extra) -> dict:
 
 def transfer_crossfit(Xtr, ytr, gtr, Xte, yte, gte, task: str) -> dict:
     """Train on source traces whose prompt group is outside each target fold."""
-    ytr, gtr, yte, gte = map(np.asarray, (ytr, gtr, yte, gte))
-    pred = np.empty(len(yte), dtype=object)
-    for _, te in StratifiedGroupKFold(5, shuffle=True, random_state=SEED).split(Xte, yte, gte):
-        keep = ~np.isin(gtr, np.unique(gte[te]))
-        pred[te] = GBTClassifier(task=task).fit(Xtr[keep], list(ytr[keep])).predict(Xte[te])
+    pred = crossfit_predict(lambda: GBTClassifier(task=task), Xtr, ytr, gtr, Xte, yte, gte)
     return _scored(yte, pred, gte, sorted(set(ytr) | set(yte)),
+                   shared_prompt_fraction=shared_prompt_fraction(gtr, gte),
                    protocol="cross-fitted: 5 group folds of the target; trained on source traces "
                             "of the other prompt groups only")
-
-
-def transfer_full(Xtr, ytr, Xte, yte, gte, task: str) -> dict:
-    pred = GBTClassifier(task=task).fit(Xtr, list(ytr)).predict(Xte)
-    return _scored(yte, pred, gte, sorted(set(ytr) | set(yte)),
-                   protocol="train on all source traces, test on all target traces")
 
 
 def trace_volume(raw_dir: Path) -> dict:
@@ -127,9 +120,9 @@ def main(a: argparse.Namespace) -> None:
     out = {
         "task": "TLS control — fingerprinting with TLS on every agent link (same-session, paired)",
         "method": "Deployment A collected in one session with cleartext and TLS traces alternating "
-                  "(same prompt per pair, arm order counterbalanced, disjoint prompt pool). GBT; "
-                  "group-safe 5-fold StratifiedGroupKFold by prompt_group; cleartext→TLS is "
-                  "cross-fitted so no test prompt is in training; macro-F1 with cluster (group) "
+                  "(same prompt per pair, arm order counterbalanced). GBT; "
+                  "group-safe 5-fold StratifiedGroupKFold by prompt_group; every transfer (cleartext→TLS "
+                  "and the secondary cross-session one) is cross-fitted so no test prompt is in training; macro-F1 with cluster (group) "
                   "bootstrap 95% CI; seed 42. Port never a feature.",
         "clear_dir": str(clear), "tls_dir": str(tls),
         "results": {},
@@ -137,21 +130,19 @@ def main(a: argparse.Namespace) -> None:
     for task in TASKS:
         Xc, _, yc, gc = load_deployment(clear, task)
         Xt, _, yt, gt = load_deployment(tls, task)
-        shared = len(set(gc) & set(gt)) / max(len(set(gt)), 1)
         res = {
             "chance": 1.0 / len(set(yt)),
-            "prompt_groups_shared_with_clear": shared,
             "within_clear": within(Xc, yc, gc, task),
             "within_tls": within(Xt, yt, gt, task),
             "clear_to_tls": transfer_crossfit(Xc, yc, gc, Xt, yt, gt, task),
         }
         if a.secondary_clear and Path(a.secondary_clear, "labels.json").exists():
-            Xs, _, ys, _ = load_deployment(Path(a.secondary_clear), task)
+            Xs, _, ys, gs = load_deployment(Path(a.secondary_clear), task)
             res["secondary_cross_session"] = {
                 "source": a.secondary_clear,
                 "note": "earlier cleartext collection → this session's TLS arm; mixes the TLS "
                         "effect with session drift, reported for reference only",
-                **transfer_full(Xs, ys, Xt, yt, gt, task),
+                **transfer_crossfit(Xs, ys, gs, Xt, yt, gt, task),
             }
         out["results"][task] = res
         logger.info("[%s] within-clear %.3f  within-TLS %.3f  clear→TLS %.3f  (chance %.3f)", task,

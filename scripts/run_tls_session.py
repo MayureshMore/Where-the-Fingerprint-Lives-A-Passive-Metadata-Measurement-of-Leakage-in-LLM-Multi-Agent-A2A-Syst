@@ -8,7 +8,9 @@ exposed). This driver instead runs two copies of deployment A side by side —
 a cleartext set on ports 8000-8003 and a TLS set on 8040-8043 — and alternates
 them trace by trace, with the SAME prompt for both arms of each pair and the
 arm order counterbalanced (cleartext first on even pairs, TLS first on odd).
-Prompts come from a disjoint pool (--seed-offset, default 1000).
+Prompts are drawn with a new seed (--seed-offset, default 1000); the generators
+use small template pools, so most prompts still recur in the main collections,
+which is why every transfer in evaluate_tls_control.py is cross-fitted by prompt.
 
 Writes:
   <out-clear>/   cleartext traces (pcap + label sidecar)
@@ -197,7 +199,7 @@ def _parse() -> argparse.Namespace:
     p.add_argument("--topology", choices=TOPOLOGIES, default=None)
     p.add_argument("--workflow", choices=[wf.value for wf in WorkflowClass], default=None)
     p.add_argument("--seed-offset", type=int, default=1000, dest="seed_offset",
-                   help="prompt pool offset; 1000 keeps it disjoint from the main collections")
+                   help="prompt seed offset (prompts still overlap the main collections; transfers are cross-fitted)")
     p.add_argument("--model", default=None)
     p.add_argument("--num-predict", type=int, default=DEFAULT_NUM_PREDICT, dest="num_predict")
     p.add_argument("--tls-dir", default="data/tls", dest="tls_dir")

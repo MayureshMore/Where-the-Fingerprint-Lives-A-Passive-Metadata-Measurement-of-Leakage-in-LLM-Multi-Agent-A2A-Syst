@@ -1,0 +1,622 @@
+{
+  "task": "Prompt-disjoint re-analysis of cross-collection transfers",
+  "method": "Same RF and loader as the published transfer. full = train on all source (published protocol); crossfit = per target fold (StratifiedGroupKFold by prompt_group, 5 folds, seed 42) train only on source traces of other prompts; size_matched = drop the same number of source groups at random among groups not in the fold. macro-F1 with cluster (group) bootstrap 95% CI over target prompt groups.",
+  "results": {
+    "model_vs_logic/A_Amodel/workflow": {
+      "n_source": 600,
+      "n_target": 600,
+      "chance": 0.25,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.5878333071100204,
+        "ci_lo": 0.54873537276585,
+        "ci_hi": 0.6246272302619962,
+        "accuracy": 0.5916666666666667
+      },
+      "size_matched": {
+        "macro_f1": 0.565688784439714,
+        "ci_lo": 0.5264716242535376,
+        "ci_hi": 0.6038180163674869,
+        "accuracy": 0.5733333333333334
+      },
+      "crossfit": {
+        "macro_f1": 0.5319608610450851,
+        "ci_lo": 0.4841210430957403,
+        "ci_hi": 0.5745827755146896,
+        "accuracy": 0.5383333333333333
+      },
+      "shared_prompt_effect": 0.033727923394628934,
+      "published": 0.5878333071100204,
+      "source": "data/processed",
+      "target": "data/processed_amodel_sdk"
+    },
+    "model_vs_logic/A_Amodel/role": {
+      "n_source": 1747,
+      "n_target": 1747,
+      "chance": 0.3333333333333333,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.8287449752740947,
+        "ci_lo": 0.8104443572348045,
+        "ci_hi": 0.8478674003455218,
+        "accuracy": 0.8311390955924441
+      },
+      "size_matched": {
+        "macro_f1": 0.8201222700398182,
+        "ci_lo": 0.8011112003032456,
+        "ci_hi": 0.8406194635213009,
+        "accuracy": 0.8225529479107041
+      },
+      "crossfit": {
+        "macro_f1": 0.821660916105975,
+        "ci_lo": 0.8025977287513191,
+        "ci_hi": 0.8409677756872485,
+        "accuracy": 0.8242701774470521
+      },
+      "shared_prompt_effect": -0.0015386460661568346,
+      "published": 0.8287449752740947,
+      "source": "data/processed",
+      "target": "data/processed_amodel_sdk"
+    },
+    "model_vs_logic/A_Blogic/workflow": {
+      "n_source": 600,
+      "n_target": 590,
+      "chance": 0.25,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.32087621853058695,
+        "ci_lo": 0.2787418010865531,
+        "ci_hi": 0.3608067357739704,
+        "accuracy": 0.3440677966101695
+      },
+      "size_matched": {
+        "macro_f1": 0.3032741322572659,
+        "ci_lo": 0.25775262429555035,
+        "ci_hi": 0.34615536778234074,
+        "accuracy": 0.3135593220338983
+      },
+      "crossfit": {
+        "macro_f1": 0.3149358905377176,
+        "ci_lo": 0.2666262229311902,
+        "ci_hi": 0.35983593933927743,
+        "accuracy": 0.3305084745762712
+      },
+      "shared_prompt_effect": -0.011661758280451684,
+      "published": 0.32087621853058695,
+      "source": "data/processed",
+      "target": "data/processed_blogic_sdk"
+    },
+    "model_vs_logic/A_Blogic/role": {
+      "n_source": 1747,
+      "n_target": 1745,
+      "chance": 0.3333333333333333,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.5168515790063655,
+        "ci_lo": 0.49013870131523213,
+        "ci_hi": 0.5437810622148086,
+        "accuracy": 0.5106017191977077
+      },
+      "size_matched": {
+        "macro_f1": 0.4862788089871,
+        "ci_lo": 0.4567653432040878,
+        "ci_hi": 0.5155871726379754,
+        "accuracy": 0.4813753581661891
+      },
+      "crossfit": {
+        "macro_f1": 0.500263314490696,
+        "ci_lo": 0.4737688396224516,
+        "ci_hi": 0.5259737647473649,
+        "accuracy": 0.49455587392550143
+      },
+      "shared_prompt_effect": -0.013984505503596034,
+      "published": 0.5168515790063655,
+      "source": "data/processed",
+      "target": "data/processed_blogic_sdk"
+    },
+    "cross_deployment/AB/workflow": {
+      "n_source": 600,
+      "n_target": 600,
+      "chance": 0.25,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.28875594935090054,
+        "ci_lo": 0.24670443526159772,
+        "ci_hi": 0.32671936538741414,
+        "accuracy": 0.31
+      },
+      "size_matched": {
+        "macro_f1": 0.32460363477197296,
+        "ci_lo": 0.2841993139198897,
+        "ci_hi": 0.36255124326812727,
+        "accuracy": 0.335
+      },
+      "crossfit": {
+        "macro_f1": 0.2885187588053653,
+        "ci_lo": 0.24765360596922864,
+        "ci_hi": 0.325977848029492,
+        "accuracy": 0.31333333333333335
+      },
+      "shared_prompt_effect": 0.036084875966607644,
+      "published": 0.28875594935090054,
+      "source": "data/processed",
+      "target": "data/processed_b_sdk"
+    },
+    "cross_deployment/AB/role": {
+      "n_source": 1747,
+      "n_target": 1800,
+      "chance": 0.3333333333333333,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.568209794999444,
+        "ci_lo": 0.5431048829383581,
+        "ci_hi": 0.5920990663635036,
+        "accuracy": 0.5683333333333334
+      },
+      "size_matched": {
+        "macro_f1": 0.5582185289252438,
+        "ci_lo": 0.53343251350396,
+        "ci_hi": 0.5816335958124957,
+        "accuracy": 0.555
+      },
+      "crossfit": {
+        "macro_f1": 0.5299829633690281,
+        "ci_lo": 0.5050481114279676,
+        "ci_hi": 0.5523335154810578,
+        "accuracy": 0.5288888888888889
+      },
+      "shared_prompt_effect": 0.028235565556215758,
+      "published": 0.568209794999444,
+      "source": "data/processed",
+      "target": "data/processed_b_sdk"
+    },
+    "cross_deployment/AB/parallelism": {
+      "n_source": 600,
+      "n_target": 600,
+      "chance": 0.5,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.5169789227166276,
+        "ci_lo": 0.47430724887522696,
+        "ci_hi": 0.5629234788836411,
+        "accuracy": 0.7066666666666667
+      },
+      "size_matched": {
+        "macro_f1": 0.4945051876056023,
+        "ci_lo": 0.4553538432055982,
+        "ci_hi": 0.5383827556866636,
+        "accuracy": 0.6983333333333334
+      },
+      "crossfit": {
+        "macro_f1": 0.5385840015470478,
+        "ci_lo": 0.4931767284903365,
+        "ci_hi": 0.5882078968452725,
+        "accuracy": 0.715
+      },
+      "shared_prompt_effect": -0.04407881394144547,
+      "published": 0.5169789227166276,
+      "source": "data/processed",
+      "target": "data/processed_b_sdk"
+    },
+    "cross_deployment/BA/workflow": {
+      "n_source": 600,
+      "n_target": 600,
+      "chance": 0.25,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.39835995526589585,
+        "ci_lo": 0.34835469143745124,
+        "ci_hi": 0.44707704073133203,
+        "accuracy": 0.4033333333333333
+      },
+      "size_matched": {
+        "macro_f1": 0.4235910048464866,
+        "ci_lo": 0.3720454889417063,
+        "ci_hi": 0.47390946187658844,
+        "accuracy": 0.4483333333333333
+      },
+      "crossfit": {
+        "macro_f1": 0.3980372062700838,
+        "ci_lo": 0.3415432329002277,
+        "ci_hi": 0.45084147198127666,
+        "accuracy": 0.42
+      },
+      "shared_prompt_effect": 0.025553798576402775,
+      "published": 0.39835995526589585,
+      "source": "data/processed_b_sdk",
+      "target": "data/processed"
+    },
+    "cross_deployment/BA/role": {
+      "n_source": 1800,
+      "n_target": 1747,
+      "chance": 0.3333333333333333,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.19159192137573525,
+        "ci_lo": 0.17873738495983224,
+        "ci_hi": 0.20394036849360855,
+        "accuracy": 0.3325701202060675
+      },
+      "size_matched": {
+        "macro_f1": 0.1747148856628564,
+        "ci_lo": 0.16397230328982415,
+        "ci_hi": 0.185297439140679,
+        "accuracy": 0.3113909559244419
+      },
+      "crossfit": {
+        "macro_f1": 0.1721763295048979,
+        "ci_lo": 0.16209322152654748,
+        "ci_hi": 0.18287544596722727,
+        "accuracy": 0.3102461362335432
+      },
+      "shared_prompt_effect": 0.0025385561579585048,
+      "published": 0.19159192137573525,
+      "source": "data/processed_b_sdk",
+      "target": "data/processed"
+    },
+    "cross_deployment/BA/parallelism": {
+      "n_source": 600,
+      "n_target": 600,
+      "chance": 0.5,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.6666666666666666,
+        "ci_lo": 0.6290368106606246,
+        "ci_hi": 0.701080192559595,
+        "accuracy": 0.6666666666666666
+      },
+      "size_matched": {
+        "macro_f1": 0.6666666666666666,
+        "ci_lo": 0.6290368106606246,
+        "ci_hi": 0.701080192559595,
+        "accuracy": 0.6666666666666666
+      },
+      "crossfit": {
+        "macro_f1": 0.6666666666666666,
+        "ci_lo": 0.6290368106606246,
+        "ci_hi": 0.701080192559595,
+        "accuracy": 0.6666666666666666
+      },
+      "shared_prompt_effect": 0.0,
+      "published": 0.6666666666666666,
+      "source": "data/processed_b_sdk",
+      "target": "data/processed"
+    },
+    "cross_framework/AB/workflow": {
+      "n_source": 600,
+      "n_target": 481,
+      "chance": 0.25,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.644004144004144,
+        "ci_lo": 0.5986566604128252,
+        "ci_hi": 0.6874343713733648,
+        "accuracy": 0.6486486486486487
+      },
+      "size_matched": {
+        "macro_f1": 0.6240699502390574,
+        "ci_lo": 0.5807499756883137,
+        "ci_hi": 0.6655102884544272,
+        "accuracy": 0.6299376299376299
+      },
+      "crossfit": {
+        "macro_f1": 0.6064255997006206,
+        "ci_lo": 0.5595026358948362,
+        "ci_hi": 0.6506944275640804,
+        "accuracy": 0.6153846153846154
+      },
+      "shared_prompt_effect": 0.017644350538436826,
+      "published": 0.644004144004144,
+      "source": "data/processed",
+      "target": "data/processed_langgraph"
+    },
+    "cross_framework/AB/role": {
+      "n_source": 1747,
+      "n_target": 1396,
+      "chance": 0.3333333333333333,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.8299230342124528,
+        "ci_lo": 0.8090494887211721,
+        "ci_hi": 0.8492424870814236,
+        "accuracy": 0.8345272206303725
+      },
+      "size_matched": {
+        "macro_f1": 0.83179684448864,
+        "ci_lo": 0.813032087078158,
+        "ci_hi": 0.8491553893128695,
+        "accuracy": 0.835243553008596
+      },
+      "crossfit": {
+        "macro_f1": 0.8306788397682414,
+        "ci_lo": 0.8108009094337053,
+        "ci_hi": 0.8485263975009537,
+        "accuracy": 0.835243553008596
+      },
+      "shared_prompt_effect": 0.00111800472039858,
+      "published": 0.8299230342124528,
+      "source": "data/processed",
+      "target": "data/processed_langgraph"
+    },
+    "cross_framework/AB/parallelism": {
+      "n_source": 600,
+      "n_target": 481,
+      "chance": 0.5,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.9953025508808938,
+        "ci_lo": 0.9881878522658343,
+        "ci_hi": 1.0,
+        "accuracy": 0.9958419958419958
+      },
+      "size_matched": {
+        "macro_f1": 0.9929649907126177,
+        "ci_lo": 0.9844177330773569,
+        "ci_hi": 1.0,
+        "accuracy": 0.9937629937629938
+      },
+      "crossfit": {
+        "macro_f1": 0.992942557405913,
+        "ci_lo": 0.983887067071019,
+        "ci_hi": 1.0,
+        "accuracy": 0.9937629937629938
+      },
+      "shared_prompt_effect": 2.2433306704705558e-05,
+      "published": 0.9953025508808938,
+      "source": "data/processed",
+      "target": "data/processed_langgraph"
+    },
+    "cross_framework/BA/workflow": {
+      "n_source": 481,
+      "n_target": 600,
+      "chance": 0.25,
+      "shared_prompt_fraction": 0.94,
+      "full": {
+        "macro_f1": 0.578672891302337,
+        "ci_lo": 0.531133454470783,
+        "ci_hi": 0.6177996175016862,
+        "accuracy": 0.6133333333333333
+      },
+      "size_matched": {
+        "macro_f1": 0.6048713998394579,
+        "ci_lo": 0.5578951183741372,
+        "ci_hi": 0.644508978139397,
+        "accuracy": 0.6283333333333333
+      },
+      "crossfit": {
+        "macro_f1": 0.5330342060829858,
+        "ci_lo": 0.4888080349154881,
+        "ci_hi": 0.5720341362243744,
+        "accuracy": 0.5616666666666666
+      },
+      "shared_prompt_effect": 0.07183719375647213,
+      "published": 0.578672891302337,
+      "source": "data/processed_langgraph",
+      "target": "data/processed"
+    },
+    "cross_framework/BA/role": {
+      "n_source": 1396,
+      "n_target": 1747,
+      "chance": 0.3333333333333333,
+      "shared_prompt_fraction": 0.9387521465369204,
+      "full": {
+        "macro_f1": 0.8434819151834715,
+        "ci_lo": 0.8256735849521105,
+        "ci_hi": 0.8604297559533222,
+        "accuracy": 0.8448769318832284
+      },
+      "size_matched": {
+        "macro_f1": 0.8427736027281463,
+        "ci_lo": 0.8245466046259992,
+        "ci_hi": 0.8601091673809602,
+        "accuracy": 0.8443045220377791
+      },
+      "crossfit": {
+        "macro_f1": 0.8296956805124238,
+        "ci_lo": 0.8105573907932813,
+        "ci_hi": 0.8473527475421782,
+        "accuracy": 0.8305666857469949
+      },
+      "shared_prompt_effect": 0.01307792221572246,
+      "published": 0.8434819151834715,
+      "source": "data/processed_langgraph",
+      "target": "data/processed"
+    },
+    "cross_framework/BA/parallelism": {
+      "n_source": 481,
+      "n_target": 600,
+      "chance": 0.5,
+      "shared_prompt_fraction": 0.94,
+      "full": {
+        "macro_f1": 0.981202771964561,
+        "ci_lo": 0.9684499485573427,
+        "ci_hi": 0.991198701209365,
+        "accuracy": 0.9833333333333333
+      },
+      "size_matched": {
+        "macro_f1": 0.9773857982813207,
+        "ci_lo": 0.9639537938918632,
+        "ci_hi": 0.9886039849330623,
+        "accuracy": 0.98
+      },
+      "crossfit": {
+        "macro_f1": 0.9718397116386471,
+        "ci_lo": 0.955097095400268,
+        "ci_hi": 0.9860572175968488,
+        "accuracy": 0.975
+      },
+      "shared_prompt_effect": 0.005546086642673531,
+      "published": 0.981202771964561,
+      "source": "data/processed_langgraph",
+      "target": "data/processed"
+    },
+    "c5_cross_network/transfer/workflow": {
+      "n_source": 600,
+      "n_target": 595,
+      "chance": 0.25,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.19603312173235876,
+        "ci_lo": 0.16271039967195544,
+        "ci_hi": 0.23195354898084658,
+        "accuracy": 0.292436974789916
+      },
+      "size_matched": {
+        "macro_f1": 0.21830369576575587,
+        "ci_lo": 0.18016498065089456,
+        "ci_hi": 0.26210331247442886,
+        "accuracy": 0.30084033613445377
+      },
+      "crossfit": {
+        "macro_f1": 0.22286343628386945,
+        "ci_lo": 0.18576166405647324,
+        "ci_hi": 0.2645609907648207,
+        "accuracy": 0.3042016806722689
+      },
+      "shared_prompt_effect": -0.004559740518113586,
+      "published": 0.19603312173235876,
+      "source": "data/processed",
+      "target": "data/processed_wan"
+    },
+    "c5_cross_network/transfer/role": {
+      "n_source": 1747,
+      "n_target": 1195,
+      "chance": 0.3333333333333333,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.5057130572885135,
+        "ci_lo": 0.4764622186912916,
+        "ci_hi": 0.5332661564706048,
+        "accuracy": 0.4887029288702929
+      },
+      "size_matched": {
+        "macro_f1": 0.507655670954911,
+        "ci_lo": 0.4777827193853254,
+        "ci_hi": 0.5348362996442192,
+        "accuracy": 0.49121338912133894
+      },
+      "crossfit": {
+        "macro_f1": 0.500260395180386,
+        "ci_lo": 0.4713070883838833,
+        "ci_hi": 0.5277827925836515,
+        "accuracy": 0.48535564853556484
+      },
+      "shared_prompt_effect": 0.007395275774525034,
+      "published": 0.5057130572885135,
+      "source": "data/processed",
+      "target": "data/processed_wan"
+    },
+    "c5_cross_network/transfer/parallelism": {
+      "n_source": 600,
+      "n_target": 595,
+      "chance": 0.5,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.4986211123027425,
+        "ci_lo": 0.454534253059022,
+        "ci_hi": 0.5445141264333462,
+        "accuracy": 0.704201680672269
+      },
+      "size_matched": {
+        "macro_f1": 0.5890609334967138,
+        "ci_lo": 0.534759721123246,
+        "ci_hi": 0.6443519131833868,
+        "accuracy": 0.7394957983193278
+      },
+      "crossfit": {
+        "macro_f1": 0.6008403361344538,
+        "ci_lo": 0.5433074329905456,
+        "ci_hi": 0.6561898836122492,
+        "accuracy": 0.7445378151260504
+      },
+      "shared_prompt_effect": -0.01177940263773991,
+      "published": 0.4986211123027425,
+      "source": "data/processed",
+      "target": "data/processed_wan"
+    },
+    "c5_cross_network/transfer/topology": {
+      "n_source": 600,
+      "n_target": 595,
+      "chance": 0.3333333333333333,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.5828502832728191,
+        "ci_lo": 0.5462661019652632,
+        "ci_hi": 0.6186029330649382,
+        "accuracy": 0.6016806722689075
+      },
+      "size_matched": {
+        "macro_f1": 0.5937070704188985,
+        "ci_lo": 0.5526167128174454,
+        "ci_hi": 0.6321248592594411,
+        "accuracy": 0.6319327731092437
+      },
+      "crossfit": {
+        "macro_f1": 0.6093613202933196,
+        "ci_lo": 0.5713639175906058,
+        "ci_hi": 0.6454431663960077,
+        "accuracy": 0.6319327731092437
+      },
+      "shared_prompt_effect": -0.0156542498744211,
+      "published": 0.5828502832728191,
+      "source": "data/processed",
+      "target": "data/processed_wan"
+    },
+    "defense_live/rate/workflow": {
+      "n_source": 600,
+      "n_target": 600,
+      "chance": 0.25,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.5311526092089043,
+        "ci_lo": 0.4822914461546283,
+        "ci_hi": 0.5723707651291391,
+        "accuracy": 0.53
+      },
+      "size_matched": {
+        "macro_f1": 0.5102770915028387,
+        "ci_lo": 0.4622756419895422,
+        "ci_hi": 0.5532773472705603,
+        "accuracy": 0.515
+      },
+      "crossfit": {
+        "macro_f1": 0.50718227824137,
+        "ci_lo": 0.4552881438312262,
+        "ci_hi": 0.5520510779401702,
+        "accuracy": 0.5133333333333333
+      },
+      "shared_prompt_effect": 0.003094813261468765,
+      "published": 0.5311526092089043,
+      "source": "data/processed",
+      "target": "data/processed_defense_rate"
+    },
+    "defense_live/pad/workflow": {
+      "n_source": 600,
+      "n_target": 600,
+      "chance": 0.25,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.5443335284832681,
+        "ci_lo": 0.5031494878217206,
+        "ci_hi": 0.5795444072937072,
+        "accuracy": 0.54
+      },
+      "size_matched": {
+        "macro_f1": 0.5497090317119415,
+        "ci_lo": 0.507490095559216,
+        "ci_hi": 0.5854456584185226,
+        "accuracy": 0.5516666666666666
+      },
+      "crossfit": {
+        "macro_f1": 0.504957842850204,
+        "ci_lo": 0.4609550052996445,
+        "ci_hi": 0.5446232966797757,
+        "accuracy": 0.505
+      },
+      "shared_prompt_effect": 0.04475118886173757,
+      "published": 0.5443335284832681,
+      "source": "data/processed",
+      "target": "data/processed_defense_pad"
+    }
+  }
+}
