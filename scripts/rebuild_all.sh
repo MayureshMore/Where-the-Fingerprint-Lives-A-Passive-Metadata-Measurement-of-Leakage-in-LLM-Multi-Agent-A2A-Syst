@@ -50,19 +50,19 @@ done
 
 # ── 1. Collect all four deployments ──────────────────────────────────────────
 stage "COLLECT A  (A-logic + llama3.2:3b)"
-run $PY scripts/run_pilot.py   --n "$N" --model llama3.2:3b --out data/raw            --num-predict "$NP"
+run $PY scripts/collect_deployment.py   --n "$N" --model llama3.2:3b --out data/raw            --num-predict "$NP"
 stage "COLLECT amodel  (A-logic + qwen2.5:7b)"
-run $PY scripts/run_pilot.py   --n "$N" --model qwen2.5:7b  --out data/raw_amodel_sdk --num-predict "$NP"
+run $PY scripts/collect_deployment.py   --n "$N" --model qwen2.5:7b  --out data/raw_amodel_sdk --num-predict "$NP"
 stage "COLLECT B  (B-logic + qwen2.5:7b)"
-run $PY scripts/run_pilot.py --deployment b --n "$N" --model qwen2.5:7b  --out data/raw_b_sdk      --num-predict "$NP"
+run $PY scripts/collect_deployment.py --deployment b --n "$N" --model qwen2.5:7b  --out data/raw_b_sdk      --num-predict "$NP"
 stage "COLLECT blogic  (B-logic + llama3.2:3b)"
-run $PY scripts/run_pilot.py --deployment b --n "$N" --model llama3.2:3b --out data/raw_blogic_sdk --num-predict "$NP"
+run $PY scripts/collect_deployment.py --deployment b --n "$N" --model llama3.2:3b --out data/raw_blogic_sdk --num-predict "$NP"
 
 # ── 2. Collect live-defended sets (A-logic) ──────────────────────────────────
 stage "COLLECT defense=rate  (dummy sub-calls + jittered delegation)"
-run $PY scripts/run_pilot.py --n "$N" --model llama3.2:3b --out data/raw_defense_rate --num-predict "$NP" --defense rate
+run $PY scripts/collect_deployment.py --n "$N" --model llama3.2:3b --out data/raw_defense_rate --num-predict "$NP" --defense rate
 stage "COLLECT defense=pad  (SSE constant-size event padding)"
-run $PY scripts/run_pilot.py --n "$N" --model llama3.2:3b --out data/raw_defense_pad  --num-predict "$NP" --defense pad
+run $PY scripts/collect_deployment.py --n "$N" --model llama3.2:3b --out data/raw_defense_pad  --num-predict "$NP" --defense pad
 
 # ── 3. Background traffic for open-world (real hard negatives) ────────────────
 stage "COLLECT background"

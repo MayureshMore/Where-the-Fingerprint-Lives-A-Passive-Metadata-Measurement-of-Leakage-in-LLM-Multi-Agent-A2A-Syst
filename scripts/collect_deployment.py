@@ -14,11 +14,11 @@ seeds, teardown, the live C4 defenses — is shared and identical, which is exac
 what the cross-deployment (A vs B) experiment requires.
 
 Usage:
-    sudo venv/bin/python scripts/run_pilot.py --n 50                          # A (llama)
-    sudo venv/bin/python scripts/run_pilot.py --n 50 --deployment b           # B (qwen)
-    sudo venv/bin/python scripts/run_pilot.py --n 50 --model qwen2.5:7b  --out data/raw_amodel_sdk   # amodel (A-logic + qwen)
-    sudo venv/bin/python scripts/run_pilot.py --n 50 --deployment b --model llama3.2:3b --out data/raw_blogic_sdk  # blogic
-    sudo venv/bin/python scripts/run_pilot.py --n 50 --defense rate --out data/raw_defense_rate
+    sudo venv/bin/python scripts/collect_deployment.py --n 50                          # A (llama)
+    sudo venv/bin/python scripts/collect_deployment.py --n 50 --deployment b           # B (qwen)
+    sudo venv/bin/python scripts/collect_deployment.py --n 50 --model qwen2.5:7b  --out data/raw_amodel_sdk   # amodel (A-logic + qwen)
+    sudo venv/bin/python scripts/collect_deployment.py --n 50 --deployment b --model llama3.2:3b --out data/raw_blogic_sdk  # blogic
+    sudo venv/bin/python scripts/collect_deployment.py --n 50 --defense rate --out data/raw_defense_rate
 """
 
 from __future__ import annotations
@@ -371,7 +371,7 @@ async def main(args: argparse.Namespace) -> None:
     if os.geteuid() != 0:
         logger.warning(
             "Not running as root — tcpdump BPF capture may be empty. "
-            "Re-run with: sudo venv/bin/python scripts/run_pilot.py"
+            "Re-run with: sudo venv/bin/python scripts/collect_deployment.py"
         )
 
     dep = DEPLOYMENTS[args.deployment]

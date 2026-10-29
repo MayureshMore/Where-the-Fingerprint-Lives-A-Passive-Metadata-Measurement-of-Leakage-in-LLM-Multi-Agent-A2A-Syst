@@ -1,9 +1,9 @@
 """Drive the a2a_mcp orchestrator (:10101) over A2A, MULTI-TURN — the BUG-FIXED-BUT-NOT-FORCED
 natural driver for the clean cross-instance de-confound (Task 2).
 
-Identical to drive_orch.py EXCEPT the canned multi-turn ANSWER is DESTINATION-AGNOSTIC (so it
+Identical to trip_driver.py EXCEPT the canned multi-turn ANSWER is DESTINATION-AGNOSTIC (so it
 does not sabotage fan-out on non-Tokyo destinations — the original hardcodes "Narita (NRT) …
-Shinjuku", giving ~6% fan-out) YET NOT completion-forcing (unlike drive_orch_boost.py, which
+Shinjuku", giving ~6% fan-out) YET NOT completion-forcing (unlike trip_driver_boosted.py, which
 commands "complete ALL THREE now … do not ask any further questions", shifting the specialist
 feature distributions — the very confound Task 2 exists to remove).
 

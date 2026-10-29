@@ -3,11 +3,11 @@ Optional TLS for the A2A testbed (the TLS control experiment).
 
 Off by default: the main experiments run over cleartext HTTP. Setting
 A2A_TLS_CERT, A2A_TLS_KEY and A2A_TLS_CA (or passing --tls-dir to
-scripts/run_pilot.py) makes every agent serve HTTPS and every client verify
+scripts/collect_deployment.py) makes every agent serve HTTPS and every client verify
 against the local CA. Certificates come from scripts/make_tls_certs.sh.
 
 TLS can also be chosen per agent (AgentConfig.tls), which is how
-scripts/run_tls_session.py runs a cleartext and a TLS agent set side by side
+scripts/collect_tls_session.py runs a cleartext and a TLS agent set side by side
 in one session: configure(tls_dir, default_on=False) loads the certificates
 without turning TLS on for agents that do not ask for it.
 """

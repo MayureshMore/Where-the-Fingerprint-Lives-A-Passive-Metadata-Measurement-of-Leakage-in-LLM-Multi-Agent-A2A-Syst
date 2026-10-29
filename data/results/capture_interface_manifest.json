@@ -504,7 +504,7 @@
       ],
       "capture_summary": "single_host (one machine; loopback)"
     },
-    "c5_cross_network.json": {
+    "cross_network.json": {
       "sources": [
         {
           "dir": "data/raw",
@@ -753,12 +753,63 @@
         }
       ],
       "capture_summary": "single_host (one machine; loopback)"
+    },
+    "transfer_crossfit.json": {
+      "sources": [
+        {
+          "dir": "data/raw",
+          "capture": "single_host"
+        },
+        {
+          "dir": "data/raw_amodel_sdk",
+          "capture": "single_host"
+        },
+        {
+          "dir": "data/raw_blogic_sdk",
+          "capture": "single_host"
+        },
+        {
+          "dir": "data/raw_b_sdk",
+          "capture": "single_host"
+        },
+        {
+          "dir": "data/raw_langgraph",
+          "capture": "single_host"
+        },
+        {
+          "dir": "data/raw_wan",
+          "capture": "cross_host"
+        },
+        {
+          "dir": "data/raw_defense_rate",
+          "capture": "single_host"
+        },
+        {
+          "dir": "data/raw_defense_pad",
+          "capture": "single_host"
+        }
+      ],
+      "capture_summary": "cross_host (includes a real network path)"
+    },
+    "tls_control.json": {
+      "sources": [
+        {
+          "dir": "data/raw_tlspair_clear",
+          "capture": "absent"
+        },
+        {
+          "dir": "data/raw_tlspair_tls",
+          "capture": "absent"
+        }
+      ],
+      "capture_summary": "mixed/unknown \u2014 see sources"
     }
   },
   "results_with_cross_host_capture": [
-    "c5_cross_network.json"
+    "cross_network.json",
+    "transfer_crossfit.json"
   ],
-  "headline": "Every result is SINGLE-HOST-captured (one machine, loopback) except ['c5_cross_network.json'] \u2014 the cross-host/WAN evidence in the corpus is C5 (data/raw_wan): two machines on the wire, but the served agents are co-located on the remote VM.",
+  "headline": "Every result is SINGLE-HOST-captured (one machine, loopback) except ['cross_network.json', 'transfer_crossfit.json'] \u2014 the cross-host/WAN evidence in the corpus is C5 (data/raw_wan): two machines on the wire, but the served agents are co-located on the remote VM.",
   "flags": [
     {
       "severity": "scope-note",

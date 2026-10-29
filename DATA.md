@@ -80,7 +80,7 @@ Upload the two zips **and `dist/SHA256SUMS.txt`** to the data host, then paste t
 into the **Archive location** line above and both SHA-256 values into the **SHA-256** lines,
 so downloaders can verify. This file is the only place they are recorded.
 
-Once the TLS control has been collected (`scripts/run_tls_overnight.sh`), the packager adds
+Once the TLS control has been collected (`scripts/run_tls_control.sh`), the packager adds
 its four sets automatically (`processed_tlspair_clear`, `processed_tlspair_tls`,
 `raw_tlspair_clear`, `raw_tlspair_tls`), making 19 feature sets and 24 raw sets; rebuild and
 upload after that run so the checksums match.

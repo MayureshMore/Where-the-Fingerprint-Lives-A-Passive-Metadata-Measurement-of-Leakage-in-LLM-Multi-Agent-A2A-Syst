@@ -6,7 +6,7 @@ The main experiments run the agents over cleartext HTTP and restrict the
 observer to the metadata TLS would leave visible. TLS still changes that
 metadata (per-record overhead, a handshake per connection), so this control
 collects deployment A in ONE session with cleartext and TLS traces alternating
-(scripts/run_tls_session.py; same prompt for both traces of a pair), so session
+(scripts/collect_tls_session.py; same prompt for both traces of a pair), so session
 drift cannot masquerade as a TLS effect. The generators draw from small template
 pools, so prompts recur across collections; every transfer below is therefore
 cross-fitted (evaluation/crossfit.py). For workflow and role it reports:

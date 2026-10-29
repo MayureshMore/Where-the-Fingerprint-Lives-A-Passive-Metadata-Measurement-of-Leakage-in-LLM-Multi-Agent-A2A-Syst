@@ -12,7 +12,7 @@ captures share the committed capture's model / logic / conditions and differ onl
 are ROUND-ROBINED in time (so session drift is de-correlated from the label):
 
   * workflow : data/processed_wf_interleaved       (4 workflows round-robin, star, prompt-diverse
-               via run_pilot --seed-offset)         vs committed data/processed (star-only).
+               via collect_deployment --seed-offset)         vs committed data/processed (star-only).
   * role     : data/processed_interleaved_a_pwr     (per-agent 35-dim vectors)
   * topology : data/processed_interleaved_a_pwr     (whole-trace 195-dim vectors)
                role/topology committed baselines come from data/results/closed_world/*.

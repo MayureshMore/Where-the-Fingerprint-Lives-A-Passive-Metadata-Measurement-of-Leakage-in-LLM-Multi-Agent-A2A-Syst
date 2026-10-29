@@ -2,7 +2,7 @@
 per-role server flows). Role is a ground-truth LABEL by server port, never a feature."""
 import argparse
 
-from cw_common import ROLE_PORT, serve
+from common import ROLE_PORT, serve
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()

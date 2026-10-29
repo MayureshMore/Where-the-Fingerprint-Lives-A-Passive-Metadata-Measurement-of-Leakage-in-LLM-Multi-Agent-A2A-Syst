@@ -131,7 +131,7 @@
   "confounds": {
     "note": "The positive (a2a_mcp) and negative (CrewAI) differ in MORE than the framework. Transport is controlled (identical a2a-sdk 0.3.26 JSON-RPC+SSE); these are NOT.",
     "llm_backend_asymmetry": "a2a_mcp positives use CLOUD gemini-2.5-flash; CrewAI negatives use LOCAL ollama/llama3.2:3b. Different response sizes/chunking move the volume/burst features that drive the separation. This is the dominant confound and cannot be cheaply removed (the a2a_mcp positive set is frozen canonical, collected with gemini).",
-    "interaction_pattern": "a2a_mcp's orchestrator runs MULTI-TURN clarifying Q&A (drive_orch.py, up to 6 turns); the CrewAI driver issues SINGLE-TURN calls per specialist \u2014 very different burst structure.",
+    "interaction_pattern": "a2a_mcp's orchestrator runs MULTI-TURN clarifying Q&A (trip_driver.py, up to 6 turns); the CrewAI driver issues SINGLE-TURN calls per specialist \u2014 very different burst structure.",
     "topology": "6-agent a2a_mcp (mcp/orch/planner + 3 specialists) vs 4-agent CrewAI (planner + 3 specialists); flows/trip differ (~3.3 vs 4.0).",
     "implication": "AUROC 1.0 is genuine SAME-TRANSPORT separability (transport provably removed), a real privacy finding \u2014 but it does NOT cleanly isolate CrewAI-vs-A2A FRAMEWORK CODE from the LLM/interaction/topology differences. Read as 'agentic systems are distinguishable on the same transport via application-layer volume/behaviour', NOT as 'framework identity is recoverable with all else held equal'."
   },

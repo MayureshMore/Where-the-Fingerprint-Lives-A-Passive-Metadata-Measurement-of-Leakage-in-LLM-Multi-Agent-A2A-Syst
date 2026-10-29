@@ -389,10 +389,10 @@ def main(args: argparse.Namespace) -> None:
             "different_llm": "gemini-2.0-flash (instance 1 = gemini-2.5-flash), via LITELLM_MODEL",
             "different_prompts": "reworded query template, different dates/party-size/class/nights",
             "separate_session": True,
-            "specialist_collection": ("BOOSTED (drive_orch_boost.py + forced full-service prompt) — a "
+            "specialist_collection": ("BOOSTED (trip_driver_boosted.py + forced full-service prompt) — a "
                 "driver confound; see driver_confound_interpretation + specialist_distribution_check."
                 if mode == "boosted" else
-                "NATURAL (drive_orch_natural_fixed.py: bug-fixed-but-not-forced, instance-2's own "
+                "NATURAL (trip_driver_natural.py: bug-fixed-but-not-forced, instance-2's own "
                 "reworded prompt) — the driver confound is REMOVED; residual gap = legitimate LLM/"
                 "session independence. See specialist_distribution_check (the band's gate)."
                 if mode == "natural" else

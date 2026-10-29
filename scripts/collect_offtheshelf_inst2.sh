@@ -14,7 +14,7 @@
 # so it stops cleanly if the prepaid credit runs low. Additive — no committed file changes.
 #
 # Prereq: the external checkout at $A2A_SAMPLES_DIR (default ~/a2a-samples)/.../a2a_mcp with the 8 compat patches +
-# drive_orch.py + a Gemini key in .env, and non-sudo BPF (chmod o+r /dev/bpf*).
+# trip_driver.py + a Gemini key in .env, and non-sudo BPF (chmod o+r /dev/bpf*).
 #
 # Usage:  BUDGET_USD=3.00 bash scripts/collect_offtheshelf_inst2.sh 120
 set -u
@@ -34,8 +34,8 @@ SPENT_SO_FAR="${SPENT_SO_FAR:-0}"
 MAX_RETRIES="${MAX_RETRIES:-2}"
 BACKOFF_S="${BACKOFF_S:-30}"
 
-[ -f "$SAMPLE_DIR/drive_orch.py" ] || cp "$REPO_DIR/third_party/a2a_mcp/drive_orch.py" "$SAMPLE_DIR/" 2>/dev/null
-[ -f "$SAMPLE_DIR/drive_orch.py" ] || { echo "BLOCKED: $SAMPLE_DIR/drive_orch.py missing"; exit 1; }
+[ -f "$SAMPLE_DIR/trip_driver.py" ] || cp "$REPO_DIR/third_party/a2a_mcp/trip_driver.py" "$SAMPLE_DIR/" 2>/dev/null
+[ -f "$SAMPLE_DIR/trip_driver.py" ] || { echo "BLOCKED: $SAMPLE_DIR/trip_driver.py missing"; exit 1; }
 grep -qE '^GOOGLE_API_KEY=.{10,}' "$SAMPLE_DIR/.env" 2>/dev/null || { echo "BLOCKED: GOOGLE_API_KEY not set in $SAMPLE_DIR/.env"; exit 1; }
 mkdir -p "$OUT" "$SAMPLE_DIR/logs"
 cd "$SAMPLE_DIR"
@@ -95,7 +95,7 @@ for i in $(seq "$start" "$end"); do
     while : ; do
         tcpdump -i "$IFACE" -s 96 -w "$OUT/$id.pcap" "tcp portrange $PORTS" 2>/dev/null & tpid=$!
         sleep 0.8
-        uv run --env-file .env python drive_orch.py "$q" > "logs/cap_drive_$id.log" 2>&1 || true
+        uv run --env-file .env python trip_driver.py "$q" > "logs/cap_drive_$id.log" 2>&1 || true
         sleep 0.8
         kill "$tpid" 2>/dev/null; wait "$tpid" 2>/dev/null
         sz=$(stat -f%z "$OUT/$id.pcap" 2>/dev/null || echo 0)

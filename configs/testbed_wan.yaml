@@ -31,7 +31,7 @@ validator:    "FILL_IN_INDIA_HOST:8003"    # Dell PowerEdge R730xd (India)
 
 # Capture interface. MUST be the VPN TUNNEL interface, not the physical LAN NIC: the US–India path
 # runs over a VPN, so traffic on the physical NIC is still encapsulated and the A2A flows are not
-# readable there. Capture POST-DECAPSULATION on the tunnel. See docs/C5_WAN_RUNBOOK.md:
+# readable there. Capture POST-DECAPSULATION on the tunnel. See docs/WAN_COLLECTION.md:
 #   utun8 = VPN tunnel on the capture host (192.168.3.5); route to 10.16.0.35 -> utun8
 #   en0   = physical LAN NIC (10.0.0.228) — explicitly NOT used for capture
 # (Was `en0`, which is reproduction-blocking: it silently captures the wrong, encapsulated path.)

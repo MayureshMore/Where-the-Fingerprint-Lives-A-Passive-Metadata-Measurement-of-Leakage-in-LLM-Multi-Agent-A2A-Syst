@@ -2,7 +2,7 @@
 #
 # PHASE 2 (Task B) — accumulate a2a_mcp INSTANCE-2 SPECIALIST samples for the full 6-way
 # cross-instance transfer. Appends to data/raw_offtheshelf_inst2 (same instance-2:
-# gemini-2.0-flash, separate session) using FAN-OUT-BOOSTED prompts + drive_orch_boost.py so
+# gemini-2.0-flash, separate session) using FAN-OUT-BOOSTED prompts + trip_driver_boosted.py so
 # each trip reliably exercises the air/hotel/car specialists (the original ~6% fan-out was a
 # Tokyo-hardcoded canned answer sabotaging the planner on varied destinations).
 #
@@ -23,7 +23,7 @@ IFACE="lo0"; PORTS="10100-10105"
 N="${1:-80}"                                          # max trips to ATTEMPT (guards stop earlier)
 
 INST2_MODEL="gemini/gemini-2.0-flash"                 # unchanged independence axis (different LLM)
-DRIVER="drive_orch_boost.py"                          # destination-agnostic fan-out-forcing answer
+DRIVER="trip_driver_boosted.py"                          # destination-agnostic fan-out-forcing answer
 
 BUDGET_USD="${BUDGET_USD:-8.00}"                      # HARD ceiling on ESTIMATED spend
 COST_PER_TRACE="${COST_PER_TRACE:-0.05}"              # slightly above observed $0.04 (boosted trips do more)

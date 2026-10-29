@@ -7,7 +7,7 @@ import asyncio
 import os
 
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
-from xf_common import HOST_ADDR, SpecialistAgent, register_msgs
+from common import HOST_ADDR, SpecialistAgent, register_msgs
 
 
 async def main(role: str) -> None:

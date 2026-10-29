@@ -38,7 +38,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from evaluation.crossfit import crossfit_predict, shared_prompt_fraction  # noqa: E402
 from evaluation.stats import bootstrap_ci  # noqa: E402
 from models.random_forest import RFClassifier  # noqa: E402
-from scripts import evaluate_c5, evaluate_defense_live, evaluate_model_vs_logic  # noqa: E402
+from scripts import evaluate_cross_network, evaluate_defense_live, evaluate_model_vs_logic  # noqa: E402
 from scripts.evaluate_cross_deployment import load_deployment  # noqa: E402
 
 logging.basicConfig(level=logging.WARNING, format="%(asctime)s %(levelname)s %(message)s")
@@ -74,7 +74,7 @@ def _xdep(d, task):
 
 
 def _c5(d, task):
-    X, y, g = evaluate_c5._load(Path(d), task)
+    X, y, g = evaluate_cross_network._load(Path(d), task)
     return X, y, g
 
 
@@ -82,15 +82,15 @@ def _c5(d, task):
 TRANSFERS = [
     ("model_vs_logic.json", "A_Amodel", A, AMODEL, _mvl, ("workflow", "role"), lambda r, t, k: r[t][k]["macro_f1"]),
     ("model_vs_logic.json", "A_Blogic", A, BLOGIC, _mvl, ("workflow", "role"), lambda r, t, k: r[t][k]["macro_f1"]),
-    ("cross_deployment.json", "AB", A, B, _xdep, ("workflow", "role", "parallelism"),
+    ("cross_deployment.json", "AB", A, B, _xdep, ("workflow", "role", "parallelism", "topology"),
      lambda r, t, k: r[f"{t}/{k}"]["macro_f1"]),
-    ("cross_deployment.json", "BA", B, A, _xdep, ("workflow", "role", "parallelism"),
+    ("cross_deployment.json", "BA", B, A, _xdep, ("workflow", "role", "parallelism", "topology"),
      lambda r, t, k: r[f"{t}/{k}"]["macro_f1"]),
-    ("cross_framework.json", "AB", A, C, _xdep, ("workflow", "role", "parallelism"),
+    ("cross_framework.json", "AB", A, C, _xdep, ("workflow", "role", "parallelism", "topology"),
      lambda r, t, k: r[f"{t}/{k}"]["macro_f1"]),
-    ("cross_framework.json", "BA", C, A, _xdep, ("workflow", "role", "parallelism"),
+    ("cross_framework.json", "BA", C, A, _xdep, ("workflow", "role", "parallelism", "topology"),
      lambda r, t, k: r[f"{t}/{k}"]["macro_f1"]),
-    ("c5_cross_network.json", "transfer", A, WAN, _c5, ("workflow", "role", "parallelism", "topology"),
+    ("cross_network.json", "transfer", A, WAN, _c5, ("workflow", "role", "parallelism", "topology"),
      lambda r, t, k: r[t][k]["f1"]),
     ("defense/defense_live.json", "rate", A, RATE, _xdep, ("workflow",), lambda r, t, k: r[k]["macro_f1"], _DefenseRF),
     ("defense/defense_live.json", "pad", A, PAD, _xdep, ("workflow",), lambda r, t, k: r[k]["macro_f1"], _DefenseRF),

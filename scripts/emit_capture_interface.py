@@ -49,7 +49,7 @@ _RESULT_LINEAGE: dict[str, list[str]] = {
     "cross_deployment.json":           ["data/raw", "data/raw_b_sdk"],
     "cross_framework.json":            ["data/raw", "data/raw_langgraph"],
     "runtime_traffic_diagnostic.json": ["data/raw", "data/raw_langgraph"],
-    "c5_cross_network.json":           ["data/raw", "data/raw_wan"],
+    "cross_network.json":           ["data/raw", "data/raw_wan"],
     "defense/defense_live.json":       ["data/raw", "data/raw_defense_rate", "data/raw_defense_pad"],
     "open_world/":                     ["data/raw"],
     "open_world_background.json":      ["data/raw", "data/raw_background_sdk"],
@@ -224,7 +224,7 @@ def main(a: argparse.Namespace) -> None:
     if wan.get("capture") == "cross_host" and declared.get("testbed_wan.yaml") == "en0":
         flags.append({
             "severity": "stale-config",
-            "what": "configs/testbed_wan.yaml declares `interface: en0`, but docs/C5_WAN_RUNBOOK.md "
+            "what": "configs/testbed_wan.yaml declares `interface: en0`, but docs/WAN_COLLECTION.md "
                     "states the C5 capture is taken POST-DECAPSULATION on the VPN tunnel interface "
                     "`utun8`, and that en0 is explicitly NOT used for capture.",
             "evidence": f"data/raw_wan hosts are {wan.get('distinct_hosts')} (two machines on the wire → "

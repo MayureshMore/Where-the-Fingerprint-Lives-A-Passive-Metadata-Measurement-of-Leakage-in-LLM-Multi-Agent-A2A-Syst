@@ -4,7 +4,7 @@
 # closed-world WORKFLOW claim (§8.2). The committed closed-world captured each workflow in one
 # contiguous ~17-min block, so slow within-session drift could correlate with the workflow label.
 # This control captures the 4 workflows ROUND-ROBIN (one short block each per cycle), revisiting
-# every workflow across the session, and draws FRESH prompts each cycle via run_pilot --seed-offset
+# every workflow across the session, and draws FRESH prompts each cycle via collect_deployment --seed-offset
 # (so the group-CV workflow test — which holds out whole prompts — has real prompt diversity, the
 # thing a naive --n 1 interleave lacks). star topology only (workflow signal is content, not
 # topology). A/llama3.2:3b, num_predict 256 — matched to the committed closed-world.
@@ -30,7 +30,7 @@ for top in $TOPOS; do
     echo "=== $top cycle $c/$CYCLES  seed_offset=$off ==="
     for k in 0 1 2 3; do
         wf=${WF[$(( (k + r) % 4 ))]}
-        $PY scripts/run_pilot.py --deployment a --workflow "$wf" --topology "$top" \
+        $PY scripts/collect_deployment.py --deployment a --workflow "$wf" --topology "$top" \
             --n "$NB" --seed-offset "$off" --out "$OUT" --model llama3.2:3b \
             --num-predict 256 --ollama-url "$URL" >/dev/null 2>&1 \
             && echo "  ok $wf" || echo "  FAIL $wf"

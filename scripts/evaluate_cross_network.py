@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-C5 cross-network evaluation (proposal §11.3) — one command.
+Cross-network (LAN → WAN) evaluation.
 
 For each task (workflow, role, parallelism, topology) it reports three numbers
-with 95% bootstrap CIs, plus a summary figure + JSON:
+with 95% cluster-bootstrap CIs, written to cross_network.json:
 
   (1) LAN-internal   — RF group-safe 5-fold CV on the LAN testbed   (in-deployment ceiling)
   (2) WAN-internal   — RF group-safe 5-fold CV on the WAN capture    (WAN-vantage ceiling)
@@ -16,7 +16,7 @@ The WAN-internal baseline is the key control: it separates
 Everything is RF + macro-F1 so the three columns are directly comparable.
 
 Usage:
-    venv/bin/python scripts/evaluate_c5.py --local data/processed --wan data/processed_wan
+    venv/bin/python scripts/evaluate_cross_network.py --local data/processed --wan data/processed_wan
 """
 from __future__ import annotations
 
@@ -93,40 +93,6 @@ def _transfer(local_dir: Path, wan_dir: Path, task: str) -> dict:
     }
 
 
-def _figure(out: Path, results: dict, tasks: list[str]) -> None:
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    x = np.arange(len(tasks))
-    w = 0.26
-    conds = [
-        ("lan_internal", "LAN-internal (ceiling)", "#4c72b0"),
-        ("wan_internal", "WAN-internal (vantage ceiling)", "#55a868"),
-        ("transfer", "LAN→WAN transfer", "#c44e52"),
-    ]
-    fig, ax = plt.subplots(figsize=(9, 5))
-    for i, (key, label, color) in enumerate(conds):
-        vals = [results[t][key]["f1"] for t in tasks]
-        lo = [max(0.0, results[t][key]["f1"] - results[t][key]["ci_lo"]) for t in tasks]
-        hi = [max(0.0, results[t][key]["ci_hi"] - results[t][key]["f1"]) for t in tasks]
-        ax.bar(x + (i - 1) * w, vals, w, label=label, color=color,
-               yerr=[lo, hi], capsize=3, error_kw={"elinewidth": 1})
-    for j, t in enumerate(tasks):
-        ax.hlines(CHANCE[t], x[j] - 1.5 * w, x[j] + 1.5 * w,
-                  colors="k", linestyles="--", linewidth=1)
-    ax.set_xticks(x)
-    ax.set_xticklabels(tasks)
-    ax.set_ylabel("macro-F1 (RF, 5-fold group CV / transfer; 95% CI)")
-    ax.set_ylim(0, 1.05)
-    ax.set_title("C5: attack survives the WAN vantage (WAN-internal) but does not transfer LAN→WAN")
-    ax.legend(loc="upper right", fontsize=8)
-    ax.text(0.005, 0.012, "dashed = chance", transform=ax.transAxes, fontsize=7)
-    fig.tight_layout()
-    fig.savefig(out, dpi=150)
-    plt.close(fig)
-
-
 def main(args: argparse.Namespace) -> None:
     local_dir, wan_dir = Path(args.local), Path(args.wan)
     if not (wan_dir / "labels.json").exists():
@@ -144,15 +110,12 @@ def main(args: argparse.Namespace) -> None:
         results[task] = {"chance": CHANCE[task], "lan_internal": lan,
                          "wan_internal": wan, "transfer": xfer}
 
-    out_json = RESULTS_DIR / "c5_cross_network.json"
+    out_json = RESULTS_DIR / "cross_network.json"
     out_json.parent.mkdir(parents=True, exist_ok=True)
     out_json.write_text(json.dumps(results, indent=2))
-    fig_path = RESULTS_DIR / "figures" / "c5_cross_network.png"
-    fig_path.parent.mkdir(parents=True, exist_ok=True)
-    _figure(fig_path, results, list(args.tasks))
 
     print("\n" + "=" * 74)
-    print("  C5 CROSS-NETWORK  (macro-F1, RF)")
+    print("  CROSS-NETWORK  (macro-F1, RF)")
     print("=" * 74)
     print(f"  {'task':<13}{'chance':>8}{'LAN-internal':>15}{'WAN-internal':>15}{'LAN→WAN':>13}")
     print("  " + "-" * 66)
@@ -164,7 +127,8 @@ def main(args: argparse.Namespace) -> None:
               f"{r['transfer']['f1']:>13.3f}")
     print("=" * 74)
     print(f"  n(WAN)={results[args.tasks[0]]['transfer']['n']}  "
-          f"JSON → {out_json}   FIGURE → {fig_path}")
+          f"JSON → {out_json}  (figure: scripts/make_paper_artifacts.py, with the "
+          f"prompt-disjoint transfer from evaluate_transfer_crossfit.py)")
 
 
 def _parse() -> argparse.Namespace:

@@ -27,11 +27,11 @@ If A→B_logic << A→B         → logic is the dominant factor; model is secon
 
 Data collection (run these first):
     # Model-only variant: A-logic + qwen2.5:7b
-    sudo venv/bin/python scripts/run_pilot.py \\
+    sudo venv/bin/python scripts/collect_deployment.py \\
         --model qwen2.5:7b --n 50 --out data/raw_amodel_sdk
 
     # Logic-only variant: B-logic + llama3.2:3b
-    sudo venv/bin/python scripts/run_pilot.py --deployment b \\
+    sudo venv/bin/python scripts/collect_deployment.py --deployment b \\
         --model llama3.2:3b --n 50 --out data/raw_blogic_sdk
 
     # Extract features for both
@@ -247,12 +247,12 @@ def main(args):
     if not have_amodel or not have_blogic:
         missing = []
         if not have_amodel:
-            missing.append(f"  data/raw_amodel_sdk:  sudo venv/bin/python scripts/run_pilot.py "
+            missing.append(f"  data/raw_amodel_sdk:  sudo venv/bin/python scripts/collect_deployment.py "
                            f"--model qwen2.5:7b --n 50 --out data/raw_amodel_sdk\n"
                            f"                   python scripts/extract_features.py "
                            f"--raw data/raw_amodel_sdk --out {dir_amodel} --scapy")
         if not have_blogic:
-            missing.append(f"  data/raw_blogic_sdk:  sudo venv/bin/python scripts/run_pilot.py --deployment b "
+            missing.append(f"  data/raw_blogic_sdk:  sudo venv/bin/python scripts/collect_deployment.py --deployment b "
                            f"--model llama3.2:3b --n 50 --out data/raw_blogic_sdk\n"
                            f"                   python scripts/extract_features.py "
                            f"--raw data/raw_blogic_sdk --out {dir_blogic} --scapy")
@@ -341,8 +341,8 @@ def main(args):
             ret = _ret(f1, random_bl, ceiling)
             print(f"  {task:<12}  {cond:<14}  F1={f1:.3f}  ret={ret:.0%}")
     print()
-    print("  Model condition:  run_pilot.py    --model qwen2.5:7b   (A-logic, qwen)")
-    print("  Logic condition:  run_pilot.py --deployment b  --model llama3.2:3b  (B-logic, llama)")
+    print("  Model condition:  collect_deployment.py    --model qwen2.5:7b   (A-logic, qwen)")
+    print("  Logic condition:  collect_deployment.py --deployment b  --model llama3.2:3b  (B-logic, llama)")
     print()
 
 

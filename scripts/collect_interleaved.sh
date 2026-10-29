@@ -17,7 +17,7 @@
 #
 # Because every label now spans many interleaved micro-sessions on the same host at the
 # same time, any session-drift artefact is SHARED across labels and can no longer predict
-# the label. What remains separable is genuine traffic shape. Each run_pilot invocation
+# the label. What remains separable is genuine traffic shape. Each collect_deployment invocation
 # also RELAUNCHES its agents, so ephemeral-port / connection-state artefacts are randomised
 # WITHIN each label too — further de-correlating session identity from the label.
 #
@@ -64,10 +64,10 @@ echo "  A=$OUT_A (a-logic/asyncio + llama3.2:3b)" | tee -a "$LOG"
 echo "  B=$OUT_B (b-logic         + qwen2.5:7b)"  | tee -a "$LOG"
 echo "  C=$OUT_C (a-logic/LangGraph + llama3.2:3b)  <- A & C share model+logic, differ only in runtime" | tee -a "$LOG"
 
-# One micro-batch = run_pilot --n 1 over ALL 4 workflows x 3 topologies = 12 balanced traces.
+# One micro-batch = collect_deployment --n 1 over ALL 4 workflows x 3 topologies = 12 balanced traces.
 batch() {  # $1=deployment  $2=model  $3=outdir  $4=cycle
     echo "  [cycle $4] batch $1 -> $3" | tee -a "$LOG"
-    $PY scripts/run_pilot.py --deployment "$1" --model "$2" --out "$3" --n 1 \
+    $PY scripts/collect_deployment.py --deployment "$1" --model "$2" --out "$3" --n 1 \
         --num-predict "$NP" --ollama-url "$OLLAMA_URL" >>"$LOG" 2>&1 \
         || echo "  !! batch $1 (cycle $4) had a failure — continuing" | tee -a "$LOG"
 }

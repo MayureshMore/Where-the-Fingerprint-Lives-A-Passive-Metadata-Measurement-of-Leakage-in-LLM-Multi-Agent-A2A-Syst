@@ -261,7 +261,7 @@ def main(args: argparse.Namespace) -> None:
                                      "volume/burst features that drive the separation. This is the dominant "
                                      "confound and cannot be cheaply removed (the a2a_mcp positive set is "
                                      "frozen canonical, collected with gemini).",
-            "interaction_pattern": "a2a_mcp's orchestrator runs MULTI-TURN clarifying Q&A (drive_orch.py, "
+            "interaction_pattern": "a2a_mcp's orchestrator runs MULTI-TURN clarifying Q&A (trip_driver.py, "
                                    "up to 6 turns); the CrewAI driver issues SINGLE-TURN calls per "
                                    "specialist — very different burst structure.",
             "topology": "6-agent a2a_mcp (mcp/orch/planner + 3 specialists) vs 4-agent CrewAI "

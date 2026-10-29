@@ -423,7 +423,7 @@ def print_task_results(
         ab_f1   = ab["macro_f1"]
         ba_f1   = ba["macro_f1"]
         if np.isnan(ab_f1) or np.isnan(ceiling):
-            print(f"  (no deployment {b} data — run run_pilot.py to enable transfer eval)")
+            print(f"  (no deployment {b} data — run collect_deployment.py to enable transfer eval)")
             print()
             return
         print(f"  → {_verdict(ab_f1, ba_f1, random_baseline, ceiling, task, label_b=b, control=control)}")
@@ -481,7 +481,7 @@ def main(args: argparse.Namespace) -> None:
     if not b_exists:
         logger.warning(
             "Deployment B data not found at %s.  "
-            "Run: sudo venv/bin/python scripts/run_pilot.py --deployment b --n 50 --out data/raw_b_sdk  "
+            "Run: sudo venv/bin/python scripts/collect_deployment.py --deployment b --n 50 --out data/raw_b_sdk  "
             "then: python scripts/extract_features.py --raw data/raw_b_sdk --out %s --scapy",
             dir_b, dir_b,
         )

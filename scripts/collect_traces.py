@@ -104,8 +104,8 @@ async def main(args: argparse.Namespace) -> None:
         for i, role in enumerate(["orchestrator", "executor", "retriever", "validator"])
     }
 
-    # Topology edges — must match run_pilot.py TOPO_EDGES exactly so labels
-    # are consistent between collect_traces.py and run_pilot.py collections.
+    # Topology edges — must match collect_deployment.py TOPO_EDGES exactly so labels
+    # are consistent between collect_traces.py and collect_deployment.py collections.
     topo_edges = {
         "star": [["orchestrator","executor"],["orchestrator","retriever"],["orchestrator","validator"]],
         "chain": [["orchestrator","executor"],["executor","retriever"],["retriever","validator"]],

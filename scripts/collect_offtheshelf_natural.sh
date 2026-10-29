@@ -12,9 +12,9 @@
 #   * prompt : instance-2's reworded "Arrange complete travel …" query (identical to
 #              collect_offtheshelf_inst2.sh — same DESTS/ORIG/nights/pax/budget)
 #   * LLM    : gemini-2.0-flash (instance-2's independence axis)
-#   * driver : drive_orch_natural_fixed.py  ← the ONE intended change: BUG-FIXED-BUT-NOT-FORCED.
+#   * driver : trip_driver_natural.py  ← the ONE intended change: BUG-FIXED-BUT-NOT-FORCED.
 #              destination-agnostic (fixes the Tokyo-hardcoded ~6% fan-out bug) yet NOT
-#              completion-forcing (unlike drive_orch_boost.py, which shifts distributions).
+#              completion-forcing (unlike trip_driver_boosted.py, which shifts distributions).
 # The de-confound is "natural driver instead of boosted", NOT "borrow the victim's prompt".
 #
 # SEED: reuses the 67 natural instance-2 trips already collected (4/4/4 natural specialists) by
@@ -43,7 +43,7 @@ IFACE="lo0"; PORTS="10100-10105"
 N="${1:-260}"                                             # max trips to ATTEMPT (guards stop earlier)
 
 INST2_MODEL="gemini/gemini-2.0-flash"                     # unchanged independence axis (different LLM)
-DRIVER="drive_orch_natural_fixed.py"                      # BUG-FIXED-BUT-NOT-FORCED natural driver
+DRIVER="trip_driver_natural.py"                      # BUG-FIXED-BUT-NOT-FORCED natural driver
 
 BUDGET_USD="${BUDGET_USD:-15.00}"                         # HARD ceiling on ESTIMATED spend
 COST_PER_TRACE="${COST_PER_TRACE:-0.045}"                # ~observed natural trip cost
@@ -176,7 +176,7 @@ for i in $(seq "$start_i" "$end_i"); do
 
     a=$(spec_in_pcap "$OUT/$id.pcap" 10103); h=$(spec_in_pcap "$OUT/$id.pcap" 10104); c=$(spec_in_pcap "$OUT/$id.pcap" 10105)
     air_n=$((air_n+a)); hot_n=$((hot_n+h)); car_n=$((car_n+c))
-    printf '{"system":"a2a_mcp","instance":2,"boosted":false,"driver":"drive_orch_natural_fixed.py","litellm_model":"%s","trace_id":"%s","input_prompt":"%s","agent_endpoints":{"mcp":"127.0.0.1:10100","orchestrator":"127.0.0.1:10101","planner":"127.0.0.1:10102","air_ticketing":"127.0.0.1:10103","hotel":"127.0.0.1:10104","car_rental":"127.0.0.1:10105"}}\n' "$INST2_MODEL" "$id" "$q" > "$OUT/$id.json"
+    printf '{"system":"a2a_mcp","instance":2,"boosted":false,"driver":"trip_driver_natural.py","litellm_model":"%s","trace_id":"%s","input_prompt":"%s","agent_endpoints":{"mcp":"127.0.0.1:10100","orchestrator":"127.0.0.1:10101","planner":"127.0.0.1:10102","air_ticketing":"127.0.0.1:10103","hotel":"127.0.0.1:10104","car_rental":"127.0.0.1:10105"}}\n' "$INST2_MODEL" "$id" "$q" > "$OUT/$id.json"
     ok=$((ok+1)); consec_skip=0
     printf "  [trip %03d] %-22s pcap=%7sB fan[a%d h%d c%d] | tot air=%d hotel=%d car=%d | ok=%d est≈\$%s\n" \
         "$i" "$dest" "$sz" "$a" "$h" "$c" "$air_n" "$hot_n" "$car_n" "$ok" "$(spend "$ok")"

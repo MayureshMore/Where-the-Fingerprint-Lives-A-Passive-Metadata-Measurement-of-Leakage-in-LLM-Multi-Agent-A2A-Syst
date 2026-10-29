@@ -75,9 +75,9 @@ if [ "$MODE" = "demo" ]; then
     # ── SHORT demo: deterministic headline only ───────────────────────────────
     stage "DEMO 1/2  closed-world (RF, deterministic)"
     if have "$A/labels.json"; then run $PY scripts/evaluate.py --mode closed_world --rf-only; fi
-    stage "DEMO 2/2  C5 cross-network (RF)"
+    stage "DEMO 2/2  cross-network LAN→WAN (RF)"
     if have "$A/labels.json" "$WAN/labels.json"; then
-        run $PY scripts/evaluate_c5.py --local "$A" --wan "$WAN"; fi
+        run $PY scripts/evaluate_cross_network.py --local "$A" --wan "$WAN"; fi
     stage "paper artifacts (sandbox)"
     run $PY scripts/make_paper_artifacts.py
 
@@ -97,7 +97,7 @@ for t in ("workflow","role","topology","parallelism"):
     if a is None or b is None:
         print(f"  {t:<12}{'n/a':>12}{'n/a':>12}"); continue
     print(f"  {t:<12}{a:>12.3f}{b:>12.3f}{a-b:>+10.4f}")
-c = sand / "c5_cross_network.json"
+c = sand / "cross_network.json"
 if c.exists():
     d = json.loads(c.read_text())
     print(f"  C5 workflow transfer F1 = {d['workflow']['transfer']['f1']:.3f} (n={d['workflow']['transfer']['n']})")
@@ -135,16 +135,16 @@ else
     # labels.json — gating on labels.json here silently skipped this whole stage.
     if have "$A/labels.json" "$BG/labels_background.json"; then
         run $PY scripts/evaluate_open_world_background.py --processed "$A" --bg-processed "$BG"; fi
-    stage "live C4 defenses (needs raw pcaps for overhead)"
+    stage "live defenses (needs raw pcaps for overhead)"
     if have "$A/labels.json" "$RATE/labels.json" "$PAD/labels.json" \
             "data/raw" "data/raw_defense_rate" "data/raw_defense_pad"; then
         run $PY scripts/evaluate_defense_live.py \
             --baseline "$A" --baseline-raw data/raw \
             --rate "$RATE" --rate-raw data/raw_defense_rate \
             --pad  "$PAD"  --pad-raw  data/raw_defense_pad; fi
-    stage "C5 cross-network"
+    stage "cross-network LAN→WAN"
     if have "$A/labels.json" "$WAN/labels.json"; then
-        run $PY scripts/evaluate_c5.py --local "$A" --wan "$WAN"; fi
+        run $PY scripts/evaluate_cross_network.py --local "$A" --wan "$WAN"; fi
     stage "prompt-disjoint (cross-fitted) re-analysis of the cross-collection transfers"
     if have "$A/labels.json" "$AMODEL/labels.json" "$BLOGIC/labels.json" "$B/labels.json" \
             "$LANGGRAPH/labels.json" "$WAN/labels.json" "$RATE/labels.json" "$PAD/labels.json"; then
@@ -155,7 +155,7 @@ else
     stage "defense overhead–accuracy sweep (curve; heavy — re-extracts the base capture per level)"
     if have "$A/labels.json" "data/raw"; then
         run $PY scripts/sweep_defenses.py --raw data/raw --processed "$A"; fi
-    stage "off-the-shelf role fingerprint (Task #4 — a2a_mcp replication; needs off-the-shelf pcaps)"
+    stage "off-the-shelf role fingerprint (a2a_mcp replication; needs off-the-shelf pcaps)"
     if have "data/raw_offtheshelf" "$A/labels.json"; then
         run $PY scripts/evaluate_offtheshelf_fingerprint.py --raw data/raw_offtheshelf --a-role "$A"; fi
     stage "off-the-shelf topology from headers + A2A-vs-background detection (a2a_mcp)"
@@ -163,50 +163,50 @@ else
             "data/processed_background/labels_background.json"; then
         run $PY scripts/analyze_offtheshelf_topology.py
         run $PY scripts/evaluate_offtheshelf_detection.py; fi
-    stage "framework/implementation ID (Phase 1 recon; needs ≥3 impls' processed features)"
+    stage "framework/implementation ID (needs ≥3 implementations' processed features)"
     if have "$A/labels.json" "$LANGGRAPH/labels.json"; then
         run $PY scripts/evaluate_framework_id.py; fi
-    stage "framework-ID CONFOUND CONTROL (Phase 1; same-session interleaved A/B/C — new collection via collect_interleaved.sh)"
+    stage "framework-ID confound control (same-session interleaved A/B/C; collect_interleaved.sh)"
     # Reads the interleaved processed features (produced by collect_interleaved.sh + extract).
     if have "data/processed_interleaved_a/labels.json" "data/processed_interleaved_langgraph/labels.json"; then
         run $PY scripts/evaluate_framework_id_interleaved.py; fi
-    stage "CONFOUND AUDIT — core claims (workflow/role/topology) under same-session interleaving"
+    stage "confound audit — core claims under same-session interleaving"
     # Needs the powered interleaved-A capture + the prompt-diverse workflow capture (new collections
     # via collect_interleaved.sh --powered / collect_wf_interleaved.sh, then extract_features).
     if have "data/processed_interleaved_a_pwr/labels.json" "data/processed_wf_interleaved/labels.json"; then
         run $PY scripts/evaluate_confound_control.py; fi
-    stage "cross-instance transfer (Phase 2; reads RAW pcaps of both a2a_mcp instances — new collection)"
+    stage "cross-instance transfer (reads raw pcaps of both a2a_mcp instances)"
     # NB: this evaluator consumes RAW pcaps directly (extract_role_samples), not processed
     # features — so gate on the raw dirs it actually reads, else the stage silently skips.
     if have "data/raw_offtheshelf" "data/raw_offtheshelf_inst2"; then
         run env MIN_N=10 $PY scripts/evaluate_cross_instance_transfer.py; fi   # MIN_N=10 = the committed 6-way setting
-    stage "cross-instance transfer — NATURAL de-confound (§9b′; reads the natural inst-2 set)"
+    stage "cross-instance transfer, natural-driver re-run (reads the natural instance-2 set)"
     if have "data/raw_offtheshelf" "data/raw_offtheshelf_inst2_natural"; then
         run env MIN_N=10 CIT_OUT=cross_instance_transfer_natural.json \
             $PY scripts/evaluate_cross_instance_transfer.py --inst2 data/raw_offtheshelf_inst2_natural; fi
-    stage "cross-FRAMEWORK replication on AutoGen (§10; reads AutoGen gRPC pcaps — external deployment frameworks/autogen)"
+    stage "cross-framework replication on AutoGen (reads AutoGen gRPC pcaps; frameworks/autogen)"
     if have "data/raw_autogen" "data/raw_offtheshelf"; then
         run $PY scripts/evaluate_cross_framework_autogen.py; fi
-    stage "agentic detection A2A-vs-AutoGen (Exp 1 / §11; reads a2a_mcp + AutoGen pcaps)"
+    stage "agentic detection A2A vs AutoGen (reads a2a_mcp + AutoGen pcaps)"
     if have "data/raw_offtheshelf" "data/raw_autogen"; then
         run $PY scripts/evaluate_agentic_detection.py; fi
-    stage "mixing/multiplexing degradation (Exp 2 / §12; a2a_mcp flows + processed background)"
+    stage "mixing/multiplexing degradation (a2a_mcp flows + processed background)"
     if have "data/raw_offtheshelf" "data/processed_background/labels_background.json"; then
         run $PY scripts/evaluate_mixing_degradation.py; fi
-    stage "same-transport detection A2A-vs-CrewAI (Exp 3 / §13; reads a2a_mcp + CrewAI-over-a2a-sdk pcaps — external deployment frameworks/crewai)"
+    stage "same-transport detection A2A vs CrewAI (reads a2a_mcp + CrewAI pcaps; frameworks/crewai)"
     if have "data/raw_offtheshelf" "data/raw_crewai"; then
         run $PY scripts/evaluate_crewai_detection.py; fi
-    stage "matched-pair detection A-vs-CrewAI, ALL ELSE EQUAL (§13.1; reads deployment-A pcaps + matched CrewAI on A's roles/prompts — data/raw_crewai_matched)"
+    stage "matched-pair detection A vs CrewAI, all else equal (reads deployment-A + matched CrewAI pcaps)"
     if have "data/raw" "data/raw_crewai_matched"; then
         run $PY scripts/evaluate_crewai_matched_detection.py; fi
-    stage "TLS control (deployment A, cleartext and TLS alternating in one session; scripts/run_tls_overnight.sh)"
+    stage "TLS control (deployment A, cleartext and TLS alternating in one session; scripts/run_tls_control.sh)"
     if have "data/processed_tlspair_clear/labels.json" "data/processed_tlspair_tls/labels.json" \
             "data/raw_tlspair_clear" "data/raw_tlspair_tls"; then
         run $PY scripts/evaluate_tls_control.py; fi
-    stage "capture-interface provenance manifest (C1; loopback vs cross-host, derived from traces)"
+    stage "capture-interface provenance manifest (loopback vs cross-host, derived from traces)"
     if have "data/raw"; then
         run $PY scripts/emit_capture_interface.py; fi
-    stage "group/cluster bootstrap check on headline CIs (C4; prompt_group + trip clusters)"
+    stage "cluster-bootstrap check on headline CIs (prompt_group + trip clusters)"
     if have "data/processed/labels.json" "data/raw_offtheshelf" "data/raw_offtheshelf_inst2"; then
         run $PY scripts/check_group_bootstrap.py; fi
     stage "paper artifacts"

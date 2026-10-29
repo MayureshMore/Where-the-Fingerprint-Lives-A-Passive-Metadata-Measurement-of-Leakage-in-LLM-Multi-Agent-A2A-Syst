@@ -30,7 +30,7 @@ Usage (on the US host) — once per topology, matching the remote:
 
 Then extract + evaluate:
     venv/bin/python scripts/extract_features.py --raw data/raw_wan --out data/processed_wan --scapy
-    venv/bin/python scripts/evaluate_c5.py --local data/processed --wan data/processed_wan
+    venv/bin/python scripts/evaluate_cross_network.py --local data/processed --wan data/processed_wan
 """
 
 from __future__ import annotations

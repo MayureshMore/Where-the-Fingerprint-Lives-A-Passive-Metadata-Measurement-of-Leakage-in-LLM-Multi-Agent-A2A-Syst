@@ -10,7 +10,7 @@ Task 2 costs money and is gated on your explicit go.**
 ## Task 2 — clean natural-specialist cross-instance test — ✅ DONE (~$1.57)
 
 > **STATUS (done): the de-confound ran and resolved §9b.** Bug-fixed-but-not-forced natural driver
-> (`drive_orch_natural_fixed.py`) + instance-2's own config → 26.7% fan-out (vs bugged 6% / forced ~90%),
+> (`trip_driver_natural.py`) + instance-2's own config → 26.7% fan-out (vs bugged 6% / forced ~90%),
 > 15/15/15 specialists for ~$1.57 (probe projected $1.89, well under the $15 cap).
 > **The distribution check was the gate, reported before the verdict:** still 0/3 comparable but the gap
 > **shrank** (air |SMD| 3.02→2.54, car 1.32→1.00). The 6-way barely moved (0.605→**0.594**) → the driver
@@ -33,7 +33,7 @@ collected**, removing that confound, then re-runs the 6-way.
 ### The de-confound (exact mirror of instance-1's method)
 | axis | instance-1 (natural) | Task-2 instance-2 (natural) | boosted 6-way (confounded) |
 |---|---|---|---|
-| driver | `drive_orch.py` | `drive_orch.py` | `drive_orch_boost.py` |
+| driver | `trip_driver.py` | `trip_driver.py` | `trip_driver_boosted.py` |
 | prompt | "Plan a trip … Book round-trip flights, a hotel …, and a rental car." | **same** | "…BOOK ALL THREE now. Do not ask clarifying questions." |
 | answer to clarifying Q | natural | natural | completion-forcing |
 | LLM | gemini-2.5-flash | gemini-2.0-flash | gemini-2.0-flash |
@@ -124,7 +124,7 @@ pipeline + Task-1 shape mask verbatim.
 
 ### Original plan (for CrewAI / extensions)
 
-The one genuine generalization gap. `docs/CROSS_FRAMEWORK_PLAN.md` already flags this as §7
+The one genuine generalization gap. `docs/CROSS_FRAMEWORK_DESIGN.md` already flags this as §7
 future work: deployment C (LangGraph) is a **runtime-invariance control**, not a generalization
 result (it reuses A's specialists/structure). A truly *independently-structured*, **networked,
 non-A2A** framework with a comparable taxonomy is what converts "implementation-specific" into

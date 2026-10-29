@@ -198,6 +198,34 @@
       "source": "data/processed",
       "target": "data/processed_b_sdk"
     },
+    "cross_deployment/AB/topology": {
+      "n_source": 600,
+      "n_target": 600,
+      "chance": 0.3333333333333333,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.3479092483605842,
+        "ci_lo": 0.31343041348077244,
+        "ci_hi": 0.38252023758644665,
+        "accuracy": 0.415
+      },
+      "size_matched": {
+        "macro_f1": 0.3380639330587512,
+        "ci_lo": 0.3056558814367343,
+        "ci_hi": 0.37352763437986714,
+        "accuracy": 0.41333333333333333
+      },
+      "crossfit": {
+        "macro_f1": 0.3093749421708899,
+        "ci_lo": 0.27525936833865966,
+        "ci_hi": 0.34415256267005107,
+        "accuracy": 0.39
+      },
+      "shared_prompt_effect": 0.02868899088786131,
+      "published": 0.3479092483605842,
+      "source": "data/processed",
+      "target": "data/processed_b_sdk"
+    },
     "cross_deployment/BA/workflow": {
       "n_source": 600,
       "n_target": 600,
@@ -279,6 +307,34 @@
       },
       "shared_prompt_effect": 0.0,
       "published": 0.6666666666666666,
+      "source": "data/processed_b_sdk",
+      "target": "data/processed"
+    },
+    "cross_deployment/BA/topology": {
+      "n_source": 600,
+      "n_target": 600,
+      "chance": 0.3333333333333333,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.5555555555555555,
+        "ci_lo": 0.5409831465842395,
+        "ci_hi": 0.5698924731182796,
+        "accuracy": 0.6666666666666666
+      },
+      "size_matched": {
+        "macro_f1": 0.5555555555555555,
+        "ci_lo": 0.5409831465842395,
+        "ci_hi": 0.5698924731182796,
+        "accuracy": 0.6666666666666666
+      },
+      "crossfit": {
+        "macro_f1": 0.5555555555555555,
+        "ci_lo": 0.5409831465842395,
+        "ci_hi": 0.5698924731182796,
+        "accuracy": 0.6666666666666666
+      },
+      "shared_prompt_effect": 0.0,
+      "published": 0.5555555555555555,
       "source": "data/processed_b_sdk",
       "target": "data/processed"
     },
@@ -366,6 +422,34 @@
       "source": "data/processed",
       "target": "data/processed_langgraph"
     },
+    "cross_framework/AB/topology": {
+      "n_source": 600,
+      "n_target": 481,
+      "chance": 0.3333333333333333,
+      "shared_prompt_fraction": 1.0,
+      "full": {
+        "macro_f1": 0.9937494506353097,
+        "ci_lo": 0.9856501888084619,
+        "ci_hi": 1.0,
+        "accuracy": 0.9937629937629938
+      },
+      "size_matched": {
+        "macro_f1": 0.9895824177255163,
+        "ci_lo": 0.9795158286683795,
+        "ci_hi": 0.9978233920284274,
+        "accuracy": 0.9896049896049897
+      },
+      "crossfit": {
+        "macro_f1": 0.9895824177255163,
+        "ci_lo": 0.9799934114191683,
+        "ci_hi": 0.9978353681158424,
+        "accuracy": 0.9896049896049897
+      },
+      "shared_prompt_effect": 0.0,
+      "published": 0.9937494506353097,
+      "source": "data/processed",
+      "target": "data/processed_langgraph"
+    },
     "cross_framework/BA/workflow": {
       "n_source": 481,
       "n_target": 600,
@@ -450,7 +534,35 @@
       "source": "data/processed_langgraph",
       "target": "data/processed"
     },
-    "c5_cross_network/transfer/workflow": {
+    "cross_framework/BA/topology": {
+      "n_source": 481,
+      "n_target": 600,
+      "chance": 0.3333333333333333,
+      "shared_prompt_fraction": 0.94,
+      "full": {
+        "macro_f1": 0.9833333333333334,
+        "ci_lo": 0.9724489103544283,
+        "ci_hi": 0.9928132101561071,
+        "accuracy": 0.9833333333333333
+      },
+      "size_matched": {
+        "macro_f1": 0.9783321145147749,
+        "ci_lo": 0.9660026121341538,
+        "ci_hi": 0.9890111396767527,
+        "accuracy": 0.9783333333333334
+      },
+      "crossfit": {
+        "macro_f1": 0.9682998500499486,
+        "ci_lo": 0.9528387162603217,
+        "ci_hi": 0.9823428377116306,
+        "accuracy": 0.9683333333333334
+      },
+      "shared_prompt_effect": 0.010032264464826302,
+      "published": 0.9833333333333334,
+      "source": "data/processed_langgraph",
+      "target": "data/processed"
+    },
+    "cross_network/transfer/workflow": {
       "n_source": 600,
       "n_target": 595,
       "chance": 0.25,
@@ -478,7 +590,7 @@
       "source": "data/processed",
       "target": "data/processed_wan"
     },
-    "c5_cross_network/transfer/role": {
+    "cross_network/transfer/role": {
       "n_source": 1747,
       "n_target": 1195,
       "chance": 0.3333333333333333,
@@ -506,7 +618,7 @@
       "source": "data/processed",
       "target": "data/processed_wan"
     },
-    "c5_cross_network/transfer/parallelism": {
+    "cross_network/transfer/parallelism": {
       "n_source": 600,
       "n_target": 595,
       "chance": 0.5,
@@ -534,7 +646,7 @@
       "source": "data/processed",
       "target": "data/processed_wan"
     },
-    "c5_cross_network/transfer/topology": {
+    "cross_network/transfer/topology": {
       "n_source": 600,
       "n_target": 595,
       "chance": 0.3333333333333333,

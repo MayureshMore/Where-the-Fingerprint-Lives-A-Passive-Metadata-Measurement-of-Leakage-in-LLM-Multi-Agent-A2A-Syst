@@ -20,9 +20,9 @@ Writes:
 
 Usage:
     bash scripts/make_tls_certs.sh
-    python scripts/run_tls_session.py --n 36                     # 12 conditions × 36 × 2 arms
-    python scripts/run_tls_session.py --pilot                    # one pair, into data/tls_pilot/
-Capture needs read access to /dev/bpf* (or sudo); see scripts/run_tls_overnight.sh.
+    python scripts/collect_tls_session.py --n 36                     # 12 conditions × 36 × 2 arms
+    python scripts/collect_tls_session.py --pilot                    # one pair, into data/tls_pilot/
+Capture needs read access to /dev/bpf* (or sudo); see scripts/run_tls_control.sh.
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from agents import tls  # noqa: E402
 from capture.automation import TraceCollector  # noqa: E402
 from capture.recorder import PacketRecorder  # noqa: E402
-from scripts.run_pilot import (  # noqa: E402
+from scripts.collect_deployment import (  # noqa: E402
     DEFAULT_NUM_PREDICT, DEPLOYMENTS, TOPO_EDGES, _agent_configs, _kill_port, _orchestrator,
     _wait_ready,
 )
@@ -156,9 +156,11 @@ async def main(a: argparse.Namespace) -> None:
                     dep = {**DEP, "ports": cfg["ports"]}
                     orch = _orchestrator(dep, topology, model, num_predict=num_predict, tls_on=cfg["tls"])
 
-                    async def exec_fn(prompt: str, _orch=orch, _d=cfg["deployment"]) -> None:
+                    # Same task-id format as deployment A in both arms: the id travels in the
+                    # request body, so an arm-specific id would change request sizes.
+                    async def exec_fn(prompt: str, _orch=orch) -> None:
                         async with _orch:
-                            await _orch.handle_task(task_id=f"pilot_{_d}_{uuid.uuid4().hex[:8]}", content=prompt)
+                            await _orch.handle_task(task_id=f"pilot_a_{uuid.uuid4().hex[:8]}", content=prompt)
 
                     collectors[arm] = TraceCollector(
                         orchestrator_fn=exec_fn,

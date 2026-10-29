@@ -3,14 +3,14 @@
 Starts the gRPC host, one specialist worker runtime, and an orchestrator runtime; the
 orchestrator sends a SubTask to the specialist over the host and awaits the Result. Two
 runtimes ⇒ two real gRPC channels to the host ⇒ real TCP flows on lo0. Prints whether the
-LLM answered. Run under tcpdump (see xf_smoke.sh) to confirm on-wire packets.
+LLM answered. Run under tcpdump (see smoke_test.sh) to confirm on-wire packets.
 """
 import asyncio
 
 from autogen_core import AgentId, try_get_known_serializers_for_type
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime, GrpcWorkerAgentRuntimeHost
 
-from xf_common import SpecialistAgent, SubTask, Result
+from common import SpecialistAgent, SubTask, Result
 
 HOST = "localhost:50051"
 

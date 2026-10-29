@@ -44,7 +44,7 @@ RAW=(raw raw_amodel_sdk raw_b_sdk raw_blogic_sdk raw_langgraph raw_background ra
      raw_offtheshelf_inst2_natural raw_interleaved_a raw_interleaved_a_pwr raw_interleaved_b
      raw_interleaved_langgraph raw_wf_interleaved raw_wf_interleaved_full
      raw_autogen raw_crewai raw_crewai_matched)
-# Packaged only once collected (scripts/run_tls_overnight.sh).
+# Packaged only once collected (scripts/run_tls_control.sh).
 OPTIONAL_PROCESSED=(processed_tlspair_clear processed_tlspair_tls)
 OPTIONAL_RAW=(raw_tlspair_clear raw_tlspair_tls)
 for n in "${OPTIONAL_PROCESSED[@]}"; do [ -d "data/$n" ] && PROCESSED+=("$n"); done

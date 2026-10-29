@@ -2,7 +2,7 @@
 import asyncio
 
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntimeHost
-from xf_common import HOST_ADDR
+from common import HOST_ADDR
 
 
 async def main() -> None:

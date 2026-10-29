@@ -1,7 +1,7 @@
 """Drive the a2a_mcp orchestrator (:10101) over A2A, MULTI-TURN — FAN-OUT-BOOSTED variant.
 
-Identical to drive_orch.py except the canned multi-turn ANSWER is DESTINATION-AGNOSTIC and
-completion-forcing. The original drive_orch.py hardcodes a Tokyo answer ("Use Narita (NRT) ...
+Identical to trip_driver.py except the canned multi-turn ANSWER is DESTINATION-AGNOSTIC and
+completion-forcing. The original trip_driver.py hardcodes a Tokyo answer ("Use Narita (NRT) ...
 hotel near Shinjuku"), which is nonsensical for the 20 varied destinations used in instance-2 —
 the planner loops on clarifying questions, hits the turn limit, and never fans out to the
 air/hotel/car specialists (~6% fan-out observed). This variant answers generically and tells the

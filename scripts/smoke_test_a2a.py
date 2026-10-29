@@ -11,13 +11,13 @@ largest structural assumption is invalid.
 
 Usage:
     # Local mode: both agents on localhost (stub executor, no Ollama required)
-    python scripts/run_poc.py --mode local
+    python scripts/smoke_test_a2a.py --mode local
 
     # Distributed mode: executor on a remote host
-    python scripts/run_poc.py --mode distributed --executor-host 192.168.1.100
+    python scripts/smoke_test_a2a.py --mode distributed --executor-host 192.168.1.100
 
     # With real LLM streaming (requires Ollama with the model pulled)
-    python scripts/run_poc.py --mode local --use-llm --model llama3.2:3b
+    python scripts/smoke_test_a2a.py --mode local --use-llm --model llama3.2:3b
 
 The script:
   1. Starts an executor agent (SDK-served, stub or real LLM)
@@ -102,7 +102,7 @@ async def _stream_and_count(base_url: str, text: str) -> tuple[bool, int, str]:
         return (bool(out) and n_status >= 1), n_status, "".join(out)
 
 
-async def run_poc(executor_host: str = "127.0.0.1", use_llm: bool = False,
+async def smoke_test_a2a(executor_host: str = "127.0.0.1", use_llm: bool = False,
                   ollama_model: str = "llama3.2:3b") -> bool:
     print("\n" + "=" * 55)
     print("  A2A PHASE 0 PROOF-OF-CONCEPT  (official a2a-sdk + SSE)")
@@ -215,7 +215,7 @@ def main() -> None:
     parser.add_argument("--model", default="llama3.2:3b")
     args = parser.parse_args()
     host = "127.0.0.1" if args.mode == "local" else args.executor_host
-    success = asyncio.run(run_poc(host, args.use_llm, args.model))
+    success = asyncio.run(smoke_test_a2a(host, args.use_llm, args.model))
     sys.exit(0 if success else 1)
 
 

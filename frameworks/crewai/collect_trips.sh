@@ -56,7 +56,7 @@ for k in $(seq 0 $((N-1))); do
 
     tcpdump -i lo0 -s 96 -w "$OUT/$id.pcap" "tcp portrange $PORTS" 2>/dev/null & tpid=$!
     sleep 0.8
-    $PY cw_driver.py --origin "$o" --dest "$dest" --d1 "$d1" --d2 "$d2" > "logs/${id}_drive.log" 2>&1
+    $PY trip_driver.py --origin "$o" --dest "$dest" --d1 "$d1" --d2 "$d2" > "logs/${id}_drive.log" 2>&1
     sleep 0.8
     kill $tpid 2>/dev/null; wait $tpid 2>/dev/null
     clearports

@@ -5,7 +5,7 @@
     "different_llm": "gemini-2.0-flash (instance 1 = gemini-2.5-flash), via LITELLM_MODEL",
     "different_prompts": "reworded query template, different dates/party-size/class/nights",
     "separate_session": true,
-    "specialist_collection": "BOOSTED (drive_orch_boost.py + forced full-service prompt) \u2014 a driver confound; see driver_confound_interpretation + specialist_distribution_check.",
+    "specialist_collection": "BOOSTED (trip_driver_boosted.py + forced full-service prompt) \u2014 a driver confound; see driver_confound_interpretation + specialist_distribution_check.",
     "shared": "the a2a_mcp framework's fixed six roles by port (10100-10105)"
   },
   "specialist_collection_mode": {

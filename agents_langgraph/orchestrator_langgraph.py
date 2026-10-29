@@ -10,7 +10,7 @@ NOT by hand-rolled `asyncio.gather` (deployment A).  Everything that defines the
     reused unchanged, so role/workflow behavior and the §5.1 payload-size
     discipline carry over verbatim;
   * task prompts come from the shared `WORKFLOW_REGISTRY` with the same seed
-    formula run_pilot uses for every deployment → identical inputs;
+    formula collect_deployment uses for every deployment → identical inputs;
   * topology is realized by the same downstream wiring as A (star = fan out to
     3 specialists; chain = call executor, specialists forward; mesh = fan out to
     2 + specialist forwarding).

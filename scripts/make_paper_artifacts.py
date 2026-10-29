@@ -2,7 +2,7 @@
 """
 Generate paper-ready figures and tables from the computed results in
 data/results/.  Pure post-processing — reads only the result JSONs, runs no
-models, so it is safe to re-run any time (e.g. after the C5 WAN collection).
+models, so it is safe to re-run any time (e.g. after a new collection).
 
 Outputs:
   data/results/figures/confusion_workflow_gbt.png
@@ -40,6 +40,15 @@ plt.rcParams.update({"figure.dpi": 150, "font.size": 10, "axes.grid": True,
 
 def _load(path: Path) -> dict:
     return json.loads(path.read_text()) if path.exists() else {}
+
+
+def _crossfit(name: str) -> dict | None:
+    """Prompt-disjoint transfer result (transfer_crossfit.json), as {macro_f1, ci_lo, ci_hi}.
+
+    The paper reports every cross-collection transfer under this protocol; the per-experiment
+    JSONs keep the train-on-all-source number for the record."""
+    r = _load(RESULTS / "transfer_crossfit.json").get("results", {}).get(name)
+    return r["crossfit"] if r else None
 
 
 # ── Per-class precision / recall / F1 from a confusion matrix ──────────────────
@@ -142,25 +151,32 @@ def fig_disentanglement() -> Path | None:
     ml = _load(RESULTS / "model_vs_logic.json")
     if not ml:
         return None
-    conds = [("AA", "A→A\n(ceiling)"), ("A_Amodel", "A→A_model\n(model swap)"),
-             ("A_Blogic", "A→B_logic\n(logic swap)"), ("AB", "A→B\n(both)")]
+    conds = [("AA", "A→A\n(ceiling)", None),
+             ("A_Amodel", "A→A_model\n(model swap)", "model_vs_logic/A_Amodel"),
+             ("A_Blogic", "A→B_logic\n(logic swap)", "model_vs_logic/A_Blogic"),
+             ("AB", "A→B\n(both)", "cross_deployment/AB")]
     tasks = [t for t in ("workflow", "role") if t in ml]
     x = np.arange(len(conds)); w = 0.38
     colors = {"workflow": "#d95f0e", "role": "#3182bd"}
     fig, ax = plt.subplots(figsize=(8, 4.2))
     for k, t in enumerate(tasks):
         m, e = [], []
-        for key, _ in conds:
-            r = ml[t].get(key, {})
-            mean = r.get("macro_f1", 0); m.append(mean)
-            lo, hi = r.get("macro_f1_ci_lo"), r.get("macro_f1_ci_hi")
+        for key, _, xf in conds:
+            c = _crossfit(f"{xf}/{t}") if xf else None
+            if c:
+                mean, lo, hi = c["macro_f1"], c["ci_lo"], c["ci_hi"]
+            else:
+                r = ml[t].get(key, {})
+                mean, lo, hi = r.get("macro_f1", 0), r.get("macro_f1_ci_lo"), r.get("macro_f1_ci_hi")
+            m.append(mean)
             e.append((max(0, mean - lo), max(0, hi - mean)) if lo is not None else (0, 0))
         ax.bar(x + (k - 0.5) * w, m, w, yerr=np.array(e).T, capsize=4,
                label=t, color=colors.get(t))
         ax.axhline(CHANCE[t], color=colors.get(t), ls=":", lw=1, alpha=0.7)
     ax.set_xticks(x); ax.set_xticklabels([c[1] for c in conds])
-    ax.set_ylabel("transfer macro-F1 (95% CI)"); ax.set_ylim(0, 1.0)
-    ax.set_title("Disentanglement: model swap ≈ ceiling, logic swap collapses it")
+    ax.set_ylabel("macro-F1 (95% CI)"); ax.set_ylim(0, 1.0)
+    ax.set_title("Model swap keeps most of the signal; logic swap collapses it\n"
+                 "(ceiling: group CV; transfers: prompt-disjoint)", fontsize=10)
     ax.legend(title="task"); fig.tight_layout()
     p = FIGS / "disentanglement.png"; fig.savefig(p); plt.close(fig)
     return p
@@ -168,17 +184,34 @@ def fig_disentanglement() -> Path | None:
 
 # ── Figure 5: defense cost / benefit ──────────────────────────────────────────
 
+def _defense_points(dl: dict) -> dict:
+    """none = group CV; rate/pad = prompt-disjoint transfer onto the defended capture."""
+    pts = {}
+    for n in ("none", "rate", "pad"):
+        if n not in dl:
+            continue
+        c = _crossfit(f"defense_live/{n}/workflow") if n != "none" else None
+        f1, lo, hi = ((c["macro_f1"], c["ci_lo"], c["ci_hi"]) if c else
+                      (dl[n]["macro_f1"], dl[n].get("macro_f1_ci_lo"), dl[n].get("macro_f1_ci_hi")))
+        pts[n] = {"f1": f1, "lo": lo if lo is not None else f1, "hi": hi if hi is not None else f1,
+                  "byte_overhead": dl[n].get("byte_overhead", 0.0)}
+    chance = dl.get("chance", 0.25)
+    if "none" in pts:
+        for v in pts.values():
+            v["retention"] = (v["f1"] - chance) / (pts["none"]["f1"] - chance)
+    return pts
+
+
 def fig_defense() -> Path | None:
     dl = _load(RESULTS / "defense" / "defense_live.json")
     if not dl:
         return None
     chance = dl.get("chance", 0.25)
-    names = [n for n in ("none", "rate", "pad") if n in dl]
-    # Headline metric is macro-F1 (not accuracy); use the macro-F1 bootstrap CI.
-    f1v = [dl[n]["macro_f1"] for n in names]
-    err = [( max(0, dl[n]["macro_f1"] - dl[n].get("macro_f1_ci_lo", dl[n]["macro_f1"])),
-             max(0, dl[n].get("macro_f1_ci_hi", dl[n]["macro_f1"]) - dl[n]["macro_f1"]) ) for n in names]
-    byte = [100 * dl[n].get("byte_overhead", 0) for n in names]
+    pts = _defense_points(dl)
+    names = list(pts)
+    f1v = [pts[n]["f1"] for n in names]
+    err = [(max(0, pts[n]["f1"] - pts[n]["lo"]), max(0, pts[n]["hi"] - pts[n]["f1"])) for n in names]
+    byte = [100 * pts[n]["byte_overhead"] for n in names]
 
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(9.5, 4.0))
     # left: attack macro-F1 under each defense (with CI) + chance line
@@ -186,9 +219,8 @@ def fig_defense() -> Path | None:
            color=["#888", "#e6550d", "#3182bd"])
     a1.axhline(chance, color="crimson", ls="--", lw=1.5, label=f"chance ({chance:.2f})")
     for i, n in enumerate(names):
-        ret = dl[n].get("above_chance_retention_f1", dl[n].get("above_chance_retention"))
-        if ret is not None:
-            a1.text(i, f1v[i] + 0.03, f"keep {ret*100:.0f}%", ha="center", fontsize=8)
+        if n != "none" and "retention" in pts[n]:
+            a1.text(i, f1v[i] + 0.03, f"keep {pts[n]['retention']*100:.0f}%", ha="center", fontsize=8)
     a1.set_ylabel("attack macro-F1 (95% CI)"); a1.set_ylim(0, max(f1v) + 0.18)
     a1.set_title("Attack macro-F1 under defense"); a1.legend(loc="upper right")
     # right: byte overhead cost
@@ -196,7 +228,9 @@ def fig_defense() -> Path | None:
     a2.set_ylabel("byte overhead (%)"); a2.set_title("Bandwidth cost of each defense")
     for i, b in enumerate(byte):
         a2.text(i, b + 0.5, f"{b:.0f}%", ha="center", fontsize=9)
-    fig.suptitle("C4 defenses: both partial (~70% signal kept) and expensive (~30% bytes)")
+    kept = [pts[n]["retention"] for n in ("rate", "pad") if n in pts and "retention" in pts[n]]
+    fig.suptitle(f"Live defenses: both partial (~{100 * np.mean(kept):.0f}% of the above-chance signal "
+                 f"kept) and expensive" if kept else "Live defenses")
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     p = FIGS / "defense_cost_benefit.png"; fig.savefig(p); plt.close(fig)
     return p
@@ -213,7 +247,11 @@ def fig_defense_curve() -> Path | None:
         return None
     rows = dc["rows"]
     chance = dc.get("chance", 0.25)
-    live = dc.get("measured_live", {})
+    live = dict(dc.get("measured_live", {}))
+    for n in ("rate", "pad"):
+        c = _crossfit(f"defense_live/{n}/workflow")
+        if c and n in live:
+            live[n] = {**live[n], "macro_f1": c["macro_f1"]}
     none = next((r for r in rows if r["defense"] == "none_sim"), None)
     nf1 = none["attack_macro_f1"] if none else None
 
@@ -233,7 +271,7 @@ def fig_defense_curve() -> Path | None:
         a1.scatter([0], [nf1], color="#444", zorder=5, label="undefended")
     if "pad" in live:
         a1.scatter([100 * live["pad"]["byte_overhead"]], [live["pad"]["macro_f1"]],
-                   marker="*", s=200, color="#e6550d", zorder=6, label="pad live (measured)")
+                   marker="*", s=200, color="#e6550d", zorder=6, label="pad live (measured, prompt-disjoint)")
     a1.axhline(chance, ls="--", color="crimson", lw=1.2, label=f"chance ({chance:.2f})")
     a1.set_xlabel("byte overhead (%)"); a1.set_ylabel("attack macro-F1 (95% CI)")
     a1.set_ylim(0, max(0.72, (nf1 or 0.66) + 0.08)); a1.set_title("Size padding (sweep cell size)")
@@ -245,16 +283,55 @@ def fig_defense_curve() -> Path | None:
         a2.scatter([0], [nf1], color="#444", zorder=5, label="undefended")
     a2.axhline(chance, ls="--", color="crimson", lw=1.2, label=f"chance ({chance:.2f})")
     if "rate" in live:
-        a2.text(0.5, 0.06,
+        a2.text(0.74, 0.14,
                 f"live 'rate' F1={live['rate']['macro_f1']:.2f} is a different\n"
                 f"(count-based) mechanism — not on this timing axis",
                 transform=a2.transAxes, fontsize=6.5, ha="center", color="#666")
     a2.set_xlabel("latency overhead (%, schedule-derived)")
     a2.set_title("Timing spacing (sweep min-gap)"); a2.legend(fontsize=7, loc="lower left")
-    fig.suptitle("C4 defenses: overhead–accuracy curves — both are expensive and plateau "
-                 "well above chance (~65% of signal kept)")
+    fig.suptitle("Defense overhead–accuracy curves: both are expensive and plateau well above chance")
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     p = FIGS / "defense_curve.png"; fig.savefig(p, dpi=150); plt.close(fig)
+    return p
+
+
+def fig_cross_network() -> Path | None:
+    """LAN-internal and WAN-internal group CV (cross_network.json) against the prompt-disjoint
+    LAN→WAN transfer (transfer_crossfit.json)."""
+    d = _load(RESULTS / "cross_network.json")
+    if not d:
+        return None
+    tasks = [t for t in ("workflow", "role", "parallelism", "topology") if t in d]
+
+    def point(t, key):
+        if key == "transfer":
+            c = _crossfit(f"cross_network/transfer/{t}")
+            if c:
+                return c["macro_f1"], c["ci_lo"], c["ci_hi"]
+        r = d[t][key]
+        return r["f1"], r["ci_lo"], r["ci_hi"]
+
+    conds = [("lan_internal", "LAN-internal (ceiling)", "#4c72b0"),
+             ("wan_internal", "WAN-internal (vantage ceiling)", "#55a868"),
+             ("transfer", "LAN→WAN transfer (prompt-disjoint)", "#c44e52")]
+    x = np.arange(len(tasks)); w = 0.26
+    fig, ax = plt.subplots(figsize=(9, 5))
+    for i, (key, label, color) in enumerate(conds):
+        pts = [point(t, key) for t in tasks]
+        vals = [v for v, _, _ in pts]
+        err = [[max(0.0, v - lo) for v, lo, _ in pts], [max(0.0, hi - v) for v, _, hi in pts]]
+        ax.bar(x + (i - 1) * w, vals, w, label=label, color=color, yerr=err, capsize=3,
+               error_kw={"elinewidth": 1})
+    for j, t in enumerate(tasks):
+        ax.hlines(CHANCE[t], x[j] - 1.5 * w, x[j] + 1.5 * w, colors="k", linestyles="--", linewidth=1)
+    ax.set_xticks(x); ax.set_xticklabels(tasks)
+    ax.set_ylabel("macro-F1 (RF; 95% cluster-bootstrap CI)"); ax.set_ylim(0, 1.18)
+    ax.set_yticks(np.arange(0, 1.01, 0.2))
+    ax.set_title("Cross-network: the attack works at the WAN vantage but does not transfer LAN→WAN")
+    ax.legend(loc="upper center", fontsize=8, ncol=3)
+    ax.text(0.005, 0.012, "dashed = chance", transform=ax.transAxes, fontsize=7)
+    fig.tight_layout()
+    p = FIGS / "cross_network.png"; fig.savefig(p, dpi=150); plt.close(fig)
     return p
 
 
@@ -314,7 +391,7 @@ def fig_framework_id() -> Path | None:
     mf = d["result_full_shape"]["macro_f1"]
     acf = d["timing_ablation"]["A_vs_C_separability_full"]
     acn = d["timing_ablation"]["A_vs_C_separability_no_timing"]
-    ax.set_title(f"Phase 1: implementation ID — macro-F1 {mf:.3f}\n"
+    ax.set_title(f"Implementation ID — macro-F1 {mf:.3f}\n"
                  f"⚠ near-perfect incl. same-structure A↔C ({acf}, {acn} no-timing):\n"
                  f"likely batch/session-confounded — treat within-family as upper bound",
                  fontsize=8.5)
@@ -366,7 +443,7 @@ def fig_cross_instance_transfer() -> Path | None:
     ax.set_ylabel("macro-F1 (GBT transfer, 95% CI)"); ax.set_ylim(0, 1.15); ax.set_xlim(-0.6, x - 0.9)
     sdc = d.get("specialist_distribution_check", {}).get("_summary", {})
     ax.set_title(
-        "Phase 2: cross-instance role transfer (two independent a2a_mcp instances)\n"
+        "Cross-instance role transfer (two independent a2a_mcp instances)\n"
         "coordinator layer transfers DEPLOYABLY; full 6-way is PARTIAL but the boosted-driver\n"
         f"specialists are distribution-shifted ({sdc.get('specialists_comparable','0/3')} comparable) "
         "— a candidate confound, not clean behavioural non-transfer",
@@ -400,7 +477,7 @@ def fig_framework_id_control() -> Path | None:
     ax.set_ylabel("A↔C separability (asyncio vs LangGraph)"); ax.set_ylim(0, 1.1)
     sub = (f"balanced 2-way macro-F1 (controlled) = {mf:.2f} [{ci[0]:.2f}, {ci[1]:.2f}] — CI straddles chance"
            if mf is not None and ci else "")
-    ax.set_title("Phase-1 CONTROL: the A↔C runtime fingerprint is a CAPTURE-SESSION CONFOUND\n"
+    ax.set_title("Same-session control: the A↔C runtime fingerprint is a CAPTURE-SESSION CONFOUND\n"
                  "0.997 → 0.49 under same-session interleaving — honestly demoted; corroborates §3\n"
                  + sub, fontsize=8.5)
     fig.tight_layout()
@@ -500,7 +577,7 @@ def write_markdown(figs: dict[str, Path | None]) -> Path:
     # defense table
     dl = _load(RESULTS / "defense" / "defense_live.json")
     if dl:
-        lines.append("## C4 live defenses (workflow attack)\n")
+        lines.append("## Live defenses (workflow attack)\n")
         lines.append("| Defense | Acc [95% CI] | Drop | Signal kept | Byte ohd |")
         lines.append("|---|---|---|---|---|")
         for n in ("none", "rate", "pad"):
@@ -541,7 +618,7 @@ def fig_cross_framework_autogen() -> Path | None:
     ax.axhline(0.70, ls="--", color="green", lw=1, label="deployable 0.70")
     ax.axhline(0.25, ls=":", color="gray", lw=1, label="chance (4-way 0.25)")
     ax.set_xticks(range(3)); ax.set_xticklabels(labels); ax.set_ylim(0, 1.05); ax.set_ylabel("macro-F1")
-    ax.set_title("AutoGen (§10): attack REPLICATES (behavioural, survives shape-only)\n"
+    ax.set_title("AutoGen: attack REPLICATES (behavioural, survives shape-only)\n"
                  "but cross-framework classifier transfer is BOUNDED")
     ax.legend(fontsize=8); fig.tight_layout()
     p = FIGS / "cross_framework_autogen.png"; fig.savefig(p, dpi=150); plt.close(fig); return p
@@ -565,7 +642,7 @@ def fig_agentic_detection() -> Path | None:
     ax.axhline(0.5, ls="--", color="gray", lw=1, label="chance (0.50)")
     ax.set_xticks(xs); ax.set_xticklabels(["AUROC", "macro-F1"]); ax.set_ylim(0, 1.05)
     ax.set_title(f"A2A vs AutoGen agentic detection (n={npos}/{nneg} flows)\n"
-                 "survives shape-only, but transport-driven (§11)")
+                 "survives shape-only, but transport-driven")
     ax.legend(loc="lower right", fontsize=8); fig.tight_layout()
     p = FIGS / "agentic_detection.png"; fig.savefig(p, dpi=150); plt.close(fig); return p
 
@@ -592,7 +669,7 @@ def fig_mixing_degradation() -> Path | None:
     for a in (a1, a2):
         a.set_xlabel("ρ = background flows per agent flow"); a.set_ylabel("score")
         a.set_ylim(0, 1.05); a.legend(loc="lower left", fontsize=8)
-    fig.suptitle("Multiplexing degradation (§12) — does NOT solve shared-:443 no-ports case", fontsize=9)
+    fig.suptitle("Multiplexing degradation — does NOT solve shared-:443 no-ports case", fontsize=9)
     fig.tight_layout(rect=(0, 0, 1, 0.96))
     p = FIGS / "mixing_degradation.png"; fig.savefig(p, dpi=150); plt.close(fig); return p
 
@@ -615,7 +692,7 @@ def fig_crewai_detection() -> Path | None:
     ax.axhline(0.5, ls="--", color="gray", lw=1, label="chance (0.50)")
     ax.set_xticks(xs); ax.set_xticklabels(["AUROC", "macro-F1"]); ax.set_ylim(0, 1.05)
     ax.set_title(f"A2A vs CrewAI — SAME-transport detection (n={npos}/{nneg} flows)\n"
-                 "identical a2a-sdk 0.3.26 JSON-RPC+SSE both sides (§13)")
+                 "identical a2a-sdk 0.3.26 JSON-RPC+SSE both sides")
     ax.legend(loc="lower right", fontsize=8); fig.tight_layout()
     p = FIGS / "crewai_detection.png"; fig.savefig(p, dpi=150); plt.close(fig); return p
 
@@ -638,7 +715,7 @@ def fig_crewai_matched_detection() -> Path | None:
     ax.axhline(0.5, ls="--", color="gray", lw=1, label="chance (0.50)")
     ax.set_xticks(xs); ax.set_xticklabels(["AUROC", "macro-F1"]); ax.set_ylim(0, 1.05)
     ax.set_title(f"Deployment A vs CrewAI — ALL ELSE EQUAL (n={npos}/{nneg} flows)\n"
-                 "same transport/LLM/agents/host/domain/roles/chain; only framework differs (§13.1)")
+                 "same transport/LLM/agents/host/domain/roles/chain; only framework differs")
     ax.legend(loc="lower right", fontsize=8); fig.tight_layout()
     p = FIGS / "crewai_matched_detection.png"; fig.savefig(p, dpi=150); plt.close(fig); return p
 
@@ -651,16 +728,17 @@ def main() -> None:
         "Disentanglement":            fig_disentanglement(),
         "Defense cost/benefit":       fig_defense(),
         "Defense overhead–accuracy curve": fig_defense_curve(),
+        "Cross-network (LAN → WAN)":       fig_cross_network(),
         "Off-the-shelf role fingerprint":  fig_offtheshelf_fingerprint(),
-        "Framework/implementation ID (Phase 1)": fig_framework_id(),
-        "Framework-ID confound control (Phase 1)": fig_framework_id_control(),
+        "Framework/implementation ID": fig_framework_id(),
+        "Framework-ID confound control": fig_framework_id_control(),
         "Confound audit — core claims survive": fig_confound_control(),
-        "Cross-instance role transfer (Phase 2)": fig_cross_instance_transfer(),
-        "Cross-framework replication on AutoGen (§10)": fig_cross_framework_autogen(),
-        "Agentic detection A2A-vs-AutoGen (§11)": fig_agentic_detection(),
-        "Mixing/multiplexing degradation (§12)": fig_mixing_degradation(),
-        "Same-transport detection A2A-vs-CrewAI (§13)": fig_crewai_detection(),
-        "Matched-pair A-vs-CrewAI, all else equal (§13.1)": fig_crewai_matched_detection(),
+        "Cross-instance role transfer": fig_cross_instance_transfer(),
+        "Cross-framework replication on AutoGen": fig_cross_framework_autogen(),
+        "Agentic detection A2A-vs-AutoGen": fig_agentic_detection(),
+        "Mixing/multiplexing degradation": fig_mixing_degradation(),
+        "Same-transport detection A2A-vs-CrewAI": fig_crewai_detection(),
+        "Matched-pair A-vs-CrewAI, all else equal": fig_crewai_matched_detection(),
     }
     md = write_markdown(figs)
     print("Wrote:")

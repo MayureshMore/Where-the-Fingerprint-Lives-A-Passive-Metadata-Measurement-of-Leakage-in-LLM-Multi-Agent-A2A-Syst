@@ -7,7 +7,7 @@ import os
 
 from autogen_core import AgentId
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
-from xf_common import HOST_ADDR, SPECIALISTS, SubTask, Result, register_msgs
+from common import HOST_ADDR, SPECIALISTS, SubTask, Result, register_msgs
 
 
 async def main(topic: str) -> None:

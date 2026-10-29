@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # make_tls_certs.sh — create a throwaway local CA and one agent certificate for the
-# TLS control experiment (scripts/run_pilot.py --tls-dir DIR).
+# TLS control experiment (scripts/collect_deployment.py --tls-dir DIR).
 #
 # The certificate is valid for 127.0.0.1 and localhost only. Keys stay local:
 # the default output dir (data/tls) is gitignored.

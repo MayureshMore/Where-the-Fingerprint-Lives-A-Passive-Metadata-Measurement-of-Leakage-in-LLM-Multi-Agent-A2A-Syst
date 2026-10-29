@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# run_tls_overnight.sh — the whole TLS control, unattended:
+# run_tls_control.sh — the whole TLS control, unattended:
 #
 #   0. preflight   python deps, Ollama + llama3.2:3b, certificates, capture access, free ports
 #   1. pilot       one cleartext/TLS pair; the raw pcaps must show TLS records on the TLS
@@ -20,8 +20,8 @@
 #     sudo chmod o-r /dev/bpf*
 #
 # Usage:
-#     bash scripts/run_tls_overnight.sh            # N=36
-#     N=3 bash scripts/run_tls_overnight.sh        # quick dry run (72 traces, ~45 min) into
+#     bash scripts/run_tls_control.sh            # N=36
+#     N=3 bash scripts/run_tls_control.sh        # quick dry run (72 traces, ~45 min) into
 #                                                  # *_n3 dirs and data/results_demo
 #
 set -euo pipefail
@@ -70,12 +70,12 @@ echo "ok"
 
 step "1. pilot: one pair, then check the raw pcaps for TLS records"
 rm -rf data/tls_pilot
-"$PY" scripts/run_tls_session.py --pilot
+"$PY" scripts/collect_tls_session.py --pilot
 "$PY" scripts/check_tls_capture.py data/tls_pilot/tls --expect tls || fail "pilot TLS trace check failed"
 "$PY" scripts/check_tls_capture.py data/tls_pilot/clear --expect clear || fail "pilot cleartext trace check failed"
 
 step "2. collect: same-session round-robin, $N pairs per condition (caffeinate keeps the Mac awake)"
-caffeinate -dims "$PY" scripts/run_tls_session.py --n "$N" --out-clear "$RAW_C" --out-tls "$RAW_T"
+caffeinate -dims "$PY" scripts/collect_tls_session.py --n "$N" --out-clear "$RAW_C" --out-tls "$RAW_T"
 
 step "3. record check on the full raw captures"
 "$PY" scripts/check_tls_capture.py "$RAW_T" --expect tls --json "$RAW_T/tls_check.json" \

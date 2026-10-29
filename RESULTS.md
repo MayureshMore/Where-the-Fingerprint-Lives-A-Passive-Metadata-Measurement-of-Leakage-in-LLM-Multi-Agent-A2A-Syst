@@ -127,10 +127,13 @@ shared-prompt effect. Every "full" value reproduces the published number exactly
 | A→B | workflow | 0.289 | 0.325 | **0.289 [0.248, 0.326]** | 0.25 |
 | A→B | role | 0.568 | 0.558 | **0.530 [0.505, 0.552]** | 0.33 |
 | B→A | role | 0.192 | 0.175 | **0.172 [0.162, 0.183]** | 0.33 |
+| A→B | topology | 0.348 | 0.338 | **0.309 [0.275, 0.344]** | 0.33 |
+| B→A | topology | 0.556 | 0.556 | **0.556 [0.541, 0.570]** | 0.33 |
 | runtime A→C | workflow | 0.644 | 0.624 | **0.606 [0.560, 0.651]** | 0.25 |
 | runtime A→C | role | 0.830 | 0.832 | **0.831 [0.811, 0.849]** | 0.33 |
 | runtime C→A | workflow | 0.579 | 0.605 | **0.533 [0.489, 0.572]** | 0.25 |
 | runtime C→A | role | 0.843 | 0.843 | **0.830 [0.811, 0.847]** | 0.33 |
+| runtime A→C / C→A | topology | 0.994 / 0.983 | 0.990 / 0.978 | **0.990 / 0.968** | 0.33 |
 | LAN→WAN | workflow | 0.196 | 0.218 | **0.223 [0.186, 0.265]** | 0.25 |
 | defense rate (A→defended) | workflow | 0.531 | 0.510 | **0.507 [0.455, 0.552]** | 0.25 |
 | defense pad (A→defended) | workflow | 0.544 | 0.550 | **0.505 [0.461, 0.545]** | 0.25 |
@@ -141,13 +144,14 @@ about 0.04–0.06 where it transferred (model swap 0.588 → 0.532, A→C 0.644 
 [0.484, 0.575] vs logic swap 0.315 [0.267, 0.360] for workflow, 0.822 vs 0.500 for role. The
 collapses stay collapsed (A→B, B→A, LAN→WAN). Against the defended sets the attack scores
 slightly lower than published, so the published defense drops are, if anything, understated.
-Parallelism and topology rows are in the JSON.
+Topology collapses under the structure change (A→B 0.309, at chance) and survives the runtime
+swap (A→C 0.990). Parallelism rows are in the JSON.
 
 ---
 
 ## 4. Cross-network — US ⇄ India WAN (C5)
 
-`data/results/c5_cross_network.json`.
+`data/results/cross_network.json`.
 
 | Task | Chance | LAN | WAN (in-domain) | LAN→WAN transfer | n_wan |
 |---|---|---|---|---|---|
@@ -422,7 +426,7 @@ to the committed (batch-collected) baselines. `data/results/confound_control.jso
   llama3.2:3b, all four workflows round-robined across the session — 239 traces).
 - **Workflow** uses a dedicated prompt-diverse interleaved capture across **all three topologies**
   (`collect_wf_interleaved.sh` with `star chain mesh`; 432 traces, 4 workflows round-robined in short
-  blocks, **fresh prompts each cycle** via the new `run_pilot --seed-offset` so the group-CV — which
+  blocks, **fresh prompts each cycle** via the new `collect_deployment --seed-offset` so the group-CV — which
   holds out whole prompts — has real prompt diversity: 50–76 prompt-groups/workflow). Compared against
   the committed **all-topology** 0.708 baseline; a star-only capture corroborates (0.690).
 
@@ -511,7 +515,7 @@ the connection-volume signal already demoted to a topology baseline.
 To test the three **specialists** (air/hotel/car — the structurally-identical leaves, i.e. the genuine
 *behavioural* test), we needed ≥15 samples each in instance-2. a2a_mcp's LLM-planned routing fans out
 to specialists only ~6% of natural trips, so we topped up instance-2 with a **fan-out-boosted driver**
-(`drive_orch_boost.py` + fully-specified queries; the original ~6% was a Tokyo-hardcoded canned answer
+(`trip_driver_boosted.py` + fully-specified queries; the original ~6% was a Tokyo-hardcoded canned answer
 sabotaging the planner on other destinations). This reached air/hotel/car = 15/15/15 for **~$0.75**.
 
 | Direction | 6-way macro-F1 [95% CI] | chance |
@@ -535,7 +539,7 @@ but below the 0.70 deployable bar. **We report the band the number lands in, not
 
 ### 9b′. De-confounded natural re-run — the distribution check is the gate
 
-We removed the driver confound: a **bug-fixed-but-not-forced** natural driver (`drive_orch_natural_fixed.py`
+We removed the driver confound: a **bug-fixed-but-not-forced** natural driver (`trip_driver_natural.py`
 — destination-agnostic so it doesn't hit the ~6% Tokyo bug, but *not* completion-forcing so it doesn't
 shift distributions) driven by **instance-2's own reworded prompt** and LLM (gemini-2.0-flash), so
 instance-2 stays internally self-consistent. Natural fan-out was **26.7%** (vs the bugged 6% and the

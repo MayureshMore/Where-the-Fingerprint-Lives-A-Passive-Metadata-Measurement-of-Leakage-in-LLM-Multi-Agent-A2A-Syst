@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# resume_wan.sh — drop-resilient C5 WAN collection for ONE topology.
+# collect_wan_topology.sh — drop-resilient C5 WAN collection for ONE topology.
 #
 # Survives VPN drops: before each batch it waits until Kali is reachable, then
 # re-resolves the (possibly changed) tunnel interface dynamically, then collects.
@@ -13,8 +13,8 @@
 #
 # USAGE (run from the repo root, WITH sudo so tcpdump works and there are no
 # mid-run password prompts):
-#   sudo ./scripts/resume_wan.sh chain
-#   sudo ./scripts/resume_wan.sh mesh
+#   sudo ./scripts/collect_wan_topology.sh chain
+#   sudo ./scripts/collect_wan_topology.sh mesh
 #
 # When chain finishes, restart serve_agents on Kali for mesh, then run it again
 # for mesh.  Ctrl-C any time; just re-run to continue.
@@ -23,7 +23,7 @@ set -uo pipefail
 
 TOPO="${1:-}"
 if [[ "$TOPO" != "star" && "$TOPO" != "chain" && "$TOPO" != "mesh" ]]; then
-  echo "usage: sudo ./scripts/resume_wan.sh <star|chain|mesh>" >&2
+  echo "usage: sudo ./scripts/collect_wan_topology.sh <star|chain|mesh>" >&2
   exit 2
 fi
 
@@ -49,7 +49,7 @@ wait_reachable() {
 
 iface_now() { route -n get "$REMOTE" 2>/dev/null | awk '/interface:/{print $2}'; }
 
-echo "=== resume_wan: topology=$TOPO  target=$N/unit  accept>=$ACCEPT ==="
+echo "=== collect_wan_topology: topology=$TOPO  target=$N/unit  accept>=$ACCEPT ==="
 for wf in "${WORKFLOWS[@]}"; do
   have=$(count "$wf")
   if (( have >= ACCEPT )); then

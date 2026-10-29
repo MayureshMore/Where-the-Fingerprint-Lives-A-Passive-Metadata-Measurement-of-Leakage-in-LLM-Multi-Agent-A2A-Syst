@@ -1,5 +1,5 @@
 """Coordinator/driver for ONE trip: an a2a-sdk streaming client (identical to a2a_mcp's
-drive_orch.py client path) that fans a trip request out to the CrewAI planner (:10201) and the
+trip_driver.py client path) that fans a trip request out to the CrewAI planner (:10201) and the
 three CrewAI specialists (:10203 air, :10204 hotel, :10205 car) over A2A JSON-RPC + SSE.
 
 One trip => one pcap capturing lo0 ports 10201-10205. Server (dest) port is the ground-truth
@@ -12,7 +12,7 @@ import httpx
 from a2a.client import A2AClient, A2ACardResolver
 from a2a.types import MessageSendParams, SendStreamingMessageRequest
 
-from cw_common import ROLE_PORT
+from common import ROLE_PORT
 
 
 async def call_agent(hc: httpx.AsyncClient, port: int, text: str) -> tuple[int, int]:

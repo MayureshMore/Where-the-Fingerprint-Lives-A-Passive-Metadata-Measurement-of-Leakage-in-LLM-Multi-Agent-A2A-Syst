@@ -29,8 +29,8 @@ The code is fully here; these external inputs are not, and you provide them:
 |---|---|---|
 | **Ollama** + models `llama3.2:3b` and `qwen2.5:7b` | local LLM inference per site (A uses llama, B uses qwen) | all agent deployments |
 | **A capture host** you own (macOS or Linux) with `tcpdump`/BPF | the passive tap | every capture step |
-| **(C5 only) a 2nd host + VPN** — the paper used a Dell in India over WireGuard | real WAN vantage | §6, [C5 runbook](docs/C5_WAN_RUNBOOK.md) |
-| **(Off-the-shelf only) Google `a2a_mcp` sample** + a **Gemini API key** | external, independently-authored A2A system | §7, [PHASE5 patches](docs/PHASE5_A2A_MCP_PATCHES.md) |
+| **(C5 only) a 2nd host + VPN** — the paper used a Dell in India over WireGuard | real WAN vantage | §6, [C5 runbook](docs/WAN_COLLECTION.md) |
+| **(Off-the-shelf only) Google `a2a_mcp` sample** + a **Gemini API key** | external, independently-authored A2A system | §7, [PHASE5 patches](docs/A2A_MCP_SETUP.md) |
 | **WAN host IPs** to fill into `configs/testbed_wan.yaml` (`FILL_IN_*`) | the config ships with placeholders | §6 |
 
 Everything else (agents, feature pipeline, models, evaluators, configs) is committed.
@@ -68,8 +68,8 @@ third_party/a2a_mcp/      compat patch + the three drivers for Google's a2a_mcp 
 tests/                    8 test modules (features, defense, metrics, stats/SSE, deep shapes,
                             agents, extractor contract)
 data/results/             the 43 committed canonical result JSONs + figures — the FROZEN paper output
-docs/                     C5_WAN_RUNBOOK · CROSS_FRAMEWORK_PLAN · DEEP_MODEL_APPENDIX ·
-                            PHASE5_A2A_MCP_PATCHES · TASK2_TASK3_PREP (pre-registered verdict bands)
+docs/                     WAN_COLLECTION · CROSS_FRAMEWORK_DESIGN · DEEP_MODEL_APPENDIX ·
+                            A2A_MCP_SETUP · EXTENSION_EXPERIMENTS (pre-registered verdict bands)
 ```
 
 > **To hand the project to someone else to recreate,** give them the git repo. Optionally add the two data archives from [DATA.md](DATA.md) so they can
@@ -99,7 +99,7 @@ is gRPC-only — unusable for this traffic study) and `langgraph==1.2.6` (deploy
 ## 4. Sanity gate — prove A2A traffic is on the wire (do this first)
 
 ```bash
-python scripts/run_poc.py --mode local --use-llm --model llama3.2:3b
+python scripts/smoke_test_a2a.py --mode local --use-llm --model llama3.2:3b
 ```
 
 Expect `OVERALL : PASS`. This must pass before any collection — it confirms the agents speak
@@ -125,12 +125,12 @@ What it produces (data dir → experiment), all writing into fresh user-owned di
 
 | Deployment / set | Collector invocation | Data dir |
 |---|---|---|
-| **A** (A-logic + llama3.2:3b) — headline | `run_pilot.py --model llama3.2:3b` | `data/processed` |
-| **A-model** (A-logic + qwen2.5:7b) | `run_pilot.py --model qwen2.5:7b` | `data/processed_amodel_sdk` |
-| **B** (B-logic + qwen2.5:7b) | `run_pilot.py --deployment b --model qwen2.5:7b` | `data/processed_b_sdk` |
-| **B-logic** (B-logic + llama3.2:3b) | `run_pilot.py --deployment b --model llama3.2:3b` | `data/processed_blogic_sdk` |
-| **rate** defense (live) | `run_pilot.py --defense rate` | `data/processed_defense_rate` |
-| **pad** defense (live) | `run_pilot.py --defense pad` | `data/processed_defense_pad` |
+| **A** (A-logic + llama3.2:3b) — headline | `collect_deployment.py --model llama3.2:3b` | `data/processed` |
+| **A-model** (A-logic + qwen2.5:7b) | `collect_deployment.py --model qwen2.5:7b` | `data/processed_amodel_sdk` |
+| **B** (B-logic + qwen2.5:7b) | `collect_deployment.py --deployment b --model qwen2.5:7b` | `data/processed_b_sdk` |
+| **B-logic** (B-logic + llama3.2:3b) | `collect_deployment.py --deployment b --model llama3.2:3b` | `data/processed_blogic_sdk` |
+| **rate** defense (live) | `collect_deployment.py --defense rate` | `data/processed_defense_rate` |
+| **pad** defense (live) | `collect_deployment.py --defense pad` | `data/processed_defense_pad` |
 | **background** (real hard negatives) | `collect_background.py` | `data/processed_background_sdk` |
 
 Then it runs: closed-world (`evaluate.py`), cross-deployment A↔B, the model-vs-logic 2×2,
@@ -151,7 +151,7 @@ pilot driver against the LangGraph orchestrator, then run the control + diagnost
 
 ```bash
 # collect C (reuses A's specialists; LangGraph StateGraph orchestrator, ports 8030–8033)
-python scripts/run_pilot.py --deployment langgraph --model llama3.2:3b --out data/raw_langgraph --num-predict 256
+python scripts/collect_deployment.py --deployment langgraph --model llama3.2:3b --out data/raw_langgraph --num-predict 256
 python scripts/extract_features.py --raw data/raw_langgraph --out data/processed_langgraph --scapy
 
 # A↔C control (relabels the B-slot as C; suppresses the false "generalizes" verdict)
@@ -167,7 +167,7 @@ python scripts/diagnose_runtime_traffic.py --dir-a data/processed --dir-c data/p
 ## 6. Cross-network C5 (US ⇄ India WAN) — full procedure
 
 This needs a second host and a VPN; the complete step-by-step (both hosts, capture vantage,
-gates, troubleshooting) is in **[docs/C5_WAN_RUNBOOK.md](docs/C5_WAN_RUNBOOK.md)**. In short:
+gates, troubleshooting) is in **[docs/WAN_COLLECTION.md](docs/WAN_COLLECTION.md)**. In short:
 
 ```bash
 # remote (India):  serve the specialist agents
@@ -179,8 +179,8 @@ sudo venv/bin/python scripts/collect_wan.py \
   --deployment a --topology star --n 50 --num-predict 256 --out data/raw_wan
 
 venv/bin/python scripts/extract_features.py --raw data/raw_wan --out data/processed_wan --scapy
-venv/bin/python scripts/evaluate_c5.py --local data/processed --wan data/processed_wan
-# → data/results/c5_cross_network.json + figure
+venv/bin/python scripts/evaluate_cross_network.py --local data/processed --wan data/processed_wan
+# → data/results/cross_network.json (figure: make_paper_artifacts.py)
 ```
 
 Fill the `FILL_IN_*` hosts in `configs/testbed_wan.yaml` first. Capture on the **tunnel
@@ -191,7 +191,7 @@ interface** (e.g. `utun8`), not the physical NIC, or you capture the encrypted o
 ## 7. Off-the-shelf external system (Google `a2a_mcp`, Phase 5)
 
 Tests the attack on a system **you did not build**. Setup, the 8 compatibility patches, and
-the multi-turn driver are in **[docs/PHASE5_A2A_MCP_PATCHES.md](docs/PHASE5_A2A_MCP_PATCHES.md)**
+the multi-turn driver are in **[docs/A2A_MCP_SETUP.md](docs/A2A_MCP_SETUP.md)**
 and [`third_party/a2a_mcp/`](third_party/a2a_mcp/). Needs a Gemini API key (paid tier ≈
 $0.043/trace; the paper collected 150 traces for $6.39).
 
@@ -270,17 +270,17 @@ group. 12 conditions × 36 pairs = 864 traces, about 8 hours.
 
 ```bash
 sudo chmod o+r /dev/bpf*                  # capture access for tcpdump (until reboot) — revert afterwards
-bash scripts/run_tls_overnight.sh         # preflight → pilot gate → collect → record check → extract → evaluate
+bash scripts/run_tls_control.sh         # preflight → pilot gate → collect → record check → extract → evaluate
 sudo chmod o-r /dev/bpf*                  # the script tries this itself and otherwise reminds you
 ```
 
-`run_tls_overnight.sh` stops after the one-pair pilot unless the raw TLS pcap shows TLS records
+`run_tls_control.sh` stops after the one-pair pilot unless the raw TLS pcap shows TLS records
 (`0x16 0x03` handshake, `0x17 0x03 0x03` application data) and no cleartext HTTP, and the
 cleartext pcap the reverse (`scripts/check_tls_capture.py`). The same check runs on the full
 captures before anything is stripped and is saved as `data/raw_tlspair_tls/tls_check.json`
 (TLS handshakes per connection, connections per trace and per agent, HTTP requests per
 connection). The negotiated TLS version, cipher and HTTP version are recorded in
-`data/raw_tlspair_tls/session_meta.json`. `N=3 bash scripts/run_tls_overnight.sh` is a ~45-minute
+`data/raw_tlspair_tls/session_meta.json`. `N=3 bash scripts/run_tls_control.sh` is a ~45-minute
 dry run into separate `*_n3` dirs and `data/results_demo`.
 
 `scripts/evaluate_tls_control.py` writes `data/results/tls_control.json` and
@@ -299,7 +299,7 @@ TLS, cross-fitted the same way, is reported only as a secondary, cross-session c
 | §2 cross-deployment A↔B | `evaluate_cross_deployment.py` | A, B | `cross_deployment.json` |
 | §3 runtime control A↔C | `evaluate_cross_deployment.py --control` | A, langgraph | `cross_framework.json` |
 | §3 structure/timing diag | `diagnose_runtime_traffic.py` | A, langgraph | `runtime_traffic_diagnostic.json` |
-| §4 cross-network C5 | `evaluate_c5.py` | A, wan | `c5_cross_network.json` + figure |
+| §4 cross-network | `evaluate_cross_network.py` | A, wan | `cross_network.json` |
 | §5 live defenses | `evaluate_defense_live.py` | A, rate, pad (+ raw) | `defense/defense_live.json` |
 | §6 open-set rejection | `evaluate.py` (open-world) | A | `open_world/*` |
 | §6 real-background novelty | `evaluate_open_world_background.py` | A, background | `open_world_background.json` |
@@ -324,7 +324,7 @@ TLS, cross-fitted the same way, is reported only as a secondary, cross-session c
 
 Other scripts: `train_models.py` (standalone model training),
 `analyze_sse_sizes.py` (pad-cell vs SSE size check), `package_data.sh` (build the archives),
-`resume_wan.sh` (resume an interrupted WAN run), `reproduce.sh` (the Level-A demo).
+`collect_wan_topology.sh` (resume an interrupted WAN run), `reproduce.sh` (the Level-A demo).
 
 ---
 

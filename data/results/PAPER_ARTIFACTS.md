@@ -32,7 +32,7 @@ Shown for completeness only. The deep sequence models **collapse to (near) singl
 | topology | 0.995 | 0.985 | 0.559 | 0.167 | 0.333 |
 | parallelism | 0.989 | 0.972 | 0.519 | 0.400 | 0.500 |
 
-## C4 live defenses (workflow attack)
+## Live defenses (workflow attack)
 
 | Defense | Acc [95% CI] | Drop | Signal kept | Byte ohd |
 |---|---|---|---|---|
@@ -50,13 +50,14 @@ _Cost is reported as **bandwidth (byte) overhead**. Latency is treated as confou
 - **Disentanglement** — `data/results/figures/disentanglement.png`
 - **Defense cost/benefit** — `data/results/figures/defense_cost_benefit.png`
 - **Defense overhead–accuracy curve** — `data/results/figures/defense_curve.png`
+- **Cross-network (LAN → WAN)** — `data/results/figures/cross_network.png`
 - **Off-the-shelf role fingerprint** — `data/results/figures/offtheshelf_fingerprint.png`
-- **Framework/implementation ID (Phase 1)** — `data/results/figures/framework_id.png`
-- **Framework-ID confound control (Phase 1)** — `data/results/figures/framework_id_control.png`
+- **Framework/implementation ID** — `data/results/figures/framework_id.png`
+- **Framework-ID confound control** — `data/results/figures/framework_id_control.png`
 - **Confound audit — core claims survive** — `data/results/figures/confound_control.png`
-- **Cross-instance role transfer (Phase 2)** — `data/results/figures/cross_instance_transfer.png`
-- **Cross-framework replication on AutoGen (§10)** — `data/results/figures/cross_framework_autogen.png`
-- **Agentic detection A2A-vs-AutoGen (§11)** — `data/results/figures/agentic_detection.png`
-- **Mixing/multiplexing degradation (§12)** — `data/results/figures/mixing_degradation.png`
-- **Same-transport detection A2A-vs-CrewAI (§13)** — `data/results/figures/crewai_detection.png`
-- **Matched-pair A-vs-CrewAI, all else equal (§13.1)** — `data/results/figures/crewai_matched_detection.png`
+- **Cross-instance role transfer** — `data/results/figures/cross_instance_transfer.png`
+- **Cross-framework replication on AutoGen** — `data/results/figures/cross_framework_autogen.png`
+- **Agentic detection A2A-vs-AutoGen** — `data/results/figures/agentic_detection.png`
+- **Mixing/multiplexing degradation** — `data/results/figures/mixing_degradation.png`
+- **Same-transport detection A2A-vs-CrewAI** — `data/results/figures/crewai_detection.png`
+- **Matched-pair A-vs-CrewAI, all else equal** — `data/results/figures/crewai_matched_detection.png`

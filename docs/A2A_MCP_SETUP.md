@@ -27,9 +27,9 @@ records them:
 ```
 third_party/a2a_mcp/
   a2a_mcp_compat.patch   git diff of the 8 fixes (7 source files; uv.lock excluded)
-  drive_orch.py          NEW: multi-turn A2A driver that auto-answers the planner's
+  trip_driver.py          NEW: multi-turn A2A driver that auto-answers the planner's
                          clarifying questions and runs the full workflow end-to-end
-docs/PHASE5_A2A_MCP_PATCHES.md   (this file)
+docs/A2A_MCP_SETUP.md   (this file)
 ```
 
 The patch is against upstream commit **`22b48d5`** ("chore: refactors hello world
@@ -47,9 +47,9 @@ git -C ~/a2a-samples checkout 22b48d5
 git -C ~/a2a-samples apply /path/to/this-repo/third_party/a2a_mcp/a2a_mcp_compat.patch
 
 # 3. Drop in the multi-turn driver (untracked NEW file). The collection scripts also copy
-#    drive_orch_boost.py / drive_orch_natural_fixed.py in automatically when they need them.
-cp /path/to/this-repo/third_party/a2a_mcp/drive_orch.py \
-   ~/a2a-samples/samples/python/agents/a2a_mcp/drive_orch.py
+#    trip_driver_boosted.py / trip_driver_natural.py in automatically when they need them.
+cp /path/to/this-repo/third_party/a2a_mcp/trip_driver.py \
+   ~/a2a-samples/samples/python/agents/a2a_mcp/trip_driver.py
 #    If you clone somewhere other than ~/a2a-samples, export A2A_SAMPLES_DIR=/that/path
 
 # 4. Provide the Gemini key locally (NOT committed)
@@ -114,9 +114,9 @@ Verified outcome: with all 8 applied, the full workflow runs end-to-end over A2A
 (orchestrator → planner → `find_agent`(MCP) → air/hotel/car specialists), confirmed by
 incoming POSTs in the specialist logs and the captured pcaps on ports 10100–10105.
 
-## `drive_orch.py`
+## `trip_driver.py`
 
-The sample ships interactive CLIs but no non-interactive end-to-end driver. `drive_orch.py`
+The sample ships interactive CLIs but no non-interactive end-to-end driver. `trip_driver.py`
 sends the trip request to the orchestrator over A2A, and auto-answers the planner's
 clarifying questions (dates, travel class, budget) from the prompt so one invocation
 produces one complete multi-agent trace. It contains **no credentials**; it reads the key

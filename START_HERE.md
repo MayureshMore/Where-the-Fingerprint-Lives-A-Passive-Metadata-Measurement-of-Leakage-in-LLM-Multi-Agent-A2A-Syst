@@ -20,7 +20,7 @@ python3 -m venv venv && source venv/bin/activate && pip install -r requirements.
 ## 2. Verify A2A traffic is on the wire (Phase 0 — must pass before collecting)
 
 ```bash
-python scripts/run_poc.py --mode local --use-llm --model llama3.2:3b
+python scripts/smoke_test_a2a.py --mode local --use-llm --model llama3.2:3b
 ```
 
 Expect `OVERALL : PASS`. (Drop `--use-llm --model …` for a no-Ollama loopback check.)
@@ -28,7 +28,7 @@ Expect `OVERALL : PASS`. (Drop `--use-llm --model …` for a no-Ollama loopback 
 ## 3. Capture (96-byte snaplen, BPF-scoped to the agent ports)
 
 ```bash
-mkdir -p logs && sudo venv/bin/python scripts/run_pilot.py --n 50 --out data/raw 2>&1 | tee logs/pilot.log
+mkdir -p logs && sudo venv/bin/python scripts/collect_deployment.py --n 50 --out data/raw 2>&1 | tee logs/pilot.log
 ```
 
 Collects all 12 topology×workflow pairs (50 runs each = 600 traces). `sudo` is only for
@@ -83,6 +83,6 @@ archive too); add
 | Rebuild the **entire project from scratch** (datasets → results) | [RECREATE.md](RECREATE.md) |
 | Understand the results, scope, and honest caveats | [RESULTS.md](RESULTS.md) |
 | Get the data archive + reproduction inputs | [DATA.md](DATA.md) |
-| Run the US⇄India WAN cross-network experiment (C5) | [docs/C5_WAN_RUNBOOK.md](docs/C5_WAN_RUNBOOK.md) |
+| Run the US⇄India WAN cross-network experiment (C5) | [docs/WAN_COLLECTION.md](docs/WAN_COLLECTION.md) |
 | Read the deep-model architectures / training budget | [docs/DEEP_MODEL_APPENDIX.md](docs/DEEP_MODEL_APPENDIX.md) |
 | See the full pipeline, threat model, and every variant | [README.md](README.md) |

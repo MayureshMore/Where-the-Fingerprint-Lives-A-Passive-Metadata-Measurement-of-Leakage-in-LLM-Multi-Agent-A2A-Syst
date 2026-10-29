@@ -25,21 +25,22 @@ All numbers are macro-F1 with 95% cluster-bootstrap CIs, from the committed JSON
 | Role recovery, single deployment (§5.1) | **0.864** [0.847, 0.881] | 0.333 | `closed_world/closed_world_gbt_role.json` |
 | Workflow recovery, single deployment (§5.1) | **0.708** [0.665, 0.745] | 0.250 | `closed_world/closed_world_gbt_workflow.json` |
 | Topology / parallelism — *structural baselines*, read off the connection graph (§5.1) | 0.995 / 0.989 | 0.333 / 0.500 | `closed_world/` |
-| Swap the **model**, keep the logic (§5.2) | role 0.829, workflow 0.588 — signal survives | | `model_vs_logic.json` |
-| Swap the **logic**, keep the model (§5.2) | role 0.517, workflow 0.321 — signal collapses | | `model_vs_logic.json` |
-| Swap only the **runtime** (LangGraph, §5.2) | role 0.83, workflow 0.64 — near ceiling | | `cross_framework.json` |
-| Transfer across implementations, A→B workflow (§5.3) | 0.289 | 0.250 | `cross_deployment.json` |
+| Swap the **model**, keep the logic (§5.2) | role 0.822, workflow 0.532 — keeps most of the signal | | `transfer_crossfit.json` |
+| Swap the **logic**, keep the model (§5.2) | role 0.500, workflow 0.315 — signal collapses | | `transfer_crossfit.json` |
+| Swap only the **runtime** (LangGraph, §5.2) | role 0.83, workflow 0.61 — near ceiling | | `transfer_crossfit.json` |
+| Transfer across implementations, A→B workflow (§5.3) | 0.289 | 0.250 | `transfer_crossfit.json` |
 | Open world, novelty detector at a 1% base rate (§5.4) | precision ≈ **1.6%** | | `open_world_background.json` |
-| Live defenses: rate/count, size padding (§5.5) | 0.531 at +34.9% bytes; 0.544 at +30.8% | 0.250 | `defense/defense_live.json` |
-| US⇄India WAN, train and test at the WAN vantage (§5.6) | role 0.871, workflow 0.616 | | `c5_cross_network.json` |
-| LAN-trained model tested on WAN, workflow (§5.6) | 0.196 — does not transfer | 0.250 | `c5_cross_network.json` |
+| Live defenses: rate/count, size padding (§5.5) | 0.507 at +34.9% bytes; 0.505 at +30.8% | 0.250 | `transfer_crossfit.json`, `defense/defense_live.json` |
+| US⇄India WAN, train and test at the WAN vantage (§5.6) | role 0.871, workflow 0.616 | | `cross_network.json` |
+| LAN-trained model tested on WAN, workflow (§5.6) | 0.223 — does not transfer | 0.250 | `transfer_crossfit.json` |
 | Google `a2a_mcp` (not ours), six-way role (§5.7) | **0.906** [0.852, 0.956] | 0.167 | `offtheshelf_fingerprint.json` |
 | Same-session control: framework-ID collapses, core tasks hold (§5.8) | 0.997 → 0.46 | 0.500 | `confound_control.json` |
 | Cross-instance `a2a_mcp`, coordinator layer (§5.9) | 0.87 (82 trips); 0.94 (102 trips) | 0.333 | `cross_instance_transfer*.json` |
 | AutoGen over gRPC (not ours), four-way role (§5.10) | **0.966** | 0.250 | `cross_framework_autogen.json` |
 | Cross-framework transfer, `a2a_mcp` → AutoGen, coordinator vs specialist (§5.10) | 0.43 — collapses to predicting every flow "specialist" (accuracy 0.75 = the specialist share) | | `cross_framework_autogen.json` |
 
-Every value above regenerates exactly from the frozen features — see [Reproducing the paper](#reproducing-the-paper).
+Every transfer is prompt-disjoint: the model never trains on a test trace's prompt
+(`scripts/evaluate_transfer_crossfit.py`, RESULTS §3a). Every value above regenerates exactly from the frozen features — see [Reproducing the paper](#reproducing-the-paper).
 
 ---
 
@@ -172,11 +173,11 @@ within the published CIs, not identical numbers.
 
 ```bash
 # 0. Verify A2A traffic is on the wire (must print OVERALL : PASS)
-python scripts/run_poc.py --mode local --use-llm --model llama3.2:3b
+python scripts/smoke_test_a2a.py --mode local --use-llm --model llama3.2:3b
 
 # 1. Collect all 12 topology × workflow pairs, 50 runs each (sudo only for tcpdump's BPF access;
 #    on macOS `chmod o+r /dev/bpf*` once removes the need for sudo)
-sudo venv/bin/python scripts/run_pilot.py --n 50 --out data/raw
+sudo venv/bin/python scripts/collect_deployment.py --n 50 --out data/raw
 
 # 2. Extract the 195-dim features
 python scripts/extract_features.py --raw data/raw --out data/processed --scapy
@@ -198,7 +199,7 @@ python scripts/evaluate_defense_live.py \
 ```
 
 The US⇄India WAN experiment (§5.6) is documented step by step in
-[docs/C5_WAN_RUNBOOK.md](docs/C5_WAN_RUNBOOK.md); capture is taken post-decapsulation on the VPN
+[docs/WAN_COLLECTION.md](docs/WAN_COLLECTION.md); capture is taken post-decapsulation on the VPN
 tunnel interface, not the physical NIC. The `a2a_mcp`, AutoGen, and CrewAI collections are in
 [RECREATE.md](RECREATE.md). Every evaluation step is also wired into `scripts/reproduce.sh`.
 

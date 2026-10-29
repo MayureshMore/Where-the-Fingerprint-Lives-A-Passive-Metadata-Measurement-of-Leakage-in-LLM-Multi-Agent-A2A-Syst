@@ -37,7 +37,7 @@ cross-deployment result (§5.3). Keep the two axes separate.
    WAN data (`data/processed_wan/`), or the canonical results
    (`data/results/*.json`). Every existing committed artifact must be
    **byte-identical** after this work. Verify at the end (Phase 7).
-2. **Reuse the pipeline unchanged.** Capture (`scripts/run_pilot.py`, tcpdump
+2. **Reuse the pipeline unchanged.** Capture (`scripts/collect_deployment.py`, tcpdump
    96-byte snaplen, wire-length sizes), feature extraction
    (`scripts/extract_features.py`, 195-dim, canonical flows), and evaluation
    (`scripts/evaluate.py`, `scripts/evaluate_cross_deployment.py`) are
@@ -126,7 +126,7 @@ identical; the *implementation that produces the traffic* is genuinely different
 
 ## Phase 2 — Collect C (LAN-local)
 1. Collect `--n 30..40` per (workflow × topology) cell into `data/raw_langgraph/`,
-   reusing `scripts/run_pilot.py` (or the existing collector) with C served —
+   reusing `scripts/collect_deployment.py` (or the existing collector) with C served —
    **same tcpdump 96-byte snaplen capture as A**. Total ≈ 360–480 traces.
 2. Sanity-check: trace counts per cell, non-empty flows, all four roles observed
    in star, the expected per-topology flow structure present.

@@ -25,7 +25,7 @@
 #   SPENT_SO_FAR=0.9 COST_PER_TRACE=0.06 BUDGET_USD=10 bash scripts/collect_offtheshelf.sh 140  # bulk
 #
 # Requires the 8 compat fixes already applied to $A2A_SAMPLES_DIR (default ~/a2a-samples) (.../a2a_mcp) and
-# its drive_orch.py multi-turn A2A driver.
+# its trip_driver.py multi-turn A2A driver.
 set -u
 
 SAMPLE_DIR="${A2A_SAMPLES_DIR:-$HOME/a2a-samples}/samples/python/agents/a2a_mcp"   # set A2A_SAMPLES_DIR to your a2a-samples checkout
@@ -42,8 +42,8 @@ SPENT_SO_FAR="${SPENT_SO_FAR:-0}"          # USD already spent in earlier paid b
 MAX_RETRIES="${MAX_RETRIES:-2}"            # transient-429 (RPM/TPM) retries per trip before giving up
 BACKOFF_S="${BACKOFF_S:-30}"               # seconds to wait before retrying a transient 429
 
-[ -f "$SAMPLE_DIR/drive_orch.py" ] || cp "$REPO_DIR/third_party/a2a_mcp/drive_orch.py" "$SAMPLE_DIR/" 2>/dev/null
-[ -f "$SAMPLE_DIR/drive_orch.py" ] || { echo "ERROR: $SAMPLE_DIR/drive_orch.py missing"; exit 1; }
+[ -f "$SAMPLE_DIR/trip_driver.py" ] || cp "$REPO_DIR/third_party/a2a_mcp/trip_driver.py" "$SAMPLE_DIR/" 2>/dev/null
+[ -f "$SAMPLE_DIR/trip_driver.py" ] || { echo "ERROR: $SAMPLE_DIR/trip_driver.py missing"; exit 1; }
 grep -qE '^GOOGLE_API_KEY=.{10,}' "$SAMPLE_DIR/.env" 2>/dev/null || { echo "ERROR: GOOGLE_API_KEY not set in $SAMPLE_DIR/.env"; exit 1; }
 mkdir -p "$OUT" "$SAMPLE_DIR/logs"
 cd "$SAMPLE_DIR"
@@ -104,7 +104,7 @@ for i in $(seq "$start" "$end"); do
     while : ; do
         tcpdump -i "$IFACE" -s 96 -w "$OUT/$id.pcap" "tcp portrange $PORTS" 2>/dev/null & tpid=$!
         sleep 0.8
-        uv run --env-file .env python drive_orch.py "$q" > "logs/cap_drive_$id.log" 2>&1 || true
+        uv run --env-file .env python trip_driver.py "$q" > "logs/cap_drive_$id.log" 2>&1 || true
         sleep 0.8
         kill "$tpid" 2>/dev/null; wait "$tpid" 2>/dev/null
         sz=$(stat -f%z "$OUT/$id.pcap" 2>/dev/null || echo 0)

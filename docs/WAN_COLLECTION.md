@@ -211,10 +211,10 @@ venv/bin/python scripts/extract_features.py \
 ### D.2 — Cross-network evaluation (LAN→WAN transfer + internal baselines; the headline C5 result)
 
 ```bash
-venv/bin/python scripts/evaluate_c5.py \
+venv/bin/python scripts/evaluate_cross_network.py \
   --local data/processed --wan data/processed_wan \
   --tasks workflow role parallelism topology
-# → data/results/c5_cross_network.json  + data/results/figures/c5_cross_network.png
+# → data/results/cross_network.json  + data/results/figures/cross_network.png
 ```
 
 One command reports three numbers per task, each with 95% bootstrap CIs:
@@ -225,11 +225,11 @@ One command reports three numbers per task, each with 95% bootstrap CIs:
 
 The WAN-internal baseline is the key control: it separates "the WAN vantage is
 impoverished" (low WAN-internal) from "the model doesn't transfer vantages"
-(high WAN-internal but low LAN→WAN). `data/results/c5_cross_network.json` is the
+(high WAN-internal but low LAN→WAN). `data/results/cross_network.json` is the
 **single source of truth** cited by [`RESULTS.md`](../RESULTS.md) §4 and the paper.
 
 > An earlier `evaluate_cross_network.py` (transfer-only, no CIs, an earlier n=395 run)
-> has been removed; `evaluate_c5.py` and the canonical file above are the only C5 result.
+> has been removed; `evaluate_cross_network.py` and the canonical file above are the only C5 result.
 
 ---
 
@@ -267,7 +267,7 @@ impoverished" (low WAN-internal) from "the model doesn't transfer vantages"
 
 - `data/raw_wan/` ≈ 600 pcaps (50 × 4 workflows × 3 topologies, minus any loss).
 - `data/processed_wan/labels.json` + feature matrices present.
-- `data/results/c5_cross_network.json` + `data/results/figures/c5_cross_network.png`:
+- `data/results/cross_network.json` + `data/results/figures/cross_network.png`:
   per-task LAN-internal, WAN-internal, and LAN→WAN macro-F1 with 95% CIs.
 
 ---
