@@ -122,74 +122,114 @@ async def main(a: argparse.Namespace) -> None:
     outs = {"clear": Path(a.out_clear), "tls": Path(a.out_tls)}
     for d in outs.values():
         d.mkdir(parents=True, exist_ok=True)
-        if any(d.glob("*.pcap")) and not a.allow_existing:
+        if any(d.glob("*.pcap")) and not (a.allow_existing or a.resume):
             sys.exit(f"{d} already holds pcaps; move it aside or pass --allow-existing")
 
     topologies = [a.topology] if a.topology else TOPOLOGIES
     workflows = [a.workflow] if a.workflow else [wf.value for wf in WorkflowClass]
     wfs_all = [wf.value for wf in WorkflowClass]
-    meta = {
-        "design": "deployment A; cleartext (ports 8000-8003) and TLS (ports 8040-8043) agent sets "
-                  "run side by side and alternate trace by trace in one session; the two traces "
-                  "of a pair share one prompt; arm order counterbalanced (cleartext first on even "
-                  "pairs, TLS first on odd)",
-        "model": model, "num_predict": num_predict, "n_per_condition": a.n,
-        "seed_offset": a.seed_offset, "topologies": topologies, "workflows": workflows,
-        "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "schedule": [], "failures": 0,
-    }
+    meta_path = outs["tls"] / "session_meta.json"
+    meta = json.loads(meta_path.read_text()) if a.resume and meta_path.exists() else None
+    if meta is None:
+        meta = {
+            "design": "deployment A; cleartext (ports 8000-8003) and TLS (ports 8040-8043) agent sets "
+                      "run side by side and alternate trace by trace in one session; the two traces "
+                      "of a pair share one prompt and one task-id format; arm order counterbalanced "
+                      "(cleartext first on even pairs, TLS first on odd); collected in balanced rounds "
+                      "(every topology x workflow condition gets the same number of pairs per round); "
+                      "a failed trace is retried once",
+            "model": model, "num_predict": num_predict, "n_per_condition": a.n, "rounds": a.rounds,
+            "seed_offset": a.seed_offset, "topologies": topologies, "workflows": workflows,
+            "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "schedule": [], "failures": 0,
+        }
+    done = {(e["pair"], e["arm"]) for e in meta["schedule"] if e["success"]}
+    deadline = time.time() + a.deadline_hours * 3600 if a.deadline_hours else None
+    prompts = {(t, w): WORKFLOW_REGISTRY[WorkflowClass(w)]().sample_prompts(
+                   n=a.n, seed=TOPOLOGIES.index(t) * len(wfs_all) + wfs_all.index(w) + 100 + a.seed_offset)
+               for t in topologies for w in workflows}
+    bounds = [round(a.n * r / a.rounds) for r in range(a.rounds + 1)]
 
-    for topology in topologies:
-        logger.info("=" * 60)
-        logger.info("  TOPOLOGY %s — cleartext and TLS sets", topology.upper())
-        logger.info("=" * 60)
-        sets = {arm: await start_set(arm, topology, model, num_predict) for arm in ARMS}
-        if "tls_params" not in meta:
-            meta["tls_params"] = await probe_tls(ARMS["tls"]["ports"]["executor"])
-            logger.info("  TLS parameters: %s", meta["tls_params"])
-        try:
-            for wf_name in workflows:
-                wf_class = WorkflowClass(wf_name)
-                seed = TOPOLOGIES.index(topology) * len(wfs_all) + wfs_all.index(wf_name) + 100 + a.seed_offset
-                prompts = WORKFLOW_REGISTRY[wf_class]().sample_prompts(n=a.n, seed=seed)
+    def save() -> None:
+        meta_path.write_text(json.dumps(meta, indent=2))
+
+    stopped = False
+    for rnd in range(a.rounds):
+        for topology in topologies:
+            todo = [(i, w) for i in range(bounds[rnd], bounds[rnd + 1]) for w in workflows
+                    if any((f"{topology}/{w}/{i}", arm) not in done for arm in ARMS)]
+            if not todo:
+                continue
+            if deadline and time.time() > deadline:
+                stopped = True
+                break
+            logger.info("=" * 60)
+            logger.info("  ROUND %d/%d  TOPOLOGY %s — %d pairs", rnd + 1, a.rounds, topology.upper(), len(todo))
+            logger.info("=" * 60)
+            sets = {arm: await start_set(arm, topology, model, num_predict) for arm in ARMS}
+            if "tls_params" not in meta:
+                meta["tls_params"] = await probe_tls(ARMS["tls"]["ports"]["executor"])
+                logger.info("  TLS parameters: %s", meta["tls_params"])
+            try:
                 collectors = {}
-                for arm, cfg in ARMS.items():
-                    dep = {**DEP, "ports": cfg["ports"]}
-                    orch = _orchestrator(dep, topology, model, num_predict=num_predict, tls_on=cfg["tls"])
+                for w in workflows:
+                    for arm, cfg in ARMS.items():
+                        dep = {**DEP, "ports": cfg["ports"]}
+                        orch = _orchestrator(dep, topology, model, num_predict=num_predict, tls_on=cfg["tls"])
 
-                    # Same task-id format as deployment A in both arms: the id travels in the
-                    # request body, so an arm-specific id would change request sizes.
-                    async def exec_fn(prompt: str, _orch=orch) -> None:
-                        async with _orch:
-                            await _orch.handle_task(task_id=f"pilot_a_{uuid.uuid4().hex[:8]}", content=prompt)
+                        # Same task-id format as deployment A in both arms: the id travels in the
+                        # request body, so an arm-specific id would change request sizes.
+                        async def exec_fn(prompt: str, _orch=orch) -> None:
+                            async with _orch:
+                                await _orch.handle_task(task_id=f"pilot_a_{uuid.uuid4().hex[:8]}", content=prompt)
 
-                    collectors[arm] = TraceCollector(
-                        orchestrator_fn=exec_fn,
-                        recorder=PacketRecorder(output_dir=outs[arm], interface="lo0",
-                                                agent_ports=list(cfg["ports"].values())),
-                        workflow_class=wf_class, topology=TopologyType(topology),
-                        agent_endpoints={r: f"127.0.0.1:{p}" for r, p in cfg["ports"].items()},
-                        topology_edges=TOPO_EDGES[topology], output_dir=outs[arm],
-                        deployment=cfg["deployment"],
-                    )
-                logger.info("  %s / %s: %d pairs", topology, wf_name, len(prompts))
-                for i, prompt in enumerate(prompts):
+                        collectors[(w, arm)] = TraceCollector(
+                            orchestrator_fn=exec_fn,
+                            recorder=PacketRecorder(output_dir=outs[arm], interface="lo0",
+                                                    agent_ports=list(cfg["ports"].values())),
+                            workflow_class=WorkflowClass(w), topology=TopologyType(topology),
+                            agent_endpoints={r: f"127.0.0.1:{p}" for r, p in cfg["ports"].items()},
+                            topology_edges=TOPO_EDGES[topology], output_dir=outs[arm],
+                            deployment=cfg["deployment"],
+                        )
+                # pair-major, workflows interleaved: a deadline stop leaves the round balanced
+                # across workflows to within one pair
+                for i, w in todo:
+                    if deadline and time.time() > deadline:
+                        stopped = True
+                        break
+                    pair = f"{topology}/{w}/{i}"
                     order = ("clear", "tls") if i % 2 == 0 else ("tls", "clear")
                     for arm in order:
-                        run = (await collectors[arm].collect([prompt], inter_run_delay=0.5))[0]
-                        meta["schedule"].append({"pair": f"{topology}/{wf_name}/{i}", "arm": arm,
-                                                 "run_id": run.run_id, "success": run.success,
-                                                 "start_ts": run.start_ts})
-                        meta["failures"] += 0 if run.success else 1
-                (outs["tls"] / "session_meta.json").write_text(json.dumps(meta, indent=2))
-        finally:
-            for arm, (agents, tasks) in sets.items():
-                await stop_set(arm, agents, tasks)
-            await asyncio.sleep(3.0)
+                        if (pair, arm) in done:
+                            continue
+                        for attempt in (1, 2):
+                            run = (await collectors[(w, arm)].collect([prompts[(topology, w)][i]],
+                                                                      inter_run_delay=0.5))[0]
+                            meta["schedule"].append({"pair": pair, "arm": arm, "run_id": run.run_id,
+                                                     "success": run.success, "attempt": attempt,
+                                                     "start_ts": run.start_ts})
+                            if run.success:
+                                done.add((pair, arm))
+                                break
+                            meta["failures"] += 1
+                    save()
+            finally:
+                for arm, (agents, tasks) in sets.items():
+                    await stop_set(arm, agents, tasks)
+                await asyncio.sleep(3.0)
+            if stopped:
+                break
+        if stopped:
+            logger.warning("deadline reached after round %d — stopping collection", rnd + 1)
+            break
 
     meta["finished"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
-    (outs["tls"] / "session_meta.json").write_text(json.dumps(meta, indent=2))
-    ok = sum(s["success"] for s in meta["schedule"])
-    print(f"\nTLS session: {ok}/{len(meta['schedule'])} traces successful "
+    meta["stopped_at_deadline"] = stopped
+    meta["complete_pairs"] = sum(1 for t in topologies for w in workflows for i in range(a.n)
+                                 if all((f"{t}/{w}/{i}", arm) in done for arm in ARMS))
+    save()
+    print(f"\nTLS session: {meta['complete_pairs']} complete pairs of "
+          f"{a.n * len(topologies) * len(workflows)} planned, {meta['failures']} failed attempts "
           f"→ {outs['clear']}/ and {outs['tls']}/")
 
 
@@ -207,11 +247,17 @@ def _parse() -> argparse.Namespace:
     p.add_argument("--tls-dir", default="data/tls", dest="tls_dir")
     p.add_argument("--out-clear", default="data/raw_tlspair_clear", dest="out_clear")
     p.add_argument("--out-tls", default="data/raw_tlspair_tls", dest="out_tls")
+    p.add_argument("--rounds", type=int, default=3,
+                   help="collect in this many balanced rounds (each gives every condition n/rounds pairs)")
+    p.add_argument("--deadline-hours", type=float, default=None, dest="deadline_hours",
+                   help="stop starting new pairs after this many hours (results stay balanced per round)")
+    p.add_argument("--resume", action="store_true",
+                   help="continue an interrupted session: skip pairs already collected successfully")
     p.add_argument("--allow-existing", action="store_true", dest="allow_existing",
                    help="add to output dirs that already hold traces")
     args = p.parse_args()
     if args.pilot:
-        args.n, args.topology = 1, args.topology or "star"
+        args.n, args.rounds, args.topology = 1, 1, args.topology or "star"
         args.workflow = args.workflow or list(WorkflowClass)[0].value
         args.out_clear, args.out_tls = "data/tls_pilot/clear", "data/tls_pilot/tls"
         args.allow_existing = True

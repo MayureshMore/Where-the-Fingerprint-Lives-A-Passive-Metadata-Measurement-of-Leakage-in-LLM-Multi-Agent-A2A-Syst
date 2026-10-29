@@ -160,8 +160,9 @@ def main(a: argparse.Namespace) -> None:
         meta = _read_json(Path(a.tls_raw) / "session_meta.json")
         if meta:
             out["tls_params"] = meta.get("tls_params")
-            out["session"] = {k: meta.get(k) for k in ("design", "model", "n_per_condition",
-                                                       "seed_offset", "started", "finished", "failures")}
+            out["session"] = {k: meta.get(k) for k in ("design", "model", "n_per_condition", "rounds",
+                                                       "seed_offset", "started", "finished", "failures",
+                                                       "complete_pairs", "stopped_at_deadline")}
         check = _read_json(Path(a.tls_raw) / "tls_check.json")
         if check:
             out["record_check"] = check
@@ -170,6 +171,7 @@ def main(a: argparse.Namespace) -> None:
     (out_dir / "figures").mkdir(parents=True, exist_ok=True)
     (out_dir / "tls_control.json").write_text(json.dumps(out, indent=2))
     make_figure(out, out_dir / "figures" / "tls_control.png")
+    write_report(out, out_dir / "tls_control.md")
     print(json.dumps({t: {k: round(v["macro_f1"], 3) for k, v in r.items() if isinstance(v, dict)}
                       for t, r in out["results"].items()}, indent=2))
 
@@ -181,9 +183,12 @@ def make_figure(out: dict, path: Path) -> None:
 
     arms = (("within_clear", "cleartext (CV)", "#9e9e9e"),
             ("within_tls", "TLS (CV)", "#2e7d32"),
-            ("clear_to_tls", "cleartext → TLS", "#c62828"))
+            ("clear_to_tls", "cleartext → TLS (prompt-disjoint)", "#c62828"))
     tasks = list(out["results"])
-    fig, ax = plt.subplots(figsize=(6.4, 4.0))
+    ov = out.get("overhead")
+    fig, axes = plt.subplots(1, 2 if ov else 1, figsize=(10.5 if ov else 6.4, 4.2),
+                             gridspec_kw={"width_ratios": [1.4, 1]} if ov else None)
+    ax = axes[0] if ov else axes
     w = 0.26
     for j, (key, label, color) in enumerate(arms):
         xs = np.arange(len(tasks)) + (j - 1) * w
@@ -191,18 +196,82 @@ def make_figure(out: dict, path: Path) -> None:
         lo = [v - out["results"][t][key]["ci_lo"] for v, t in zip(vals, tasks)]
         hi = [out["results"][t][key]["ci_hi"] - v for v, t in zip(vals, tasks)]
         ax.bar(xs, vals, w, label=label, color=color, yerr=[lo, hi], capsize=3)
+        for x, v, t in zip(xs, vals, tasks):
+            ax.text(x, out["results"][t][key]["ci_hi"] + 0.015, f"{v:.2f}", ha="center", fontsize=7)
     for i, t in enumerate(tasks):
         ax.hlines(out["results"][t]["chance"], i - 0.45, i + 0.45, colors="crimson",
                   linestyles="--", lw=1.1)
     ax.set_xticks(range(len(tasks)))
     ax.set_xticklabels(tasks)
     ax.set_ylabel("macro-F1 (95% cluster-bootstrap CI)")
-    ax.set_ylim(0, 1.05)
-    ax.legend(fontsize=8, loc="lower right")
-    ax.set_title("TLS control, same session (dashed = chance)", fontsize=9)
-    fig.tight_layout()
+    ax.set_ylim(0, 1.12)
+    ax.legend(fontsize=8, loc="upper left")
+    ax.set_title("Attack accuracy, same session (dashed = chance)", fontsize=9)
+    if ov:
+        a2 = axes[1]
+        keys = [("bytes_mean", "bytes / trace"), ("packets_mean", "packets / trace"),
+                ("connections_mean", "TCP connections / trace")]
+        ratios = [ov["tls"][k] / ov["cleartext"][k] if ov["cleartext"].get(k) else np.nan for k, _ in keys]
+        a2.barh([lbl for _, lbl in keys], ratios, color="#2e7d32")
+        a2.axvline(1.0, color="#444", lw=1)
+        for y, r in enumerate(ratios):
+            a2.text(r, y, f" ×{r:.2f}", va="center", fontsize=8)
+        a2.set_xlim(0, max(1.5, np.nanmax(ratios) * 1.25))
+        a2.set_xlabel("TLS ÷ cleartext")
+        a2.set_title("On-wire cost of TLS", fontsize=9)
+    params = out.get("tls_params") or {}
+    sub = (f"{params.get('tls_version', 'TLS')} · {params.get('cipher', '')} · "
+           f"{params.get('http_version', '')}").strip(" ·")
+    fig.suptitle(f"TLS control — deployment A, cleartext and TLS alternating in one session ({sub})",
+                 fontsize=10)
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
     fig.savefig(path, dpi=150)
     plt.close(fig)
+
+
+def write_report(out: dict, path: Path) -> None:
+    """Short Markdown summary of tls_control.json for the paper."""
+    def cell(r):
+        return f"{r['macro_f1']:.3f} [{r['ci_lo']:.3f}, {r['ci_hi']:.3f}]"
+    lines = ["# TLS control — summary", "",
+             "Deployment A, cleartext and TLS traces alternating in one session (same prompt per "
+             "pair). macro-F1 with 95% cluster-bootstrap CIs over prompt groups; cleartext → TLS "
+             "is prompt-disjoint.", "",
+             "| Task | Chance | Within cleartext | Within TLS | Cleartext → TLS | n (TLS) |",
+             "|---|---|---|---|---|---|"]
+    for t, r in out["results"].items():
+        lines.append(f"| {t} | {r['chance']:.3f} | {cell(r['within_clear'])} | {cell(r['within_tls'])} | "
+                     f"{cell(r['clear_to_tls'])} | {r['within_tls']['n']} |")
+    if any("secondary_cross_session" in r for r in out["results"].values()):
+        lines += ["", "Secondary, cross-session (earlier cleartext capture → TLS, prompt-disjoint; "
+                  "mixes TLS with session drift): " + ", ".join(
+                      f"{t} {r['secondary_cross_session']['macro_f1']:.3f}"
+                      for t, r in out["results"].items() if "secondary_cross_session" in r) + "."]
+    ov = out.get("overhead")
+    if ov:
+        c, t = ov["cleartext"], ov["tls"]
+        lines += ["", "| On-wire, mean per trace | Cleartext | TLS | Ratio |", "|---|---|---|---|"]
+        for k, lbl in (("bytes_mean", "bytes"), ("packets_mean", "packets"),
+                       ("connections_mean", "TCP connections")):
+            fmt = ",.2f" if k == "connections_mean" else ",.0f"
+            lines.append(f"| {lbl} | {c[k]:{fmt}} | {t[k]:{fmt}} | ×{t[k] / c[k]:.3f} |")
+    params = out.get("tls_params")
+    if params:
+        lines += ["", f"TLS parameters: {params.get('tls_version')}, {params.get('cipher')} "
+                  f"({params.get('cipher_bits')}-bit), {params.get('http_version')}."]
+    chk = out.get("record_check")
+    if chk:
+        lines.append(f"Record check (raw captures, before stripping): "
+                     f"{'passed' if chk.get('ok') else 'FAILED'}; "
+                     f"{chk.get('tls_handshakes_per_connection')} TLS handshakes per connection, "
+                     f"{chk.get('connections_per_trace'):.2f} connections per trace.")
+    sess = out.get("session")
+    if sess:
+        lines.append(f"Session: {sess.get('started')} → {sess.get('finished')}; "
+                     f"{sess.get('complete_pairs', '?')} complete pairs; "
+                     f"{sess.get('failures')} failed attempts (retried)"
+                     f"{'; stopped at the time limit' if sess.get('stopped_at_deadline') else ''}.")
+    path.write_text("\n".join(lines) + "\n")
 
 
 if __name__ == "__main__":

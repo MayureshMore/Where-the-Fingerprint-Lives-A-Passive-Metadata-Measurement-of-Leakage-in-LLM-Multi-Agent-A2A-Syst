@@ -95,6 +95,15 @@ def scan(path: Path) -> dict:
     return {**c, "connections_by_port": dict(conns_by_port)}
 
 
+def _failed(pcap: Path) -> bool:
+    """True when the trace's label sidecar marks the run as failed (excluded from analysis)."""
+    sc = pcap.with_suffix(".json")
+    try:
+        return json.loads(sc.read_text()).get("success") is False
+    except (OSError, ValueError):
+        return False
+
+
 def check(stats: dict[str, dict], expect: str) -> list[str]:
     problems = []
     for name, s in stats.items():
@@ -135,15 +144,19 @@ def summarize(stats: dict[str, dict]) -> dict:
 
 
 def main(a: argparse.Namespace) -> None:
-    stats = {}
+    stats, skipped = {}, 0
     for d in a.dirs:
         for f in sorted(Path(d).glob("*.pcap")):
+            if _failed(f):
+                skipped += 1
+                continue
             stats[f.name] = scan(f)
     if not stats:
         sys.exit(f"no pcaps under {a.dirs}")
     summary = summarize(stats)
     problems = check(stats, a.expect) if a.expect else []
-    summary.update({"expect": a.expect, "ok": not problems, "problems": problems[:50]})
+    summary.update({"expect": a.expect, "ok": not problems, "problems": problems[:50],
+                    "skipped_failed_runs": skipped})
     print(json.dumps(summary, indent=2))
     if a.json:
         Path(a.json).write_text(json.dumps(summary, indent=2))

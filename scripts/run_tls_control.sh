@@ -7,11 +7,15 @@
 #                  trace (0x16 0x03 handshake, 0x17 0x03 0x03 data) and cleartext HTTP on
 #                  the other, or the run stops here
 #   2. collect     same-session round-robin, 12 conditions x N pairs (default 36 → 864
-#                  traces, ~8 h at ~31 s per trace); the Mac is kept awake
+#                  traces, ~7.5 h at ~31 s per trace) in 3 balanced rounds; a failed trace is
+#                  retried once, a crashed collector is restarted with --resume (up to 3
+#                  times), and no new pair starts after COLLECT_HOURS (default 7.4), so the
+#                  whole run finishes within ~8 h with every condition balanced; the Mac is
+#                  kept awake (keep it on power, lid open)
 #   3. check       record check on the full raw captures (before any stripping)
 #                  → data/raw_tlspair_tls/tls_check.json
 #   4. extract     features for both arms
-#   5. evaluate    → data/results/tls_control.json + figures/tls_control.png
+#   5. evaluate    → data/results/tls_control.json, tls_control.md, figures/tls_control.png
 #
 # Capture access: tcpdump needs read access to /dev/bpf*. Before starting:
 #     sudo chmod o+r /dev/bpf*
@@ -23,10 +27,13 @@
 #     bash scripts/run_tls_control.sh            # N=36
 #     N=3 bash scripts/run_tls_control.sh        # quick dry run (72 traces, ~45 min) into
 #                                                  # *_n3 dirs and data/results_demo
+#     RESUME=1 bash scripts/run_tls_control.sh   # continue an interrupted run (skips the pilot)
 #
 set -euo pipefail
 
 N="${N:-36}"
+COLLECT_HOURS="${COLLECT_HOURS:-7.4}"
+RESUME="${RESUME:-0}"
 PY="${PYTHON:-venv/bin/python}"
 [ -x "$PY" ] || PY=python3
 STAMP="$(date +%Y%m%d_%H%M%S)"
@@ -63,25 +70,42 @@ fi
 for p in 8001 8002 8003 8041 8042 8043; do
   lsof -nP -iTCP:$p -sTCP:LISTEN >/dev/null 2>&1 && fail "port $p is in use"
 done
-for d in "$RAW_C" "$RAW_T"; do
-  [ -n "$(ls "$d"/*.pcap 2>/dev/null | head -1)" ] && fail "$d already holds traces; move it aside first"
-done
+if [ "$RESUME" != 1 ]; then
+  for d in "$RAW_C" "$RAW_T"; do
+    [ -n "$(ls "$d"/*.pcap 2>/dev/null | head -1)" ] && fail "$d already holds traces; move it aside or RESUME=1"
+  done
+fi
 echo "ok"
 
-step "1. pilot: one pair, then check the raw pcaps for TLS records"
-rm -rf data/tls_pilot
-"$PY" scripts/collect_tls_session.py --pilot
-"$PY" scripts/check_tls_capture.py data/tls_pilot/tls --expect tls || fail "pilot TLS trace check failed"
-"$PY" scripts/check_tls_capture.py data/tls_pilot/clear --expect clear || fail "pilot cleartext trace check failed"
+if [ "$RESUME" != 1 ]; then
+  step "1. pilot: one pair, then check the raw pcaps for TLS records"
+  rm -rf data/tls_pilot
+  "$PY" scripts/collect_tls_session.py --pilot
+  "$PY" scripts/check_tls_capture.py data/tls_pilot/tls --expect tls || fail "pilot TLS trace check failed"
+  "$PY" scripts/check_tls_capture.py data/tls_pilot/clear --expect clear || fail "pilot cleartext trace check failed"
+fi
 
-step "2. collect: same-session round-robin, $N pairs per condition (caffeinate keeps the Mac awake)"
-caffeinate -dims "$PY" scripts/collect_tls_session.py --n "$N" --out-clear "$RAW_C" --out-tls "$RAW_T"
+step "2. collect: $N pairs per condition, 3 balanced rounds, no new pair after ${COLLECT_HOURS} h"
+END=$(( $(date +%s) + $(printf '%.0f' "$(echo "$COLLECT_HOURS * 3600" | bc)") ))
+for attempt in 1 2 3; do
+  left=$(echo "scale=3; ($END - $(date +%s)) / 3600" | bc)
+  if [ "$(echo "$left <= 0" | bc)" = 1 ]; then break; fi
+  if caffeinate -dims "$PY" scripts/collect_tls_session.py --n "$N" --out-clear "$RAW_C" \
+       --out-tls "$RAW_T" --resume --deadline-hours "$left"; then
+    break
+  fi
+  echo "collector exited with an error (attempt $attempt); restarting with --resume in 30 s"
+  sleep 30
+done
+[ -n "$(ls "$RAW_T"/*.pcap 2>/dev/null | head -1)" ] || fail "no TLS traces were collected"
 
 step "3. record check on the full raw captures"
+# Not fatal after a night of collection: the verdict and any offending traces are kept in
+# the JSON and printed in tls_control.md, so a single odd trace cannot discard the run.
 "$PY" scripts/check_tls_capture.py "$RAW_T" --expect tls --json "$RAW_T/tls_check.json" \
-  || fail "TLS record check failed on $RAW_T"
+  || echo "WARNING: TLS record check reported problems — see $RAW_T/tls_check.json"
 "$PY" scripts/check_tls_capture.py "$RAW_C" --expect clear --json "$RAW_C/clear_check.json" \
-  || fail "cleartext record check failed on $RAW_C"
+  || echo "WARNING: cleartext record check reported problems — see $RAW_C/clear_check.json"
 restore_bpf
 
 step "4. extract features"
@@ -93,4 +117,6 @@ A2A_RESULTS_DIR="$RESULTS" "$PY" scripts/evaluate_tls_control.py \
   --clear "$PRO_C" --tls "$PRO_T" --clear-raw "$RAW_C" --tls-raw "$RAW_T"
 
 echo
-echo "Done → $RESULTS/tls_control.json  (log: $LOG)"
+echo "Done → $RESULTS/tls_control.json, $RESULTS/tls_control.md, $RESULTS/figures/tls_control.png"
+echo "(log: $LOG)"
+cat "$RESULTS/tls_control.md"

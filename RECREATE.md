@@ -266,12 +266,17 @@ arms are collected **in one session**: a cleartext agent set (ports 8000-8003) a
 trace, the two traces of a pair share one prompt, and arm order is counterbalanced. Prompts are
 drawn with a new seed (`--seed-offset 1000`), but the generators use small template pools, so
 81% of them also occur in the main collection; every transfer is therefore cross-fitted by prompt
-group. 12 conditions × 36 pairs = 864 traces, about 8 hours.
+group. 12 conditions × 36 pairs = 864 traces, about 7.5 hours of collection, run in three balanced
+rounds so that a stop at any point leaves every condition with the same number of pairs. A failed
+trace is retried once, a crashed collector restarts with `--resume`, and no new pair starts after
+`COLLECT_HOURS` (default 7.4), so the whole run, including extraction and evaluation, finishes in
+about 8 hours. Keep the Mac on power with the lid open; the script keeps it awake.
 
 ```bash
 sudo chmod o+r /dev/bpf*                  # capture access for tcpdump (until reboot) — revert afterwards
 bash scripts/run_tls_control.sh         # preflight → pilot gate → collect → record check → extract → evaluate
 sudo chmod o-r /dev/bpf*                  # the script tries this itself and otherwise reminds you
+RESUME=1 bash scripts/run_tls_control.sh  # only if a run was interrupted: continues where it stopped
 ```
 
 `run_tls_control.sh` stops after the one-pair pilot unless the raw TLS pcap shows TLS records
@@ -283,8 +288,8 @@ connection). The negotiated TLS version, cipher and HTTP version are recorded in
 `data/raw_tlspair_tls/session_meta.json`. `N=3 bash scripts/run_tls_control.sh` is a ~45-minute
 dry run into separate `*_n3` dirs and `data/results_demo`.
 
-`scripts/evaluate_tls_control.py` writes `data/results/tls_control.json` and
-`figures/tls_control.png`: within-cleartext and within-TLS (group CV), and cleartext→TLS
+`scripts/evaluate_tls_control.py` writes `data/results/tls_control.json`, a one-page summary
+`data/results/tls_control.md` and `figures/tls_control.png` (accuracy, plus the on-wire cost of TLS): within-cleartext and within-TLS (group CV), and cleartext→TLS
 cross-fitted so no test prompt is ever in training; the original 600-trace cleartext capture →
 TLS, cross-fitted the same way, is reported only as a secondary, cross-session comparison.
 
@@ -331,7 +336,7 @@ Other scripts: `train_models.py` (standalone model training),
 ## 9. Verify the rebuild
 
 ```bash
-pytest -q                              # 30 tests: features, defense, metrics, stats/SSE, deep shapes
+pytest -q                              # 36 tests: features, defense, metrics, stats/SSE, deep shapes, TLS, crossfit
 bash scripts/reproduce.sh              # re-analyse frozen features into a sandbox, diff vs committed
 ```
 

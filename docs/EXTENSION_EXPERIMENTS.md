@@ -185,4 +185,4 @@ weeks on it.
 Additive only (`git diff --stat` on committed `data/results/*.json` must be empty except this
 session's own `cross_instance_transfer.json`); no re-stamping (verdict field matches the band the
 number lands in); group-safe CV + bootstrap CIs; port never a feature; blocked > fabricated
-(missing data/setup/budget → report and stop); 30/30 tests pass; git stays yours.
+(missing data/setup/budget → report and stop); all tests pass; git stays yours.
