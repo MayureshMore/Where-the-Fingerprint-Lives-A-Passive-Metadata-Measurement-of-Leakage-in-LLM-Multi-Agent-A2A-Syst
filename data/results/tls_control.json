@@ -1,0 +1,159 @@
+{
+  "task": "TLS control \u2014 fingerprinting with TLS on every agent link (same-session, paired)",
+  "method": "Deployment A collected in one session with cleartext and TLS traces alternating (same prompt per pair, arm order counterbalanced). GBT; group-safe 5-fold StratifiedGroupKFold by prompt_group; every transfer (cleartext\u2192TLS and the secondary cross-session one) is cross-fitted so no test prompt is in training; macro-F1 with cluster (group) bootstrap 95% CI; seed 42. Port never a feature.",
+  "clear_dir": "data/processed_tlspair_clear",
+  "tls_dir": "data/processed_tlspair_tls",
+  "results": {
+    "workflow": {
+      "chance": 0.25,
+      "within_clear": {
+        "macro_f1": 0.6424977892101211,
+        "ci_lo": 0.58838908503346,
+        "ci_hi": 0.6920002204157805,
+        "accuracy": 0.6437048917401764,
+        "n": 432,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231
+      },
+      "within_tls": {
+        "macro_f1": 0.7273812735326326,
+        "ci_lo": 0.6745960339280448,
+        "ci_hi": 0.7789204986925371,
+        "accuracy": 0.7293237102379043,
+        "n": 432,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231
+      },
+      "clear_to_tls": {
+        "macro_f1": 0.5859565664921687,
+        "ci_lo": 0.522067908115416,
+        "ci_hi": 0.638933239173345,
+        "accuracy": 0.5879629629629629,
+        "n_test": 432,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231,
+        "shared_prompt_fraction": 1.0,
+        "protocol": "cross-fitted: 5 group folds of the target; trained on source traces of the other prompt groups only"
+      },
+      "secondary_cross_session": {
+        "source": "data/processed",
+        "note": "earlier cleartext collection \u2192 this session's TLS arm; mixes the TLS effect with session drift, reported for reference only",
+        "macro_f1": 0.24465877997895932,
+        "ci_lo": 0.2008627022600927,
+        "ci_hi": 0.28488246128367917,
+        "accuracy": 0.29398148148148145,
+        "n_test": 432,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231,
+        "shared_prompt_fraction": 0.8125,
+        "protocol": "cross-fitted: 5 group folds of the target; trained on source traces of the other prompt groups only"
+      }
+    },
+    "role": {
+      "chance": 0.3333333333333333,
+      "within_clear": {
+        "macro_f1": 0.9875774583078687,
+        "ci_lo": 0.9815021246268546,
+        "ci_hi": 0.9936358057728393,
+        "accuracy": 0.9876236300454424,
+        "n": 1296,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231
+      },
+      "within_tls": {
+        "macro_f1": 0.9884110953148803,
+        "ci_lo": 0.9816191027012223,
+        "ci_hi": 0.9943231164021298,
+        "accuracy": 0.9883988238438921,
+        "n": 1296,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231
+      },
+      "clear_to_tls": {
+        "macro_f1": 0.9287408218382575,
+        "ci_lo": 0.9148567053935596,
+        "ci_hi": 0.9434028390718289,
+        "accuracy": 0.9282407407407407,
+        "n_test": 1296,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231,
+        "shared_prompt_fraction": 1.0,
+        "protocol": "cross-fitted: 5 group folds of the target; trained on source traces of the other prompt groups only"
+      },
+      "secondary_cross_session": {
+        "source": "data/processed",
+        "note": "earlier cleartext collection \u2192 this session's TLS arm; mixes the TLS effect with session drift, reported for reference only",
+        "macro_f1": 0.4173587378328514,
+        "ci_lo": 0.38083949436260134,
+        "ci_hi": 0.4535797134880022,
+        "accuracy": 0.42824074074074076,
+        "n_test": 1296,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231,
+        "shared_prompt_fraction": 0.8125,
+        "protocol": "cross-fitted: 5 group folds of the target; trained on source traces of the other prompt groups only"
+      }
+    }
+  },
+  "overhead": {
+    "cleartext": {
+      "n_traces": 432,
+      "bytes_mean": 198171.88194444444,
+      "packets_mean": 606.9166666666666,
+      "connections_mean": 3.474537037037037,
+      "connections_per_trace_by_port": {
+        "8001": 1.0,
+        "8002": 1.3333333333333333,
+        "8003": 1.1412037037037037
+      }
+    },
+    "tls": {
+      "n_traces": 432,
+      "bytes_mean": 215213.9814814815,
+      "packets_mean": 638.0277777777778,
+      "connections_mean": 3.4537037037037037,
+      "connections_per_trace_by_port": {
+        "8041": 1.0,
+        "8042": 1.3333333333333333,
+        "8043": 1.1203703703703705
+      }
+    },
+    "bytes_ratio": 1.0859965569778192,
+    "packets_ratio": 1.0512609272735596
+  },
+  "tls_params": {
+    "tls_version": "TLSv1.3",
+    "cipher": "TLS_AES_256_GCM_SHA384",
+    "cipher_bits": 256,
+    "http_version": "HTTP/1.1",
+    "openssl": "OpenSSL 3.0.11 19 Sep 2023",
+    "httpx": "0.28.1"
+  },
+  "session": {
+    "design": "deployment A; cleartext (ports 8000-8003) and TLS (ports 8040-8043) agent sets run side by side and alternate trace by trace in one session; the two traces of a pair share one prompt and one task-id format; arm order counterbalanced (cleartext first on even pairs, TLS first on odd); collected in balanced rounds (every topology x workflow condition gets the same number of pairs per round); a failed trace is retried once",
+    "model": "llama3.2:3b",
+    "n_per_condition": 36,
+    "rounds": 3,
+    "seed_offset": 1000,
+    "started": "2026-10-31T00:33:30-0700",
+    "finished": "2026-10-31T04:32:24-0700",
+    "failures": 0,
+    "complete_pairs": 432,
+    "stopped_at_deadline": false
+  },
+  "record_check": {
+    "n_traces": 432,
+    "connections_per_trace": 3.4537037037037037,
+    "client_hellos_per_trace": 3.4537037037037037,
+    "tls_handshakes_per_connection": 1.0,
+    "connections_per_trace_by_port": {
+      "8041": 1.0,
+      "8042": 1.3333333333333333,
+      "8043": 1.1203703703703705
+    },
+    "expect": "tls",
+    "ok": true,
+    "problems": [],
+    "skipped_failed_runs": 0
+  }
+}

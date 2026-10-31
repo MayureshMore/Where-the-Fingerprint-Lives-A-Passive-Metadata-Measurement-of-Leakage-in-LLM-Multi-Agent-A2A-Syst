@@ -50,8 +50,16 @@ from a2a.types import (
     TextPart,
 )
 from a2a.utils import new_agent_text_message
+from sse_starlette.sse import AppStatus
 
 logger = logging.getLogger(__name__)
+
+# sse-starlette drains every SSE response in the process once any uvicorn server
+# in it exits, and the flag it sets (AppStatus.should_exit) never clears.  The
+# collectors run several agent sets one after another in one process, so after
+# the first set shut down, every later stream ended after its first event.
+# Agent sets are only stopped between traces, so there is nothing to drain.
+AppStatus.disable_automatic_graceful_drain()
 
 # An async callback used by role logic to stream a generated chunk back to the
 # caller as an SSE event.  ``None`` when the agent is invoked in-process (the
