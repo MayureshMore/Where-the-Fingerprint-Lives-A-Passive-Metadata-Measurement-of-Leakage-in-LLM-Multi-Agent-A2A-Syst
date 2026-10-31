@@ -9,7 +9,7 @@ collects deployment A in ONE session with cleartext and TLS traces alternating
 (scripts/collect_tls_session.py; same prompt for both traces of a pair), so session
 drift cannot masquerade as a TLS effect. The generators draw from small template
 pools, so prompts recur across collections; every transfer below is therefore
-cross-fitted (evaluation/crossfit.py). For workflow and role it reports:
+cross-fitted (evaluation/crossfit.py). For workflow, topology and role it reports:
 
   1. within-cleartext — GBT, 5-fold group-safe CV on the session's cleartext arm
   2. within-TLS       — the same CV on the TLS arm
@@ -21,15 +21,18 @@ cross-fitted (evaluation/crossfit.py). For workflow and role it reports:
 plus the on-wire overhead (bytes, packets, TCP connections per trace and per
 agent port, read from packet headers), the negotiated TLS parameters recorded
 at collection (session_meta.json) and the pre-strip record check
-(tls_check.json, scripts/check_tls_capture.py). A cross-session comparison
-(the original cleartext capture → TLS, also cross-fitted) is reported as
-secondary only. Every
-interval is a cluster bootstrap over prompt groups.
+(tls_check.json, scripts/check_tls_capture.py). Every interval is a cluster
+bootstrap over prompt groups.
+
+There is no cross-session comparison against the original cleartext capture:
+its chain and mesh traces were collected while every specialist stream was cut
+after its first event (sse-starlette drain bug, fixed in agents/base.py), so it
+is not the same traffic.
 
 Usage:
     python scripts/evaluate_tls_control.py
     python scripts/evaluate_tls_control.py --clear data/processed_tlspair_clear \\
-        --tls data/processed_tlspair_tls --secondary-clear data/processed
+        --tls data/processed_tlspair_tls
 """
 
 from __future__ import annotations
@@ -56,7 +59,7 @@ from scripts.strip_payload import _MAGICS  # noqa: E402
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-TASKS = ("workflow", "role")
+TASKS = ("workflow", "topology", "role")
 SEED = 42
 
 
@@ -121,8 +124,8 @@ def main(a: argparse.Namespace) -> None:
         "task": "TLS control — fingerprinting with TLS on every agent link (same-session, paired)",
         "method": "Deployment A collected in one session with cleartext and TLS traces alternating "
                   "(same prompt per pair, arm order counterbalanced). GBT; "
-                  "group-safe 5-fold StratifiedGroupKFold by prompt_group; every transfer (cleartext→TLS "
-                  "and the secondary cross-session one) is cross-fitted so no test prompt is in training; macro-F1 with cluster (group) "
+                  "group-safe 5-fold StratifiedGroupKFold by prompt_group; the cleartext→TLS "
+                  "transfer is cross-fitted so no test prompt is in training; macro-F1 with cluster (group) "
                   "bootstrap 95% CI; seed 42. Port never a feature.",
         "clear_dir": str(clear), "tls_dir": str(tls),
         "results": {},
@@ -136,14 +139,6 @@ def main(a: argparse.Namespace) -> None:
             "within_tls": within(Xt, yt, gt, task),
             "clear_to_tls": transfer_crossfit(Xc, yc, gc, Xt, yt, gt, task),
         }
-        if a.secondary_clear and Path(a.secondary_clear, "labels.json").exists():
-            Xs, _, ys, gs = load_deployment(Path(a.secondary_clear), task)
-            res["secondary_cross_session"] = {
-                "source": a.secondary_clear,
-                "note": "earlier cleartext collection → this session's TLS arm; mixes the TLS "
-                        "effect with session drift, reported for reference only",
-                **transfer_crossfit(Xs, ys, gs, Xt, yt, gt, task),
-            }
         out["results"][task] = res
         logger.info("[%s] within-clear %.3f  within-TLS %.3f  clear→TLS %.3f  (chance %.3f)", task,
                     res["within_clear"]["macro_f1"], res["within_tls"]["macro_f1"],
@@ -186,7 +181,7 @@ def make_figure(out: dict, path: Path) -> None:
             ("clear_to_tls", "cleartext → TLS (prompt-disjoint)", "#c62828"))
     tasks = list(out["results"])
     ov = out.get("overhead")
-    fig, axes = plt.subplots(1, 2 if ov else 1, figsize=(10.5 if ov else 6.4, 4.2),
+    fig, axes = plt.subplots(1, 2 if ov else 1, figsize=(11.5 if ov else 7.0, 4.2),
                              gridspec_kw={"width_ratios": [1.4, 1]} if ov else None)
     ax = axes[0] if ov else axes
     w = 0.26
@@ -204,8 +199,8 @@ def make_figure(out: dict, path: Path) -> None:
     ax.set_xticks(range(len(tasks)))
     ax.set_xticklabels(tasks)
     ax.set_ylabel("macro-F1 (95% cluster-bootstrap CI)")
-    ax.set_ylim(0, 1.12)
-    ax.legend(fontsize=8, loc="upper left")
+    ax.set_ylim(0, 1.3)
+    ax.legend(fontsize=7.5, loc="upper center", ncol=3, frameon=False)
     ax.set_title("Attack accuracy, same session (dashed = chance)", fontsize=9)
     if ov:
         a2 = axes[1]
@@ -242,11 +237,6 @@ def write_report(out: dict, path: Path) -> None:
     for t, r in out["results"].items():
         lines.append(f"| {t} | {r['chance']:.3f} | {cell(r['within_clear'])} | {cell(r['within_tls'])} | "
                      f"{cell(r['clear_to_tls'])} | {r['within_tls']['n']} |")
-    if any("secondary_cross_session" in r for r in out["results"].values()):
-        lines += ["", "Secondary, cross-session (earlier cleartext capture → TLS, prompt-disjoint; "
-                  "mixes TLS with session drift): " + ", ".join(
-                      f"{t} {r['secondary_cross_session']['macro_f1']:.3f}"
-                      for t, r in out["results"].items() if "secondary_cross_session" in r) + "."]
     ov = out.get("overhead")
     if ov:
         c, t = ov["cleartext"], ov["tls"]
@@ -280,6 +270,4 @@ if __name__ == "__main__":
     p.add_argument("--tls", default="data/processed_tlspair_tls")
     p.add_argument("--clear-raw", default="data/raw_tlspair_clear")
     p.add_argument("--tls-raw", default="data/raw_tlspair_tls")
-    p.add_argument("--secondary-clear", default="data/processed",
-                   help="an earlier cleartext collection, compared cross-session (secondary only)")
     main(p.parse_args())

@@ -5,9 +5,8 @@ Deployment A, cleartext and TLS traces alternating in one session (same prompt p
 | Task | Chance | Within cleartext | Within TLS | Cleartext → TLS | n (TLS) |
 |---|---|---|---|---|---|
 | workflow | 0.250 | 0.642 [0.588, 0.692] | 0.727 [0.675, 0.779] | 0.586 [0.522, 0.639] | 432 |
+| topology | 0.333 | 0.998 [0.992, 1.000] | 0.998 [0.992, 1.000] | 0.995 [0.989, 1.000] | 432 |
 | role | 0.333 | 0.988 [0.982, 0.994] | 0.988 [0.982, 0.994] | 0.929 [0.915, 0.943] | 1296 |
-
-Secondary, cross-session (earlier cleartext capture → TLS, prompt-disjoint; mixes TLS with session drift): workflow 0.245, role 0.417.
 
 | On-wire, mean per trace | Cleartext | TLS | Ratio |
 |---|---|---|---|

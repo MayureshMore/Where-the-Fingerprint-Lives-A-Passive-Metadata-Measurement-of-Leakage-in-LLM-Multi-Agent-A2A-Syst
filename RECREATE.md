@@ -290,8 +290,46 @@ dry run into separate `*_n3` dirs and `data/results_demo`.
 
 `scripts/evaluate_tls_control.py` writes `data/results/tls_control.json`, a one-page summary
 `data/results/tls_control.md` and `figures/tls_control.png` (accuracy, plus the on-wire cost of TLS): within-cleartext and within-TLS (group CV), and cleartext→TLS
-cross-fitted so no test prompt is ever in training; the original 600-trace cleartext capture →
-TLS, cross-fitted the same way, is reported only as a secondary, cross-session comparison.
+cross-fitted so no test prompt is ever in training, for workflow, topology and role. There is no
+comparison against the original cleartext capture (see the streaming-bug note in §7e).
+
+---
+
+## 7e. Streaming bug in the pre-fix captures, and what was re-collected
+
+**The bug.** sse-starlette before 3.6.0 sets a process-wide `AppStatus.should_exit` as soon as
+any uvicorn server in the process exits, and never clears it. Every collector that stopped one
+agent set and started another in the same Python process (`collect_deployment.py` without
+`--topology` runs star, then chain, then mesh) therefore served every later SSE reply cut after
+its first event. The orchestrator logged `downstream failed: peer closed connection`, yet the
+trace was still labelled a success. Star, collected first, was intact.
+
+**The fix.** `agents/base.py` disables sse-starlette's automatic graceful drain, and
+`requirements.txt` / `requirements-lock.txt` require sse-starlette ≥ 3.6.0, which no longer
+leaks the flag. Either one alone fixes it; `tests/test_sse_restart.py` restarts an agent set and
+checks the whole stream arrives.
+
+**Finding affected captures from the data.** `python scripts/check_stream_integrity.py --all`
+reports, per data set and topology, the median packet count of the largest specialist reply.
+A cut reply is 4–12 packets; a streamed one is 40–270. Before the fix:
+
+| Data set | star | chain | mesh | Status |
+|---|---|---|---|---|
+| `raw` (A), `raw_amodel_sdk`, `raw_langgraph`, `raw_defense_pad`, `raw_defense_rate` | 267 | 7 | 7 | chain and mesh cut |
+| `raw_b_sdk`, `raw_blogic_sdk` | 267 | 7–8 (68% cut) | 37–43 | chain mostly cut |
+| `raw_interleaved_a`, `_a_pwr`, `_b`, `_langgraph` | 270 | 5–10 | 5–10 | chain and mesh cut |
+| `raw_wan`, `raw_wf_interleaved_full`, `raw_tlspair_*` | 267–284 | 40–66 | 39–80 | intact (one topology per process, or fixed) |
+
+The `a2a_mcp` and CrewAI captures show small replies (median 12 packets) by design: their agent
+executor returns the finished answer as one event, and each agent runs in its own process that
+is never restarted. AutoGen uses gRPC, not SSE. The background sets contain no agents.
+
+**Nothing has been re-collected in place.** The affected raw and processed dirs stay where they
+are, and the results computed from them are snapshotted in `data/results/pre_fix/`. New
+collections use the session collector (`scripts/collect_session.py`), TLS on, each into its own
+directory. `scripts/recollect_core_deployments.sh` (separate cleartext sessions per deployment)
+is kept for reference but superseded: A, A-model, B, B-logic and C will be collected again as
+arms of one same-session TLS collection.
 
 ---
 
@@ -336,7 +374,7 @@ Other scripts: `train_models.py` (standalone model training),
 ## 9. Verify the rebuild
 
 ```bash
-pytest -q                              # 36 tests: features, defense, metrics, stats/SSE, deep shapes, TLS, crossfit
+pytest -q                              # 37 tests: features, defense, metrics, stats/SSE, deep shapes, TLS, crossfit, SSE restart
 bash scripts/reproduce.sh              # re-analyse frozen features into a sandbox, diff vs committed
 ```
 

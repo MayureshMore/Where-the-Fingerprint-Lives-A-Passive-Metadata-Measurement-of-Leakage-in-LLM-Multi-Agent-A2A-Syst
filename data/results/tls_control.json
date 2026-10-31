@@ -1,6 +1,6 @@
 {
   "task": "TLS control \u2014 fingerprinting with TLS on every agent link (same-session, paired)",
-  "method": "Deployment A collected in one session with cleartext and TLS traces alternating (same prompt per pair, arm order counterbalanced). GBT; group-safe 5-fold StratifiedGroupKFold by prompt_group; every transfer (cleartext\u2192TLS and the secondary cross-session one) is cross-fitted so no test prompt is in training; macro-F1 with cluster (group) bootstrap 95% CI; seed 42. Port never a feature.",
+  "method": "Deployment A collected in one session with cleartext and TLS traces alternating (same prompt per pair, arm order counterbalanced). GBT; group-safe 5-fold StratifiedGroupKFold by prompt_group; the cleartext\u2192TLS transfer is cross-fitted so no test prompt is in training; macro-F1 with cluster (group) bootstrap 95% CI; seed 42. Port never a feature.",
   "clear_dir": "data/processed_tlspair_clear",
   "tls_dir": "data/processed_tlspair_tls",
   "results": {
@@ -34,18 +34,37 @@
         "ci_n_clusters": 231,
         "shared_prompt_fraction": 1.0,
         "protocol": "cross-fitted: 5 group folds of the target; trained on source traces of the other prompt groups only"
+      }
+    },
+    "topology": {
+      "chance": 0.3333333333333333,
+      "within_clear": {
+        "macro_f1": 0.9977004658539002,
+        "ci_lo": 0.9923858079173947,
+        "ci_hi": 1.0,
+        "accuracy": 0.9976744186046511,
+        "n": 432,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231
       },
-      "secondary_cross_session": {
-        "source": "data/processed",
-        "note": "earlier cleartext collection \u2192 this session's TLS arm; mixes the TLS effect with session drift, reported for reference only",
-        "macro_f1": 0.24465877997895932,
-        "ci_lo": 0.2008627022600927,
-        "ci_hi": 0.28488246128367917,
-        "accuracy": 0.29398148148148145,
+      "within_tls": {
+        "macro_f1": 0.9976579352850539,
+        "ci_lo": 0.991965241515118,
+        "ci_hi": 1.0,
+        "accuracy": 0.9976470588235294,
+        "n": 432,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231
+      },
+      "clear_to_tls": {
+        "macro_f1": 0.9953701470942851,
+        "ci_lo": 0.98860382152307,
+        "ci_hi": 1.0,
+        "accuracy": 0.9953703703703703,
         "n_test": 432,
         "ci_method": "group_bootstrap",
         "ci_n_clusters": 231,
-        "shared_prompt_fraction": 0.8125,
+        "shared_prompt_fraction": 1.0,
         "protocol": "cross-fitted: 5 group folds of the target; trained on source traces of the other prompt groups only"
       }
     },
@@ -78,19 +97,6 @@
         "ci_method": "group_bootstrap",
         "ci_n_clusters": 231,
         "shared_prompt_fraction": 1.0,
-        "protocol": "cross-fitted: 5 group folds of the target; trained on source traces of the other prompt groups only"
-      },
-      "secondary_cross_session": {
-        "source": "data/processed",
-        "note": "earlier cleartext collection \u2192 this session's TLS arm; mixes the TLS effect with session drift, reported for reference only",
-        "macro_f1": 0.4173587378328514,
-        "ci_lo": 0.38083949436260134,
-        "ci_hi": 0.4535797134880022,
-        "accuracy": 0.42824074074074076,
-        "n_test": 1296,
-        "ci_method": "group_bootstrap",
-        "ci_n_clusters": 231,
-        "shared_prompt_fraction": 0.8125,
         "protocol": "cross-fitted: 5 group folds of the target; trained on source traces of the other prompt groups only"
       }
     }
