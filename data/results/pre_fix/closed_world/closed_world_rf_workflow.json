@@ -1,0 +1,144 @@
+{
+  "model": "random_forest",
+  "task": "workflow",
+  "cv": {
+    "accuracy": {
+      "mean": 0.6649999999999999,
+      "std": 0.03590109871423004,
+      "ci_lo": 0.6231127683144155,
+      "ci_hi": 0.7038987719605332
+    },
+    "f1_macro": {
+      "mean": 0.6627483284957234,
+      "std": 0.03620740946576114,
+      "ci_lo": 0.6223922803757072,
+      "ci_hi": 0.699402973646024
+    },
+    "precision_macro": {
+      "mean": 0.6705842263338746,
+      "std": 0.035548783604354844
+    },
+    "recall_macro": {
+      "mean": 0.6649999999999999,
+      "std": 0.03590109871422997
+    },
+    "confusion_matrix": {
+      "labels": [
+        "code_review",
+        "data_analysis",
+        "research_retrieval",
+        "support_triage"
+      ],
+      "matrix": [
+        [
+          101,
+          32,
+          10,
+          7
+        ],
+        [
+          21,
+          115,
+          4,
+          10
+        ],
+        [
+          12,
+          0,
+          82,
+          56
+        ],
+        [
+          11,
+          4,
+          34,
+          101
+        ]
+      ]
+    },
+    "ci_method": "group_bootstrap",
+    "ci_n_clusters": 289
+  },
+  "top_features": [
+    [
+      "pf_top1.cumul_bytes_q4",
+      0.01836540620479334
+    ],
+    [
+      "sys.max_flow_bytes_out_ratio",
+      0.016522334372353186
+    ],
+    [
+      "pf_top1.cumul_bytes_q3",
+      0.016308711686581965
+    ],
+    [
+      "sys.mean_burst_rate",
+      0.015780656760774964
+    ],
+    [
+      "pf_top1.std_sz_in",
+      0.014182002124750603
+    ],
+    [
+      "sys.total_duration_s",
+      0.01350512392423846
+    ],
+    [
+      "sys.pf_mean_std_burst_bytes",
+      0.013447650597608251
+    ],
+    [
+      "pf_top1.mean_sz_in",
+      0.012813834723901674
+    ],
+    [
+      "sys.bytes_out_ratio",
+      0.012549514243430492
+    ],
+    [
+      "sys.max_flow_bytes_in",
+      0.01223950247099999
+    ],
+    [
+      "pf_top1.bytes_out_ratio",
+      0.012237146810866335
+    ],
+    [
+      "pf_mean.mean_burst_bytes",
+      0.012191832670146495
+    ],
+    [
+      "pf_top1.pkt_size_asymmetry",
+      0.01209022452887212
+    ],
+    [
+      "sys.flow_end_spread",
+      0.011988245833076557
+    ],
+    [
+      "sys.pf_mean_cumul_bytes_q7",
+      0.011891026212252506
+    ],
+    [
+      "pf_top1.mean_burst_bytes",
+      0.011657537353427451
+    ],
+    [
+      "sys.flow_start_spread",
+      0.011541439138485586
+    ],
+    [
+      "pf_top1.cumul_bytes_q9",
+      0.01153016688515245
+    ],
+    [
+      "pf_top1.bytes_in",
+      0.01142810507171565
+    ],
+    [
+      "pf_mean.cumul_bytes_q7",
+      0.011267237989405174
+    ]
+  ]
+}

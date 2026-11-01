@@ -1,0 +1,336 @@
+{
+  "task": "cross-INSTANCE role transfer on a2a_mcp (Phase 2 \u2014 deployable-attack test)",
+  "hypothesis": "two independent instances of the SAME framework share call structure and differ only in surface variables (LLM, prompts, session, driver), so role transfer SHOULD work \u2014 a prediction, not a guarantee.",
+  "independence_of_instance2": {
+    "different_llm": "gemini-2.0-flash (instance 1 = gemini-2.5-flash), via LITELLM_MODEL",
+    "different_prompts": "reworded query template, different dates/party-size/class/nights",
+    "separate_session": true,
+    "specialist_collection": "NATURAL (trip_driver_natural.py: bug-fixed-but-not-forced, instance-2's own reworded prompt) \u2014 the driver confound is REMOVED; residual gap = legitimate LLM/session independence. See specialist_distribution_check (the band's gate).",
+    "shared": "the a2a_mcp framework's fixed six roles by port (10100-10105)"
+  },
+  "specialist_collection_mode": {
+    "mode": "natural",
+    "n_specialist_samples": 45,
+    "n_boosted": 0,
+    "n_natural": 33,
+    "n_unknown_legacy": 12,
+    "drivers": [
+      "drive_orch_natural_fixed.py"
+    ]
+  },
+  "representation": "35-dim per-agent traffic-shape vector (features/per_flow.py); port is the LABEL only, never a feature.",
+  "method": "fit GBT on train instance, predict test instance (_transfer pattern); macro-F1 with cluster (group) bootstrap 95% CI by trip (seed 42); chance = 1/n_test_roles.",
+  "roles_present_instance1": {
+    "air_ticketing": 17,
+    "car_rental": 17,
+    "hotel": 17,
+    "mcp": 150,
+    "orchestrator": 150,
+    "planner": 150
+  },
+  "roles_present_instance2": {
+    "air_ticketing": 15,
+    "car_rental": 15,
+    "hotel": 15,
+    "mcp": 102,
+    "orchestrator": 102,
+    "planner": 102
+  },
+  "common_roles_used": [
+    "air_ticketing",
+    "car_rental",
+    "hotel",
+    "mcp",
+    "orchestrator",
+    "planner"
+  ],
+  "min_samples_per_role": 10,
+  "n_way": 6,
+  "role_transfer": {
+    "inst1_to_inst2": {
+      "macro_f1": 0.7439465296608153,
+      "ci_lo": 0.7254340073135233,
+      "ci_hi": 0.760788592560087,
+      "accuracy": 0.9088319088319088,
+      "n_test": 351,
+      "chance": 0.16666666666666666,
+      "test_classes": [
+        "air_ticketing",
+        "car_rental",
+        "hotel",
+        "mcp",
+        "orchestrator",
+        "planner"
+      ],
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 102
+    },
+    "inst2_to_inst1": {
+      "macro_f1": 0.5943624977850873,
+      "ci_lo": 0.5755328328410669,
+      "ci_hi": 0.617453942509451,
+      "accuracy": 0.9261477045908184,
+      "n_test": 501,
+      "chance": 0.16666666666666666,
+      "test_classes": [
+        "air_ticketing",
+        "car_rental",
+        "hotel",
+        "mcp",
+        "orchestrator",
+        "planner"
+      ],
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 150
+    },
+    "weaker_direction_macro_f1": 0.5943624977850873
+  },
+  "legacy_excluded": {
+    "n_excluded": 12,
+    "roles_present_instance2": {
+      "air_ticketing": 11,
+      "car_rental": 11,
+      "hotel": 11,
+      "mcp": 102,
+      "orchestrator": 102,
+      "planner": 102
+    },
+    "common_roles_used": [
+      "air_ticketing",
+      "car_rental",
+      "hotel",
+      "mcp",
+      "orchestrator",
+      "planner"
+    ],
+    "n_way": 6,
+    "roles_dropped_below_min_n": [],
+    "inst1_to_inst2": {
+      "macro_f1": 0.7473873822864506,
+      "ci_lo": 0.7289983460196225,
+      "ci_hi": 0.7639721022202458,
+      "accuracy": 0.9174041297935103,
+      "n_test": 339,
+      "chance": 0.16666666666666666,
+      "test_classes": [
+        "air_ticketing",
+        "car_rental",
+        "hotel",
+        "mcp",
+        "orchestrator",
+        "planner"
+      ],
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 102
+    },
+    "inst2_to_inst1": {
+      "macro_f1": 0.5877343838927298,
+      "ci_lo": 0.5640796755325811,
+      "ci_hi": 0.6128154009332962,
+      "accuracy": 0.9201596806387226,
+      "n_test": 501,
+      "chance": 0.16666666666666666,
+      "test_classes": [
+        "air_ticketing",
+        "car_rental",
+        "hotel",
+        "mcp",
+        "orchestrator",
+        "planner"
+      ],
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 150
+    },
+    "weaker_direction_macro_f1": 0.5877343838927298
+  },
+  "coordinator_layer_3way_clean": {
+    "note": "NATURAL both instances (coordinators fire on every trip; no boosted driver) \u2014 the clean, unconfounded deployable result.",
+    "roles": [
+      "mcp",
+      "orchestrator",
+      "planner"
+    ],
+    "inst1_to_inst2": {
+      "macro_f1": 0.9419484173788429,
+      "ci_lo": 0.9043255243299819,
+      "ci_hi": 0.9739656787370133,
+      "accuracy": 0.9411764705882353,
+      "n_test": 306,
+      "chance": 0.3333333333333333,
+      "test_classes": [
+        "mcp",
+        "orchestrator",
+        "planner"
+      ],
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 102
+    },
+    "inst2_to_inst1": {
+      "macro_f1": 1.0,
+      "ci_lo": 1.0,
+      "ci_hi": 1.0,
+      "accuracy": 1.0,
+      "n_test": 450,
+      "chance": 0.3333333333333333,
+      "test_classes": [
+        "mcp",
+        "orchestrator",
+        "planner"
+      ],
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 150
+    },
+    "weaker_direction_macro_f1": 0.9419484173788429,
+    "verdict": "DEPLOYABLE ATTACK (\u22650.70, CI clear of chance)"
+  },
+  "coordinator_shape_only_ablation": {
+    "purpose": "Volume ablation on the \u00a79a coordinator transfer \u2014 is DEPLOYABLE behavioural (shape) or the demoted connection-volume signal? Parallel to the framework-ID timing ablation (0.46\u21920.38).",
+    "roles": [
+      "mcp",
+      "orchestrator",
+      "planner"
+    ],
+    "features_kept": [
+      "mean_sz_out",
+      "std_sz_out",
+      "p25_sz_out",
+      "p75_sz_out",
+      "mean_sz_in",
+      "std_sz_in",
+      "p25_sz_in",
+      "p75_sz_in",
+      "duration_s",
+      "mean_iat",
+      "std_iat",
+      "mean_burst_dur",
+      "mean_ibg",
+      "bytes_out_ratio",
+      "pkt_size_asymmetry",
+      "iqr_size_in"
+    ],
+    "features_dropped": [
+      "n_pkts_out",
+      "n_pkts_in",
+      "bytes_out",
+      "bytes_in",
+      "n_bursts",
+      "mean_burst_bytes",
+      "std_burst_bytes",
+      "cumul_bytes_q0",
+      "cumul_bytes_q1",
+      "cumul_bytes_q2",
+      "cumul_bytes_q3",
+      "cumul_bytes_q4",
+      "cumul_bytes_q5",
+      "cumul_bytes_q6",
+      "cumul_bytes_q7",
+      "cumul_bytes_q8",
+      "cumul_bytes_q9",
+      "n_small_inbound",
+      "n_response_bursts"
+    ],
+    "n_features_kept": 16,
+    "n_features_dropped": 19,
+    "inst1_to_inst2": {
+      "macro_f1": 0.9419675562532706,
+      "ci_lo": 0.9064517032538332,
+      "ci_hi": 0.9740880503144654,
+      "accuracy": 0.9411764705882353,
+      "n_test": 306,
+      "chance": 0.3333333333333333,
+      "test_classes": [
+        "mcp",
+        "orchestrator",
+        "planner"
+      ],
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 102
+    },
+    "inst2_to_inst1": {
+      "macro_f1": 0.9955553580159119,
+      "ci_lo": 0.9888858016115588,
+      "ci_hi": 1.0,
+      "accuracy": 0.9955555555555555,
+      "n_test": 450,
+      "chance": 0.3333333333333333,
+      "test_classes": [
+        "mcp",
+        "orchestrator",
+        "planner"
+      ],
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 150
+    },
+    "weaker_direction_macro_f1": 0.9419675562532706,
+    "verdict": "DEPLOYABLE ATTACK (\u22650.70, CI clear of chance)",
+    "interpretation": "SHAPE-ONLY weaker direction \u22650.70 with CI clear of chance: the coordinator transfer is BEHAVIOURAL (per-agent traffic shape/timing), not merely the connection-volume signal \u2014 'DEPLOYABLE' in \u00a79a stands with ablation evidence."
+  },
+  "coordinator_vs_specialist": {
+    "caveat": "PARTLY STRUCTURAL \u2014 hubs carry more traffic than leaves, so this rides on connection volume (like topology), not subtle per-agent behaviour. The behavioural headline is the multi-role transfer above.",
+    "inst1_to_inst2": {
+      "macro_f1": 0.8258928571428572,
+      "ci_lo": 0.7574425268427639,
+      "ci_hi": 0.8843537414965986,
+      "accuracy": 0.8974358974358975,
+      "n_test": 351,
+      "chance": 0.5,
+      "test_classes": [
+        "coordinator",
+        "specialist"
+      ],
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 102
+    },
+    "inst2_to_inst1": {
+      "macro_f1": 0.8331668331668332,
+      "ci_lo": 0.7542281582173397,
+      "ci_hi": 0.896704624428703,
+      "accuracy": 0.9520958083832335,
+      "n_test": 501,
+      "chance": 0.5,
+      "test_classes": [
+        "coordinator",
+        "specialist"
+      ],
+      "ci_method": "group_bootstrap",
+      "ci_n_clusters": 150
+    }
+  },
+  "specialist_distribution_check": {
+    "air_ticketing": {
+      "n_inst1": 17,
+      "n_inst2": 15,
+      "median_abs_smd": 2.541,
+      "max_abs_smd": 37.152,
+      "frac_features_abs_smd_gt_1": 0.857,
+      "mean_vector_cosine": 0.9721,
+      "comparable": false
+    },
+    "hotel": {
+      "n_inst1": 17,
+      "n_inst2": 15,
+      "median_abs_smd": 0.933,
+      "max_abs_smd": 1.603,
+      "frac_features_abs_smd_gt_1": 0.429,
+      "mean_vector_cosine": 0.9942,
+      "comparable": false
+    },
+    "car_rental": {
+      "n_inst1": 17,
+      "n_inst2": 15,
+      "median_abs_smd": 0.998,
+      "max_abs_smd": 3.337,
+      "frac_features_abs_smd_gt_1": 0.486,
+      "mean_vector_cosine": 0.989,
+      "comparable": false
+    },
+    "_summary": {
+      "specialists_comparable": "0/3",
+      "all_comparable": false
+    }
+  },
+  "driver_confound_interpretation": "NATURAL specialists \u2014 the boosted-driver confound is REMOVED. Specialist distributions are NOT all comparable to instance-1. With the boosted driver removed, the residual difference is the LEGITIMATE independence axes (different LLM gemini-2.0-flash, separate session), NOT a driver artefact: <0.70 \u2192 the drop is PARTLY LLM/SESSION-ATTRIBUTABLE, not a clean 'specialist behaviour does not transfer'. This is STATED, not swept.",
+  "verdict_phase2": "PARTIAL (0.40\u20130.70; transfers but instance drift degrades it)",
+  "verdict_basis": "weaker of the two directions (brief \u00a74); verdict field matches the number. For the 6-way the band's MEANING is gated on specialist_distribution_check + specialist_collection_mode (boosted \u2192 driver confound; natural \u2192 residual gap is legitimate LLM/session independence).",
+  "caveats": "Single second instance. Instance-2 specialists collected via natural driver (see specialist_collection_mode); coordinator samples are natural in both. The specialist_distribution_check is the gate for reading the 6-way band."
+}

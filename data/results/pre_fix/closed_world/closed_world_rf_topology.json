@@ -1,0 +1,134 @@
+{
+  "model": "random_forest",
+  "task": "topology",
+  "cv": {
+    "accuracy": {
+      "mean": 0.9850930022537373,
+      "std": 0.0059734602109863255,
+      "ci_lo": 0.9752645803449603,
+      "ci_hi": 0.9937519290123457
+    },
+    "f1_macro": {
+      "mean": 0.9849966130769534,
+      "std": 0.006237349884110643,
+      "ci_lo": 0.975101574070909,
+      "ci_hi": 0.9936716167284108
+    },
+    "precision_macro": {
+      "mean": 0.9852785967420115,
+      "std": 0.006224532521796387
+    },
+    "recall_macro": {
+      "mean": 0.9850000000000001,
+      "std": 0.006236095644623249
+    },
+    "confusion_matrix": {
+      "labels": [
+        "chain",
+        "mesh",
+        "star"
+      ],
+      "matrix": [
+        [
+          196,
+          4,
+          0
+        ],
+        [
+          5,
+          195,
+          0
+        ],
+        [
+          0,
+          0,
+          200
+        ]
+      ]
+    },
+    "ci_method": "group_bootstrap",
+    "ci_n_clusters": 289
+  },
+  "top_features": [
+    [
+      "sys.max_concurrent_flows",
+      0.07588582467137259
+    ],
+    [
+      "sys.total_packets",
+      0.04951550580591562
+    ],
+    [
+      "sys.total_bursts",
+      0.045960473466180984
+    ],
+    [
+      "sys.n_flows",
+      0.03735419397823381
+    ],
+    [
+      "sys.n_response_heavy_flows",
+      0.03393076504440253
+    ],
+    [
+      "sys.heaviest_flow_bytes_frac",
+      0.025453402762266288
+    ],
+    [
+      "sys.total_bytes",
+      0.022713835439465622
+    ],
+    [
+      "sys.total_duration_s",
+      0.01421737157401251
+    ],
+    [
+      "sys.pf_std_mean_burst_dur",
+      0.013728394796571158
+    ],
+    [
+      "pf_top1.std_iat",
+      0.013120054580886456
+    ],
+    [
+      "sys.pf_mean_mean_burst_dur",
+      0.012173337905039761
+    ],
+    [
+      "pf_mean.cumul_bytes_q3",
+      0.01095009309981872
+    ],
+    [
+      "pf_mean.mean_burst_dur",
+      0.010428406529346262
+    ],
+    [
+      "sys.pf_std_n_bursts",
+      0.010174684453592944
+    ],
+    [
+      "pf_top2.p75_sz_out",
+      0.009983616009527243
+    ],
+    [
+      "sys.max_flow_bytes_in",
+      0.009550109606351173
+    ],
+    [
+      "pf_top2.duration_s",
+      0.009349572795271138
+    ],
+    [
+      "sys.pf_mean_cumul_bytes_q8",
+      0.009220140843388642
+    ],
+    [
+      "sys.max_flow_bytes_out_ratio",
+      0.009165353600782324
+    ],
+    [
+      "pf_mean.bytes_out_ratio",
+      0.009102627869741049
+    ]
+  ]
+}

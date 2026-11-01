@@ -28,6 +28,42 @@ via `bash scripts/reproduce.sh --full-suite` (RF/GBT seed-fixed; deep models opt
 > i.i.d. bootstrap (which treats correlated same-cluster flows as independent) is over-confident and is
 > **no longer used for any reported interval** — see the C4 notes in §1 and §9a.
 
+> **Streaming bug (RECREATE §7e).** Every set collected with more than one agent-set start in one
+> process has its chain and mesh specialist streams cut after the first event. Sections built on
+> those sets (§1–§3, §5, §6, §8, and the home side of §4) are kept for the record but are
+> superseded; their JSONs are snapshotted in `data/results/pre_fix/`. Paper 1 reports only the
+> clean C1 results below.
+
+---
+
+## P1. Collection C1 — deployment A over TLS 1.3, one session (paper 1)
+
+600 traces (50 per topology × workflow), deployment A, llama3.2:3b, TLS on every agent link,
+5 balanced rounds with all 12 conditions in each, 0 failed attempts. Capture checks pass: one TLS
+handshake per connection; median largest specialist reply star 272, chain 44, mesh 78 packets,
+0% cut. Full tables: [`data/results/c1_evaluation.md`](data/results/c1_evaluation.md)
+(`scripts/evaluate_c1.py`; same five prompt-group folds for every row).
+
+| Task | Chance | GBT | RF | k-FP baseline |
+|---|---|---|---|---|
+| role | 0.333 | 0.994 [0.989, 0.998] | 0.993 [0.989, 0.997] | 0.984 [0.977, 0.991] |
+| workflow | 0.250 | 0.626 [0.572, 0.672] | 0.606 [0.557, 0.650] | 0.516 [0.465, 0.565] |
+| topology | 0.333 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.998 [0.995, 1.000] |
+
+- **GBT vs RF:** not distinguishable on any task (paired difference CIs include 0).
+- **vs k-FP** (direction and timing only): GBT higher on workflow (+0.110 [+0.062, +0.164]) and
+  role (+0.010 [+0.005, +0.015]); topology not distinguishable.
+- **Temporal holdout** (rounds 1–3 → 4–5, test prompts removed from training): role 0.985,
+  workflow 0.441 [0.365, 0.522], topology 0.979. Removing the prompts leaves 169 training traces;
+  CV with training cut to the same size gives workflow 0.525 [0.468, 0.576], topology 0.998. The
+  CIs overlap on every task: no evidence of drift; the workflow drop is mostly training size.
+- **What leaks (GBT):** workflow — sizes alone 0.617 (not distinguishable from all features),
+  timing 0.477, counts and direction 0.291; role — sizes 0.978, timing 0.920, counts 0.744;
+  topology — any one family ≥ 0.998. System aggregates alone match all features for workflow
+  (0.617); per-flow features alone are slightly lower (0.592).
+- **Learning curve (workflow):** 0.391 at 12 traces per class, 0.541 at 30, 0.626 at 120; the
+  last two steps overlap, so more data may help but the gain is not resolved.
+
 ---
 
 ## 1. Closed-world attack — deployment A

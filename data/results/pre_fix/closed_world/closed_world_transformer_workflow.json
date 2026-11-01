@@ -1,0 +1,229 @@
+{
+  "model": "transformer",
+  "task": "workflow",
+  "cv": {
+    "accuracy": {
+      "mean": 0.25,
+      "std": 0.0
+    },
+    "f1_macro": {
+      "mean": 0.1,
+      "std": 0.0
+    },
+    "precision_macro": {
+      "mean": 0.0625,
+      "std": 0.0
+    },
+    "recall_macro": {
+      "mean": 0.25,
+      "std": 0.0
+    }
+  },
+  "n_folds": 5,
+  "folds": [
+    {
+      "task": "workflow",
+      "n_samples": 120,
+      "accuracy": 0.25,
+      "macro_f1": 0.1,
+      "macro_precision": 0.0625,
+      "macro_recall": 0.25,
+      "per_class": {
+        "code_review": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "data_analysis": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "research_retrieval": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "support_triage": {
+          "precision": 0.25,
+          "recall": 1.0,
+          "f1": 0.4,
+          "support": 30
+        }
+      },
+      "random_baseline_accuracy": 0.25,
+      "majority_baseline_accuracy": 0.25,
+      "majority_baseline_f1": 0.1,
+      "above_random": false,
+      "above_majority": false,
+      "fold": 0
+    },
+    {
+      "task": "workflow",
+      "n_samples": 120,
+      "accuracy": 0.25,
+      "macro_f1": 0.1,
+      "macro_precision": 0.0625,
+      "macro_recall": 0.25,
+      "per_class": {
+        "code_review": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "data_analysis": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "research_retrieval": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "support_triage": {
+          "precision": 0.25,
+          "recall": 1.0,
+          "f1": 0.4,
+          "support": 30
+        }
+      },
+      "random_baseline_accuracy": 0.25,
+      "majority_baseline_accuracy": 0.25,
+      "majority_baseline_f1": 0.1,
+      "above_random": false,
+      "above_majority": false,
+      "fold": 1
+    },
+    {
+      "task": "workflow",
+      "n_samples": 120,
+      "accuracy": 0.25,
+      "macro_f1": 0.1,
+      "macro_precision": 0.0625,
+      "macro_recall": 0.25,
+      "per_class": {
+        "code_review": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "data_analysis": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "research_retrieval": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "support_triage": {
+          "precision": 0.25,
+          "recall": 1.0,
+          "f1": 0.4,
+          "support": 30
+        }
+      },
+      "random_baseline_accuracy": 0.25,
+      "majority_baseline_accuracy": 0.25,
+      "majority_baseline_f1": 0.1,
+      "above_random": false,
+      "above_majority": false,
+      "fold": 2
+    },
+    {
+      "task": "workflow",
+      "n_samples": 120,
+      "accuracy": 0.25,
+      "macro_f1": 0.1,
+      "macro_precision": 0.0625,
+      "macro_recall": 0.25,
+      "per_class": {
+        "code_review": {
+          "precision": 0.25,
+          "recall": 1.0,
+          "f1": 0.4,
+          "support": 30
+        },
+        "data_analysis": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "research_retrieval": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "support_triage": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        }
+      },
+      "random_baseline_accuracy": 0.25,
+      "majority_baseline_accuracy": 0.25,
+      "majority_baseline_f1": 0.1,
+      "above_random": false,
+      "above_majority": false,
+      "fold": 3
+    },
+    {
+      "task": "workflow",
+      "n_samples": 120,
+      "accuracy": 0.25,
+      "macro_f1": 0.1,
+      "macro_precision": 0.0625,
+      "macro_recall": 0.25,
+      "per_class": {
+        "code_review": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "data_analysis": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        },
+        "research_retrieval": {
+          "precision": 0.25,
+          "recall": 1.0,
+          "f1": 0.4,
+          "support": 30
+        },
+        "support_triage": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 30
+        }
+      },
+      "random_baseline_accuracy": 0.25,
+      "majority_baseline_accuracy": 0.25,
+      "majority_baseline_f1": 0.1,
+      "above_random": false,
+      "above_majority": false,
+      "fold": 4
+    }
+  ],
+  "mean_accuracy": 0.25,
+  "std_accuracy": 0.0,
+  "mean_macro_f1": 0.1,
+  "std_macro_f1": 0.0
+}

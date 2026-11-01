@@ -1,0 +1,535 @@
+{
+  "cut_at_pkts": 15,
+  "sets": {
+    "data/raw": {
+      "chain": {
+        "n": 200,
+        "median_largest_reply_pkts": 7.0,
+        "min": 7,
+        "max": 7,
+        "share_cut": 1.0
+      },
+      "mesh": {
+        "n": 200,
+        "median_largest_reply_pkts": 7.0,
+        "min": 7,
+        "max": 7,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 200,
+        "median_largest_reply_pkts": 267.0,
+        "min": 265,
+        "max": 268,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_amodel": {
+      "chain": {
+        "n": 200,
+        "median_largest_reply_pkts": 7.0,
+        "min": 6,
+        "max": 8,
+        "share_cut": 1.0
+      },
+      "mesh": {
+        "n": 200,
+        "median_largest_reply_pkts": 8.0,
+        "min": 6,
+        "max": 8,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 200,
+        "median_largest_reply_pkts": 8.0,
+        "min": 8,
+        "max": 8,
+        "share_cut": 1.0
+      }
+    },
+    "data/raw_amodel_sdk": {
+      "chain": {
+        "n": 200,
+        "median_largest_reply_pkts": 7.0,
+        "min": 7,
+        "max": 7,
+        "share_cut": 1.0
+      },
+      "mesh": {
+        "n": 200,
+        "median_largest_reply_pkts": 7.0,
+        "min": 7,
+        "max": 7,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 200,
+        "median_largest_reply_pkts": 267.0,
+        "min": 266,
+        "max": 268,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_autogen": {},
+    "data/raw_b": {
+      "chain": {
+        "n": 200,
+        "median_largest_reply_pkts": 4.0,
+        "min": 4,
+        "max": 6,
+        "share_cut": 1.0
+      },
+      "mesh": {
+        "n": 200,
+        "median_largest_reply_pkts": 8.0,
+        "min": 7,
+        "max": 9,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 200,
+        "median_largest_reply_pkts": 8.0,
+        "min": 7,
+        "max": 8,
+        "share_cut": 1.0
+      }
+    },
+    "data/raw_b_sdk": {
+      "chain": {
+        "n": 200,
+        "median_largest_reply_pkts": 8.0,
+        "min": 7,
+        "max": 167,
+        "share_cut": 0.68
+      },
+      "mesh": {
+        "n": 200,
+        "median_largest_reply_pkts": 37.0,
+        "min": 33,
+        "max": 167,
+        "share_cut": 0.0
+      },
+      "star": {
+        "n": 200,
+        "median_largest_reply_pkts": 267.0,
+        "min": 265,
+        "max": 268,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_background": {},
+    "data/raw_background_sdk": {},
+    "data/raw_blogic": {
+      "chain": {
+        "n": 200,
+        "median_largest_reply_pkts": 4.0,
+        "min": 4,
+        "max": 5,
+        "share_cut": 1.0
+      },
+      "mesh": {
+        "n": 200,
+        "median_largest_reply_pkts": 8.0,
+        "min": 7,
+        "max": 8,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 200,
+        "median_largest_reply_pkts": 8.0,
+        "min": 6,
+        "max": 8,
+        "share_cut": 1.0
+      }
+    },
+    "data/raw_blogic_sdk": {
+      "chain": {
+        "n": 200,
+        "median_largest_reply_pkts": 7.0,
+        "min": 7,
+        "max": 63,
+        "share_cut": 0.675
+      },
+      "mesh": {
+        "n": 190,
+        "median_largest_reply_pkts": 43.0,
+        "min": 33,
+        "max": 90,
+        "share_cut": 0.0
+      },
+      "star": {
+        "n": 200,
+        "median_largest_reply_pkts": 267.0,
+        "min": 42,
+        "max": 267,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_crewai": {
+      "-": {
+        "n": 30,
+        "median_largest_reply_pkts": 12.0,
+        "min": 12,
+        "max": 12,
+        "share_cut": 1.0
+      }
+    },
+    "data/raw_crewai_matched": {
+      "-": {
+        "n": 39,
+        "median_largest_reply_pkts": 12,
+        "min": 8,
+        "max": 16,
+        "share_cut": 0.9743589743589743
+      }
+    },
+    "data/raw_defense_pad": {
+      "chain": {
+        "n": 200,
+        "median_largest_reply_pkts": 7.0,
+        "min": 7,
+        "max": 7,
+        "share_cut": 1.0
+      },
+      "mesh": {
+        "n": 200,
+        "median_largest_reply_pkts": 7.0,
+        "min": 7,
+        "max": 7,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 200,
+        "median_largest_reply_pkts": 267.0,
+        "min": 192,
+        "max": 267,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_defense_rate": {
+      "chain": {
+        "n": 200,
+        "median_largest_reply_pkts": 7.0,
+        "min": 7,
+        "max": 7,
+        "share_cut": 1.0
+      },
+      "mesh": {
+        "n": 200,
+        "median_largest_reply_pkts": 7.0,
+        "min": 7,
+        "max": 7,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 200,
+        "median_largest_reply_pkts": 267.0,
+        "min": 265,
+        "max": 372,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_interleaved_a": {
+      "chain": {
+        "n": 24,
+        "median_largest_reply_pkts": 10.0,
+        "min": 0,
+        "max": 10,
+        "share_cut": 1.0
+      },
+      "mesh": {
+        "n": 24,
+        "median_largest_reply_pkts": 10.0,
+        "min": 10,
+        "max": 10,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 24,
+        "median_largest_reply_pkts": 270.0,
+        "min": 270,
+        "max": 270,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_interleaved_a_pwr": {
+      "chain": {
+        "n": 80,
+        "median_largest_reply_pkts": 10.0,
+        "min": 0,
+        "max": 10,
+        "share_cut": 1.0
+      },
+      "mesh": {
+        "n": 80,
+        "median_largest_reply_pkts": 10.0,
+        "min": 10,
+        "max": 10,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 80,
+        "median_largest_reply_pkts": 270.0,
+        "min": 268,
+        "max": 270,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_interleaved_b": {
+      "chain": {
+        "n": 24,
+        "median_largest_reply_pkts": 5.0,
+        "min": 0,
+        "max": 10,
+        "share_cut": 1.0
+      },
+      "mesh": {
+        "n": 24,
+        "median_largest_reply_pkts": 5.0,
+        "min": 0,
+        "max": 10,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 24,
+        "median_largest_reply_pkts": 270.0,
+        "min": 269,
+        "max": 270,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_interleaved_langgraph": {
+      "chain": {
+        "n": 24,
+        "median_largest_reply_pkts": 10.0,
+        "min": 10,
+        "max": 10,
+        "share_cut": 1.0
+      },
+      "mesh": {
+        "n": 24,
+        "median_largest_reply_pkts": 10.0,
+        "min": 10,
+        "max": 10,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 24,
+        "median_largest_reply_pkts": 270.0,
+        "min": 268,
+        "max": 270,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_langgraph": {
+      "chain": {
+        "n": 160,
+        "median_largest_reply_pkts": 7.0,
+        "min": 7,
+        "max": 10,
+        "share_cut": 1.0
+      },
+      "mesh": {
+        "n": 160,
+        "median_largest_reply_pkts": 7.0,
+        "min": 7,
+        "max": 10,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 161,
+        "median_largest_reply_pkts": 267,
+        "min": 265,
+        "max": 270,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_offtheshelf": {
+      "-": {
+        "n": 150,
+        "median_largest_reply_pkts": 12.0,
+        "min": 12,
+        "max": 19,
+        "share_cut": 0.8933333333333333
+      }
+    },
+    "data/raw_offtheshelf_inst2": {
+      "-": {
+        "n": 82,
+        "median_largest_reply_pkts": 12.0,
+        "min": 5,
+        "max": 13,
+        "share_cut": 1.0
+      }
+    },
+    "data/raw_offtheshelf_inst2_natural": {
+      "-": {
+        "n": 102,
+        "median_largest_reply_pkts": 12.0,
+        "min": 5,
+        "max": 13,
+        "share_cut": 1.0
+      }
+    },
+    "data/raw_tlspair_clear": {
+      "chain": {
+        "n": 144,
+        "median_largest_reply_pkts": 41.0,
+        "min": 26,
+        "max": 53,
+        "share_cut": 0.0
+      },
+      "mesh": {
+        "n": 144,
+        "median_largest_reply_pkts": 74.0,
+        "min": 37,
+        "max": 94,
+        "share_cut": 0.0
+      },
+      "star": {
+        "n": 144,
+        "median_largest_reply_pkts": 267.0,
+        "min": 265,
+        "max": 270,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_tlspair_clear_cutstream": {
+      "chain": {
+        "n": 25,
+        "median_largest_reply_pkts": 7,
+        "min": 0,
+        "max": 10,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 48,
+        "median_largest_reply_pkts": 267.0,
+        "min": 263,
+        "max": 275,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_tlspair_tls": {
+      "chain": {
+        "n": 144,
+        "median_largest_reply_pkts": 45.0,
+        "min": 14,
+        "max": 57,
+        "share_cut": 0.006944444444444444
+      },
+      "mesh": {
+        "n": 144,
+        "median_largest_reply_pkts": 80.0,
+        "min": 39,
+        "max": 99,
+        "share_cut": 0.0
+      },
+      "star": {
+        "n": 144,
+        "median_largest_reply_pkts": 271.0,
+        "min": 269,
+        "max": 275,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_tlspair_tls_cutstream": {
+      "chain": {
+        "n": 24,
+        "median_largest_reply_pkts": 12.0,
+        "min": 1,
+        "max": 15,
+        "share_cut": 1.0
+      },
+      "star": {
+        "n": 48,
+        "median_largest_reply_pkts": 271.0,
+        "min": 260,
+        "max": 297,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_wan": {
+      "chain": {
+        "n": 195,
+        "median_largest_reply_pkts": 66,
+        "min": 19,
+        "max": 81,
+        "share_cut": 0.0
+      },
+      "mesh": {
+        "n": 200,
+        "median_largest_reply_pkts": 39.0,
+        "min": 22,
+        "max": 82,
+        "share_cut": 0.0
+      },
+      "star": {
+        "n": 200,
+        "median_largest_reply_pkts": 284.0,
+        "min": 23,
+        "max": 307,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_wan_poc": {
+      "star": {
+        "n": 4,
+        "median_largest_reply_pkts": 2.0,
+        "min": 0,
+        "max": 4,
+        "share_cut": 1.0
+      }
+    },
+    "data/raw_wan_poc2": {
+      "star": {
+        "n": 2,
+        "median_largest_reply_pkts": 2.0,
+        "min": 0,
+        "max": 4,
+        "share_cut": 1.0
+      }
+    },
+    "data/raw_wan_poc3": {
+      "star": {
+        "n": 2,
+        "median_largest_reply_pkts": 281.0,
+        "min": 279,
+        "max": 283,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_wf_interleaved": {
+      "star": {
+        "n": 144,
+        "median_largest_reply_pkts": 267.0,
+        "min": 265,
+        "max": 270,
+        "share_cut": 0.0
+      }
+    },
+    "data/raw_wf_interleaved_full": {
+      "chain": {
+        "n": 144,
+        "median_largest_reply_pkts": 40.0,
+        "min": 34,
+        "max": 51,
+        "share_cut": 0.0
+      },
+      "mesh": {
+        "n": 144,
+        "median_largest_reply_pkts": 79.0,
+        "min": 39,
+        "max": 100,
+        "share_cut": 0.0
+      },
+      "star": {
+        "n": 144,
+        "median_largest_reply_pkts": 267.0,
+        "min": 265,
+        "max": 270,
+        "share_cut": 0.0
+      }
+    }
+  }
+}

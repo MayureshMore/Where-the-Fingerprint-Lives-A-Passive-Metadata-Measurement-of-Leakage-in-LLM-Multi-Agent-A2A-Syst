@@ -203,6 +203,10 @@ else
     if have "data/processed_tlspair_clear/labels.json" "data/processed_tlspair_tls/labels.json" \
             "data/raw_tlspair_clear" "data/raw_tlspair_tls"; then
         run $PY scripts/evaluate_tls_control.py; fi
+    stage "P1 on collection C1 (deployment A over TLS, one session; scripts/run_c1_collection.sh)"
+    if have "data/processed_c1/labels.json" "data/raw_c1/session_meta.json" \
+            "data/raw_c1/tls_check.json" "data/raw_c1/stream_integrity.json"; then
+        run $PY scripts/evaluate_c1.py; fi
     stage "capture-interface provenance manifest (loopback vs cross-host, derived from traces)"
     if have "data/raw"; then
         run $PY scripts/emit_capture_interface.py; fi

@@ -333,10 +333,49 @@ arms of one same-session TLS collection.
 
 ---
 
+## 7f. Session collections (C1 and later)
+
+`scripts/collect_session.py` collects one or more *arms* (deployment, model, TLS on/off, live
+defense) in one session, one trace at a time. Each round gives every condition of every arm the
+same number of traces, in a seeded random order; arms alternate on the same prompt with the order
+rotated; a trace in which any agent call failed is retried once; `--resume` and
+`--deadline-hours` behave as in the TLS control. Each sidecar records `collection_id`, `arm`,
+`round` and `position`, and `session_meta.json` holds the schedule. Register the seed offset in
+`docs/PROMPT_REGISTRY.md` first.
+
+C1 (deployment A, llama3.2:3b, TLS on, 50 per condition, 5 rounds, seed offset 10000):
+
+```bash
+sudo chmod o+r /dev/bpf*
+bash scripts/run_c1_collection.sh          # pilot gate → collect → TLS and stream checks → features
+sudo chmod o-r /dev/bpf*
+```
+
+The pilot (one trace per topology) stops the run unless every connection carries TLS and no
+topology has cut specialist streams. Output: `data/raw_c1/` (pcaps, `session_meta.json`,
+`tls_check.json`, `stream_integrity.json`) and `data/processed_c1/`. `RESUME=1` continues an
+interrupted run. A trace that fails restarts that topology's agents before its retry.
+
+Paper 1 evaluation of C1 (≈25 min on an M3 Max):
+
+```bash
+python scripts/evaluate_c1.py     # → data/results/c1_evaluation.{json,md}, figures/c1_evaluation.png
+```
+
+It stops unless C1's TLS check passed and no topology has cut streams, and covers role, workflow
+and topology: closed world (GBT, RF), the temporal holdout (rounds 1–3 → 4–5, test prompts
+removed from training) with a size-matched CV control, the feature ablation (sizes, timing,
+counts and direction; per-flow vs system aggregates), a learning curve, and the k-FP baseline
+(`features/kfp.py`, direction and timing only, 1000-tree RF). Every model and ablation uses the
+same five prompt-group folds; model comparisons are paired group-bootstrap differences.
+
+---
+
 ## 8. Experiment → data → script → result (the full map)
 
 | Result (RESULTS.md §) | Eval script | Reads | Writes to `data/results/` |
 |---|---|---|---|
+| P1 on C1 (closed world, temporal, ablation, learning curve, k-FP) | `evaluate_c1.py` | `processed_c1`, `raw_c1` | `c1_evaluation.json`, `c1_evaluation.md` |
 | §1 closed-world | `evaluate.py --mode all` | `processed` | `closed_world/*` + `summary.json` |
 | §2 model-vs-logic | `evaluate_model_vs_logic.py` | A, amodel, blogic, B | `model_vs_logic.json` |
 | §2 cross-deployment A↔B | `evaluate_cross_deployment.py` | A, B | `cross_deployment.json` |
@@ -374,7 +413,7 @@ Other scripts: `train_models.py` (standalone model training),
 ## 9. Verify the rebuild
 
 ```bash
-pytest -q                              # 37 tests: features, defense, metrics, stats/SSE, deep shapes, TLS, crossfit, SSE restart
+pytest -q                              # 43 tests: features, defense, metrics, stats/SSE, deep shapes, TLS, crossfit, SSE restart, session, k-FP
 bash scripts/reproduce.sh              # re-analyse frozen features into a sandbox, diff vs committed
 ```
 

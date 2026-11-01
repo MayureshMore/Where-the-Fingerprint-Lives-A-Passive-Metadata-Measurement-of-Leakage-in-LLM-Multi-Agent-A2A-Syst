@@ -1,0 +1,862 @@
+{
+  "paper": "P1",
+  "collection_id": "C1",
+  "data_dir": "data/processed_c1",
+  "raw_dir": "data/raw_c1",
+  "seed": 42,
+  "git_commit": "4adc0ea25bf00a15224d8a824ecdbaabb7417498",
+  "git_dirty": true,
+  "method": "GBT headline, RF baseline; 5-fold StratifiedGroupKFold by prompt_group (shuffle, seed 42), identical folds for every model and ablation; temporal holdout trains on rounds 1\u20133 minus every prompt seen in rounds 4\u20135; macro-F1 with 95% cluster bootstrap over prompt groups (2000 resamples); model comparisons are paired group-bootstrap differences. Ports never features.",
+  "session": {
+    "design": "arms collected in one session, one trace at a time; balanced rounds (every condition of every arm gets n/rounds traces per round); all conditions interleaved in a seeded random order within each round; arms share the prompt of an item and alternate with the order rotated per item; one agent set per arm and topology, restarted each round; a trace with any agent error is failed and retried once; models warmed up outside capture",
+    "arms": [
+      {
+        "name": "a_tls",
+        "deployment": "a",
+        "model": "llama3.2:3b",
+        "tls": true,
+        "defense": "none",
+        "out": "data/raw_c1",
+        "ports_base": 8100
+      }
+    ],
+    "num_predict": 256,
+    "n_per_condition": 50,
+    "rounds": 5,
+    "seed_offset": 10000,
+    "started": "2026-10-31T19:28:51-0700",
+    "finished": "2026-10-31T22:32:05-0700",
+    "failures": 0,
+    "complete_items": 600
+  },
+  "capture_checks": {
+    "ok": true,
+    "tls_ok": true,
+    "n_traces": 600,
+    "tls_handshakes_per_connection": 1.0,
+    "streams": {
+      "chain": {
+        "median_largest_reply_pkts": 44.0,
+        "share_cut": 0.0
+      },
+      "mesh": {
+        "median_largest_reply_pkts": 78.0,
+        "share_cut": 0.0
+      },
+      "star": {
+        "median_largest_reply_pkts": 272.0,
+        "share_cut": 0.0
+      }
+    }
+  },
+  "feature_families": {
+    "sizes": {
+      "trace_dims": 139,
+      "role_dims": 26
+    },
+    "timing": {
+      "trace_dims": 30,
+      "role_dims": 5
+    },
+    "counts_direction": {
+      "trace_dims": 26,
+      "role_dims": 4
+    }
+  },
+  "kfp": {
+    "dims": 138,
+    "classifier": "RandomForest, 1000 trees (k-FP closed world)",
+    "uses": "packet direction and timing only"
+  },
+  "results": {
+    "role": {
+      "chance": 0.3333333333333333,
+      "n": 1800,
+      "n_prompt_groups": 282,
+      "classes": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "closed_world": {
+        "gbt": {
+          "macro_f1": 0.993886557494462,
+          "ci_lo": 0.9892061727691401,
+          "ci_hi": 0.9981826006518674,
+          "accuracy": 0.9938888888888889,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282
+        },
+        "rf": {
+          "macro_f1": 0.9933323873642319,
+          "ci_lo": 0.9890452233288286,
+          "ci_hi": 0.9972591740049245,
+          "accuracy": 0.9933333333333333,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282
+        }
+      },
+      "kfp": {
+        "macro_f1": 0.9838877396227468,
+        "ci_lo": 0.9769972463291933,
+        "ci_hi": 0.9905512615307019,
+        "accuracy": 0.9838888888888889,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "temporal": {
+        "gbt": {
+          "macro_f1": 0.9846971311284775,
+          "ci_lo": 0.9743959719458858,
+          "ci_hi": 0.9930906318984514,
+          "accuracy": 0.9847222222222223,
+          "n": 720,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 159,
+          "n_train": 507,
+          "n_train_before_prompt_removal": 1080,
+          "train_classes": [
+            "executor",
+            "retriever",
+            "validator"
+          ],
+          "train_rounds": [
+            1,
+            2,
+            3
+          ],
+          "test_rounds": [
+            4,
+            5
+          ]
+        },
+        "rf": {
+          "macro_f1": 0.9847183577193407,
+          "ci_lo": 0.9748433232392368,
+          "ci_hi": 0.993735253345795,
+          "accuracy": 0.9847222222222223,
+          "n": 720,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 159,
+          "n_train": 507,
+          "n_train_before_prompt_removal": 1080,
+          "train_classes": [
+            "executor",
+            "retriever",
+            "validator"
+          ],
+          "train_rounds": [
+            1,
+            2,
+            3
+          ],
+          "test_rounds": [
+            4,
+            5
+          ]
+        }
+      },
+      "ablation": {
+        "sizes": {
+          "macro_f1": 0.9783040854964465,
+          "ci_lo": 0.971479280059918,
+          "ci_hi": 0.9849307680279996,
+          "accuracy": 0.9783333333333334,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 26,
+          "all_minus_this": {
+            "diff": 0.015582471998015435,
+            "ci_lo": 0.009545078888075098,
+            "ci_hi": 0.022357414898376424,
+            "significant": true
+          }
+        },
+        "timing": {
+          "macro_f1": 0.9195016664803127,
+          "ci_lo": 0.9074322279730906,
+          "ci_hi": 0.9318010736490563,
+          "accuracy": 0.9194444444444444,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 5,
+          "all_minus_this": {
+            "diff": 0.07438489101414925,
+            "ci_lo": 0.06235265774401446,
+            "ci_hi": 0.08591510678768575,
+            "significant": true
+          }
+        },
+        "counts_direction": {
+          "macro_f1": 0.7435053623296998,
+          "ci_lo": 0.7232966889627565,
+          "ci_hi": 0.7644598965721743,
+          "accuracy": 0.7516666666666667,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 4,
+          "all_minus_this": {
+            "diff": 0.2503811951647622,
+            "ci_lo": 0.23007288021600458,
+            "ci_hi": 0.27082968406733415,
+            "significant": true
+          }
+        }
+      },
+      "size_matched_cv": {
+        "gbt": {
+          "macro_f1": 0.9855473930977899,
+          "ci_lo": 0.9791744907518038,
+          "ci_hi": 0.991487875982552,
+          "accuracy": 0.9855555555555555,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "n_train_per_fold": 507
+        },
+        "rf": {
+          "macro_f1": 0.9888874618372038,
+          "ci_lo": 0.9826174429876886,
+          "ci_hi": 0.9947063327187917,
+          "accuracy": 0.9888888888888889,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "n_train_per_fold": 507
+        }
+      },
+      "aggregates": {},
+      "learning_curve": [
+        {
+          "macro_f1": 0.9644161713456668,
+          "ci_lo": 0.9550325830213906,
+          "ci_hi": 0.9732577913666374,
+          "accuracy": 0.9644444444444444,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 0.1,
+          "n_train": 144,
+          "train_per_class": 48.0
+        },
+        {
+          "macro_f1": 0.9772229556520257,
+          "ci_lo": 0.9690096237334029,
+          "ci_hi": 0.9850417736771345,
+          "accuracy": 0.9772222222222222,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 0.25,
+          "n_train": 360,
+          "train_per_class": 120.0
+        },
+        {
+          "macro_f1": 0.988886091041611,
+          "ci_lo": 0.9825641544065048,
+          "ci_hi": 0.9946674424860225,
+          "accuracy": 0.9888888888888889,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 0.5,
+          "n_train": 720,
+          "train_per_class": 240.0
+        },
+        {
+          "macro_f1": 0.9922221983293592,
+          "ci_lo": 0.9864534398860431,
+          "ci_hi": 0.9971270337286947,
+          "accuracy": 0.9922222222222222,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 0.75,
+          "n_train": 1080,
+          "train_per_class": 360.0
+        },
+        {
+          "macro_f1": 0.993886557494462,
+          "ci_lo": 0.9892061727691401,
+          "ci_hi": 0.9981826006518674,
+          "accuracy": 0.9938888888888889,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 1.0,
+          "n_train": 1440,
+          "train_per_class": 480.0
+        }
+      ],
+      "paired": {
+        "gbt_minus_rf": {
+          "diff": 0.0005541701302300694,
+          "ci_lo": -0.0017529812848132097,
+          "ci_hi": 0.002930845921408175,
+          "significant": false
+        },
+        "gbt_minus_kfp": {
+          "diff": 0.009998817871715193,
+          "ci_lo": 0.004882380644113446,
+          "ci_hi": 0.015461498917113388,
+          "significant": true
+        }
+      }
+    },
+    "workflow": {
+      "chance": 0.25,
+      "n": 600,
+      "n_prompt_groups": 282,
+      "classes": [
+        "code_review",
+        "data_analysis",
+        "research_retrieval",
+        "support_triage"
+      ],
+      "closed_world": {
+        "gbt": {
+          "macro_f1": 0.6258895647225882,
+          "ci_lo": 0.5719458856740488,
+          "ci_hi": 0.6717143479474361,
+          "accuracy": 0.625,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282
+        },
+        "rf": {
+          "macro_f1": 0.6060057224446904,
+          "ci_lo": 0.5569608750024189,
+          "ci_hi": 0.6501481108009864,
+          "accuracy": 0.6016666666666667,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282
+        }
+      },
+      "kfp": {
+        "macro_f1": 0.515695513394189,
+        "ci_lo": 0.4650753706847123,
+        "ci_hi": 0.5647928086775591,
+        "accuracy": 0.515,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "temporal": {
+        "gbt": {
+          "macro_f1": 0.4408008134423228,
+          "ci_lo": 0.36503062896336075,
+          "ci_hi": 0.5224369233874225,
+          "accuracy": 0.4708333333333333,
+          "n": 240,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 159,
+          "n_train": 169,
+          "n_train_before_prompt_removal": 360,
+          "train_classes": [
+            "code_review",
+            "data_analysis",
+            "research_retrieval",
+            "support_triage"
+          ],
+          "train_rounds": [
+            1,
+            2,
+            3
+          ],
+          "test_rounds": [
+            4,
+            5
+          ]
+        },
+        "rf": {
+          "macro_f1": 0.46344060490940964,
+          "ci_lo": 0.38040013098210645,
+          "ci_hi": 0.5477087874329817,
+          "accuracy": 0.4791666666666667,
+          "n": 240,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 159,
+          "n_train": 169,
+          "n_train_before_prompt_removal": 360,
+          "train_classes": [
+            "code_review",
+            "data_analysis",
+            "research_retrieval",
+            "support_triage"
+          ],
+          "train_rounds": [
+            1,
+            2,
+            3
+          ],
+          "test_rounds": [
+            4,
+            5
+          ]
+        }
+      },
+      "ablation": {
+        "sizes": {
+          "macro_f1": 0.6172730244663013,
+          "ci_lo": 0.569638131827413,
+          "ci_hi": 0.6625466332066576,
+          "accuracy": 0.6166666666666667,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 139,
+          "all_minus_this": {
+            "diff": 0.008616540256286886,
+            "ci_lo": -0.016396241000192435,
+            "ci_hi": 0.03763407379670559,
+            "significant": false
+          }
+        },
+        "timing": {
+          "macro_f1": 0.4768088948942178,
+          "ci_lo": 0.42840036675306215,
+          "ci_hi": 0.5206148197319829,
+          "accuracy": 0.4766666666666667,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 30,
+          "all_minus_this": {
+            "diff": 0.14908066982837037,
+            "ci_lo": 0.10312142969514856,
+            "ci_hi": 0.1968462377550491,
+            "significant": true
+          }
+        },
+        "counts_direction": {
+          "macro_f1": 0.2914715788289726,
+          "ci_lo": 0.25286715789201486,
+          "ci_hi": 0.3286119194829678,
+          "accuracy": 0.2916666666666667,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 26,
+          "all_minus_this": {
+            "diff": 0.33441798589361554,
+            "ci_lo": 0.28097022289484996,
+            "ci_hi": 0.38561449020870914,
+            "significant": true
+          }
+        }
+      },
+      "size_matched_cv": {
+        "gbt": {
+          "macro_f1": 0.5247979673456596,
+          "ci_lo": 0.46833196994790705,
+          "ci_hi": 0.5760150553224854,
+          "accuracy": 0.5233333333333333,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "n_train_per_fold": 169
+        },
+        "rf": {
+          "macro_f1": 0.534698767240113,
+          "ci_lo": 0.4819132298268833,
+          "ci_hi": 0.5820837018449129,
+          "accuracy": 0.5266666666666666,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "n_train_per_fold": 169
+        }
+      },
+      "aggregates": {
+        "per_flow": {
+          "macro_f1": 0.5917975423901991,
+          "ci_lo": 0.5392928161865955,
+          "ci_hi": 0.6423818463763199,
+          "accuracy": 0.5916666666666667,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 105,
+          "all_minus_this": {
+            "diff": 0.03409202233238906,
+            "ci_lo": 0.0012529981517205996,
+            "ci_hi": 0.06769814889166337,
+            "significant": true
+          }
+        },
+        "system": {
+          "macro_f1": 0.6169282194870598,
+          "ci_lo": 0.5591112405346937,
+          "ci_hi": 0.6678927951629462,
+          "accuracy": 0.6166666666666667,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 90,
+          "all_minus_this": {
+            "diff": 0.008961345235528384,
+            "ci_lo": -0.02220644556912949,
+            "ci_hi": 0.036689176946428995,
+            "significant": false
+          }
+        }
+      },
+      "learning_curve": [
+        {
+          "macro_f1": 0.39097441051984255,
+          "ci_lo": 0.34412274844106044,
+          "ci_hi": 0.4384191160422244,
+          "accuracy": 0.3933333333333333,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 0.1,
+          "n_train": 48,
+          "train_per_class": 12.0
+        },
+        {
+          "macro_f1": 0.540914621060578,
+          "ci_lo": 0.4822095480191276,
+          "ci_hi": 0.5920889342354839,
+          "accuracy": 0.54,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 0.25,
+          "n_train": 120,
+          "train_per_class": 30.0
+        },
+        {
+          "macro_f1": 0.5641775115334298,
+          "ci_lo": 0.5135230041449592,
+          "ci_hi": 0.6085979062199609,
+          "accuracy": 0.5616666666666666,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 0.5,
+          "n_train": 240,
+          "train_per_class": 60.0
+        },
+        {
+          "macro_f1": 0.604740063584161,
+          "ci_lo": 0.5556020933831619,
+          "ci_hi": 0.6485045857269165,
+          "accuracy": 0.6016666666666667,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 0.75,
+          "n_train": 360,
+          "train_per_class": 90.0
+        },
+        {
+          "macro_f1": 0.6258895647225882,
+          "ci_lo": 0.5719458856740488,
+          "ci_hi": 0.6717143479474361,
+          "accuracy": 0.625,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 1.0,
+          "n_train": 480,
+          "train_per_class": 120.0
+        }
+      ],
+      "paired": {
+        "gbt_minus_rf": {
+          "diff": 0.019883842277897745,
+          "ci_lo": -0.010443918375742382,
+          "ci_hi": 0.04893791861019744,
+          "significant": false
+        },
+        "gbt_minus_kfp": {
+          "diff": 0.11019405132839921,
+          "ci_lo": 0.06167080133495455,
+          "ci_hi": 0.16390804051057817,
+          "significant": true
+        }
+      }
+    },
+    "topology": {
+      "chance": 0.3333333333333333,
+      "n": 600,
+      "n_prompt_groups": 282,
+      "classes": [
+        "chain",
+        "mesh",
+        "star"
+      ],
+      "closed_world": {
+        "gbt": {
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282
+        },
+        "rf": {
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282
+        }
+      },
+      "kfp": {
+        "macro_f1": 0.9983333229166016,
+        "ci_lo": 0.994520120790627,
+        "ci_hi": 1.0,
+        "accuracy": 0.9983333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "temporal": {
+        "gbt": {
+          "macro_f1": 0.9791463017269469,
+          "ci_lo": 0.9588291519775626,
+          "ci_hi": 0.9957263024572428,
+          "accuracy": 0.9791666666666666,
+          "n": 240,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 159,
+          "n_train": 169,
+          "n_train_before_prompt_removal": 360,
+          "train_classes": [
+            "chain",
+            "mesh",
+            "star"
+          ],
+          "train_rounds": [
+            1,
+            2,
+            3
+          ],
+          "test_rounds": [
+            4,
+            5
+          ]
+        },
+        "rf": {
+          "macro_f1": 0.9874956039232542,
+          "ci_lo": 0.9710100191637406,
+          "ci_hi": 1.0,
+          "accuracy": 0.9875,
+          "n": 240,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 159,
+          "n_train": 169,
+          "n_train_before_prompt_removal": 360,
+          "train_classes": [
+            "chain",
+            "mesh",
+            "star"
+          ],
+          "train_rounds": [
+            1,
+            2,
+            3
+          ],
+          "test_rounds": [
+            4,
+            5
+          ]
+        }
+      },
+      "ablation": {
+        "sizes": {
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 139,
+          "all_minus_this": {
+            "diff": 0.0,
+            "ci_lo": 0.0,
+            "ci_hi": 0.0,
+            "significant": false
+          }
+        },
+        "timing": {
+          "macro_f1": 0.9983333229166016,
+          "ci_lo": 0.9946224431712876,
+          "ci_hi": 1.0,
+          "accuracy": 0.9983333333333333,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 30,
+          "all_minus_this": {
+            "diff": 0.0016666770833984046,
+            "ci_lo": 0.0,
+            "ci_hi": 0.00537755682871239,
+            "significant": false
+          }
+        },
+        "counts_direction": {
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 26,
+          "all_minus_this": {
+            "diff": 0.0,
+            "ci_lo": 0.0,
+            "ci_hi": 0.0,
+            "significant": false
+          }
+        }
+      },
+      "size_matched_cv": {
+        "gbt": {
+          "macro_f1": 0.9983333229166016,
+          "ci_lo": 0.9946224431712876,
+          "ci_hi": 1.0,
+          "accuracy": 0.9983333333333333,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "n_train_per_fold": 169
+        },
+        "rf": {
+          "macro_f1": 0.9966665833312499,
+          "ci_lo": 0.9895010228552035,
+          "ci_hi": 1.0,
+          "accuracy": 0.9966666666666667,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "n_train_per_fold": 169
+        }
+      },
+      "aggregates": {
+        "per_flow": {
+          "macro_f1": 0.98999899989999,
+          "ci_lo": 0.9816628659843636,
+          "ci_hi": 0.9968482128232384,
+          "accuracy": 0.99,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 105,
+          "all_minus_this": {
+            "diff": 0.010001000100010038,
+            "ci_lo": 0.003151787176761589,
+            "ci_hi": 0.018337134015636358,
+            "significant": true
+          }
+        },
+        "system": {
+          "macro_f1": 0.9983333229166016,
+          "ci_lo": 0.9946224431712876,
+          "ci_hi": 1.0,
+          "accuracy": 0.9983333333333333,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 90,
+          "all_minus_this": {
+            "diff": 0.0016666770833984046,
+            "ci_lo": 0.0,
+            "ci_hi": 0.00537755682871239,
+            "significant": false
+          }
+        }
+      },
+      "learning_curve": [
+        {
+          "macro_f1": 0.9633693904282842,
+          "ci_lo": 0.9444103198344495,
+          "ci_hi": 0.9798652910179217,
+          "accuracy": 0.9633333333333334,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 0.1,
+          "n_train": 48,
+          "train_per_class": 16.0
+        },
+        {
+          "macro_f1": 0.9916497068084996,
+          "ci_lo": 0.9820980295486662,
+          "ci_hi": 0.9985764516420186,
+          "accuracy": 0.9916666666666667,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 0.25,
+          "n_train": 120,
+          "train_per_class": 40.0
+        },
+        {
+          "macro_f1": 0.9983333229166016,
+          "ci_lo": 0.9943003288271831,
+          "ci_hi": 1.0,
+          "accuracy": 0.9983333333333333,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 0.5,
+          "n_train": 240,
+          "train_per_class": 80.0
+        },
+        {
+          "macro_f1": 0.9983333229166016,
+          "ci_lo": 0.994328569843459,
+          "ci_hi": 1.0,
+          "accuracy": 0.9983333333333333,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 0.75,
+          "n_train": 360,
+          "train_per_class": 120.0
+        },
+        {
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "fraction": 1.0,
+          "n_train": 480,
+          "train_per_class": 160.0
+        }
+      ],
+      "paired": {
+        "gbt_minus_rf": {
+          "diff": 0.0,
+          "ci_lo": 0.0,
+          "ci_hi": 0.0,
+          "significant": false
+        },
+        "gbt_minus_kfp": {
+          "diff": 0.0016666770833984046,
+          "ci_lo": 0.0,
+          "ci_hi": 0.0054798792093729435,
+          "significant": false
+        }
+      }
+    }
+  }
+}
