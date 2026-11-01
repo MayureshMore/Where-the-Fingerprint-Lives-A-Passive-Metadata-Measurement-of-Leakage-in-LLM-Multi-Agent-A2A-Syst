@@ -4,7 +4,7 @@
   "data_dir": "data/processed_c1",
   "raw_dir": "data/raw_c1",
   "seed": 42,
-  "git_commit": "587000582269127533ba533963c424021b2d6483",
+  "git_commit": "fd46e23e70ea7d77ffac9f241efc13964df01f54",
   "git_dirty": false,
   "method": "GBT headline, RF baseline; 5-fold StratifiedGroupKFold by prompt_group (shuffle, seed 42), identical folds for every model and ablation; temporal holdout trains on rounds 1\u20133 minus every prompt seen in rounds 4\u20135; macro-F1 with 95% cluster bootstrap over prompt groups (2000 resamples); model comparisons are paired group-bootstrap differences. Ports never features.",
   "session": {
@@ -306,6 +306,174 @@
           "ci_lo": 0.004882380644113446,
           "ci_hi": 0.015461498917113388,
           "significant": true
+        }
+      },
+      "single_feature": {
+        "single_feature_macro_f1": {
+          "cumul_bytes_q8": 0.8420308860927964,
+          "cumul_bytes_q5": 0.793013754977619,
+          "cumul_bytes_q4": 0.7824862935376432,
+          "cumul_bytes_q7": 0.7768426397725002,
+          "std_iat": 0.7440473602499993,
+          "cumul_bytes_q6": 0.72903029951186,
+          "n_bursts": 0.7115625318565267,
+          "cumul_bytes_q3": 0.6935901614719562,
+          "n_small_inbound": 0.6238931877808586,
+          "cumul_bytes_q2": 0.6238159338568198,
+          "n_pkts_in": 0.6076597083315298,
+          "std_sz_out": 0.6020073648057775,
+          "bytes_out": 0.5835891292912135,
+          "mean_sz_out": 0.577401403643225,
+          "n_pkts_out": 0.5713343149698122,
+          "mean_burst_dur": 0.5642306323018267,
+          "mean_burst_bytes": 0.5607421874322517,
+          "n_response_bursts": 0.5606489595128575,
+          "cumul_bytes_q1": 0.5437135187445107,
+          "std_sz_in": 0.5424889855112028,
+          "p25_sz_out": 0.5378714850480303,
+          "bytes_out_ratio": 0.5375574913823248,
+          "mean_ibg": 0.5372492419539281,
+          "mean_iat": 0.5274908588972277,
+          "std_burst_bytes": 0.5243571158246242,
+          "mean_sz_in": 0.5194850305246952,
+          "bytes_in": 0.5140309939828288,
+          "pkt_size_asymmetry": 0.5111565989407006,
+          "p75_sz_out": 0.4612098921800842,
+          "duration_s": 0.44476237780590294,
+          "cumul_bytes_q9": 0.4313800606191001,
+          "cumul_bytes_q0": 0.41900479268231017,
+          "p25_sz_in": 0.16666666666666666,
+          "p75_sz_in": 0.16666666666666666,
+          "iqr_size_in": 0.16666666666666666
+        },
+        "note": "top 5 chosen on these folds out of 35 features, so their scores are optimistic",
+        "top": [
+          {
+            "feature": "cumul_bytes_q8",
+            "macro_f1": 0.8420308860927964,
+            "ci_lo": 0.8208714767063697,
+            "ci_hi": 0.8613157174705811,
+            "accuracy": 0.8427777777777777,
+            "n": 1800,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282,
+            "all_minus_this": {
+              "diff": 0.15185567140166556,
+              "ci_lo": 0.13258546034596963,
+              "ci_hi": 0.1731204501159341,
+              "significant": true
+            }
+          },
+          {
+            "feature": "cumul_bytes_q5",
+            "macro_f1": 0.793013754977619,
+            "ci_lo": 0.7774218438842581,
+            "ci_hi": 0.8087904047279354,
+            "accuracy": 0.7922222222222223,
+            "n": 1800,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282,
+            "all_minus_this": {
+              "diff": 0.20087280251684303,
+              "ci_lo": 0.18528014570491716,
+              "ci_hi": 0.21667114609806037,
+              "significant": true
+            }
+          },
+          {
+            "feature": "cumul_bytes_q4",
+            "macro_f1": 0.7824862935376432,
+            "ci_lo": 0.763884752213532,
+            "ci_hi": 0.8002828284566897,
+            "accuracy": 0.7827777777777778,
+            "n": 1800,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282,
+            "all_minus_this": {
+              "diff": 0.21140026395681877,
+              "ci_lo": 0.19276053770308904,
+              "ci_hi": 0.23031498808358958,
+              "significant": true
+            }
+          },
+          {
+            "feature": "cumul_bytes_q7",
+            "macro_f1": 0.7768426397725002,
+            "ci_lo": 0.7524179010855169,
+            "ci_hi": 0.8009004974132312,
+            "accuracy": 0.7777777777777778,
+            "n": 1800,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282,
+            "all_minus_this": {
+              "diff": 0.21704391772196174,
+              "ci_lo": 0.19242827813728508,
+              "ci_hi": 0.2423168792376008,
+              "significant": true
+            }
+          },
+          {
+            "feature": "std_iat",
+            "macro_f1": 0.7440473602499993,
+            "ci_lo": 0.7260935664489611,
+            "ci_hi": 0.7645636709663206,
+            "accuracy": 0.7461111111111111,
+            "n": 1800,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282,
+            "all_minus_this": {
+              "diff": 0.24983919724446269,
+              "ci_lo": 0.23004488402726797,
+              "ci_hi": 0.26753175936498286,
+              "significant": true
+            }
+          }
+        ],
+        "response_sizes_only": {
+          "macro_f1": 0.7960490627713797,
+          "ci_lo": 0.7783643012803512,
+          "ci_hi": 0.8137870269339478,
+          "accuracy": 0.7977777777777778,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "features": [
+            "bytes_out",
+            "mean_sz_out",
+            "std_sz_out",
+            "p25_sz_out",
+            "p75_sz_out"
+          ],
+          "all_minus_this": {
+            "diff": 0.19783749472308232,
+            "ci_lo": 0.18044484170793498,
+            "ci_hi": 0.21492535374641517,
+            "significant": true
+          }
+        },
+        "request_sizes_only": {
+          "macro_f1": 0.6852022971445578,
+          "ci_lo": 0.6591418931318196,
+          "ci_hi": 0.7113307650137012,
+          "accuracy": 0.685,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "features": [
+            "bytes_in",
+            "mean_sz_in",
+            "std_sz_in",
+            "p25_sz_in",
+            "p75_sz_in",
+            "n_small_inbound",
+            "iqr_size_in"
+          ],
+          "all_minus_this": {
+            "diff": 0.30868426034990415,
+            "ci_lo": 0.28307643205097827,
+            "ci_hi": 0.334353000186017,
+            "significant": true
+          }
         }
       }
     },
@@ -791,7 +959,7 @@
               "shared_distinct": 37,
               "traces_a_with_shared_prompt": 0.82,
               "traces_b_with_shared_prompt": 0.8333333333333334,
-              "total_variation": 0.37592592592592594,
+              "total_variation": 0.3759259259259261,
               "median_prompt_chars_a": 5059.0,
               "median_prompt_chars_b": 5059.0
             },
@@ -803,7 +971,7 @@
               "shared_distinct": 52,
               "traces_a_with_shared_prompt": 0.6866666666666666,
               "traces_b_with_shared_prompt": 0.75,
-              "total_variation": 0.4607407407407409,
+              "total_variation": 0.46074074074074073,
               "median_prompt_chars_a": 3902.0,
               "median_prompt_chars_b": 4083.0
             },
@@ -815,7 +983,7 @@
               "shared_distinct": 34,
               "traces_a_with_shared_prompt": 0.72,
               "traces_b_with_shared_prompt": 0.8888888888888888,
-              "total_variation": 0.38444444444444453,
+              "total_variation": 0.3844444444444443,
               "median_prompt_chars_a": 127.5,
               "median_prompt_chars_b": 133.0
             },
@@ -827,7 +995,7 @@
               "shared_distinct": 45,
               "traces_a_with_shared_prompt": 0.5,
               "traces_b_with_shared_prompt": 0.7037037037037037,
-              "total_variation": 0.5996296296296296,
+              "total_variation": 0.5996296296296303,
               "median_prompt_chars_a": 222.0,
               "median_prompt_chars_b": 224.0
             }
@@ -853,6 +1021,169 @@
             }
           },
           "note": "a = C1, b = TLS control TLS arm; per-class difference CIs from independent group bootstraps of the two sets"
+        }
+      },
+      "length_checks": {
+        "first_request": {
+          "definition": "TCP payload bytes of the first request message that reaches an agent (the caller \u2192 orchestrator link is not captured): on the agent link whose first post-handshake request starts earliest, the request-direction writes \u2264 50 ms apart, TLS ClientHello and client Finished excluded; from headers only.",
+          "n_zero": 0,
+          "pearson_with_prompt_chars": 0.9959432612927277,
+          "median_by_workflow": {
+            "code_review": {
+              "first_request_bytes": 6175.5,
+              "prompt_chars": 5059.0,
+              "overhead": 1178.0
+            },
+            "data_analysis": {
+              "first_request_bytes": 4976.0,
+              "prompt_chars": 3902.0,
+              "overhead": 1012.0
+            },
+            "research_retrieval": {
+              "first_request_bytes": 1371.0,
+              "prompt_chars": 127.5,
+              "overhead": 1178.0
+            },
+            "support_triage": {
+              "first_request_bytes": 1271.5,
+              "prompt_chars": 222.0,
+              "overhead": 1020.5
+            }
+          }
+        },
+        "first_request_bytes": {
+          "macro_f1": 0.6414460591221728,
+          "ci_lo": 0.5891328679713896,
+          "ci_hi": 0.6872502163286259,
+          "accuracy": 0.65,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "all_minus_this": {
+            "diff": -0.01555649439958462,
+            "ci_lo": -0.06671921386280828,
+            "ci_hi": 0.039566541062880226,
+            "significant": false
+          }
+        },
+        "prompt_chars": {
+          "macro_f1": 0.9279463903661593,
+          "ci_lo": 0.8691495324995775,
+          "ci_hi": 0.9750901595282349,
+          "accuracy": 0.9266666666666666,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "all_minus_this": {
+            "diff": -0.30205682564357117,
+            "ci_lo": -0.3633014098681638,
+            "ci_hi": -0.2437261877281023,
+            "significant": true
+          }
+        },
+        "response_side_only": {
+          "macro_f1": 0.4806480648064806,
+          "ci_lo": 0.43518910222657825,
+          "ci_hi": 0.5220741786300243,
+          "accuracy": 0.48,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282,
+          "dims": 81,
+          "all_minus_this": {
+            "diff": 0.14524149991610757,
+            "ci_lo": 0.10127718283587717,
+            "ci_hi": 0.19113909657961203,
+            "significant": true
+          }
+        },
+        "pairs": {
+          "code_review_vs_data_analysis": {
+            "chance": 0.5,
+            "n": 300,
+            "all": {
+              "macro_f1": 0.8933333333333333,
+              "ci_lo": 0.8497312493974178,
+              "ci_hi": 0.9293174612043943,
+              "accuracy": 0.8933333333333333,
+              "n": 300,
+              "ci_method": "group_bootstrap",
+              "ci_n_clusters": 125
+            },
+            "first_request_bytes": {
+              "macro_f1": 0.9033236656999033,
+              "ci_lo": 0.8589683681222267,
+              "ci_hi": 0.942553445989199,
+              "accuracy": 0.9033333333333333,
+              "n": 300,
+              "ci_method": "group_bootstrap",
+              "ci_n_clusters": 125,
+              "all_minus_this": {
+                "diff": -0.009990332366569987,
+                "ci_lo": -0.053513683712689886,
+                "ci_hi": 0.03327448277846392,
+                "significant": false
+              }
+            },
+            "prompt_chars": {
+              "macro_f1": 0.9565851432133674,
+              "ci_lo": 0.9137426002310778,
+              "ci_hi": 0.9930938116372159,
+              "accuracy": 0.9566666666666667,
+              "n": 300,
+              "ci_method": "group_bootstrap",
+              "ci_n_clusters": 125,
+              "all_minus_this": {
+                "diff": -0.0632518098800341,
+                "ci_lo": -0.11794541992624621,
+                "ci_hi": -0.010190521389122863,
+                "significant": true
+              }
+            }
+          },
+          "research_retrieval_vs_support_triage": {
+            "chance": 0.5,
+            "n": 300,
+            "all": {
+              "macro_f1": 0.576661962910699,
+              "ci_lo": 0.5013709911120839,
+              "ci_hi": 0.6397558067315042,
+              "accuracy": 0.5766666666666667,
+              "n": 300,
+              "ci_method": "group_bootstrap",
+              "ci_n_clusters": 157
+            },
+            "first_request_bytes": {
+              "macro_f1": 0.5714285714285714,
+              "ci_lo": 0.47187231412596464,
+              "ci_hi": 0.6604149505700259,
+              "accuracy": 0.5733333333333334,
+              "n": 300,
+              "ci_method": "group_bootstrap",
+              "ci_n_clusters": 157,
+              "all_minus_this": {
+                "diff": 0.005233391482127647,
+                "ci_lo": -0.07638057693515138,
+                "ci_hi": 0.09250375020647648,
+                "significant": false
+              }
+            },
+            "prompt_chars": {
+              "macro_f1": 1.0,
+              "ci_lo": 1.0,
+              "ci_hi": 1.0,
+              "accuracy": 1.0,
+              "n": 300,
+              "ci_method": "group_bootstrap",
+              "ci_n_clusters": 157,
+              "all_minus_this": {
+                "diff": -0.42333803708930096,
+                "ci_lo": -0.49862900888791606,
+                "ci_hi": -0.36024419326849577,
+                "significant": true
+              }
+            }
+          }
         }
       }
     },

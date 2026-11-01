@@ -1,6 +1,6 @@
 # C1 evaluation (P1)
 
-Collection C1: deployment A, llama3.2:3b, TLS on every agent link, one session (2026-10-31T19:28:51-0700 → 2026-10-31T22:32:05-0700), 600 traces in 5 balanced rounds, 0 failed attempts. Data `data/processed_c1`, commit `58700058`, seed 42.
+Collection C1: deployment A, llama3.2:3b, TLS on every agent link, one session (2026-10-31T19:28:51-0700 → 2026-10-31T22:32:05-0700), 600 traces in 5 balanced rounds, 0 failed attempts. Data `data/processed_c1`, commit `fd46e23e`, seed 42.
 
 Capture checks: TLS record check passed (1.0 handshakes per connection); median largest specialist reply chain 44 pkts (0% cut), mesh 78 pkts (0% cut), star 272 pkts (0% cut).
 
@@ -103,5 +103,47 @@ Prompt mix (prompt_group = sha1 of the prompt). TV = total-variation distance be
 | support_triage | 150 / 108 | 95 / 71 | 45 | 50% | 70% | 0.60 | 222 / 224 |
 
 C1 workflow macro-F1 on traces whose prompt also occurs in the TLS arm: 0.628 [0.564, 0.688] (n = 409); on C1-only prompts: 0.585 [0.505, 0.655] (n = 191).
+
+## Workflow: input length and response side (GBT, same folds)
+
+First request into the system: TCP payload bytes of the first request message that reaches an agent (the caller → orchestrator link is not captured): on the agent link whose first post-handshake request starts earliest, the request-direction writes ≤ 50 ms apart, TLS ClientHello and client Finished excluded; from headers only. Pearson r with the true prompt length 0.996; 0 traces without one.
+
+| Features | Dims | macro-F1 | All − this |
+|---|---|---|---|
+| all | 195 | 0.626 [0.572, 0.672] | — |
+| first-request size only | 1 | 0.641 [0.589, 0.687] | -0.016 [-0.067, +0.040] (n.s.) |
+| true prompt length only (not observable) | 1 | 0.928 [0.869, 0.975] | -0.302 [-0.363, -0.244] |
+| response side only (no request-byte sizes) | 81 | 0.481 [0.435, 0.522] | +0.145 [+0.101, +0.191] |
+
+| Workflow | Median first request (B) | Median prompt (chars) | Median first request − prompt |
+|---|---|---|---|
+| code_review | 6175.5 | 5059 | 1178 |
+| data_analysis | 4976 | 3902 | 1012 |
+| research_retrieval | 1371 | 127.5 | 1178 |
+| support_triage | 1271.5 | 222 | 1020.5 |
+
+Within-length pairs (binary, the same folds restricted to the pair, chance 0.5):
+
+| Pair | n | All features | First-request size only | Prompt length only | All − first request | All − prompt length |
+|---|---|---|---|---|---|---|
+| code_review vs data_analysis | 300 | 0.893 [0.850, 0.929] | 0.903 [0.859, 0.943] | 0.957 [0.914, 0.993] | -0.010 [-0.054, +0.033] (n.s.) | -0.063 [-0.118, -0.010] |
+| research_retrieval vs support_triage | 300 | 0.577 [0.501, 0.640] | 0.571 [0.472, 0.660] | 1.000 [1.000, 1.000] | +0.005 [-0.076, +0.093] (n.s.) | -0.423 [-0.499, -0.360] |
+
+## Role: single features and one direction's sizes (GBT, same folds)
+
+Each of the 35 per-flow features alone; the top 5 are shown with CIs (top 5 chosen on these folds out of 35 features, so their scores are optimistic). Response = agent → caller, request = caller → agent.
+
+| Features | macro-F1 | All − this |
+|---|---|---|
+| all 35 | 0.994 [0.989, 0.998] | — |
+| cumul_bytes_q8 only | 0.842 [0.821, 0.861] | +0.152 [+0.133, +0.173] |
+| cumul_bytes_q5 only | 0.793 [0.777, 0.809] | +0.201 [+0.185, +0.217] |
+| cumul_bytes_q4 only | 0.782 [0.764, 0.800] | +0.211 [+0.193, +0.230] |
+| cumul_bytes_q7 only | 0.777 [0.752, 0.801] | +0.217 [+0.192, +0.242] |
+| std_iat only | 0.744 [0.726, 0.765] | +0.250 [+0.230, +0.268] |
+| response-side sizes only (bytes_out, mean_sz_out, std_sz_out, p25_sz_out, p75_sz_out) | 0.796 [0.778, 0.814] | +0.198 [+0.180, +0.215] |
+| request-side sizes only (bytes_in, mean_sz_in, std_sz_in, p25_sz_in, p75_sz_in, n_small_inbound, iqr_size_in) | 0.685 [0.659, 0.711] | +0.309 [+0.283, +0.334] |
+
+All single features: cumul_bytes_q8 0.842, cumul_bytes_q5 0.793, cumul_bytes_q4 0.782, cumul_bytes_q7 0.777, std_iat 0.744, cumul_bytes_q6 0.729, n_bursts 0.712, cumul_bytes_q3 0.694, n_small_inbound 0.624, cumul_bytes_q2 0.624, n_pkts_in 0.608, std_sz_out 0.602, bytes_out 0.584, mean_sz_out 0.577, n_pkts_out 0.571, mean_burst_dur 0.564, mean_burst_bytes 0.561, n_response_bursts 0.561, cumul_bytes_q1 0.544, std_sz_in 0.542, p25_sz_out 0.538, bytes_out_ratio 0.538, mean_ibg 0.537, mean_iat 0.527, std_burst_bytes 0.524, mean_sz_in 0.519, bytes_in 0.514, pkt_size_asymmetry 0.511, p75_sz_out 0.461, duration_s 0.445, cumul_bytes_q9 0.431, cumul_bytes_q0 0.419, p25_sz_in 0.167, p75_sz_in 0.167, iqr_size_in 0.167.
 
 k-FP: 138 features from packet direction and timing only (Hayes & Danezis 2016), RandomForest, 1000 trees (k-FP closed world).

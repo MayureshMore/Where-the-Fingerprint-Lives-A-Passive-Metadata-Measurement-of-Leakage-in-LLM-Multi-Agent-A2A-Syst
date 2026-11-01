@@ -70,6 +70,51 @@ handshake per connection; median largest specialist reply star 272, chain 44, me
 - **Learning curve (workflow):** 0.391 at 12 traces per class, 0.541 at 30, 0.626 at 120; the
   last two steps overlap, so more data may help but the gain is not resolved.
 
+### P1 workflow: where the 0.626 comes from
+
+GBT closed-world predictions, same folds; full tables and the confusion figure
+(`data/results/figures/c1_workflow_confusion.png`) in `c1_evaluation.md`.
+
+- **Confusion:** recall is data_analysis 81%, code_review 70%, support_triage 56% and
+  research_retrieval 43%. Most errors are between research_retrieval and support_triage (37% of
+  research_retrieval traces are predicted support_triage; 33% the other way).
+- **No topology effect:** workflow macro-F1 is star 0.628 [0.563, 0.691], chain 0.607
+  [0.528, 0.676] and mesh 0.639 [0.564, 0.704]; the CIs overlap.
+- **Against the TLS control's TLS arm** (within-TLS CV recomputed on the same folds, pooled
+  macro-F1 0.730): only research_retrieval differs, F1 0.432 on C1 vs 0.768, difference −0.335
+  [−0.444, −0.212]. support_triage −0.107 [−0.227, +0.008], code_review and data_analysis are level.
+  The prompt mixes differ (total-variation distance 0.38–0.60 per workflow), but C1 scores
+  0.628 on prompts shared with the TLS arm and 0.585 on C1-only prompts, with overlapping CIs, so
+  the prompt mix is not shown to explain the gap.
+- **The size of the first request explains the whole result.** The first request that reaches a
+  specialist is measured from packet headers (TLS handshake excluded; the caller → orchestrator
+  link is not captured). It tracks the true prompt length (r = 0.996). Alone it gives workflow
+  0.641 [0.589, 0.687], not distinguishable from all 195 features (all − it −0.016 [−0.067,
+  +0.040]). The first request is the prompt plus about 1,180 B for code_review and
+  research_retrieval and about 1,010 B for data_analysis and support_triage, the same in every
+  topology. That difference cancels research_retrieval's shorter prompts (median 128 vs 222
+  characters), so on the wire the two short-prompt workflows overlap: the confusion above. The
+  true prompt length, which an observer does not see, gives 0.928.
+- **Without request sizes:** removing every size feature that uses request bytes (keeping
+  response sizes, timing and counts, 81 dims) gives 0.481 [0.435, 0.522], below all features by
+  0.145 [0.101, 0.191] but well above chance (0.25): responses and timing carry some workflow
+  signal of their own.
+- **Within-length pairs** (binary, chance 0.5): code_review vs data_analysis 0.893 [0.850, 0.929],
+  first-request size alone 0.903; research_retrieval vs support_triage 0.577 [0.501, 0.640],
+  first-request size alone 0.571. In neither pair do all features beat the first-request size
+  (differences not significant). The true prompt length separates the short pair perfectly
+  (1.000): the generators' prompt lengths for those two workflows do not overlap.
+
+### P1 role: no single-feature shortcut
+
+- Each per-flow feature alone (same folds): the best is `cumul_bytes_q8`, 0.842 [0.821, 0.861],
+  then `cumul_bytes_q5` 0.793, `cumul_bytes_q4` 0.782, `cumul_bytes_q7` 0.777 and `std_iat` 0.744.
+  All are below the 35 features (0.994) by 0.15–0.25, and the top 5 were chosen on these folds,
+  so they are optimistic.
+- Response-side sizes alone give 0.796 [0.778, 0.814]; request-side sizes alone give 0.685
+  [0.659, 0.711]. Both are well below all features: unlike workflow, role needs sizes over time,
+  timing and counts together.
+
 ---
 
 ## 1. Closed-world attack — deployment A
