@@ -10,6 +10,19 @@ figures you download a published data archive and unpack it into `data/`.
 > re-run writes to a fresh copy (`A2A_RESULTS_DIR=...`). Nothing in the normal
 > workflow overwrites `data/results/`.
 
+## Paper 1 archive (collection C1)
+
+**Zenodo:** https://doi.org/10.5281/zenodo.23868869 (version 1.0, published 2026-11-01; data CC BY 4.0)
+
+| File | SHA-256 |
+|---|---|
+| `c1-features.zip` (`data/processed_c1/`) | `18d3907a357186672355c616b04c6b9c960e56243ac4da26a726291329b00354` |
+| `c1-raw-pcaps-headers-only.zip` (`data/raw_c1/`, headers only) | `20c0d244cf0081d2a71b0e8cc58018d3059e0e575ffaac51abbab7508e094e58` |
+
+The record also holds `c1_evaluation.json`/`.md` (results at commit `fd46e23e`), a README and
+`SHA256SUMS.txt`. Unzip both archives into the repository root and run
+`python scripts/evaluate_c1.py`.
+
 ## Published archives
 
 | Archive | Contents | Unpacked size | Needed for |
