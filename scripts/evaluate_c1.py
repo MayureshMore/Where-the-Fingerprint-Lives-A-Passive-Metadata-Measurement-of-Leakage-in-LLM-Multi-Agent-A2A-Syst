@@ -13,6 +13,13 @@ For role, workflow and topology:
   4. k-FP baseline     Hayes & Danezis k-FP features (direction and timing; features/kfp.py)
                        with k-FP's random forest (1000 trees), same folds
 
+and for workflow, from the GBT closed-world predictions:
+
+  5. confusion matrix  counts and row-normalized, with a figure
+  6. per topology      workflow macro-F1 on the star, chain and mesh traces separately
+  7. vs TLS control    per-workflow F1 on C1 next to the TLS control's TLS arm (its within-TLS CV
+                       recomputed with that script's folds), and the prompt mix of the two sets
+
 macro-F1 with 95% cluster-bootstrap CIs over prompt groups (2000 resamples, seed 42). Model
 comparisons are paired: the difference in macro-F1 is bootstrapped over the same group resamples,
 and a difference counts only when its CI excludes 0. Ports are never features.
@@ -36,7 +43,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.base import clone
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import f1_score
+from sklearn.metrics import confusion_matrix, f1_score, precision_recall_fscore_support
 from sklearn.model_selection import StratifiedGroupKFold
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -111,10 +118,12 @@ def load(processed: Path, raw: Path, task: str) -> dict:
         side = json.loads((raw / f"{base}.json").read_text())
         flat = np.load(processed / f"{rid}.npz")["flat"].astype(np.float32)
         rows.append((rid, base, int(port) if port else None, flat, info[task],
-                     str(info["prompt_group"]), int(side["round"]), side["agent_endpoints"]))
-    rid, base, port, flat, y, g, rnd, eps = zip(*rows)
+                     str(info["prompt_group"]), int(side.get("round", -1)), side["agent_endpoints"],
+                     info.get("topology"), len(side.get("input_prompt", ""))))
+    rid, base, port, flat, y, g, rnd, eps, top, plen = zip(*rows)
     return {"run_id": list(rid), "base": list(base), "port": list(port), "X": np.stack(flat),
-            "y": np.array(y), "g": np.array(g), "round": np.array(rnd), "endpoints": list(eps)}
+            "y": np.array(y), "g": np.array(g), "round": np.array(rnd), "endpoints": list(eps),
+            "topology": np.array(top), "prompt_len": np.array(plen)}
 
 
 def kfp_matrix(d: dict, raw: Path) -> np.ndarray:
@@ -196,6 +205,95 @@ def paired_diff(y, pa, pb, g, classes) -> dict:
             "significant": bool(lo > 0 or hi < 0)}
 
 
+def _boot_class_f1(y, pred, g, classes, rng) -> np.ndarray:
+    """(N_BOOT, n_classes) per-class F1 over group-bootstrap resamples."""
+    uniq = np.unique(g)
+    idx_by = {u: np.where(g == u)[0] for u in uniq}
+    out = np.empty((N_BOOT, len(classes)))
+    for i in range(N_BOOT):
+        idx = np.concatenate([idx_by[u] for u in rng.choice(uniq, len(uniq), replace=True)])
+        out[i] = f1_score(y[idx], pred[idx], labels=classes, average=None, zero_division=0)
+    return out
+
+
+def per_class(y, pred, g, classes) -> tuple[dict, np.ndarray]:
+    """Per-class precision, recall and F1, with a group-bootstrap 95% CI on F1."""
+    y, pred, g = (np.asarray(v) for v in (y, pred, g))
+    p, r, f, n = precision_recall_fscore_support(y, pred, labels=classes, zero_division=0)
+    boot = _boot_class_f1(y, pred, g, classes, np.random.default_rng(SEED))
+    lo, hi = np.percentile(boot, [2.5, 97.5], axis=0)
+    return ({c: {"f1": float(f[i]), "ci_lo": float(lo[i]), "ci_hi": float(hi[i]),
+                 "precision": float(p[i]), "recall": float(r[i]), "support": int(n[i])}
+             for i, c in enumerate(classes)}, boot)
+
+
+def prompt_mix(a: dict, b: dict, classes) -> dict:
+    """Per workflow: how the prompts of trace sets a and b differ (prompt_group = sha1 of the prompt)."""
+    out = {}
+    for c in classes:
+        ga, gb = a["g"][a["y"] == c], b["g"][b["y"] == c]
+        ua, ca = np.unique(ga, return_counts=True)
+        ub, cb = np.unique(gb, return_counts=True)
+        pa, pb = dict(zip(ua, ca / ca.sum())), dict(zip(ub, cb / cb.sum()))
+        shared = set(ua) & set(ub)
+        out[c] = {"n_a": int(len(ga)), "n_b": int(len(gb)),
+                  "distinct_a": int(len(ua)), "distinct_b": int(len(ub)), "shared_distinct": len(shared),
+                  "traces_a_with_shared_prompt": float(np.isin(ga, list(shared)).mean()),
+                  "traces_b_with_shared_prompt": float(np.isin(gb, list(shared)).mean()),
+                  "total_variation": float(0.5 * sum(abs(pa.get(u, 0) - pb.get(u, 0)) for u in set(pa) | set(pb))),
+                  "median_prompt_chars_a": float(np.median(a["prompt_len"][a["y"] == c])),
+                  "median_prompt_chars_b": float(np.median(b["prompt_len"][b["y"] == c]))}
+    return out
+
+
+def tls_control_oof(d: dict) -> np.ndarray:
+    """The TLS control's within-TLS GBT CV (GBTClassifier.cross_validate: unshuffled
+    StratifiedGroupKFold(5) by prompt_group), returning its out-of-fold predictions. Scored here
+    on the pooled predictions; tls_control.json reports the mean of the five fold scores."""
+    classes = sorted(set(d["y"].tolist()))
+    y_enc = np.searchsorted(classes, d["y"])
+    pred = np.empty(len(d["y"]), dtype=object)
+    for tr, te in StratifiedGroupKFold(5).split(d["X"], y_enc, d["g"]):
+        pred[te] = make_model("gbt", "workflow").fit(d["X"][tr], d["y"][tr]).predict(d["X"][te])
+    return pred
+
+
+def workflow_detail(d: dict, pred: np.ndarray, classes, tls: tuple[Path, Path] | None) -> dict:
+    y, g = d["y"], d["g"]
+    cm = confusion_matrix(y, pred, labels=classes)
+    pc, boot_c1 = per_class(y, pred, g, classes)
+    res = {"classes": classes,
+           "confusion": {"counts": cm.tolist(), "row_normalized": (cm / cm.sum(1, keepdims=True)).tolist(),
+                         "rows": "true", "columns": "predicted"},
+           "per_class": pc,
+           "per_topology": {t: score(y[d["topology"] == t], pred[d["topology"] == t],
+                                     g[d["topology"] == t], classes)
+                            for t in sorted(set(d["topology"].tolist()))}}
+    if tls is None:
+        res["vs_tls_control"] = None
+        return res
+    t = load(tls[0], tls[1], "workflow")
+    tpred = tls_control_oof(t)
+    tpc, boot_tls = per_class(t["y"], tpred, t["g"], classes)
+    diff = boot_c1 - boot_tls                       # independent sets: independent resamples
+    lo, hi = np.percentile(diff, [2.5, 97.5], axis=0)
+    shared = np.isin(g, np.unique(t["g"]))
+    res["vs_tls_control"] = {
+        "tls_processed": str(tls[0]), "tls_raw": str(tls[1]),
+        "tls_macro_f1": score(t["y"], tpred, t["g"], classes),
+        "tls_per_class": tpc,
+        "c1_minus_tls": {c: {"diff": pc[c]["f1"] - tpc[c]["f1"], "ci_lo": float(lo[i]),
+                             "ci_hi": float(hi[i]), "significant": bool(lo[i] > 0 or hi[i] < 0)}
+                         for i, c in enumerate(classes)},
+        "prompt_mix": prompt_mix(d, t, classes),
+        "c1_by_prompt_overlap": {"shared_with_tls": score(y[shared], pred[shared], g[shared], classes),
+                                 "c1_only": score(y[~shared], pred[~shared], g[~shared], classes)},
+        "note": "a = C1, b = TLS control TLS arm; per-class difference CIs from independent group "
+                "bootstraps of the two sets",
+    }
+    return res
+
+
 def temporal(task: str, d: dict, model: str, classes) -> dict:
     tr_all = np.isin(d["round"], TRAIN_ROUNDS)
     te = np.isin(d["round"], TEST_ROUNDS)
@@ -256,6 +354,10 @@ def main(a: argparse.Namespace) -> None:
                 "uses": "packet direction and timing only"},
         "results": {},
     }
+    tls = (Path(a.tls_processed), Path(a.tls_raw))
+    if not ((tls[0] / "labels.json").exists() and tls[1].is_dir()):
+        logger.warning("TLS control set not found (%s, %s): skipping the comparison", *tls)
+        tls = None
     for task in TASKS:
         d = load(processed, raw, task)
         X, y, g = d["X"], d["y"], d["g"]
@@ -301,6 +403,8 @@ def main(a: argparse.Namespace) -> None:
                  oof_predict_size_matched("gbt", task, X, y, g, splits, n_tr))
             res["learning_curve"].append({**score(y, p, g, classes), "fraction": frac, "n_train": n_tr,
                                           "train_per_class": round(n_tr / len(classes), 1)})
+        if task == "workflow":
+            res["detail"] = workflow_detail(d, preds["gbt"], classes, tls)
         out["results"][task] = res
         cw = res["closed_world"]
         logger.info("[%s] GBT %.3f RF %.3f kFP %.3f temporal-GBT %.3f | sizes %.3f timing %.3f counts %.3f",
@@ -312,6 +416,7 @@ def main(a: argparse.Namespace) -> None:
     (out_dir / "c1_evaluation.json").write_text(json.dumps(out, indent=2))
     write_report(out, out_dir / "c1_evaluation.md")
     make_figure(out, out_dir / "figures" / "c1_evaluation.png")
+    make_confusion_figure(out, out_dir / "figures" / "c1_workflow_confusion.png")
     logger.info("wrote %s", out_dir / "c1_evaluation.json")
 
 
@@ -347,8 +452,9 @@ def write_report(out: dict, path: Path) -> None:
     L += ["", "Temporal holdout: train rounds 1–3, test rounds 4–5; training traces whose prompt occurs "
           "in the test rounds are removed.", "",
           "Removing those prompts shrinks training, so the size-matched CV trains each fold on random "
-          "whole prompt groups up to the same number of traces, with no time gap. Temporal below "
-          "size-matched = drift; equal = training size.", "",
+          "whole prompt groups up to the same number of traces, with no time gap: the gap between "
+          "the two is what drift could add beyond training size. Conditions are interleaved within "
+          "rounds, so drift cannot correlate with labels.", "",
           "| Task | Train (after / before prompt removal) | Test | Temporal GBT | Size-matched CV GBT | "
           "Temporal RF | Size-matched CV RF |", "|---|---|---|---|---|---|---|"]
     for t, r in R.items():
@@ -387,9 +493,81 @@ def write_report(out: dict, path: Path) -> None:
     for t, r in R.items():
         L.append(f"| {t} | " + " | ".join(f"{_cell(p)} ({p['train_per_class']:g}/class)"
                                           for p in r["learning_curve"]) + " |")
+    L += workflow_report(R["workflow"]["detail"])
     L += ["", f"k-FP: {out['kfp']['dims']} features from packet direction and timing only "
           f"(Hayes & Danezis 2016), {out['kfp']['classifier']}."]
     path.write_text("\n".join(L) + "\n")
+
+
+def workflow_report(w: dict) -> list[str]:
+    cl = w["classes"]
+    L = ["", "## Workflow detail (GBT closed-world predictions)", "",
+         "Confusion matrix, rows = true, columns = predicted (count, row share):", "",
+         "| True (row) / predicted (column) | " + " | ".join(cl) + " |", "|---|" + "---|" * len(cl)]
+    for c, row, nrow in zip(cl, w["confusion"]["counts"], w["confusion"]["row_normalized"]):
+        L.append(f"| {c} | " + " | ".join(f"{k} ({v:.0%})" for k, v in zip(row, nrow)) + " |")
+    L += ["", "Workflow macro-F1 on each topology's traces (same predictions, sliced):", "",
+          "| Topology | n (groups) | macro-F1 |", "|---|---|---|"]
+    for t, r in w["per_topology"].items():
+        L.append(f"| {t} | {r['n']} ({r['ci_n_clusters']}) | {_cell(r)} |")
+    v = w["vs_tls_control"]
+    if v is None:
+        return L + ["", "TLS control set not available: no comparison."]
+    L += ["", f"Per-workflow F1, C1 vs the TLS control's TLS arm (its within-TLS CV recomputed with the "
+          f"same folds; pooled macro-F1 {_cell(v['tls_macro_f1'])}, where tls_control.json gives the "
+          f"mean of the five fold scores). Difference CIs come from independent group bootstraps.", "",
+          "| Workflow | C1 F1 | C1 P / R | TLS arm F1 | TLS arm P / R | C1 − TLS arm |", "|---|---|---|---|---|---|"]
+    for c in cl:
+        a, b = w["per_class"][c], v["tls_per_class"][c]
+        L.append(f"| {c} | {a['f1']:.3f} [{a['ci_lo']:.3f}, {a['ci_hi']:.3f}] | {a['precision']:.2f} / "
+                 f"{a['recall']:.2f} | {b['f1']:.3f} [{b['ci_lo']:.3f}, {b['ci_hi']:.3f}] | "
+                 f"{b['precision']:.2f} / {b['recall']:.2f} | {_diff(v['c1_minus_tls'][c])} |")
+    L += ["", "Prompt mix (prompt_group = sha1 of the prompt). TV = total-variation distance between "
+          "the two sets' prompt frequencies (0 = same mix, 1 = disjoint).", "",
+          "| Workflow | Traces C1 / TLS | Distinct prompts C1 / TLS | Shared distinct | C1 traces with a "
+          "shared prompt | TLS traces with a shared prompt | TV | Median prompt chars C1 / TLS |",
+          "|---|---|---|---|---|---|---|---|"]
+    for c in cl:
+        m = v["prompt_mix"][c]
+        L.append(f"| {c} | {m['n_a']} / {m['n_b']} | {m['distinct_a']} / {m['distinct_b']} | "
+                 f"{m['shared_distinct']} | {m['traces_a_with_shared_prompt']:.0%} | "
+                 f"{m['traces_b_with_shared_prompt']:.0%} | {m['total_variation']:.2f} | "
+                 f"{m['median_prompt_chars_a']:g} / {m['median_prompt_chars_b']:g} |")
+    o = v["c1_by_prompt_overlap"]
+    L += ["", f"C1 workflow macro-F1 on traces whose prompt also occurs in the TLS arm: "
+          f"{_cell(o['shared_with_tls'])} (n = {o['shared_with_tls']['n']}); on C1-only prompts: "
+          f"{_cell(o['c1_only'])} (n = {o['c1_only']['n']})."]
+    return L
+
+
+def make_confusion_figure(out: dict, path: Path) -> None:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    w = out["results"]["workflow"]["detail"]
+    cl = w["classes"]
+    names = [c.replace("_", "\n") for c in cl]
+    counts, norm = np.array(w["confusion"]["counts"]), np.array(w["confusion"]["row_normalized"])
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.6))
+    for ax, m, title, fmt in ((axes[0], counts, "Counts", "{:d}"),
+                              (axes[1], norm, "Row-normalized (recall on the diagonal)", "{:.2f}")):
+        ax.imshow(norm, cmap="Greens", vmin=0, vmax=1)
+        for i in range(len(cl)):
+            for j in range(len(cl)):
+                ax.text(j, i, fmt.format(m[i, j].item()), ha="center", va="center", fontsize=9,
+                        color="white" if norm[i, j] > 0.6 else "black")
+        ax.set_xticks(range(len(cl)))
+        ax.set_xticklabels(names, fontsize=8)
+        ax.set_yticks(range(len(cl)))
+        ax.set_yticklabels(names, fontsize=8)
+        ax.set_xlabel("predicted")
+        ax.set_ylabel("true")
+        ax.set_title(title, fontsize=9)
+    fig.suptitle("C1 workflow — GBT closed world, 5 prompt-group folds, 600 traces", fontsize=10)
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
 
 
 def make_figure(out: dict, path: Path) -> None:
@@ -438,4 +616,6 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description="P1 evaluation of collection C1")
     p.add_argument("--processed", default="data/processed_c1")
     p.add_argument("--raw", default="data/raw_c1")
+    p.add_argument("--tls-processed", default="data/processed_tlspair_tls")
+    p.add_argument("--tls-raw", default="data/raw_tlspair_tls")
     main(p.parse_args())

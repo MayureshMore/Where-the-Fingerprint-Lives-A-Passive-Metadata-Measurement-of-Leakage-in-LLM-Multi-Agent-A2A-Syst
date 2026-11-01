@@ -85,6 +85,12 @@ its four sets automatically (`processed_tlspair_clear`, `processed_tlspair_tls`,
 `raw_tlspair_clear`, `raw_tlspair_tls`), making 19 feature sets and 24 raw sets; rebuild and
 upload after that run so the checksums match.
 
+## License
+
+The data archives and `data/results/` are licensed under CC BY 4.0 (see
+[`LICENSE-DATA.md`](LICENSE-DATA.md)); the code is MIT (see [`LICENSE`](LICENSE)). When uploading
+to Zenodo, choose **Creative Commons Attribution 4.0 International** as the record's license.
+
 ## Provenance & ethics
 
 - tcpdump ran with a 96-byte snaplen and a BPF filter scoped to the agent host:port

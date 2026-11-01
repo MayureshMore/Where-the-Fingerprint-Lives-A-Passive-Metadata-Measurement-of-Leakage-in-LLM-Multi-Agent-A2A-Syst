@@ -240,4 +240,5 @@ multi-agent systems without the explicit authorization of their owner.
 
 ## License
 
-A formal `LICENSE` (code) and data license are to be added before public release.
+- **Code:** MIT License, see [`LICENSE`](LICENSE).
+- **Data** (the published archives and `data/results/`): CC BY 4.0, see [`LICENSE-DATA.md`](LICENSE-DATA.md).

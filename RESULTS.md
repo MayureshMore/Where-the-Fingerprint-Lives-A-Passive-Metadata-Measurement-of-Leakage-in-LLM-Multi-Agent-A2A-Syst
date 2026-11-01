@@ -52,11 +52,17 @@ handshake per connection; median largest specialist reply star 272, chain 44, me
 
 - **GBT vs RF:** not distinguishable on any task (paired difference CIs include 0).
 - **vs k-FP** (direction and timing only): GBT higher on workflow (+0.110 [+0.062, +0.164]) and
-  role (+0.010 [+0.005, +0.015]); topology not distinguishable.
+  role (+0.010 [+0.005, +0.015]); topology not distinguishable. k-FP was designed for Tor, where
+  every cell has the same size, so it uses no size information. The gap matches the ablation below
+  (sizes alone give workflow 0.617): fingerprinting attacks built for Tor miss the message-size
+  channel that TLS leaves open.
 - **Temporal holdout** (rounds 1–3 → 4–5, test prompts removed from training): role 0.985,
   workflow 0.441 [0.365, 0.522], topology 0.979. Removing the prompts leaves 169 training traces;
   CV with training cut to the same size gives workflow 0.525 [0.468, 0.576], topology 0.998. The
-  CIs overlap on every task: no evidence of drift; the workflow drop is mostly training size.
+  temporal holdout is below the size-matched control on every task (workflow 0.441 vs 0.525,
+  topology 0.979 vs 0.998), but the CIs overlap: most of the drop is training size, and modest
+  drift cannot be excluded. Because all 12 conditions are interleaved within every round, drift
+  cannot correlate with the labels, so it can lower accuracy but cannot inflate it.
 - **What leaks (GBT):** workflow — sizes alone 0.617 (not distinguishable from all features),
   timing 0.477, counts and direction 0.291; role — sizes 0.978, timing 0.920, counts 0.744;
   topology — any one family ≥ 0.998. System aggregates alone match all features for workflow
