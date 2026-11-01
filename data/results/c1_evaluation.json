@@ -4,8 +4,8 @@
   "data_dir": "data/processed_c1",
   "raw_dir": "data/raw_c1",
   "seed": 42,
-  "git_commit": "4adc0ea25bf00a15224d8a824ecdbaabb7417498",
-  "git_dirty": true,
+  "git_commit": "587000582269127533ba533963c424021b2d6483",
+  "git_dirty": false,
   "method": "GBT headline, RF baseline; 5-fold StratifiedGroupKFold by prompt_group (shuffle, seed 42), identical folds for every model and ablation; temporal holdout trains on rounds 1\u20133 minus every prompt seen in rounds 4\u20135; macro-F1 with 95% cluster bootstrap over prompt groups (2000 resamples); model comparisons are paired group-bootstrap differences. Ports never features.",
   "session": {
     "design": "arms collected in one session, one trace at a time; balanced rounds (every condition of every arm gets n/rounds traces per round); all conditions interleaved in a seeded random order within each round; arms share the prompt of an item and alternate with the order rotated per item; one agent set per arm and topology, restarted each round; a trace with any agent error is failed and retried once; models warmed up outside capture",
@@ -582,6 +582,277 @@
           "ci_lo": 0.06167080133495455,
           "ci_hi": 0.16390804051057817,
           "significant": true
+        }
+      },
+      "detail": {
+        "classes": [
+          "code_review",
+          "data_analysis",
+          "research_retrieval",
+          "support_triage"
+        ],
+        "confusion": {
+          "counts": [
+            [
+              105,
+              12,
+              22,
+              11
+            ],
+            [
+              13,
+              122,
+              10,
+              5
+            ],
+            [
+              26,
+              5,
+              64,
+              55
+            ],
+            [
+              14,
+              2,
+              50,
+              84
+            ]
+          ],
+          "row_normalized": [
+            [
+              0.7,
+              0.08,
+              0.14666666666666667,
+              0.07333333333333333
+            ],
+            [
+              0.08666666666666667,
+              0.8133333333333334,
+              0.06666666666666667,
+              0.03333333333333333
+            ],
+            [
+              0.17333333333333334,
+              0.03333333333333333,
+              0.4266666666666667,
+              0.36666666666666664
+            ],
+            [
+              0.09333333333333334,
+              0.013333333333333334,
+              0.3333333333333333,
+              0.56
+            ]
+          ],
+          "rows": "true",
+          "columns": "predicted"
+        },
+        "per_class": {
+          "code_review": {
+            "f1": 0.6818181818181818,
+            "ci_lo": 0.5460376794258373,
+            "ci_hi": 0.7846280991735537,
+            "precision": 0.6645569620253164,
+            "recall": 0.7,
+            "support": 150
+          },
+          "data_analysis": {
+            "f1": 0.8384879725085911,
+            "ci_lo": 0.7812392979452055,
+            "ci_hi": 0.888199226886341,
+            "precision": 0.8652482269503546,
+            "recall": 0.8133333333333334,
+            "support": 150
+          },
+          "research_retrieval": {
+            "f1": 0.43243243243243246,
+            "ci_lo": 0.3510135546756016,
+            "ci_hi": 0.5062672504044922,
+            "precision": 0.4383561643835616,
+            "recall": 0.4266666666666667,
+            "support": 150
+          },
+          "support_triage": {
+            "f1": 0.5508196721311476,
+            "ci_lo": 0.46575081041514166,
+            "ci_hi": 0.626199696646981,
+            "precision": 0.5419354838709678,
+            "recall": 0.56,
+            "support": 150
+          }
+        },
+        "per_topology": {
+          "chain": {
+            "macro_f1": 0.6068601955251198,
+            "ci_lo": 0.5275009824374569,
+            "ci_hi": 0.6759510824176577,
+            "accuracy": 0.605,
+            "n": 200,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 145
+          },
+          "mesh": {
+            "macro_f1": 0.6387550908689658,
+            "ci_lo": 0.5642947294526142,
+            "ci_hi": 0.7038190645529258,
+            "accuracy": 0.64,
+            "n": 200,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 140
+          },
+          "star": {
+            "macro_f1": 0.6283191290700677,
+            "ci_lo": 0.5633577096458822,
+            "ci_hi": 0.6911167708394392,
+            "accuracy": 0.63,
+            "n": 200,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 144
+          }
+        },
+        "vs_tls_control": {
+          "tls_processed": "data/processed_tlspair_tls",
+          "tls_raw": "data/raw_tlspair_tls",
+          "tls_macro_f1": {
+            "macro_f1": 0.7295496182434134,
+            "ci_lo": 0.6745960339280448,
+            "ci_hi": 0.7789204986925371,
+            "accuracy": 0.7291666666666666,
+            "n": 432,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 231
+          },
+          "tls_per_class": {
+            "code_review": {
+              "f1": 0.6889952153110048,
+              "ci_lo": 0.5621324983520106,
+              "ci_hi": 0.784819503047351,
+              "precision": 0.7128712871287128,
+              "recall": 0.6666666666666666,
+              "support": 108
+            },
+            "data_analysis": {
+              "f1": 0.8036529680365296,
+              "ci_lo": 0.7329765175470426,
+              "ci_hi": 0.8613899466869763,
+              "precision": 0.7927927927927928,
+              "recall": 0.8148148148148148,
+              "support": 108
+            },
+            "research_retrieval": {
+              "f1": 0.7677725118483413,
+              "ci_lo": 0.6697623862487361,
+              "ci_hi": 0.8406178489702515,
+              "precision": 0.7864077669902912,
+              "recall": 0.75,
+              "support": 108
+            },
+            "support_triage": {
+              "f1": 0.6577777777777778,
+              "ci_lo": 0.5713981762917932,
+              "ci_hi": 0.7392996108949417,
+              "precision": 0.6324786324786325,
+              "recall": 0.6851851851851852,
+              "support": 108
+            }
+          },
+          "c1_minus_tls": {
+            "code_review": {
+              "diff": -0.0071770334928230595,
+              "ci_lo": -0.16333992806209224,
+              "ci_hi": 0.1586969385862499,
+              "significant": false
+            },
+            "data_analysis": {
+              "diff": 0.03483500447206145,
+              "ci_lo": -0.04659827441616986,
+              "ci_hi": 0.12297113580273963,
+              "significant": false
+            },
+            "research_retrieval": {
+              "diff": -0.3353400794159088,
+              "ci_lo": -0.4437361015259566,
+              "ci_hi": -0.21150042393699345,
+              "significant": true
+            },
+            "support_triage": {
+              "diff": -0.10695810564663022,
+              "ci_lo": -0.22726814715081578,
+              "ci_hi": 0.007541664762736098,
+              "significant": false
+            }
+          },
+          "prompt_mix": {
+            "code_review": {
+              "n_a": 150,
+              "n_b": 108,
+              "distinct_a": 51,
+              "distinct_b": 49,
+              "shared_distinct": 37,
+              "traces_a_with_shared_prompt": 0.82,
+              "traces_b_with_shared_prompt": 0.8333333333333334,
+              "total_variation": 0.37592592592592594,
+              "median_prompt_chars_a": 5059.0,
+              "median_prompt_chars_b": 5059.0
+            },
+            "data_analysis": {
+              "n_a": 150,
+              "n_b": 108,
+              "distinct_a": 74,
+              "distinct_b": 69,
+              "shared_distinct": 52,
+              "traces_a_with_shared_prompt": 0.6866666666666666,
+              "traces_b_with_shared_prompt": 0.75,
+              "total_variation": 0.4607407407407409,
+              "median_prompt_chars_a": 3902.0,
+              "median_prompt_chars_b": 4083.0
+            },
+            "research_retrieval": {
+              "n_a": 150,
+              "n_b": 108,
+              "distinct_a": 62,
+              "distinct_b": 42,
+              "shared_distinct": 34,
+              "traces_a_with_shared_prompt": 0.72,
+              "traces_b_with_shared_prompt": 0.8888888888888888,
+              "total_variation": 0.38444444444444453,
+              "median_prompt_chars_a": 127.5,
+              "median_prompt_chars_b": 133.0
+            },
+            "support_triage": {
+              "n_a": 150,
+              "n_b": 108,
+              "distinct_a": 95,
+              "distinct_b": 71,
+              "shared_distinct": 45,
+              "traces_a_with_shared_prompt": 0.5,
+              "traces_b_with_shared_prompt": 0.7037037037037037,
+              "total_variation": 0.5996296296296296,
+              "median_prompt_chars_a": 222.0,
+              "median_prompt_chars_b": 224.0
+            }
+          },
+          "c1_by_prompt_overlap": {
+            "shared_with_tls": {
+              "macro_f1": 0.6277703684676995,
+              "ci_lo": 0.5639891229218267,
+              "ci_hi": 0.6875225825865717,
+              "accuracy": 0.6430317848410758,
+              "n": 409,
+              "ci_method": "group_bootstrap",
+              "ci_n_clusters": 168
+            },
+            "c1_only": {
+              "macro_f1": 0.5848662620744212,
+              "ci_lo": 0.50518191232377,
+              "ci_hi": 0.6547911498910601,
+              "accuracy": 0.5863874345549738,
+              "n": 191,
+              "ci_method": "group_bootstrap",
+              "ci_n_clusters": 114
+            }
+          },
+          "note": "a = C1, b = TLS control TLS arm; per-class difference CIs from independent group bootstraps of the two sets"
         }
       }
     },
