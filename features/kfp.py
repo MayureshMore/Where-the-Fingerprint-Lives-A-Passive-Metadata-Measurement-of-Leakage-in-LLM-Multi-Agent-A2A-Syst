@@ -9,6 +9,7 @@ concentration and rate vectors. Packet sizes are never used. Direction is "towar
 server port" (+1) or "from one" (-1); the port number itself is never a feature.
 
     packets_from_pcap(path)          → [(ts, src_port, dst_port, wire_len)]
+    tcp_packets(path)                → [(ts, src_port, dst_port, wire_len, tcp_payload_len, tcp_flags)]
     kfp_features(times, directions)  → 1-D vector, length N_KFP
 """
 
@@ -26,7 +27,9 @@ N_CONC, N_RATE = 70, 20
 N_KFP = 3 + 12 + 12 + 4 + 4 + 4 + 5 + 2 + 2 + N_CONC + N_RATE
 
 
-def packets_from_pcap(path: Path) -> list[tuple[float, int, int, int]]:
+def tcp_packets(path: Path) -> list[tuple[float, int, int, int, int, int]]:
+    """TCP packets with their payload length, read from the IP and TCP headers alone (the IP
+    length field, not the captured bytes), so it works on payload-stripped pcaps."""
     raw = Path(path).read_bytes()
     endian = _MAGICS[raw[:4]]
     scale = 1e-9 if raw[:4] in _NANO else 1e-6
@@ -41,16 +44,24 @@ def packets_from_pcap(path: Path) -> list[tuple[float, int, int, int]]:
             continue
         v = data[off] >> 4
         if v == 4 and len(data) > off + 9:
-            proto, l4 = data[off + 9], off + max((data[off] & 0x0F) * 4, 20)
+            ihl = max((data[off] & 0x0F) * 4, 20)
+            proto, l4 = data[off + 9], off + ihl
+            ip_payload = struct.unpack(">H", data[off + 2:off + 4])[0] - ihl
         elif v == 6 and len(data) > off + 6:
             proto, l4 = data[off + 6], off + 40
+            ip_payload = struct.unpack(">H", data[off + 4:off + 6])[0]
         else:
             continue
-        if proto != 6 or len(data) < l4 + 4:
+        if proto != 6 or len(data) < l4 + 14:
             continue
         sport, dport = struct.unpack(">HH", data[l4:l4 + 4])
-        out.append((sec + frac * scale, sport, dport, orig))
+        doff, flags = (data[l4 + 12] >> 4) * 4, data[l4 + 13]
+        out.append((sec + frac * scale, sport, dport, orig, max(ip_payload - doff, 0), flags))
     return out
+
+
+def packets_from_pcap(path: Path) -> list[tuple[float, int, int, int]]:
+    return [p[:4] for p in tcp_packets(path)]
 
 
 def _iat_stats(t: np.ndarray) -> list[float]:

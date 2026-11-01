@@ -19,6 +19,11 @@ and for workflow, from the GBT closed-world predictions:
   6. per topology      workflow macro-F1 on the star, chain and mesh traces separately
   7. vs TLS control    per-workflow F1 on C1 next to the TLS control's TLS arm (its within-TLS CV
                        recomputed with that script's folds), and the prompt mix of the two sets
+  8. input length      workflow from the size of the first request into the system alone, and
+                       from the true prompt length alone (same folds, paired against all features)
+  9. response side     workflow with every size feature that uses request-direction bytes removed
+ 10. length pairs      binary code_review vs data_analysis and research_retrieval vs support_triage
+                       (the long- and short-prompt workflows), chance 0.5
 
 macro-F1 with 95% cluster-bootstrap CIs over prompt groups (2000 resamples, seed 42). Model
 comparisons are paired: the difference in macro-F1 is bootstrapped over the same group resamples,
@@ -49,7 +54,7 @@ from sklearn.model_selection import StratifiedGroupKFold
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from evaluation.stats import bootstrap_ci  # noqa: E402
-from features.kfp import N_KFP, kfp_features, packets_from_pcap  # noqa: E402
+from features.kfp import N_KFP, kfp_features, packets_from_pcap, tcp_packets  # noqa: E402
 from features.per_flow import PerFlowFeatures  # noqa: E402
 from features.per_system import PerSystemFeatures  # noqa: E402
 from models.gradient_boosted import GBTClassifier  # noqa: E402
@@ -79,6 +84,16 @@ _SYS_COUNTS = {"n_flows", "n_src_hosts", "n_dst_hosts", "n_host_pairs", "total_p
                "total_bursts"}
 FAMILIES = {"sizes": (_PF_SIZES, _SYS_SIZES), "timing": (_PF_TIMING, _SYS_TIMING),
             "counts_direction": (_PF_COUNTS, _SYS_COUNTS)}
+# Direction (features/extractor.py): "out" = agent → caller (response), "in" = caller → agent
+# (request). Response-side check: drop every size feature that uses request bytes, including the
+# mixed ones (ratios, totals, cumulative bytes, burst bytes); keep response sizes, timing, counts.
+_PF_RESPONSE_SIZES = {"bytes_out", "mean_sz_out", "std_sz_out", "p25_sz_out", "p75_sz_out"}
+LENGTH_PAIRS = (("code_review", "data_analysis"), ("research_retrieval", "support_triage"))
+REQUEST_GAP_S = 0.05      # one request = request-direction writes on a connection ≤ 50 ms apart
+FIRST_REQUEST_DEF = ("TCP payload bytes of the first request message that reaches an agent (the "
+                     "caller → orchestrator link is not captured): on the agent link whose first "
+                     "post-handshake request starts earliest, the request-direction writes ≤ 50 ms "
+                     "apart, TLS ClientHello and client Finished excluded; from headers only.")
 # trace vector: per-flow blocks (mean, heaviest, 2nd heaviest flow) vs system-wide aggregates
 AGGREGATES = {"per_flow": np.arange(0, 105), "system": np.arange(105, 195)}
 LEARNING_FRACTIONS = (0.1, 0.25, 0.5, 0.75, 1.0)
@@ -86,9 +101,18 @@ LEARNING_FRACTIONS = (0.1, 0.25, 0.5, 0.75, 1.0)
 
 def family_columns(family: str, role: bool) -> np.ndarray:
     """Column indices of one feature family in the role (35) or trace (195) flat vector."""
+    return _columns(*FAMILIES[family], role)
+
+
+def response_side_columns() -> np.ndarray:
+    """Trace columns left after removing every size feature that uses request-direction bytes."""
+    keep_pf = _PF_TIMING | _PF_COUNTS | _PF_RESPONSE_SIZES
+    return _columns(keep_pf, _SYS_TIMING | _SYS_COUNTS, False)
+
+
+def _columns(pf_set: set, sys_set: set, role: bool) -> np.ndarray:
     pf_names = PerFlowFeatures.FEATURE_NAMES()
     sys_names = PerSystemFeatures.FEATURE_NAMES()[:20]
-    pf_set, sys_set = FAMILIES[family]
     pf_idx = [i for i, n in enumerate(pf_names) if n in pf_set]
     if role:
         return np.array(pf_idx)
@@ -124,6 +148,38 @@ def load(processed: Path, raw: Path, task: str) -> dict:
     return {"run_id": list(rid), "base": list(base), "port": list(port), "X": np.stack(flat),
             "y": np.array(y), "g": np.array(g), "round": np.array(rnd), "endpoints": list(eps),
             "topology": np.array(top), "prompt_len": np.array(plen)}
+
+
+def first_request_bytes(pcap: Path, servers: set[int]) -> int:
+    """TCP payload bytes of the first request message that reaches an agent: on the agent link
+    whose first post-handshake request starts earliest, the request-direction payload written in
+    one go (writes ≤ REQUEST_GAP_S apart). On a connection opened in the trace, the TLS ClientHello
+    and the client Finished (≤ 100 B) are skipped. Headers only, so it works on stripped pcaps."""
+    opened, skipped, first = set(), {}, {}
+    for ts, sp, dp, _, pl, flags in tcp_packets(pcap):
+        if dp not in servers:
+            continue
+        conn = (sp, dp)
+        if flags & 0x02:                                   # SYN: the connection opens in this trace
+            opened.add(conn)
+            continue
+        if pl == 0 or conn in first and first[conn][2]:
+            continue
+        if conn in opened and skipped.get(conn, 0) == 0:   # ClientHello
+            skipped[conn] = 1
+            continue
+        if conn in opened and skipped[conn] == 1 and pl <= 100:   # client Finished
+            skipped[conn] = 2
+            continue
+        if conn not in first:
+            first[conn] = [ts, pl, False, ts]
+        elif ts - first[conn][3] <= REQUEST_GAP_S:
+            first[conn][1] += pl
+            first[conn][3] = ts
+        else:
+            first[conn][2] = True                          # first request on this link complete
+    reqs = [(t0, b) for t0, b, _, _ in first.values() if b >= 300]   # not a close_notify
+    return min(reqs)[1] if reqs else 0
 
 
 def kfp_matrix(d: dict, raw: Path) -> np.ndarray:
@@ -294,6 +350,48 @@ def workflow_detail(d: dict, pred: np.ndarray, classes, tls: tuple[Path, Path] |
     return res
 
 
+def _sub_splits(splits, mask: np.ndarray):
+    """The same folds restricted to the rows in mask, as indices into the subset."""
+    pos = np.full(len(mask), -1)
+    pos[mask] = np.arange(mask.sum())
+    return [(pos[tr[mask[tr]]], pos[te[mask[te]]]) for tr, te in splits]
+
+
+def length_checks(d: dict, raw: Path, pred_all: np.ndarray, splits, classes) -> dict:
+    y, g = d["y"], d["g"]
+    first = np.array([first_request_bytes(raw / f"{b}.pcap", {int(a.rsplit(":", 1)[1]) for a in e.values()})
+                      for b, e in zip(d["base"], d["endpoints"])], dtype=np.float32)
+    chars = d["prompt_len"].astype(np.float32)
+    single = {"first_request_bytes": first[:, None], "prompt_chars": chars[:, None]}
+    res = {"first_request": {
+        "definition": FIRST_REQUEST_DEF,
+        "n_zero": int((first == 0).sum()),
+        "pearson_with_prompt_chars": float(np.corrcoef(first, chars)[0, 1]),
+        "median_by_workflow": {c: {"first_request_bytes": float(np.median(first[y == c])),
+                                   "prompt_chars": float(np.median(chars[y == c])),
+                                   "overhead": float(np.median(first[y == c] - chars[y == c]))}
+                               for c in classes}}}
+    for name, X1 in single.items():
+        p = oof_predict("gbt", "workflow", X1, y, splits)
+        res[name] = {**score(y, p, g, classes), "all_minus_this": paired_diff(y, pred_all, p, g, classes)}
+    cols = response_side_columns()
+    p = oof_predict("gbt", "workflow", d["X"][:, cols], y, splits)
+    res["response_side_only"] = {**score(y, p, g, classes), "dims": int(len(cols)),
+                                 "all_minus_this": paired_diff(y, pred_all, p, g, classes)}
+    res["pairs"] = {}
+    for a, b in LENGTH_PAIRS:
+        m = np.isin(y, [a, b])
+        sub, pc = _sub_splits(splits, m), [a, b]
+        ym, gm = y[m], g[m]
+        pa = oof_predict("gbt", "workflow", d["X"][m], ym, sub)
+        r = {"chance": 0.5, "n": int(m.sum()), "all": score(ym, pa, gm, pc)}
+        for name, X1 in single.items():
+            p1 = oof_predict("gbt", "workflow", X1[m], ym, sub)
+            r[name] = {**score(ym, p1, gm, pc), "all_minus_this": paired_diff(ym, pa, p1, gm, pc)}
+        res["pairs"][f"{a}_vs_{b}"] = r
+    return res
+
+
 def temporal(task: str, d: dict, model: str, classes) -> dict:
     tr_all = np.isin(d["round"], TRAIN_ROUNDS)
     te = np.isin(d["round"], TEST_ROUNDS)
@@ -405,6 +503,7 @@ def main(a: argparse.Namespace) -> None:
                                           "train_per_class": round(n_tr / len(classes), 1)})
         if task == "workflow":
             res["detail"] = workflow_detail(d, preds["gbt"], classes, tls)
+            res["length_checks"] = length_checks(d, raw, preds["gbt"], splits, classes)
         out["results"][task] = res
         cw = res["closed_world"]
         logger.info("[%s] GBT %.3f RF %.3f kFP %.3f temporal-GBT %.3f | sizes %.3f timing %.3f counts %.3f",
@@ -494,6 +593,7 @@ def write_report(out: dict, path: Path) -> None:
         L.append(f"| {t} | " + " | ".join(f"{_cell(p)} ({p['train_per_class']:g}/class)"
                                           for p in r["learning_curve"]) + " |")
     L += workflow_report(R["workflow"]["detail"])
+    L += length_report(R["workflow"]["closed_world"]["gbt"], R["workflow"]["length_checks"])
     L += ["", f"k-FP: {out['kfp']['dims']} features from packet direction and timing only "
           f"(Hayes & Danezis 2016), {out['kfp']['classifier']}."]
     path.write_text("\n".join(L) + "\n")
@@ -537,6 +637,34 @@ def workflow_report(w: dict) -> list[str]:
     L += ["", f"C1 workflow macro-F1 on traces whose prompt also occurs in the TLS arm: "
           f"{_cell(o['shared_with_tls'])} (n = {o['shared_with_tls']['n']}); on C1-only prompts: "
           f"{_cell(o['c1_only'])} (n = {o['c1_only']['n']})."]
+    return L
+
+
+def length_report(full: dict, c: dict) -> list[str]:
+    f = c["first_request"]
+    L = ["", "## Workflow: input length and response side (GBT, same folds)", "",
+         f"First request into the system: {f['definition']} Pearson r with the true prompt length "
+         f"{f['pearson_with_prompt_chars']:.3f}; {f['n_zero']} traces without one.", "",
+         "| Features | Dims | macro-F1 | All − this |", "|---|---|---|---|",
+         f"| all | 195 | {_cell(full)} | — |",
+         f"| first-request size only | 1 | {_cell(c['first_request_bytes'])} | "
+         f"{_diff(c['first_request_bytes']['all_minus_this'])} |",
+         f"| true prompt length only (not observable) | 1 | {_cell(c['prompt_chars'])} | "
+         f"{_diff(c['prompt_chars']['all_minus_this'])} |",
+         f"| response side only (no request-byte sizes) | {c['response_side_only']['dims']} | "
+         f"{_cell(c['response_side_only'])} | {_diff(c['response_side_only']['all_minus_this'])} |",
+         "", "| Workflow | Median first request (B) | Median prompt (chars) | Median first request − "
+         "prompt |", "|---|---|---|---|"]
+    for w, m in f["median_by_workflow"].items():
+        L.append(f"| {w} | {m['first_request_bytes']:g} | {m['prompt_chars']:g} | {m['overhead']:g} |")
+    L += ["", "Within-length pairs (binary, the same folds restricted to the pair, chance 0.5):", "",
+          "| Pair | n | All features | First-request size only | Prompt length only | "
+          "All − first request | All − prompt length |", "|---|---|---|---|---|---|---|"]
+    for pair, r in c["pairs"].items():
+        L.append(f"| {pair.replace('_vs_', ' vs ')} | {r['n']} | {_cell(r['all'])} | "
+                 f"{_cell(r['first_request_bytes'])} | {_cell(r['prompt_chars'])} | "
+                 f"{_diff(r['first_request_bytes']['all_minus_this'])} | "
+                 f"{_diff(r['prompt_chars']['all_minus_this'])} |")
     return L
 
 
