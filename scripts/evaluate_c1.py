@@ -25,6 +25,9 @@ and for workflow, from the GBT closed-world predictions:
  10. length pairs      binary code_review vs data_analysis and research_retrieval vs support_triage
                        (the long- and short-prompt workflows), chance 0.5
 
+and for role: every per-flow feature alone (top 5 with CIs), response-side sizes only and
+request-side sizes only, paired against all features.
+
 macro-F1 with 95% cluster-bootstrap CIs over prompt groups (2000 resamples, seed 42). Model
 comparisons are paired: the difference in macro-F1 is bootstrapped over the same group resamples,
 and a difference counts only when its CI excludes 0. Ports are never features.
@@ -88,6 +91,9 @@ FAMILIES = {"sizes": (_PF_SIZES, _SYS_SIZES), "timing": (_PF_TIMING, _SYS_TIMING
 # (request). Response-side check: drop every size feature that uses request bytes, including the
 # mixed ones (ratios, totals, cumulative bytes, burst bytes); keep response sizes, timing, counts.
 _PF_RESPONSE_SIZES = {"bytes_out", "mean_sz_out", "std_sz_out", "p25_sz_out", "p75_sz_out"}
+_PF_REQUEST_SIZES = {"bytes_in", "mean_sz_in", "std_sz_in", "p25_sz_in", "p75_sz_in", "iqr_size_in",
+                     "n_small_inbound"}
+TOP_SINGLE = 5
 LENGTH_PAIRS = (("code_review", "data_analysis"), ("research_retrieval", "support_triage"))
 REQUEST_GAP_S = 0.05      # one request = request-direction writes on a connection ≤ 50 ms apart
 FIRST_REQUEST_DEF = ("TCP payload bytes of the first request message that reaches an agent (the "
@@ -392,6 +398,28 @@ def length_checks(d: dict, raw: Path, pred_all: np.ndarray, splits, classes) -> 
     return res
 
 
+def role_checks(d: dict, pred_all: np.ndarray, splits, classes) -> dict:
+    """Role (one flow per sample): each per-flow feature alone, and one direction's sizes alone."""
+    y, g, X = d["y"], d["g"], d["X"]
+    names = PerFlowFeatures.FEATURE_NAMES()
+    f1 = {n: float(f1_score(y, oof_predict("gbt", "role", X[:, [i]], y, splits), labels=classes,
+                            average="macro", zero_division=0)) for i, n in enumerate(names)}
+    ranked = sorted(names, key=lambda n: -f1[n])
+    res = {"single_feature_macro_f1": dict(sorted(f1.items(), key=lambda kv: -kv[1])),
+           "note": f"top {TOP_SINGLE} chosen on these folds out of {len(names)} features, so their "
+                   "scores are optimistic", "top": []}
+    for n in ranked[:TOP_SINGLE]:
+        p = oof_predict("gbt", "role", X[:, [names.index(n)]], y, splits)
+        res["top"].append({"feature": n, **score(y, p, g, classes),
+                           "all_minus_this": paired_diff(y, pred_all, p, g, classes)})
+    for key, fset in (("response_sizes_only", _PF_RESPONSE_SIZES), ("request_sizes_only", _PF_REQUEST_SIZES)):
+        cols = [i for i, n in enumerate(names) if n in fset]
+        p = oof_predict("gbt", "role", X[:, cols], y, splits)
+        res[key] = {**score(y, p, g, classes), "features": [names[i] for i in cols],
+                    "all_minus_this": paired_diff(y, pred_all, p, g, classes)}
+    return res
+
+
 def temporal(task: str, d: dict, model: str, classes) -> dict:
     tr_all = np.isin(d["round"], TRAIN_ROUNDS)
     te = np.isin(d["round"], TEST_ROUNDS)
@@ -501,6 +529,8 @@ def main(a: argparse.Namespace) -> None:
                  oof_predict_size_matched("gbt", task, X, y, g, splits, n_tr))
             res["learning_curve"].append({**score(y, p, g, classes), "fraction": frac, "n_train": n_tr,
                                           "train_per_class": round(n_tr / len(classes), 1)})
+        if task == "role":
+            res["single_feature"] = role_checks(d, preds["gbt"], splits, classes)
         if task == "workflow":
             res["detail"] = workflow_detail(d, preds["gbt"], classes, tls)
             res["length_checks"] = length_checks(d, raw, preds["gbt"], splits, classes)
@@ -594,6 +624,7 @@ def write_report(out: dict, path: Path) -> None:
                                           for p in r["learning_curve"]) + " |")
     L += workflow_report(R["workflow"]["detail"])
     L += length_report(R["workflow"]["closed_world"]["gbt"], R["workflow"]["length_checks"])
+    L += role_report(R["role"]["closed_world"]["gbt"], R["role"]["single_feature"])
     L += ["", f"k-FP: {out['kfp']['dims']} features from packet direction and timing only "
           f"(Hayes & Danezis 2016), {out['kfp']['classifier']}."]
     path.write_text("\n".join(L) + "\n")
@@ -665,6 +696,21 @@ def length_report(full: dict, c: dict) -> list[str]:
                  f"{_cell(r['first_request_bytes'])} | {_cell(r['prompt_chars'])} | "
                  f"{_diff(r['first_request_bytes']['all_minus_this'])} | "
                  f"{_diff(r['prompt_chars']['all_minus_this'])} |")
+    return L
+
+
+def role_report(full: dict, r: dict) -> list[str]:
+    L = ["", "## Role: single features and one direction's sizes (GBT, same folds)", "",
+         f"Each of the {len(r['single_feature_macro_f1'])} per-flow features alone; the top "
+         f"{len(r['top'])} are shown with CIs ({r['note']}). Response = agent → caller, "
+         "request = caller → agent.", "",
+         "| Features | macro-F1 | All − this |", "|---|---|---|", f"| all 35 | {_cell(full)} | — |"]
+    for t in r["top"]:
+        L.append(f"| {t['feature']} only | {_cell(t)} | {_diff(t['all_minus_this'])} |")
+    for key, label in (("response_sizes_only", "response-side sizes"), ("request_sizes_only", "request-side sizes")):
+        x = r[key]
+        L.append(f"| {label} only ({', '.join(x['features'])}) | {_cell(x)} | {_diff(x['all_minus_this'])} |")
+    L += ["", "All single features: " + ", ".join(f"{n} {v:.3f}" for n, v in r["single_feature_macro_f1"].items()) + "."]
     return L
 
 
