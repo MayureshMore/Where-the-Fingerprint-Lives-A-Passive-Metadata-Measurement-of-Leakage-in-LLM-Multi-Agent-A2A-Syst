@@ -24,13 +24,23 @@ seed_offset); <out>/session_meta.json holds the design, the schedule and, for TL
 the negotiated TLS parameters.
 
 Arms are given as --arm name=...,deployment=...,model=...,tls=on|off,defense=...,out=...
-(ports=BASE optional; arm k defaults to 8100 + 100k, topology t adds 10t).
+(ports=BASE optional; arm k defaults to 8100 + 100k, topology t adds 10t). Optional:
+
+  * pad=1024/2048/4096  input padding: every request body padded to the smallest bucket that
+                        fits (above the largest, to a multiple of it)
+  * host=ADDR           the specialists run on another machine (docs/LAN_SETUP.md): this
+                        collector neither starts nor restarts them, it waits until they answer
+                        at ADDR on the arm's ports (scripts/serve_agents.py --ports-base there),
+                        and the capture is limited to ADDR; use --interface for the link
 
 Usage:
     bash scripts/make_tls_certs.sh
     python scripts/collect_session.py --collection-id C1 --n 50 --rounds 5 --seed-offset 2000 \\
         --arm name=a_tls,deployment=a,model=llama3.2:3b,tls=on,out=data/raw_c1
     python scripts/collect_session.py ... --pilot        # one trace per topology into <out>_pilot/
+    # LAN: specialists on a Raspberry Pi at 192.168.2.2, captured on the Mac's Ethernet port
+    python scripts/collect_session.py --collection-id C2 --n 50 --rounds 5 --seed-offset 20000 \
+        --interface en7 --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2
 Capture needs read access to /dev/bpf* (or sudo).
 """
 
@@ -80,7 +90,13 @@ class Arm:
     defense: str
     out: Path
     ports_base: int
+    host: str | None = None                         # remote specialists (LAN); None = local
+    pad: list[int] = field(default_factory=list)    # input-padding buckets; empty = off
     sets: dict = field(default_factory=dict)        # topology → (agents, tasks)
+
+    @property
+    def agent_host(self) -> str:
+        return self.host or "127.0.0.1"
 
     def ports(self, topology: str) -> dict[str, int]:
         base = self.ports_base + 10 * TOPOLOGIES.index(topology)
@@ -92,7 +108,7 @@ class Arm:
 
 def parse_arm(spec: str, k: int) -> Arm:
     kv = dict(part.split("=", 1) for part in spec.split(","))
-    unknown = set(kv) - {"name", "deployment", "model", "tls", "defense", "out", "ports"}
+    unknown = set(kv) - {"name", "deployment", "model", "tls", "defense", "out", "ports", "pad", "host"}
     if unknown or not {"name", "deployment", "out"} <= set(kv):
         raise SystemExit(f"bad --arm {spec!r}: needs name, deployment, out; unknown keys {sorted(unknown)}")
     if kv["deployment"] not in DEPLOYMENTS:
@@ -101,7 +117,8 @@ def parse_arm(spec: str, k: int) -> Arm:
                model=kv.get("model") or DEPLOYMENTS[kv["deployment"]]["default_model"],
                tls=kv.get("tls", "off").lower() in ("on", "1", "true", "yes"),
                defense=kv.get("defense", "none"), out=Path(kv["out"]),
-               ports_base=int(kv.get("ports", 8100 + 100 * k)))
+               ports_base=int(kv.get("ports", 8100 + 100 * k)), host=kv.get("host") or None,
+               pad=[int(b) for b in kv["pad"].split("/")] if kv.get("pad") else [])
 
 
 class _DownstreamFailures(logging.Handler):
@@ -117,13 +134,22 @@ class _DownstreamFailures(logging.Handler):
             self.messages.append(record.getMessage())
 
 
-async def start_sets(arm: Arm, topologies: list[str], num_predict: int | None) -> None:
+async def start_sets(arm: Arm, topologies: list[str], num_predict: int | None,
+                     ollama: str = OLLAMA) -> None:
+    if arm.host:                                   # remote specialists: only check they answer
+        for topology in topologies:
+            arm.sets[topology] = ([], [])
+            for role in ("executor", "retriever", "validator"):
+                if not await _wait_ready(role, arm.ports(topology), tls_on=arm.tls, host=arm.host):
+                    raise RuntimeError(f"{arm.name} {topology} {role} agent not answering at {arm.host}")
+        return
     for topology in topologies:
         ports, dep = arm.ports(topology), arm.dep(topology)
         for role in ("executor", "retriever", "validator"):
             await _kill_port(ports[role])
         configs = _agent_configs(dep, topology, arm.model, num_predict=num_predict,
-                                 defense=arm.defense, tls_on=arm.tls)
+                                 defense=arm.defense, tls_on=arm.tls, pad_buckets=arm.pad,
+                                 ollama_url=ollama)
         agents, tasks = [], []
         for role in ("executor", "retriever", "validator"):
             agent = dep[role](configs[role])
@@ -139,6 +165,8 @@ async def start_sets(arm: Arm, topologies: list[str], num_predict: int | None) -
 
 async def _stop_set(arm: Arm, topology: str) -> None:
     agents, tasks = arm.sets.pop(topology)
+    if arm.host:                                   # remote specialists are not ours to stop
+        return
     for t in tasks:
         if t.done() and not t.cancelled() and t.exception() is not None:
             logger.error("agent server %s had exited: %r", t.get_name(), t.exception())
@@ -160,27 +188,31 @@ async def stop_sets(arm: Arm) -> None:
         await _stop_set(arm, topology)
 
 
-async def restart_set(arm: Arm, topology: str, num_predict: int | None) -> None:
-    """Fresh specialist servers for one topology, so a retry never reuses a dead one."""
-    logger.warning("restarting %s %s agents before the retry", arm.name, topology)
+async def restart_set(arm: Arm, topology: str, num_predict: int | None, ollama: str = OLLAMA) -> None:
+    """Fresh specialist servers for one topology, so a retry never reuses a dead one.
+    Remote specialists cannot be restarted from here: the retry only waits until they answer."""
+    logger.warning("%s %s %s agents before the retry", "checking" if arm.host else "restarting",
+                   arm.name, topology)
     await _stop_set(arm, topology)
     await asyncio.sleep(1.0)
-    await start_sets(arm, [topology], num_predict)
+    await start_sets(arm, [topology], num_predict, ollama)
 
 
-async def warm_up(model: str) -> None:
+async def warm_up(model: str, ollama: str = OLLAMA) -> None:
     """Load the model into Ollama (outside any capture) and keep it resident."""
     async with httpx.AsyncClient(timeout=300) as c:
-        r = await c.post(f"{OLLAMA}/api/generate", json={
+        r = await c.post(f"{ollama}/api/generate", json={
             "model": model, "prompt": "ok", "stream": False, "keep_alive": "60m",
             "options": {"num_predict": 1}})
         r.raise_for_status()
 
 
-def make_collector(arm: Arm, topology: str, workflow: str, num_predict: int | None) -> TraceCollector:
+def make_collector(arm: Arm, topology: str, workflow: str, num_predict: int | None,
+                   interface: str = "lo0", ollama: str = OLLAMA) -> TraceCollector:
     dep = arm.dep(topology)
     orch = _orchestrator(dep, topology, arm.model, num_predict=num_predict,
-                         defense=arm.defense, tls_on=arm.tls)
+                         defense=arm.defense, tls_on=arm.tls, pad_buckets=arm.pad,
+                         host=arm.agent_host, ollama_url=ollama)
 
     # Same task-id format in every arm: the id travels in the request body, so an
     # arm-specific id would change request sizes.
@@ -198,9 +230,12 @@ def make_collector(arm: Arm, topology: str, workflow: str, num_predict: int | No
     ports = arm.ports(topology)
     return TraceCollector(
         orchestrator_fn=exec_fn,
-        recorder=PacketRecorder(output_dir=arm.out, interface="lo0", agent_ports=list(ports.values())),
+        recorder=PacketRecorder(output_dir=arm.out, interface=interface, agent_ports=list(ports.values()),
+                                hosts=[arm.host] if arm.host else None),
         workflow_class=WorkflowClass(workflow), topology=TopologyType(topology),
-        agent_endpoints={r: f"127.0.0.1:{p}" for r, p in ports.items()},
+        # the orchestrator runs in this process; the specialists at agent_host
+        agent_endpoints={r: f"{'127.0.0.1' if r == 'orchestrator' else arm.agent_host}:{p}"
+                         for r, p in ports.items()},
         topology_edges=TOPO_EDGES[topology], output_dir=arm.out,
         deployment=f"{arm.deployment}{'_tls' if arm.tls else ''}",
     )
@@ -233,7 +268,9 @@ async def main(a: argparse.Namespace) -> None:
                       "set per arm and topology, restarted each round; a trace with any agent error "
                       "is failed and retried once; models warmed up outside capture",
             "arms": [{"name": x.name, "deployment": x.deployment, "model": x.model, "tls": x.tls,
-                      "defense": x.defense, "out": str(x.out), "ports_base": x.ports_base} for x in arms],
+                      "defense": x.defense, "out": str(x.out), "ports_base": x.ports_base,
+                      "host": x.host, "pad_buckets": x.pad} for x in arms],
+            "interface": a.interface, "ollama_url": a.ollama_url,
             "num_predict": num_predict, "n_per_condition": a.n, "rounds": a.rounds,
             "seed_offset": a.seed_offset, "order_seed": SEED, "topologies": topologies,
             "workflows": workflows, "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
@@ -270,11 +307,12 @@ async def main(a: argparse.Namespace) -> None:
         logger.info("=" * 60)
         try:
             for arm in arms:
-                await start_sets(arm, topologies, num_predict)
+                await start_sets(arm, topologies, num_predict, a.ollama_url)
                 if arm.tls and arm.name not in meta["tls_params"]:
-                    meta["tls_params"][arm.name] = await probe_tls(arm.ports(topologies[0])["executor"])
+                    meta["tls_params"][arm.name] = await probe_tls(arm.ports(topologies[0])["executor"],
+                                                                   host=arm.agent_host)
                     logger.info("  TLS parameters (%s): %s", arm.name, meta["tls_params"][arm.name])
-            collectors = {(arm.name, t, w): make_collector(arm, t, w, num_predict)
+            collectors = {(arm.name, t, w): make_collector(arm, t, w, num_predict, a.interface, a.ollama_url)
                           for arm in arms for t in topologies for w in workflows}
             for k, (t, w, i) in enumerate(todo):
                 if deadline and time.time() > deadline:
@@ -286,7 +324,7 @@ async def main(a: argparse.Namespace) -> None:
                     if (item, arm.name) in done:
                         continue
                     if arm.model != last_model:
-                        await warm_up(arm.model)
+                        await warm_up(arm.model, a.ollama_url)
                         last_model = arm.model
                     for attempt in (1, 2):
                         run = (await collectors[(arm.name, t, w)].collect([prompts[(t, w)][i]],
@@ -301,13 +339,14 @@ async def main(a: argparse.Namespace) -> None:
                             sc = json.loads(sidecar.read_text())
                             sc.update({"collection_id": a.collection_id, "arm": arm.name, "round": rnd,
                                        "position": position, "seed_offset": a.seed_offset,
-                                       "model": arm.model, "tls": arm.tls, "defense": arm.defense})
+                                       "model": arm.model, "tls": arm.tls, "defense": arm.defense,
+                                       "agent_host": arm.host, "pad_buckets": arm.pad})
                             sidecar.write_text(json.dumps(sc, indent=2))
                         if run.success:
                             done.add((item, arm.name))
                             break
                         meta["failures"] += 1
-                        await restart_set(arm, t, num_predict)
+                        await restart_set(arm, t, num_predict, a.ollama_url)
                 save()
         finally:
             for arm in arms:
@@ -331,7 +370,11 @@ def _parse() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Collect one or more arms in one session, one trace at a time")
     p.add_argument("--arm", action="append", required=True,
                    help="name=...,deployment=a|b|langgraph,model=...,tls=on|off,defense=none|pad|rate|both,"
-                        "out=DIR[,ports=BASE]  (repeat for more arms)")
+                        "out=DIR[,ports=BASE][,pad=B1/B2/...][,host=ADDR]  (repeat for more arms)")
+    p.add_argument("--ollama-url", default=OLLAMA, dest="ollama_url",
+                   help="Ollama for the model warm-up and the agents this process runs")
+    p.add_argument("--interface", default="lo0",
+                   help="capture interface (lo0 for local agents; the Ethernet port for host=)")
     p.add_argument("--collection-id", required=True, dest="collection_id")
     p.add_argument("--n", type=int, default=50, help="traces per topology × workflow condition, per arm")
     p.add_argument("--rounds", type=int, default=5)

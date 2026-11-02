@@ -3,13 +3,18 @@
 # make_tls_certs.sh — create a throwaway local CA and one agent certificate for the
 # TLS control experiment (scripts/collect_deployment.py --tls-dir DIR).
 #
-# The certificate is valid for 127.0.0.1 and localhost only. Keys stay local:
-# the default output dir (data/tls) is gitignored.
+# The certificate is valid for 127.0.0.1 and localhost, plus any IP addresses given after
+# OUT_DIR (the agent host's LAN address in docs/LAN_SETUP.md). Keys stay local: the default
+# output dir (data/tls) is gitignored.
 #
-# Usage:  bash scripts/make_tls_certs.sh [OUT_DIR]
+# Usage:  bash scripts/make_tls_certs.sh [OUT_DIR] [IP ...]
+#         bash scripts/make_tls_certs.sh data/tls_lan 192.168.2.2
 set -euo pipefail
 
 OUT="${1:-data/tls}"
+shift || true
+SAN="IP:127.0.0.1,DNS:localhost"
+for ip in "$@"; do SAN="$SAN,IP:$ip"; done
 mkdir -p "$OUT"
 cd "$OUT"
 
@@ -18,8 +23,8 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 365 -subj "/CN=A2A testbed CA" \
 
 openssl req -newkey rsa:2048 -nodes -subj "/CN=localhost" \
     -keyout agent-key.pem -out agent.csr 2>/dev/null
-printf 'subjectAltName=IP:127.0.0.1,DNS:localhost\nextendedKeyUsage=serverAuth\n' > agent.ext
+printf 'subjectAltName=%s\nextendedKeyUsage=serverAuth\n' "$SAN" > agent.ext
 openssl x509 -req -in agent.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -days 365 \
     -extfile agent.ext -out agent.pem 2>/dev/null
 
-echo "wrote $OUT/{ca.pem, agent.pem, agent-key.pem}"
+echo "wrote $OUT/{ca.pem, agent.pem, agent-key.pem} for $SAN"

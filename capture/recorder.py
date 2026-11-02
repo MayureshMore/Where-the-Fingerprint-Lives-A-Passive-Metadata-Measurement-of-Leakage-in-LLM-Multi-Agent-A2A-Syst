@@ -99,8 +99,12 @@ class PacketRecorder:
         output_dir: Path,
         interface: str = "any",
         agent_ports: list[int] | None = None,
+        hosts: list[str] | None = None,
     ) -> None:
         self.output_dir = Path(output_dir)
+        # Limit every capture to these hosts as well as the agent ports (the remote agent
+        # host in the LAN setup); per-session extra_hosts are added to them.
+        self.hosts = list(hosts or [])
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.interface = interface
         self.agent_ports = agent_ports or [8000, 8001, 8002, 8003]
@@ -108,8 +112,9 @@ class PacketRecorder:
     def _bpf_filter(self, extra_hosts: list[str] | None = None) -> str:
         port_expr = " or ".join(f"port {p}" for p in self.agent_ports)
         filter_expr = f"tcp and ({port_expr})"
-        if extra_hosts:
-            host_expr = " or ".join(f"host {h}" for h in extra_hosts)
+        hosts = self.hosts + list(extra_hosts or [])
+        if hosts:
+            host_expr = " or ".join(f"host {h}" for h in hosts)
             filter_expr += f" and ({host_expr})"
         return filter_expr
 

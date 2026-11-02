@@ -93,6 +93,33 @@ def _cell_pad_len(base_len: int, cell: int = _PAD_CELL_BYTES) -> int:
     return (-base_len) % cell
 
 
+def pad_bucket(n: int, buckets: list[int]) -> int:
+    """Smallest bucket ≥ n; above the largest bucket, the next multiple of the largest."""
+    for b in sorted(buckets):
+        if b >= n:
+            return b
+    top = max(buckets)
+    return -(-n // top) * top
+
+
+def request_body_len(request) -> int:
+    """Bytes of a JSON-RPC request body as the SDK sends it: model_dump(mode="json",
+    exclude_none=True), encoded by httpx as compact UTF-8 JSON. The transport re-sends params
+    under its own id, str(uuid4()), so the request measured must carry an id of that form."""
+    return len(json.dumps(request.model_dump(mode="json", exclude_none=True), ensure_ascii=False,
+                          separators=(",", ":"), allow_nan=False).encode("utf-8"))
+
+
+def pad_request(request, buckets: list[int]):
+    """Input-size defense: grow the request body to a fixed bucket with filler in the message
+    metadata (which receiving agents ignore), so the request size shows only the bucket."""
+    msg = request.params.message
+    msg.metadata = {**(msg.metadata or {}), "pad": ""}
+    base = request_body_len(request)
+    msg.metadata["pad"] = "x" * (pad_bucket(base, buckets) - base)   # ASCII: one byte each
+    return request
+
+
 class AgentRole(str, enum.Enum):
     ORCHESTRATOR = "orchestrator"
     EXECUTOR = "executor"
@@ -128,6 +155,9 @@ class AgentConfig(BaseModel):
     #            defense, orchestrator-side) — the A2A-specific defense
     #   "both" — pad + rate
     defense: str = "none"
+    # Input padding: every outgoing request body is padded up to the smallest of these sizes
+    # (bytes) that fits it; above the largest, to a multiple of the largest. Empty = off.
+    pad_buckets: list[int] = []
     # Serve HTTPS: True/False, or None for the process-wide default (agents/tls.py)
     tls: bool | None = None
 
@@ -257,9 +287,11 @@ class BaseA2AAgent:
             parts=[Part(root=TextPart(text=content))],
         )
         request = SendStreamingMessageRequest(
-            id=uuid.uuid4().hex,
+            id=str(uuid.uuid4()),     # same length as the id the transport sends
             params=MessageSendParams(message=msg),
         )
+        if self.config.pad_buckets:
+            pad_request(request, self.config.pad_buckets)
 
         artifact_text: list[str] = []
         status_text: list[str] = []

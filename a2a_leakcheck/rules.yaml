@@ -1,0 +1,76 @@
+# a2a-leakcheck rules: severity thresholds and mitigation hints.
+#
+# severity: effect size = (macro-F1 − chance) / (1 − chance), for LEAK verdicts only.
+#
+# rules: every rule whose `when` matches an attribute's facts adds its hint to the report, in
+# file order. A `when` key is a fact name (dotted for nested facts); its value must equal the
+# fact, or be a list the fact is in. Facts per attribute:
+#
+#   attribute                         role | workflow | topology | ...
+#   verdict                           LEAK | NO LEAK | INCONCLUSIVE
+#   severity                          high | medium | low | none
+#   top_family                        sizes | timing | counts_direction (best family alone)
+#   top_family_matches_all            true when that family alone is not below all features
+#   request_size_single_matches_all   true when one request-size feature alone is not below
+#                                     all features (trace attributes: the first request's size;
+#                                     role: bytes the agent receives)
+#   family_matches_all.<family>       per family, as above
+#   too_few_samples                   true when the minimum-sample check failed
+#
+# Docs: docs/LEAKCHECK.md, "Adding a rule".
+
+severity:
+  high: 0.6
+  medium: 0.3
+
+rules:
+  - id: pad-task-inputs
+    when: {verdict: LEAK, request_size_single_matches_all: true}
+    hint: >-
+      One request-size feature alone matches all features: the size of the task input gives the
+      attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this
+      testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that
+      the inputs of different classes share one.
+
+  - id: pad-messages
+    when: {verdict: LEAK, top_family: sizes, request_size_single_matches_all: false}
+    hint: >-
+      Message sizes carry the leak, beyond any single request. Pad streamed response events to
+      fixed cells (defense=pad) as well as request bodies to buckets.
+
+  - id: shape-timing
+    when: {verdict: LEAK, top_family: timing}
+    hint: >-
+      Timing carries the leak. Add jitter and reordering to delegations (defense=rate), or batch
+      responses so their timing no longer follows the work done.
+
+  - id: fix-message-counts
+    when: {verdict: LEAK, top_family: counts_direction}
+    hint: >-
+      Message counts and direction carry the leak. Keep the number of calls per agent constant
+      and add dummy calls (defense=rate).
+
+  - id: topology-structure
+    when: {verdict: LEAK, attribute: topology}
+    hint: >-
+      Which agents talk to each other is visible from the connections themselves, whatever
+      their content. Hiding topology needs a constant call pattern (every agent called in every
+      task) or relaying all calls through one endpoint.
+
+  - id: role-endpoints
+    when: {verdict: LEAK, attribute: role}
+    hint: >-
+      Each agent's traffic profile identifies its role. Put agents behind one endpoint, or pad
+      their requests and responses to common sizes.
+
+  - id: collect-more
+    when: {verdict: INCONCLUSIVE, too_few_samples: true}
+    hint: >-
+      Too few samples per class for a verdict: collect more traces (at least min_per_class per
+      class, from at least as many prompt groups as folds).
+
+  - id: inconclusive
+    when: {verdict: INCONCLUSIVE, too_few_samples: false}
+    hint: >-
+      The interval straddles chance + margin: more traces will narrow it. Re-run before
+      treating this attribute as safe.

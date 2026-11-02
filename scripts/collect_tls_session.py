@@ -97,19 +97,19 @@ async def stop_set(arm: str, agents: list, tasks: list) -> None:
         await _kill_port(ARMS[arm]["ports"][role])
 
 
-async def probe_tls(port: int) -> dict:
+async def probe_tls(port: int, host: str = "127.0.0.1") -> dict:
     """Negotiated TLS version/cipher (raw handshake) and HTTP version (httpx) of a TLS agent."""
     ctx = tls.client_verify()
     loop = asyncio.get_running_loop()
 
     def _handshake() -> tuple[str, list]:
-        with socket.create_connection(("127.0.0.1", port), timeout=5) as raw:
-            with ctx.wrap_socket(raw, server_hostname="127.0.0.1") as s:
+        with socket.create_connection((host, port), timeout=5) as raw:
+            with ctx.wrap_socket(raw, server_hostname=host) as s:
                 return s.version(), list(s.cipher())
 
     version, cipher = await loop.run_in_executor(None, _handshake)
     async with httpx.AsyncClient(verify=ctx, timeout=5) as c:
-        r = await c.get(f"https://127.0.0.1:{port}/.well-known/agent.json")
+        r = await c.get(f"https://{host}:{port}/.well-known/agent.json")
     return {"tls_version": version, "cipher": cipher[0], "cipher_bits": cipher[2],
             "http_version": r.http_version, "openssl": ssl.OPENSSL_VERSION,
             "httpx": httpx.__version__}

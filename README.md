@@ -85,12 +85,15 @@ models/             Random forest, gradient-boosted trees (headline), 1-D CNN an
 defense/            Live defenses: randomized delegation scheduling and dummy sub-calls
 evaluation/         Closed-world / open-world drivers, metrics, cluster-bootstrap CIs
 scripts/            Every runnable entry point: collect, extract, train, evaluate, reproduce
+a2a_leakcheck/      Leak audit tool: header-only captures in, LEAK / NO LEAK / INCONCLUSIVE per
+                    attribute out (docs/LEAKCHECK.md)
 frameworks/         The independently authored comparison deployments (§5.10–5.11):
   autogen/            AutoGen distributed gRPC runtime (orchestrator + 3 workers) and its collector
   crewai/             CrewAI served over a2a-sdk, plus the fully matched A-vs-CrewAI pair
 third_party/a2a_mcp/ Compatibility patch and drivers for Google's a2a_mcp sample (§5.7, §5.9)
 configs/            Testbed configurations (local loopback, LangGraph, US⇄India WAN)
-docs/               WAN runbook, deep-model appendix, cross-framework plan, a2a_mcp patch notes
+docs/               WAN and LAN runbooks, leakcheck, deep-model appendix, cross-framework plan,
+                    a2a_mcp patch notes
 tests/              Unit and regression tests (pytest)
 data/results/       Committed, canonical results: JSON + figures (everything else under data/ is gitignored)
 ```
@@ -129,6 +132,8 @@ inter-arrival timing, burst structure, and SSE streaming-chunk structure.
 
 - **Size padding** — each SSE event padded to a fixed cell (`agents/base.py`, `_cell_pad_len`).
 - **Rate/count** — dummy sub-calls with jittered, reordered delegation (`defense/scheduling.py`, `defense/dummy.py`).
+- **Input padding** — every request body padded to a fixed size bucket (`AgentConfig.pad_buckets`;
+  `scripts/collect_session.py --arm ...,pad=1024/2048/4096`).
 
 ---
 
@@ -200,7 +205,13 @@ python scripts/evaluate_defense_live.py \
 
 The US⇄India WAN experiment (§5.6) is documented step by step in
 [docs/WAN_COLLECTION.md](docs/WAN_COLLECTION.md); capture is taken post-decapsulation on the VPN
-tunnel interface, not the physical NIC. The `a2a_mcp`, AutoGen, and CrewAI collections are in
+tunnel interface, not the physical NIC. The Mac + Raspberry Pi LAN setup (gateway vantage) is in
+[docs/LAN_SETUP.md](docs/LAN_SETUP.md).
+
+```bash
+# Leak audit of any folder of header-only captures with label sidecars (docs/LEAKCHECK.md)
+python -m a2a_leakcheck run data/raw_tlspair_tls --strip --out data/results/leakcheck/tls_control_tls --html
+``` The `a2a_mcp`, AutoGen, and CrewAI collections are in
 [RECREATE.md](RECREATE.md). Every evaluation step is also wired into `scripts/reproduce.sh`.
 
 ---

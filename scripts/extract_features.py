@@ -56,7 +56,7 @@ def _prompt_group(prompt: str) -> str:
 def main(raw_dir: Path, out_dir: Path, use_scapy: bool = False) -> None:
     from capture.labeler import TraceLabeler
     from features.extractor import FeatureExtractor
-    from features.per_flow import compute_per_flow
+    from features.roles import role_vectors
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -137,53 +137,8 @@ def main(raw_dir: Path, out_dir: Path, use_scapy: bool = False) -> None:
         if not packets:
             continue
 
-        from collections import defaultdict
-
-        # Step 1: group individual TCP connections by flow key
-        by_flow: dict[str, list[tuple[float, int, int]]] = defaultdict(list)
-        for ts, size, fk, direction in packets:
-            by_flow[fk].append((ts, size, direction))
-
-        # Step 2: pool all flows that share the same destination agent port.
-        # Multiple TCP connections to the same agent within one trace
-        # (retries, keep-alive reconnects, pipelined requests) must be
-        # aggregated into one sample — not overwritten by iteration order.
-        by_agent_port: dict[str, list[tuple[str, list[tuple[float, int, int]]]]] = defaultdict(list)
-        for fk, pkts in by_flow.items():
-            parts = fk.split("→")
-            if len(parts) != 2:
-                continue
-            dst_port = parts[1].rsplit(":", 1)[-1]
-            if port_role.get(dst_port) is not None:
-                by_agent_port[dst_port].append((fk, pkts))
-
-        # Step 3: one NPZ per (run_id, agent_port) using pooled packets + bursts
-        for dst_port, flow_list in by_agent_port.items():
-            role = port_role[dst_port]
-
-            # Pool all raw packets from every connection to this agent
-            pooled_pkts: list[tuple[float, int, int]] = []
-            for _, pkts in flow_list:
-                pooled_pkts.extend(pkts)
-
-            # Pool and sort all bursts chronologically
-            pooled_bursts = []
-            for fk, pkts in flow_list:
-                flow_packets_full = [(ts, size, fk, d) for ts, size, d in pkts]
-                pooled_bursts.extend(extractor.segmenter.segment(flow_packets_full))
-            pooled_bursts.sort(key=lambda b: b.start_ts)
-
-            # Compute per-flow features on the pooled view
-            pf = compute_per_flow(f"pooled→{dst_port}", pooled_bursts, pooled_pkts)
-            pf_vec = pf.to_vector()  # 35-dim
-
-            if pooled_bursts:
-                burst_seq = np.stack([b.to_feature_vector() for b in pooled_bursts], axis=0)
-                gap_seq = extractor.segmenter.gap_sequence(pooled_bursts)
-            else:
-                burst_seq = np.zeros((0, 10), dtype=np.float32)
-                gap_seq = np.zeros(0, dtype=np.float32)
-
+        # One NPZ per (run_id, agent_port): every connection to the agent pooled
+        for dst_port, (role, pf_vec, burst_seq, gap_seq) in role_vectors(extractor, packets, port_role).items():
             role_run_id = f"{run.run_id}__role__{dst_port}"
             role_npz = out_dir / f"{role_run_id}.npz"
             np.savez_compressed(

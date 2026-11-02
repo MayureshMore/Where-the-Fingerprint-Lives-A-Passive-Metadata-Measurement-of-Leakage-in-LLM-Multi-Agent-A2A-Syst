@@ -34,3 +34,15 @@ def test_agent_errors_are_caught_but_others_ignored():
     finally:
         root.removeHandler(watch)
     assert watch.messages == ["[orchestrator] downstream 0 failed: 503"]
+
+
+def test_remote_host_and_padding_arm(tmp_path):
+    from scripts.collect_session import make_collector
+    arm = parse_arm(f"name=lan,deployment=a,tls=off,host=192.168.2.2,ports=8100,pad=1024/4096,out={tmp_path}", 0)
+    assert arm.host == "192.168.2.2" and arm.pad == [1024, 4096]
+    assert parse_arm("name=x,deployment=a,out=d", 0).pad == [] and parse_arm("name=x,deployment=a,out=d", 0).host is None
+    col = make_collector(arm, "star", "code_review", 256, interface="en7")
+    assert col.agent_endpoints["executor"] == "192.168.2.2:8101"
+    assert col.agent_endpoints["orchestrator"] == "127.0.0.1:8100"
+    assert col.recorder.interface == "en7"
+    assert col.recorder._bpf_filter() == "tcp and (port 8100 or port 8101 or port 8102 or port 8103) and (host 192.168.2.2)"

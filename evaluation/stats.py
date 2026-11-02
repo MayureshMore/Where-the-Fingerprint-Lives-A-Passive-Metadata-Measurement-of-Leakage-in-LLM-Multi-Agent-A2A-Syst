@@ -117,3 +117,21 @@ def bootstrap_ci(
         "ci_method":      method,
         "n_clusters":     n_clusters,
     }
+
+
+def paired_bootstrap_diff(y_true, pred_a, pred_b, groups, metric, n: int = _N_BOOTSTRAP,
+                          seed: int = _RNG_SEED) -> dict[str, Any]:
+    """metric(a) − metric(b) on the same samples, with a 95% cluster-bootstrap CI: both are
+    scored on the same group resamples, so their correlation cancels. The difference counts
+    only when its CI excludes 0. metric(y_true, y_pred) → float."""
+    y, pa, pb, g = (np.asarray(v) for v in (y_true, pred_a, pred_b, groups))
+    uniq = np.unique(g)
+    idx_by = {u: np.where(g == u)[0] for u in uniq}
+    rng = np.random.default_rng(seed)
+    diffs = np.empty(n)
+    for i in range(n):
+        idx = np.concatenate([idx_by[u] for u in rng.choice(uniq, len(uniq), replace=True)])
+        diffs[i] = metric(y[idx], pa[idx]) - metric(y[idx], pb[idx])
+    lo, hi = np.percentile(diffs, [2.5, 97.5])
+    return {"diff": float(metric(y, pa) - metric(y, pb)), "ci_lo": float(lo), "ci_hi": float(hi),
+            "significant": bool(lo > 0 or hi < 0)}

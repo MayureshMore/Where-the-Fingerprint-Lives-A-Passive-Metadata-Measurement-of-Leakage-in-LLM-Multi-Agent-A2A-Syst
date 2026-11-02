@@ -56,8 +56,13 @@ from sklearn.model_selection import StratifiedGroupKFold
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from evaluation.stats import bootstrap_ci  # noqa: E402
-from features.kfp import N_KFP, kfp_features, packets_from_pcap, tcp_packets  # noqa: E402
+from evaluation.stats import bootstrap_ci, paired_bootstrap_diff  # noqa: E402
+from features.families import (  # noqa: E402
+    _PF_REQUEST_SIZES, _PF_RESPONSE_SIZES, FAMILIES, _check_partition, family_columns,
+    response_side_columns,
+)
+from features.first_request import FIRST_REQUEST_DEF, first_request_bytes  # noqa: E402
+from features.kfp import N_KFP, kfp_features, packets_from_pcap  # noqa: E402
 from features.per_flow import PerFlowFeatures  # noqa: E402
 from features.per_system import PerSystemFeatures  # noqa: E402
 from models.gradient_boosted import GBTClassifier  # noqa: E402
@@ -71,68 +76,11 @@ SEED = 42
 N_BOOT = 2000
 TRAIN_ROUNDS, TEST_ROUNDS = (0, 1, 2), (3, 4)
 
-# ── feature families (indices into the 35-dim per-flow and 20-dim per-system scalar blocks) ──
-_PF_SIZES = {"bytes_out", "bytes_in", "mean_sz_out", "std_sz_out", "p25_sz_out", "p75_sz_out",
-             "mean_sz_in", "std_sz_in", "p25_sz_in", "p75_sz_in", "mean_burst_bytes",
-             "std_burst_bytes", "bytes_out_ratio", "pkt_size_asymmetry", "n_small_inbound",
-             "iqr_size_in"} | {f"cumul_bytes_q{i}" for i in range(10)}
-_PF_TIMING = {"duration_s", "mean_iat", "std_iat", "mean_burst_dur", "mean_ibg"}
-_PF_COUNTS = {"n_pkts_out", "n_pkts_in", "n_bursts", "n_response_bursts"}
-_SYS_SIZES = {"total_bytes", "bytes_out_ratio", "heaviest_flow_bytes_frac", "flow_bytes_cv",
-              "n_response_heavy_flows", "mean_flow_response_ratio", "max_flow_bytes_out_ratio",
-              "min_flow_bytes_out_ratio", "max_flow_bytes_in"}
-_SYS_TIMING = {"total_duration_s", "flow_start_spread", "flow_end_spread", "max_concurrent_flows",
-               "mean_burst_rate"}
-_SYS_COUNTS = {"n_flows", "n_src_hosts", "n_dst_hosts", "n_host_pairs", "total_packets",
-               "total_bursts"}
-FAMILIES = {"sizes": (_PF_SIZES, _SYS_SIZES), "timing": (_PF_TIMING, _SYS_TIMING),
-            "counts_direction": (_PF_COUNTS, _SYS_COUNTS)}
-# Direction (features/extractor.py): "out" = agent → caller (response), "in" = caller → agent
-# (request). Response-side check: drop every size feature that uses request bytes, including the
-# mixed ones (ratios, totals, cumulative bytes, burst bytes); keep response sizes, timing, counts.
-_PF_RESPONSE_SIZES = {"bytes_out", "mean_sz_out", "std_sz_out", "p25_sz_out", "p75_sz_out"}
-_PF_REQUEST_SIZES = {"bytes_in", "mean_sz_in", "std_sz_in", "p25_sz_in", "p75_sz_in", "iqr_size_in",
-                     "n_small_inbound"}
 TOP_SINGLE = 5
 LENGTH_PAIRS = (("code_review", "data_analysis"), ("research_retrieval", "support_triage"))
-REQUEST_GAP_S = 0.05      # one request = request-direction writes on a connection ≤ 50 ms apart
-FIRST_REQUEST_DEF = ("TCP payload bytes of the first request message that reaches an agent (the "
-                     "caller → orchestrator link is not captured): on the agent link whose first "
-                     "post-handshake request starts earliest, the request-direction writes ≤ 50 ms "
-                     "apart, TLS ClientHello and client Finished excluded; from headers only.")
 # trace vector: per-flow blocks (mean, heaviest, 2nd heaviest flow) vs system-wide aggregates
 AGGREGATES = {"per_flow": np.arange(0, 105), "system": np.arange(105, 195)}
 LEARNING_FRACTIONS = (0.1, 0.25, 0.5, 0.75, 1.0)
-
-
-def family_columns(family: str, role: bool) -> np.ndarray:
-    """Column indices of one feature family in the role (35) or trace (195) flat vector."""
-    return _columns(*FAMILIES[family], role)
-
-
-def response_side_columns() -> np.ndarray:
-    """Trace columns left after removing every size feature that uses request-direction bytes."""
-    keep_pf = _PF_TIMING | _PF_COUNTS | _PF_RESPONSE_SIZES
-    return _columns(keep_pf, _SYS_TIMING | _SYS_COUNTS, False)
-
-
-def _columns(pf_set: set, sys_set: set, role: bool) -> np.ndarray:
-    pf_names = PerFlowFeatures.FEATURE_NAMES()
-    sys_names = PerSystemFeatures.FEATURE_NAMES()[:20]
-    pf_idx = [i for i, n in enumerate(pf_names) if n in pf_set]
-    if role:
-        return np.array(pf_idx)
-    cols = [b + i for b in (0, 35, 70, 125, 160) for i in pf_idx]   # pf blocks + sys pf mean/std
-    cols += [105 + i for i, n in enumerate(sys_names) if n in sys_set]
-    return np.array(sorted(cols))
-
-
-def _check_partition() -> None:
-    pf = set(PerFlowFeatures.FEATURE_NAMES())
-    sysn = set(PerSystemFeatures.FEATURE_NAMES()[:20])
-    fams = list(FAMILIES.values())
-    assert set().union(*(f[0] for f in fams)) == pf and sum(len(f[0]) for f in fams) == len(pf)
-    assert set().union(*(f[1] for f in fams)) == sysn and sum(len(f[1]) for f in fams) == len(sysn)
 
 
 # ── data ────────────────────────────────────────────────────────────────────
@@ -154,38 +102,6 @@ def load(processed: Path, raw: Path, task: str) -> dict:
     return {"run_id": list(rid), "base": list(base), "port": list(port), "X": np.stack(flat),
             "y": np.array(y), "g": np.array(g), "round": np.array(rnd), "endpoints": list(eps),
             "topology": np.array(top), "prompt_len": np.array(plen)}
-
-
-def first_request_bytes(pcap: Path, servers: set[int]) -> int:
-    """TCP payload bytes of the first request message that reaches an agent: on the agent link
-    whose first post-handshake request starts earliest, the request-direction payload written in
-    one go (writes ≤ REQUEST_GAP_S apart). On a connection opened in the trace, the TLS ClientHello
-    and the client Finished (≤ 100 B) are skipped. Headers only, so it works on stripped pcaps."""
-    opened, skipped, first = set(), {}, {}
-    for ts, sp, dp, _, pl, flags in tcp_packets(pcap):
-        if dp not in servers:
-            continue
-        conn = (sp, dp)
-        if flags & 0x02:                                   # SYN: the connection opens in this trace
-            opened.add(conn)
-            continue
-        if pl == 0 or conn in first and first[conn][2]:
-            continue
-        if conn in opened and skipped.get(conn, 0) == 0:   # ClientHello
-            skipped[conn] = 1
-            continue
-        if conn in opened and skipped[conn] == 1 and pl <= 100:   # client Finished
-            skipped[conn] = 2
-            continue
-        if conn not in first:
-            first[conn] = [ts, pl, False, ts]
-        elif ts - first[conn][3] <= REQUEST_GAP_S:
-            first[conn][1] += pl
-            first[conn][3] = ts
-        else:
-            first[conn][2] = True                          # first request on this link complete
-    reqs = [(t0, b) for t0, b, _, _ in first.values() if b >= 300]   # not a close_notify
-    return min(reqs)[1] if reqs else 0
 
 
 def kfp_matrix(d: dict, raw: Path) -> np.ndarray:
@@ -253,18 +169,8 @@ def score(y, pred, g, classes) -> dict:
 
 def paired_diff(y, pa, pb, g, classes) -> dict:
     """macro-F1(a) − macro-F1(b), group bootstrap over the same resamples for both."""
-    y, pa, pb, g = (np.asarray(v) for v in (y, pa, pb, g))
     f1 = lambda t, p: f1_score(t, p, labels=classes, average="macro", zero_division=0)  # noqa: E731
-    uniq = np.unique(g)
-    idx_by = {u: np.where(g == u)[0] for u in uniq}
-    rng = np.random.default_rng(SEED)
-    diffs = np.empty(N_BOOT)
-    for i in range(N_BOOT):
-        idx = np.concatenate([idx_by[u] for u in rng.choice(uniq, len(uniq), replace=True)])
-        diffs[i] = f1(y[idx], pa[idx]) - f1(y[idx], pb[idx])
-    lo, hi = np.percentile(diffs, [2.5, 97.5])
-    return {"diff": float(f1(y, pa) - f1(y, pb)), "ci_lo": float(lo), "ci_hi": float(hi),
-            "significant": bool(lo > 0 or hi < 0)}
+    return paired_bootstrap_diff(y, pa, pb, g, f1, n=N_BOOT, seed=SEED)
 
 
 def _boot_class_f1(y, pred, g, classes, rng) -> np.ndarray:

@@ -137,7 +137,8 @@ def _agent_configs(dep: dict, topology: str, model: str,
                    num_predict: int | None = None,
                    defense: str = "none",
                    ollama_url: str = "http://localhost:11434",
-                   tls_on: bool | None = None) -> dict[str, AgentConfig]:
+                   tls_on: bool | None = None,
+                   pad_buckets: list[int] | None = None) -> dict[str, AgentConfig]:
     """
     Per-role AgentConfig for executor/retriever/validator with downstream routing
     for the topology.  n_retrieval_phases controls deployment-A retriever depth
@@ -151,7 +152,7 @@ def _agent_configs(dep: dict, topology: str, model: str,
         return AgentConfig(
             role=role, port=port, downstream_agents=downstream,
             ollama_model=model, ollama_num_predict=num_predict, defense=defense,
-            ollama_base_url=ollama_url, tls=tls_on,
+            ollama_base_url=ollama_url, tls=tls_on, pad_buckets=pad_buckets or [],
             **({"n_retrieval_phases": phases} if phases is not None else {}),
         )
 
@@ -184,13 +185,16 @@ def _orchestrator(dep: dict, topology: str, model: str,
                   num_predict: int | None = None,
                   defense: str = "none",
                   ollama_url: str = "http://localhost:11434",
-                  tls_on: bool | None = None):
+                  tls_on: bool | None = None,
+                  pad_buckets: list[int] | None = None,
+                  host: str = "127.0.0.1"):
+    """host: where the specialists run (another machine's address in the LAN setup)."""
     ports = dep["ports"]
     roles = {"star": ["executor", "retriever", "validator"], "chain": ["executor"],
              "mesh": ["executor", "retriever"]}
     if topology not in roles:
         raise ValueError(f"Unknown topology: {topology}")
-    downstream = [_url(r, ports, tls_on=tls_on) for r in roles[topology]]
+    downstream = [_url(r, ports, host=host, tls_on=tls_on) for r in roles[topology]]
 
     cfg = AgentConfig(
         role=AgentRole.ORCHESTRATOR,
@@ -201,6 +205,7 @@ def _orchestrator(dep: dict, topology: str, model: str,
         defense=defense,
         ollama_base_url=ollama_url,
         tls=tls_on,
+        pad_buckets=pad_buckets or [],
     )
     return dep["orchestrator"](cfg)
 
@@ -221,8 +226,8 @@ async def _kill_port(port: int) -> None:
 
 
 async def _wait_ready(role: str, ports: dict[str, int], retries: int = 30,
-                      tls_on: bool | None = None) -> bool:
-    url = _url(role, ports, tls_on=tls_on)
+                      tls_on: bool | None = None, host: str = "127.0.0.1") -> bool:
+    url = _url(role, ports, host=host, tls_on=tls_on)
     for attempt in range(retries):
         try:
             from agents import tls
