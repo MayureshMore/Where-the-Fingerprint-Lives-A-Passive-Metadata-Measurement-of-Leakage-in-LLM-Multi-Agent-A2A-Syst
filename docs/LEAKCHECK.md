@@ -18,11 +18,14 @@ python -m a2a_leakcheck diff NEW/report.json OLD/report.json
 | Extraction | the repository's header-only features: a 195-dim vector per trace, a 35-dim vector per agent per trace, and the size of the first request that reaches an agent | `extract.py`, `features/` |
 | Analysis | per attribute, out-of-fold predictions from 5-fold `StratifiedGroupKFold` (a group of traces sharing a prompt is never split), GBT by default; macro-F1 with a 95% cluster-bootstrap CI over groups | `analyze.py` |
 | Detection | chance = 1/k classes. **LEAK** if the CI lower bound is above chance + margin; **NO LEAK** if the CI upper bound is at most chance + margin; **INCONCLUSIVE** otherwise. `--margin`, default 0.05 | `analyze.py` |
-| Validation | minimum-sample check (each class needs `--min-per-class` samples, default 20, in at least as many groups as folds; else INCONCLUSIVE). Label-permutation test: the same CV on `--permutations` shuffles of the labels (default 19). A LEAK whose p-value exceeds `--alpha` (0.05) becomes INCONCLUSIVE. The share of permuted runs that would read LEAK is reported as the false-positive rate | `analyze.py` |
+| Validation | minimum-sample check (each class needs `--min-per-class` samples, default 20, in at least as many groups as folds; else INCONCLUSIVE). Label-permutation test: the same CV on `--permutations` shuffles of the labels (default 99, so p can reach 0.01), scored with `--null-model` (default `rf-light`, a 100-tree random forest); that model also scores the real labels, so the p-value is exact for it, and a weaker null model only makes the test more conservative. A LEAK whose p-value exceeds `--alpha` (0.05) becomes INCONCLUSIVE. The share of permuted runs that would read LEAK is reported as the false-positive rate | `analyze.py` |
 | Prioritization | effect size = (macro-F1 − chance) / (1 − chance); severity high ≥ 0.6, medium ≥ 0.3, else low (thresholds in `rules.yaml`) | `analyze.py` |
 | Attribution | the same CV on each feature family alone (sizes; timing; counts and direction) and on one request-size feature alone, each paired against all features | `analyze.py` |
 | Report | `report.json` (everything), `report.md`, `report.html` with `--html`; mitigation hints from `rules.yaml`; runtime per stage and peak memory | `report.py`, `rules.py` |
 | Repeat | `--baseline` (or `diff`) compares verdicts with a previous report | `report.py` |
+
+All cross-validations of an attribute (the model on all features, on each family, on the single
+feature, and the permutations) run in parallel worker processes: `--jobs` (default one per core).
 
 Exit codes: 0 done; 1 error; 2 any LEAK, with `--fail-on-leak`; 3 an attribute that is LEAK now
 and was not in the baseline.

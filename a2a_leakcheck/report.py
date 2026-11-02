@@ -49,7 +49,8 @@ def write_markdown(report: dict, path: Path) -> None:
          f"Verdict: LEAK if the 95% CI lower bound of macro-F1 is above chance + {p['margin']}; NO LEAK "
          f"if the upper bound is at most chance + {p['margin']}; INCONCLUSIVE otherwise, or when "
          f"the minimum-sample check fails, or when a LEAK fails the label-permutation test "
-         f"(p > {p['alpha']}, {p['permutations']} permutations). {p['folds']}-fold grouped CV, "
+         f"(p > {p['alpha']}, {p['permutations']} permutations scored with "
+         f"{p.get('null_model', p['model']).upper()}). {p['folds']}-fold grouped CV, "
          f"{p['model'].upper()}, {p['n_boot']} cluster-bootstrap resamples, seed {p['seed']}.", "",
          "| Attribute | Verdict | Severity | macro-F1 [95% CI] | Chance + margin | Permutation p | "
          "False positives on permuted labels | Leak carried by |", "|---|---|---|---|---|---|---|---|"]
@@ -79,7 +80,9 @@ def write_markdown(report: dict, path: Path) -> None:
         perm = r["validation"].get("permutation") or {}
         if perm.get("permutations"):
             nv = perm["null_verdicts"]
-            L += ["", f"Permutation test: p = {perm['p_value']:.3f}; permuted-label macro-F1 mean "
+            L += ["", f"Permutation test ({perm.get('null_model', p['model'])}: macro-F1 "
+                      f"{perm.get('observed_macro_f1', r['analysis']['macro_f1']):.3f} on the real labels): "
+                      f"p = {perm['p_value']:.3f}; permuted-label macro-F1 mean "
                       f"{perm['null_mean']:.3f}, max {perm['null_max']:.3f}; verdicts on permuted labels: "
                       f"{nv['LEAK']} LEAK, {nv['NO LEAK']} NO LEAK, {nv['INCONCLUSIVE']} INCONCLUSIVE."]
         for h in r.get("mitigations", []):
@@ -92,7 +95,8 @@ def write_markdown(report: dict, path: Path) -> None:
             L += ["", "**New LEAK: " + ", ".join(d["new_leaks"]) + "**"]
     L += ["", "## Runtime", "",
           f"{rt['total_s']:.1f} s in all (" + ", ".join(f"{k} {v:.1f} s" for k, v in rt["stages_s"].items())
-          + f"); peak memory {rt['peak_rss_mb']:.0f} MB (worker processes {rt['peak_rss_children_mb']:.0f} MB)."]
+          + f"); peak memory {rt['peak_rss_mb']:.0f} MB in the main process, up to "
+          f"{rt['peak_rss_children_mb']:.0f} MB in each of {rt.get('workers', '?')} worker processes."]
     path.write_text("\n".join(L) + "\n")
 
 

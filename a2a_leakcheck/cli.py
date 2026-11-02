@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import platform
 import resource
 import subprocess
@@ -59,7 +60,8 @@ def run(a: argparse.Namespace) -> int:
     stages: dict[str, float] = {}
     attributes = [x.strip() for x in a.attributes.split(",") if x.strip()]
     cfg = Config(margin=a.margin, n_splits=a.folds, n_boot=a.n_boot, permutations=a.permutations,
-                 alpha=a.alpha, min_per_class=a.min_per_class, seed=a.seed, model=a.model)
+                 alpha=a.alpha, min_per_class=a.min_per_class, seed=a.seed, model=a.model,
+                 null_model=a.null_model, jobs=a.jobs)
     rules = load_rules(a.rules)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -105,6 +107,7 @@ def run(a: argparse.Namespace) -> int:
         "parameters": {"attributes": attributes, "margin": cfg.margin, "folds": cfg.n_splits,
                        "n_boot": cfg.n_boot, "permutations": cfg.permutations, "alpha": cfg.alpha,
                        "min_per_class": cfg.min_per_class, "seed": cfg.seed, "model": cfg.model,
+                       "null_model": cfg.null_model, "jobs": cfg.jobs,
                        "rules": str(a.rules or "default"), "strip": a.strip},
         "collection": col["summary"],
         "extraction": ext["summary"],
@@ -120,10 +123,16 @@ def run(a: argparse.Namespace) -> int:
     if a.fail_on_leak and report["summary"]["LEAK"] and code == 0:
         code = 2
 
+    # Worker processes count toward RUSAGE_CHILDREN only once they exit and are reaped, so stop
+    # the (reusable) worker pool before measuring. ru_maxrss of the children is the largest
+    # single worker; peak use is about the main process plus workers × that.
+    from joblib.externals.loky import get_reusable_executor
+    get_reusable_executor().shutdown(wait=True)
     # measured up to here; writing the reports takes milliseconds
     report["runtime"] = {"total_s": time.perf_counter() - t0, "stages_s": stages,
                          "peak_rss_mb": _peak_mb(resource.RUSAGE_SELF),
                          "peak_rss_children_mb": _peak_mb(resource.RUSAGE_CHILDREN),
+                         "workers": os.cpu_count() if cfg.jobs in (-1, 0) else cfg.jobs,
                          "python": platform.python_version(), "platform": platform.platform()}
     write_json(report, out / "report.json")
     write_markdown(report, out / "report.md")
@@ -158,12 +167,16 @@ def parser() -> argparse.ArgumentParser:
     r.add_argument("--attributes", default="role,workflow,topology",
                    help="comma-separated; role comes from agent_endpoints, others from sidecar keys")
     r.add_argument("--margin", type=float, default=0.05, help="macro-F1 above chance that counts as a leak")
-    r.add_argument("--permutations", type=int, default=19, help="label permutations (0 = skip the test)")
+    r.add_argument("--permutations", type=int, default=99,
+                   help="label permutations (0 = skip the test); 99 lets p reach 0.01")
+    r.add_argument("--null-model", choices=["rf-light", "gbt", "rf", "same"], default="rf-light",
+                   dest="null_model", help="model of the permutation test (scores real and permuted labels)")
+    r.add_argument("--jobs", type=int, default=-1, help="parallel CV runs (-1: one per core)")
     r.add_argument("--alpha", type=float, default=0.05, help="permutation-test level a LEAK must pass")
     r.add_argument("--n-boot", type=int, default=1000, dest="n_boot", help="cluster-bootstrap resamples")
     r.add_argument("--min-per-class", type=int, default=20, dest="min_per_class")
     r.add_argument("--folds", type=int, default=5)
-    r.add_argument("--model", choices=["gbt", "rf"], default="gbt")
+    r.add_argument("--model", choices=["gbt", "rf", "rf-light"], default="gbt")
     r.add_argument("--seed", type=int, default=42)
     r.add_argument("--rules", type=Path, default=None, help="rules YAML (default: a2a_leakcheck/rules.yaml)")
     r.add_argument("--strip", action="store_true",

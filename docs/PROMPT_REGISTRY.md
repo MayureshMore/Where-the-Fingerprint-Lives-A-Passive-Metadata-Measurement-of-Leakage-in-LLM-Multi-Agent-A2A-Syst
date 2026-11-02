@@ -30,6 +30,8 @@ that must be prompt-disjoint from earlier ones need new templates first.
 | TLS control (`raw_tlspair_*`) | 1000 | 36 pairs | `collect_tls_session.py` |
 | **C1** (`raw_c1`) | **10000** | 50 | `collect_session.py` |
 | C1 pilot (`raw_c1_pilot`) | 10000 | 1 per topology | `collect_session.py --pilot` |
+| **C2** LAN, Mac + Raspberry Pi (`raw_c2`; two arms: no mitigation, input padding) | **20000** | 50 | `collect_session.py --arm ...,host=` (docs/LAN_SETUP.md) |
+| C2 pilot (`raw_c2_pilot`) | 20000 | 1 hour (`--deadline-hours 1`) | `collect_session.py` |
 
 ## C1 overlap (measured before collection)
 
@@ -46,3 +48,19 @@ the TLS control and in `raw_wf_interleaved_full`:
 C1 results are within-collection (grouped CV, temporal holdout with test-round prompts removed
 from training), so the overlap does not leak into them. Any transfer between C1 and another
 collection must be cross-fitted.
+
+## C2 overlap (measured before collection)
+
+Distinct prompts C2 draws per workflow (seed offset 20000, 150 traces each), and how many of those
+also occur in C1 and in the TLS control's TLS arm. (The same computation reproduces C1's actual
+prompts exactly.)
+
+| Workflow | C2 distinct | Also in C1 | Also in TLS control |
+|---|---|---|---|
+| research_retrieval | 54 | 42 (78%) | 30 (56%) |
+| code_review | 59 | 44 (75%) | 42 (71%) |
+| data_analysis | 74 | 56 (76%) | 51 (69%) |
+| support_triage | 85 | 55 (65%) | 33 (39%) |
+
+C2 is paper 2's own data and its results are within-collection; any comparison with C1 or the
+TLS control must be cross-fitted.

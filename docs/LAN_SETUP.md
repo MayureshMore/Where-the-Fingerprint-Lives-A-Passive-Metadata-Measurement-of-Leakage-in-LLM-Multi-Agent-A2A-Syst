@@ -136,7 +136,7 @@ tcpdump -i bridge100 -nn 'tcp and portrange 8101-8123 and host 192.168.2.2'
 
 ## 7. One-hour pilot
 
-Register the seed offset in `docs/PROMPT_REGISTRY.md` first (20000 below is a proposal). On the
+C2 uses seed offset 20000 (registered in `docs/PROMPT_REGISTRY.md`). On the
 Mac, in the repo:
 ```bash
 caffeinate -dimsu venv/bin/python scripts/collect_session.py --collection-id C2-pilot \
