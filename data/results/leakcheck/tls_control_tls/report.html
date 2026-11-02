@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leak check: TLS control, tls arm</title><style>
+:root { --bg:#ffffff; --fg:#1d2433; --muted:#5b6475; --line:#d9dee7; --leak:#b42318; --ok:#067647; --inc:#8a6100; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171c; --fg:#e7eaf0; --muted:#a3abb9; --line:#2c323c; --leak:#ff8a7a; --ok:#6ce9a6; --inc:#f5c451; }
+}
+body { background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; margin:0 auto; max-width:1100px; padding:24px 16px; }
+h1 { font-size:22px; margin:0 0 4px; } p.meta { color:var(--muted); margin:0 0 20px; }
+.wrap { overflow-x:auto; } table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
+th, td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+th { color:var(--muted); font-weight:600; font-size:13px; }
+.LEAK { color:var(--leak); font-weight:700; } .NO { color:var(--ok); font-weight:700; } .INCONCLUSIVE { color:var(--inc); font-weight:700; }
+ul { margin:4px 0 0; padding-left:18px; } li { margin:2px 0; }
+</style></head><body>
+<h1>Leak check: TLS control, tls arm</h1>
+<p class="meta">432 traces from 432 captures · a2a-leakcheck 0.1.0 ·
+2026-11-01T15:41:48-0800 · 2975.1 s · peak memory 521 MB</p>
+<div class="wrap"><table><thead><tr><th>Attribute</th><th>Verdict</th><th>Severity</th><th>macro-F1 [95% CI]</th>
+<th>Chance + margin</th><th>Permutation p</th><th>False positives (permuted)</th><th>Carried by</th><th>Why, and what to do</th></tr></thead>
+<tbody><tr><td>role</td><td class='LEAK'>LEAK</td><td>high</td><td>0.988 [0.980, 0.994]</td><td>0.383</td><td>0.050</td><td>0.00</td><td>sizes (alone matches all)</td><td>CI lower bound 0.980 &gt; chance + margin 0.383<ul><li><b>pad-messages</b>: Message sizes carry the leak, beyond any single request. Pad streamed response events to fixed cells (defense=pad) as well as request bodies to buckets.</li><li><b>role-endpoints</b>: Each agent&#x27;s traffic profile identifies its role. Put agents behind one endpoint, or pad their requests and responses to common sizes.</li></ul></td></tr><tr><td>workflow</td><td class='LEAK'>LEAK</td><td>high</td><td>0.741 [0.689, 0.788]</td><td>0.300</td><td>0.050</td><td>0.00</td><td>sizes (alone matches all)</td><td>CI lower bound 0.689 &gt; chance + margin 0.300<ul><li><b>pad-messages</b>: Message sizes carry the leak, beyond any single request. Pad streamed response events to fixed cells (defense=pad) as well as request bodies to buckets.</li></ul></td></tr><tr><td>topology</td><td class='LEAK'>LEAK</td><td>high</td><td>1.000 [1.000, 1.000]</td><td>0.383</td><td>0.050</td><td>0.00</td><td>sizes (alone matches all)</td><td>CI lower bound 1.000 &gt; chance + margin 0.383<ul><li><b>pad-messages</b>: Message sizes carry the leak, beyond any single request. Pad streamed response events to fixed cells (defense=pad) as well as request bodies to buckets.</li><li><b>topology-structure</b>: Which agents talk to each other is visible from the connections themselves, whatever their content. Hiding topology needs a constant call pattern (every agent called in every task) or relaying all calls through one endpoint.</li></ul></td></tr></tbody></table></div>
+<p class="meta">Full numbers: report.json and report.md next to this file.</p>
+</body></html>
