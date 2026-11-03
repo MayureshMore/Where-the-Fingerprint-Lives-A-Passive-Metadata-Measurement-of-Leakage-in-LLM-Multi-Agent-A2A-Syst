@@ -45,12 +45,16 @@ def _peak_mb(who: int) -> float:
 
 
 def _git() -> dict:
-    """Commit of the tool's checkout, and whether it had uncommitted changes."""
+    """Commit of the tool's checkout, and whether its code had uncommitted changes (changes under
+    data/, such as reports from earlier runs, do not count)."""
     def run(*args):
         return subprocess.run(["git", *args], capture_output=True, text=True,
                               cwd=Path(__file__).resolve().parent, timeout=5).stdout.strip()
     try:
-        return {"git_commit": run("rev-parse", "HEAD") or None, "git_dirty": bool(run("status", "--porcelain"))}
+        root = run("rev-parse", "--show-toplevel")
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", ".", ":(exclude)data"], capture_output=True,
+                               text=True, cwd=root or None, timeout=5).stdout.strip()
+        return {"git_commit": run("rev-parse", "HEAD") or None, "git_dirty": bool(dirty)}
     except Exception:  # noqa: BLE001
         return {"git_commit": None, "git_dirty": None}
 

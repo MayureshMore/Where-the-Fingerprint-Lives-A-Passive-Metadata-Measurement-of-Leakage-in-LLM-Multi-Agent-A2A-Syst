@@ -23,8 +23,14 @@ def first_request_bytes(pcap: Path, servers: set[int]) -> int:
     whose first post-handshake request starts earliest, the request-direction payload written in
     one go (writes ≤ REQUEST_GAP_S apart). On a connection opened in the trace, the TLS ClientHello
     and the client Finished (≤ 100 B) are skipped. Headers only, so it works on stripped pcaps."""
+    return first_request(tcp_packets(pcap), servers)["bytes"]
+
+
+def first_request(packets, servers: set[int]) -> dict:
+    """first_request_bytes on (ts, sport, dport, wire_len, payload_len, tcp_flags) packets in
+    time order: {"bytes", "packets" (segments it spans), "first_payload" (its first segment)}."""
     opened, skipped, first = set(), {}, {}
-    for ts, sp, dp, _, pl, flags in tcp_packets(pcap):
+    for ts, sp, dp, _, pl, flags in packets:
         if dp not in servers:
             continue
         conn = (sp, dp)
@@ -40,11 +46,14 @@ def first_request_bytes(pcap: Path, servers: set[int]) -> int:
             skipped[conn] = 2
             continue
         if conn not in first:
-            first[conn] = [ts, pl, False, ts]
+            first[conn] = [ts, pl, False, ts, 1, pl]
         elif ts - first[conn][3] <= REQUEST_GAP_S:
             first[conn][1] += pl
             first[conn][3] = ts
+            first[conn][4] += 1
         else:
             first[conn][2] = True                          # first request on this link complete
-    reqs = [(t0, b) for t0, b, _, _ in first.values() if b >= 300]   # not a close_notify
-    return min(reqs)[1] if reqs else 0
+    reqs = sorted((v[0], v[1], v[4], v[5]) for v in first.values() if v[1] >= 300)   # not a close_notify
+    if not reqs:
+        return {"bytes": 0, "packets": 0, "first_payload": 0}
+    return {"bytes": reqs[0][1], "packets": reqs[0][2], "first_payload": reqs[0][3]}

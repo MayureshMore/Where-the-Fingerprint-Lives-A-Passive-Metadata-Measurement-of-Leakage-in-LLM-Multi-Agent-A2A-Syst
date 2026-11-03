@@ -342,9 +342,12 @@ def temporal(task: str, d: dict, model: str, classes) -> dict:
 # ── provenance and capture checks ───────────────────────────────────────────
 
 def _git() -> dict:
+    """Commit, and whether the code differs from it. Changes under data/ (results written by
+    earlier runs) do not count, so several result scripts can run one after another."""
     def run(*a):
         return subprocess.run(["git", *a], capture_output=True, text=True).stdout.strip()
-    return {"git_commit": run("rev-parse", "HEAD"), "git_dirty": bool(run("status", "--porcelain"))}
+    return {"git_commit": run("rev-parse", "HEAD"),
+            "git_dirty": bool(run("status", "--porcelain", "--", ".", ":(exclude)data"))}
 
 
 def capture_checks(raw: Path) -> dict:
