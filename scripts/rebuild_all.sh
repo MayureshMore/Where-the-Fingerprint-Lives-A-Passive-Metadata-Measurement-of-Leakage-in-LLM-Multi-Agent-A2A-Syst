@@ -78,7 +78,8 @@ for pair in \
   "data/raw_defense_pad:data/processed_defense_pad" ; do
     raw="${pair%%:*}"; proc="${pair##*:}"
     stage "EXTRACT $raw -> $proc"
-    run $PY scripts/extract_features.py --raw "$raw" --out "$proc" --scapy
+    # these sets' committed results were computed on every connection on the agent ports
+    run $PY scripts/extract_features.py --raw "$raw" --out "$proc" --scapy --legacy-all-connections
 done
 
 # ── 5. Evaluation suite ──────────────────────────────────────────────────────

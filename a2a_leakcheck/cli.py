@@ -77,7 +77,7 @@ def run(a: argparse.Namespace) -> int:
         stages["collection"] = time.perf_counter() - t
         logger.info("collection: %d traces from %d captures", col["summary"]["traces"], col["summary"]["pcaps"])
         t = time.perf_counter()
-        ext = extract(col["traces"])
+        ext = extract(col["traces"], legacy=a.legacy_all_connections)
         stages["extraction"] = time.perf_counter() - t
         logger.info("extraction: %d traces, %d role samples", ext["summary"]["traces"], ext["summary"]["role_samples"])
 
@@ -112,7 +112,8 @@ def run(a: argparse.Namespace) -> int:
                        "n_boot": cfg.n_boot, "permutations": cfg.permutations, "alpha": cfg.alpha,
                        "min_per_class": cfg.min_per_class, "seed": cfg.seed, "model": cfg.model,
                        "null_model": cfg.null_model, "jobs": cfg.jobs,
-                       "rules": str(a.rules or "default"), "strip": a.strip},
+                       "rules": str(a.rules or "default"), "strip": a.strip,
+                       "legacy_all_connections": a.legacy_all_connections},
         "collection": col["summary"],
         "extraction": ext["summary"],
         "attributes": results,
@@ -186,6 +187,9 @@ def parser() -> argparse.ArgumentParser:
     r.add_argument("--strip", action="store_true",
                    help="analyse header-only copies of captures that still hold payload bytes")
     r.add_argument("--html", action="store_true", help="also write report.html")
+    r.add_argument("--legacy-all-connections", action="store_true", dest="legacy_all_connections",
+                   help="use every connection on the agent ports, not only those each capture opens "
+                        "itself (the earlier measurement)")
     r.add_argument("--label", default="", help="name for this run in the report")
     r.add_argument("--baseline", type=Path, default=None,
                    help="previous report.json; exit 3 if an attribute is newly LEAK")

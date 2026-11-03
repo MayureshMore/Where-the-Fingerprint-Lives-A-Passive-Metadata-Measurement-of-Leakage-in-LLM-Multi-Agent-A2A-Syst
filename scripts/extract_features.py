@@ -17,6 +17,11 @@ C2 (role classification) design:
   while n_role overcounted the writes.  Pooling also better captures the
   total traffic exchanged with each agent, not just one arbitrary connection.
 
+A trace uses only the TCP connections it opens itself (features/connections.py): packets of
+connections opened before the capture (the previous trace's closes) are dropped, and
+<out>/extraction_meta.json records how many traces had any. --legacy-all-connections keeps every
+connection on the agent ports, the measurement behind results committed before this rule.
+
 Usage:
     python scripts/extract_features.py --raw data/raw --out data/processed
     python scripts/extract_features.py --raw data/raw --out data/processed --scapy
@@ -53,7 +58,7 @@ def _prompt_group(prompt: str) -> str:
     return hashlib.sha1(prompt.encode()).hexdigest()[:8]
 
 
-def main(raw_dir: Path, out_dir: Path, use_scapy: bool = False) -> None:
+def main(raw_dir: Path, out_dir: Path, use_scapy: bool = False, legacy: bool = False) -> None:
     from capture.labeler import TraceLabeler
     from features.extractor import FeatureExtractor
     from features.roles import role_vectors
@@ -81,7 +86,10 @@ def main(raw_dir: Path, out_dir: Path, use_scapy: bool = False) -> None:
         agent_ports = {8000, 8001, 8002, 8003}
     logger.info("Agent ports detected from sidecars: %s", sorted(agent_ports))
 
-    extractor = FeatureExtractor(agent_ports=agent_ports, use_scapy=use_scapy)
+    extractor = FeatureExtractor(agent_ports=agent_ports, use_scapy=use_scapy, own_connections=not legacy)
+    from features.connections import own_packets
+    from features.kfp import tcp_packets
+    leftover: dict[str, int] = {}
 
     labels_map: dict[str, dict] = {}
     n_ok = n_fail = n_role = 0
@@ -107,6 +115,9 @@ def main(raw_dir: Path, out_dir: Path, use_scapy: bool = False) -> None:
             logger.warning("No features extracted from %s", pcap_path.name)
             n_fail += 1
             continue
+
+        pk = [p for p in tcp_packets(pcap_path) if p[1] in agent_ports or p[2] in agent_ports]
+        leftover[run.run_id] = len(pk) - len(own_packets(pk, agent_ports))
 
         # ── Per-trace NPZ (workflow + topology labels) ────────────────────────
         npz_path = out_dir / f"{run.run_id}.npz"
@@ -167,6 +178,15 @@ def main(raw_dir: Path, out_dir: Path, use_scapy: bool = False) -> None:
         )
 
     (out_dir / "labels.json").write_text(json.dumps(labels_map, indent=2))
+    with_left = sum(1 for v in leftover.values() if v)
+    (out_dir / "extraction_meta.json").write_text(json.dumps({
+        "raw_dir": str(raw_dir), "measurement": "all connections (legacy)" if legacy else "own connections",
+        "traces": n_ok, "role_samples": n_role, "traces_with_leftover_packets": with_left,
+        "leftover_packets": sum(leftover.values()),
+        "note": "leftover = packets of connections opened before the capture; dropped unless legacy",
+    }, indent=2))
+    logger.info("%d of %d traces had packets of earlier connections (%s)", with_left, n_ok,
+                "kept: legacy" if legacy else "dropped")
     logger.info(
         "Extraction complete: %d traces ok, %d failed, %d role samples. Labels → %s",
         n_ok, n_fail, n_role, out_dir / "labels.json",
@@ -179,5 +199,7 @@ if __name__ == "__main__":
     parser.add_argument("--out", default="data/processed")
     parser.add_argument("--scapy", action="store_true",
                         help="Use scapy instead of pyshark for pcap parsing")
+    parser.add_argument("--legacy-all-connections", action="store_true", dest="legacy",
+                        help="keep every connection on the agent ports (the earlier measurement)")
     args = parser.parse_args()
-    main(Path(args.raw), Path(args.out), use_scapy=args.scapy)
+    main(Path(args.raw), Path(args.out), use_scapy=args.scapy, legacy=args.legacy)

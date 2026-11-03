@@ -22,6 +22,10 @@ Paper 1 revision checks on collection C1 (analysis only; no new collection).
   A9  templates   each prompt traced back to its generator template; workflow GBT with folds
                   grouped by template instead of by prompt
 
+Measurement: a trace uses only the TCP connections it opens itself (features/connections.py);
+features from data/processed_c1_own. --legacy-all-connections uses every connection on the agent
+ports (data/processed_c1).
+
 GBT, 5-fold StratifiedGroupKFold by prompt group (seed 42), the same folds as
 scripts/evaluate_c1.py; macro-F1 with 95% cluster-bootstrap CIs over prompt groups (template
 groups for A9); paired differences on the same group resamples.
@@ -35,6 +39,7 @@ Usage:
 
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 import logging
@@ -52,6 +57,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from a2a.types import Message, MessageSendParams, Part, Role, SendStreamingMessageRequest, TextPart  # noqa: E402
 from agents.base import request_body_len  # noqa: E402
+import scripts.evaluate_c1 as ev  # noqa: E402
+from features.connections import own_packets  # noqa: E402
 from features.extractor import FeatureExtractor  # noqa: E402
 from features.first_request import REQUEST_GAP_S, first_request  # noqa: E402
 from features.kfp import tcp_packets  # noqa: E402
@@ -66,7 +73,8 @@ from scripts.strip_payload import _MAGICS  # noqa: E402
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-PROC, RAW = Path("data/processed_c1"), Path("data/raw_c1")
+PROC, RAW = Path("data/processed_c1_own"), Path("data/raw_c1")
+LEGACY = False
 TLS_RECORD_OVERHEAD = 22          # TLS 1.3 AES-GCM record: 5-byte header + 16-byte tag + 1 type byte
 MIN_REQUEST, MIN_RESPONSE = 300, 50
 FANOUT = {"star": 3, "chain": 1, "mesh": 2}      # orchestrator calls per topology (orchestrator.py)
@@ -95,7 +103,7 @@ def capture_facts(d: dict) -> dict:
             if k:
                 mx[k], mxp[k] = max(mx[k], wire), max(mxp[k], pl)
                 hdr[wire - pl] += 1
-        spans[str(wf)][first_request(pk, servers)["packets"]] += 1
+        spans[str(wf)][first_request(pk, servers, LEGACY)["packets"]] += 1
     return {"max_wire_bytes": mx, "max_tcp_payload_bytes": mxp,
             "header_bytes": {str(k): v for k, v in hdr.most_common()},
             "link_types": {str(k): v for k, v in linktypes.items()},
@@ -116,7 +124,7 @@ def input_size(d: dict) -> tuple[list[dict], dict]:
     rows = []
     for base, eps, wf, top in zip(d["base"], d["endpoints"], d["y"], d["topology"]):
         prompt = side(base)["input_prompt"]
-        fr = first_request(tcp_packets(RAW / f"{base}.pcap"), servers_of(eps))
+        fr = first_request(tcp_packets(RAW / f"{base}.pcap"), servers_of(eps), LEGACY)
         pjb = len(json.dumps(prompt, ensure_ascii=False).encode()) - 2
         body = fr["bytes"] - fr["first_payload"] - TLS_RECORD_OVERHEAD      # the body record, decrypted size
         rows.append({"run_id": base, "workflow": str(wf), "topology": str(top),
@@ -241,7 +249,8 @@ def topology_rule(n_calls: int, depth: int) -> str:
 def topology_by_rule(d: dict) -> dict:
     pred, shape = [], defaultdict(Counter)
     for base, eps, top in zip(d["base"], d["endpoints"], d["y"]):
-        cs = calls(tcp_packets(RAW / f"{base}.pcap"), servers_of(eps))
+        servers = servers_of(eps)
+        cs = calls(own_packets(tcp_packets(RAW / f"{base}.pcap"), servers, LEGACY), servers)
         n, dep = len(cs), nesting(cs)
         pred.append(topology_rule(n, dep))
         shape[str(top)][f"{n} calls, nesting {dep}"] += 1
@@ -378,8 +387,8 @@ def padding(d_wf: dict, d_role: dict, d_top: dict, mss: int) -> dict:
     check = 0
     for base, eps in zip(d_wf["base"], d_wf["endpoints"]):
         servers = servers_of(eps)
-        pk = tcp_packets(RAW / f"{base}.pcap")
-        fx = FeatureExtractor(agent_ports=servers, use_scapy=True)
+        pk = own_packets(tcp_packets(RAW / f"{base}.pcap"), servers, LEGACY)
+        fx = FeatureExtractor(agent_ports=servers, use_scapy=True, own_connections=not LEGACY)
         port_role = {str(int(a.rsplit(":", 1)[1])): r for r, a in eps.items()}
         for s, bucket in schemes.items():
             pp, w0, w1 = (pk, sum(p[3] for p in pk), sum(p[3] for p in pk)) if bucket is None else \
@@ -390,7 +399,7 @@ def padding(d_wf: dict, d_role: dict, d_top: dict, mss: int) -> dict:
             trace_X[s].append(fx._compute_features(base, ex).flat_vector())
             for port, (_, vec, _, _) in role_vectors(fx, ex, port_role).items():
                 role_X[s][f"{base}__role__{port}"] = vec
-            first[s].append(first_request(pp, servers)["bytes"])
+            first[s].append(first_request(pp, servers, LEGACY)["bytes"])
         if np.array_equal(trace_X["none"][-1], d_wf["X"][len(trace_X["none"]) - 1]):
             check += 1
     out = {"method": "every request message (request writes on one connection ≤ 50 ms apart; TLS "
@@ -477,24 +486,30 @@ def template_grouped(d: dict) -> dict:
 
 # ── main ────────────────────────────────────────────────────────────────────
 
-def main() -> None:
+def main(a: argparse.Namespace) -> None:
+    global PROC, LEGACY
+    LEGACY = ev.LEGACY = a.legacy_all_connections
+    PROC = Path(a.processed or ("data/processed_c1" if LEGACY else "data/processed_c1_own"))
+    suffix = "_legacy" if LEGACY else ""
     d = {t: load(PROC, RAW, t) for t in TASKS}
     d_wf, d_role, d_top = d["workflow"], d["role"], d["topology"]
     workflow_of = {b: str(w) for b, w in zip(d_wf["base"], d_wf["y"])}
     splits = folds(d_wf["y"], d_wf["g"])
     out = {"paper": "P1", "collection_id": "C1", "data_dir": str(PROC), "raw_dir": str(RAW), "seed": SEED,
-           **_git(), "results": {}}
+           **_git(), "measurement": "all connections on the agent ports (legacy)" if LEGACY else
+           "own connections: only TCP connections whose SYN is in the trace (features/connections.py)",
+           "results": {}}
     R = out["results"]
     logger.info("A10 capture facts")
     R["A10_capture"] = capture_facts(d_wf)
     logger.info("A2 input size")
     rows, R["A2_input_size"] = input_size(d_wf)
-    with open("data/results/c1_first_request_traces.csv", "w", newline="") as f:
+    with open(f"data/results/c1_first_request_traces{suffix}.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
         w.writerows(rows)
     Path("data/results/figures").mkdir(parents=True, exist_ok=True)
-    scatter(rows, Path("data/results/figures/c1_first_request_scatter.png"))
+    scatter(rows, Path(f"data/results/figures/c1_first_request_scatter{suffix}.png"))
     logger.info("A3 response side on the length pairs")
     R["A3_pairs_response_side"] = pairs_response_side(d_wf, splits)
     logger.info("A6 topology rule")
@@ -508,7 +523,7 @@ def main() -> None:
     R["A4_padding"] = padding(d_wf, d_role, d_top, R["A10_capture"]["max_tcp_payload_bytes"]["response"])
     logger.info("A9 template-grouped folds")
     R["A9_templates"] = template_grouped(d_wf)
-    path = Path("data/results/c1_revision.json")
+    path = Path(f"data/results/c1_revision{suffix}.json")
     path.write_text(json.dumps(out, indent=2))
     write_report(out, path.with_suffix(".md"))
     logger.info("wrote %s", path)
@@ -526,7 +541,8 @@ def write_report(out: dict, path: Path) -> None:
     R = out["results"]
     L = ["# C1: paper 1 revision checks", "",
          f"Collection C1, `{out['data_dir']}`; commit `{out['git_commit'][:8]}`"
-         f"{' (uncommitted changes)' if out['git_dirty'] else ''}; seed {out['seed']}. GBT, the five "
+         f"{' (uncommitted changes)' if out['git_dirty'] else ''}; seed {out['seed']}. Measurement: "
+         f"{out['measurement']}. GBT, the five "
          "prompt-group folds of scripts/evaluate_c1.py unless stated; macro-F1 with 95% cluster-bootstrap CIs.", ""]
     c = R["A10_capture"]
     L += ["## A10. Capture", "",
@@ -592,4 +608,8 @@ def write_report(out: dict, path: Path) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    p = argparse.ArgumentParser(description="Paper 1 revision checks on C1")
+    p.add_argument("--processed", default=None,
+                   help="default data/processed_c1_own (data/processed_c1 with --legacy-all-connections)")
+    p.add_argument("--legacy-all-connections", action="store_true", dest="legacy_all_connections")
+    main(p.parse_args())

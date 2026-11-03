@@ -123,10 +123,14 @@ class FeatureExtractor:
         agent_ports: set[int] | None = None,
         idle_threshold_s: float = 0.5,
         use_scapy: bool = False,
+        own_connections: bool = True,
     ) -> None:
         self.agent_ports = agent_ports or DEFAULT_AGENT_PORTS
         self.segmenter = BurstSegmenter(idle_threshold_s=idle_threshold_s)
         self.use_scapy = use_scapy
+        # True: only connections the trace opens itself (features/connections.py); False: the
+        # earlier behaviour, every connection on the agent ports (--legacy-all-connections)
+        self.own_connections = own_connections
 
     def extract(self, pcap_path: Path, run_id: str = "") -> TraceFeatures | None:
         run_id = run_id or pcap_path.stem
@@ -158,10 +162,17 @@ class FeatureExtractor:
         """
         Returns list of (timestamp, size_bytes, flow_key, direction).
         direction: +1 if src_port in agent_ports (outbound), -1 otherwise.
+        With own_connections, only packets of connections whose SYN is in the capture.
         """
-        if self.use_scapy:
-            return self._read_with_scapy(pcap_path)
-        return self._read_with_pyshark(pcap_path)
+        packets = self._read_with_scapy(pcap_path) if self.use_scapy else self._read_with_pyshark(pcap_path)
+        if not self.own_connections:
+            return packets
+        from features.connections import opened_connections
+        from features.kfp import tcp_packets
+        opened = opened_connections(tcp_packets(pcap_path), set(self.agent_ports))
+        # flow keys are "client_ip:client_port→agent_ip:agent_port"
+        return [p for p in packets
+                if (int(p[2].split("→")[0].rsplit(":", 1)[1]), int(p[2].rsplit(":", 1)[1])) in opened]
 
     def _read_with_pyshark(
         self, pcap_path: Path

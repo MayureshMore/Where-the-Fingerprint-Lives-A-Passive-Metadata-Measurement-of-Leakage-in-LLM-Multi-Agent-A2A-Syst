@@ -35,7 +35,8 @@ RESUME="${RESUME:-0}"
 PY="${PYTHON:-venv/bin/python}"
 [ -x "$PY" ] || PY=python3
 RAW=data/raw_c1
-PRO=data/processed_c1
+PRO=data/processed_c1_own          # own connections only (the measurement paper 1 reports)
+PRO_LEGACY=data/processed_c1       # every connection on the agent ports (the earlier measurement)
 ARM="name=a_tls,deployment=a,model=llama3.2:3b,tls=on,defense=none,out=$RAW"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 mkdir -p data/logs
@@ -116,7 +117,8 @@ restore_bpf
 
 step "4. extract features"
 "$PY" scripts/extract_features.py --raw "$RAW" --out "$PRO" --scapy
+"$PY" scripts/extract_features.py --raw "$RAW" --out "$PRO_LEGACY" --scapy --legacy-all-connections
 
 echo
-echo "Done → $RAW (pcaps, session_meta.json, tls_check.json, stream_integrity.json), $PRO"
+echo "Done → $RAW (pcaps, session_meta.json, tls_check.json, stream_integrity.json), $PRO, $PRO_LEGACY"
 echo "(log: $LOG)"

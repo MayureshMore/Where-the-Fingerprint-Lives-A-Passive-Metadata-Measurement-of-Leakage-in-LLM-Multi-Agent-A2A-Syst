@@ -13,7 +13,10 @@ tests the remaining explanations, for C1 and both TLS-control arms:
   3. features      the single trace features that best separate research retrieval from support
                    triage on the TLS arm, and their separation on C1 and the cleartext arm
   4. own flows     features re-extracted from only the connections a trace opens itself (its SYN
-                   is in the capture); all features vs the first request again
+                   is in the capture; features/connections.py, now the primary measurement); all
+                   features vs the first request again. "All features" are the earlier
+                   all-connections features in data/processed_tlspair_* and data/processed_c1; the
+                   first request is measured on own connections
 
 Writes data/results/tls_control_gap.{json,md}.
 
@@ -34,7 +37,6 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from features.extractor import FeatureExtractor  # noqa: E402
-from features.kfp import tcp_packets  # noqa: E402
 from features.names import FLAT_FEATURE_NAMES  # noqa: E402
 from features.per_flow import PerFlowFeatures  # noqa: E402
 from scripts.evaluate_c1 import (  # noqa: E402
@@ -90,17 +92,17 @@ def specialists(processed: str) -> dict:
 
 
 def own_connection_vectors(d: dict, raw: Path) -> tuple[np.ndarray, np.ndarray]:
-    """Trace vectors from the connections each trace opens itself; and leftover flows per trace."""
+    """Trace vectors from the connections each trace opens itself (features/connections.py), and
+    the number of leftover flows (connections opened before the capture) per trace."""
     X, left = [], []
     for base, eps in zip(d["base"], d["endpoints"]):
         ports = {int(a.rsplit(":", 1)[1]) for a in eps.values()}
         pcap = raw / f"{base}.pcap"
-        opened = {sp for _, sp, dp, _, _, fl in tcp_packets(pcap) if dp in ports and fl & 0x02}
-        fx = FeatureExtractor(agent_ports=ports, use_scapy=True)
-        pk = fx._read_pcap(pcap)
-        keep = [p for p in pk if int(p[2].split("→")[0].rsplit(":", 1)[1]) in opened]
+        own = FeatureExtractor(agent_ports=ports, use_scapy=True, own_connections=True)
+        every = FeatureExtractor(agent_ports=ports, use_scapy=True, own_connections=False)
+        keep, pk = own._read_pcap(pcap), every._read_pcap(pcap)
         left.append(len({p[2] for p in pk}) - len({p[2] for p in keep}))
-        X.append(fx._compute_features(base, keep).flat_vector())
+        X.append(own._compute_features(base, keep).flat_vector())
     return np.stack(X).astype(np.float32), np.array(left)
 
 

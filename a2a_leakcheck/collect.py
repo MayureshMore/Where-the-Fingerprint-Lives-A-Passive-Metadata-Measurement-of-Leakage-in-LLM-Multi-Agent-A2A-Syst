@@ -12,6 +12,9 @@ Sidecar fields read (anything else is ignored):
 
 Traces that share a prompt are correlated, so they form one group: cross-validation never
 splits a group, and confidence intervals resample whole groups.
+
+A capture's features come only from the TCP connections it opens itself (the SYN is in the
+capture; features/connections.py): the tail of an earlier trace's connections is dropped.
 """
 
 from __future__ import annotations

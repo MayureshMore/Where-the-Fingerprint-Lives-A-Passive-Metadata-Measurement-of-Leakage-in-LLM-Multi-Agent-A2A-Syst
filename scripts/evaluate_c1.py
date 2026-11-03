@@ -34,8 +34,15 @@ and a difference counts only when its CI excludes 0. Ports are never features.
 
 The run stops unless C1's capture checks passed (tls_check.json ok, no topology with cut streams).
 
+Measurement: a trace uses only the TCP connections it opens itself (features/connections.py);
+features come from data/processed_c1_own (extract_features.py) and results go to
+c1_evaluation_own.{json,md}. A sensitivity section repeats the headline numbers on the earlier
+all-connections features (data/processed_c1) with paired differences. --legacy-all-connections
+reproduces the earlier run (data/processed_c1 → c1_evaluation.{json,md}).
+
 Usage:
     python scripts/evaluate_c1.py
+    python scripts/evaluate_c1.py --legacy-all-connections
 """
 
 from __future__ import annotations
@@ -61,8 +68,9 @@ from features.families import (  # noqa: E402
     _PF_REQUEST_SIZES, _PF_RESPONSE_SIZES, FAMILIES, _check_partition, family_columns,
     response_side_columns,
 )
-from features.first_request import FIRST_REQUEST_DEF, first_request_bytes  # noqa: E402
-from features.kfp import N_KFP, kfp_features, packets_from_pcap  # noqa: E402
+from features.connections import own_packets  # noqa: E402
+from features.first_request import FIRST_REQUEST_DEF, first_request, first_request_bytes  # noqa: E402
+from features.kfp import N_KFP, kfp_features, tcp_packets  # noqa: E402
 from features.per_flow import PerFlowFeatures  # noqa: E402
 from features.per_system import PerSystemFeatures  # noqa: E402
 from models.gradient_boosted import GBTClassifier  # noqa: E402
@@ -75,6 +83,7 @@ TASKS = ("role", "workflow", "topology")
 SEED = 42
 N_BOOT = 2000
 TRAIN_ROUNDS, TEST_ROUNDS = (0, 1, 2), (3, 4)
+LEGACY = False            # --legacy-all-connections: every connection on the agent ports
 
 TOP_SINGLE = 5
 LENGTH_PAIRS = (("code_review", "data_analysis"), ("research_retrieval", "support_triage"))
@@ -108,11 +117,11 @@ def kfp_matrix(d: dict, raw: Path) -> np.ndarray:
     cache: dict[str, list] = {}
     rows = []
     for base, port, eps in zip(d["base"], d["port"], d["endpoints"]):
-        if base not in cache:
-            cache[base] = packets_from_pcap(raw / f"{base}.pcap")
         servers = {int(a.rsplit(":", 1)[1]) for a in eps.values()}
+        if base not in cache:
+            cache[base] = own_packets(tcp_packets(raw / f"{base}.pcap"), servers, LEGACY)
         t, dirs = [], []
-        for ts, sp, dp, _ in cache[base]:
+        for ts, sp, dp, *_ in cache[base]:
             if port is not None and port not in (sp, dp):
                 continue
             if dp in servers:
@@ -271,7 +280,7 @@ def _sub_splits(splits, mask: np.ndarray):
 
 def length_checks(d: dict, raw: Path, pred_all: np.ndarray, splits, classes) -> dict:
     y, g = d["y"], d["g"]
-    first = np.array([first_request_bytes(raw / f"{b}.pcap", {int(a.rsplit(":", 1)[1]) for a in e.values()})
+    first = np.array([first_request_bytes(raw / f"{b}.pcap", {int(a.rsplit(":", 1)[1]) for a in e.values()}, LEGACY)
                       for b, e in zip(d["base"], d["endpoints"])], dtype=np.float32)
     chars = d["prompt_len"].astype(np.float32)
     single = {"first_request_bytes": first[:, None], "prompt_chars": chars[:, None]}
@@ -363,9 +372,68 @@ def capture_checks(raw: Path) -> dict:
 
 # ── main ────────────────────────────────────────────────────────────────────
 
+def _first_requests(d: dict, raw: Path, legacy: bool) -> list[dict]:
+    return [first_request(tcp_packets(raw / f"{b}.pcap"), {int(a.rsplit(":", 1)[1]) for a in e.values()}, legacy)
+            for b, e in zip(d["base"], d["endpoints"])]
+
+
+def sensitivity(own_dir: Path, legacy_dir: Path, raw: Path) -> dict:
+    """Headline numbers on own-connection and all-connection features, same samples and folds."""
+    out = {"own": str(own_dir), "legacy": str(legacy_dir), "tasks": {}}
+    for task in TASKS:
+        dO, dL = load(own_dir, raw, task), load(legacy_dir, raw, task)
+        iO = {r: i for i, r in enumerate(dO["run_id"])}
+        iL = {r: i for i, r in enumerate(dL["run_id"])}
+        common = sorted(set(iO) & set(iL))
+        o, lg = [iO[r] for r in common], [iL[r] for r in common]
+        y, g = dO["y"][o], dO["g"][o]
+        assert (y == dL["y"][lg]).all()
+        classes, sp = sorted(set(y.tolist())), folds(y, g)
+        res = {"n_own": len(iO), "n_legacy": len(iL), "n_common": len(common),
+               "only_legacy": sorted(set(iL) - set(iO))[:20]}
+
+        def both(XO, XL, model="gbt"):
+            pO = oof_predict(model, task, XO, y, sp)
+            pL = oof_predict(model, task, XL, y, sp)
+            return {"legacy": score(y, pL, g, classes), "own": score(y, pO, g, classes),
+                    "own_minus_legacy": paired_diff(y, pO, pL, g, classes)}
+
+        for m in ("gbt", "rf"):
+            res[m] = both(dO["X"][o], dL["X"][lg], m)
+        if task != "role":
+            sub = {k: [v[i] for i in o] if isinstance(v, list) else v[o] for k, v in dO.items()}
+            fO = np.array([f["bytes"] for f in _first_requests(sub, raw, False)], dtype=np.float32)[:, None]
+            fL = np.array([f["bytes"] for f in _first_requests(sub, raw, True)], dtype=np.float32)[:, None]
+            res["first_request"] = both(fO, fL)
+        if task == "workflow":
+            cols = response_side_columns()
+            res["response_side"] = both(dO["X"][o][:, cols], dL["X"][lg][:, cols])
+        out["tasks"][task] = res
+        logger.info("[sensitivity %s] GBT legacy %.3f own %.3f", task, res["gbt"]["legacy"]["macro_f1"],
+                    res["gbt"]["own"]["macro_f1"])
+    d = load(own_dir, raw, "workflow")
+    frO, frL = _first_requests(d, raw, False), _first_requests(d, raw, True)
+    leftover = []
+    for b, e in zip(d["base"], d["endpoints"]):
+        servers = {int(x.rsplit(":", 1)[1]) for x in e.values()}
+        pk = [p for p in tcp_packets(raw / f"{b}.pcap") if p[1] in servers or p[2] in servers]
+        leftover.append(len(pk) - len(own_packets(pk, servers)))
+    leftover = np.array(leftover)
+    out["leftover"] = {"traces": int(len(leftover)), "traces_with_leftover_packets": int((leftover > 0).sum()),
+                       "leftover_packets_total": int(leftover.sum()),
+                       "leftover_packets_median_when_present": float(np.median(leftover[leftover > 0])) if (leftover > 0).any() else 0.0,
+                       "first_request_link_changed": int(sum(a["link"] != b["link"] for a, b in zip(frO, frL))),
+                       "first_request_bytes_changed": int(sum(a["bytes"] != b["bytes"] for a, b in zip(frO, frL)))}
+    return out
+
+
 def main(a: argparse.Namespace) -> None:
+    global LEGACY
+    LEGACY = a.legacy_all_connections
+    processed = Path(a.processed or ("data/processed_c1" if LEGACY else "data/processed_c1_own"))
+    tag = "" if LEGACY else "_own"
     _check_partition()
-    processed, raw = Path(a.processed), Path(a.raw)
+    raw = Path(a.raw)
     checks = capture_checks(raw)
     if not checks["ok"]:
         raise SystemExit(f"C1 capture checks failed — not evaluating: {checks}")
@@ -374,6 +442,8 @@ def main(a: argparse.Namespace) -> None:
     out = {
         "paper": "P1", "collection_id": meta.get("collection_id", "C1"),
         "data_dir": str(processed), "raw_dir": str(raw), "seed": SEED, **_git(),
+        "measurement": "all connections on the agent ports (legacy)" if LEGACY else
+                       "own connections: only TCP connections whose SYN is in the trace (features/connections.py)",
         "method": "GBT headline, RF baseline; 5-fold StratifiedGroupKFold by prompt_group "
                   "(shuffle, seed 42), identical folds for every model and ablation; temporal "
                   "holdout trains on rounds 1–3 minus every prompt seen in rounds 4–5; macro-F1 with "
@@ -389,7 +459,8 @@ def main(a: argparse.Namespace) -> None:
                 "uses": "packet direction and timing only"},
         "results": {},
     }
-    tls = (Path(a.tls_processed), Path(a.tls_raw))
+    tls = (Path(a.tls_processed or ("data/processed_tlspair_tls" if LEGACY else "data/processed_tlspair_tls_own")),
+           Path(a.tls_raw))
     if not ((tls[0] / "labels.json").exists() and tls[1].is_dir()):
         logger.warning("TLS control set not found (%s, %s): skipping the comparison", *tls)
         tls = None
@@ -449,13 +520,15 @@ def main(a: argparse.Namespace) -> None:
                     task, cw["gbt"]["macro_f1"], cw["rf"]["macro_f1"], res["kfp"]["macro_f1"],
                     res["temporal"]["gbt"]["macro_f1"], *(res["ablation"][f]["macro_f1"] for f in FAMILIES))
 
+    if not LEGACY and (legacy := Path(a.compare_legacy)).joinpath("labels.json").exists():
+        out["sensitivity"] = sensitivity(processed, legacy, raw)
     out_dir = Path(os.environ.get("A2A_RESULTS_DIR", "data/results"))
     (out_dir / "figures").mkdir(parents=True, exist_ok=True)
-    (out_dir / "c1_evaluation.json").write_text(json.dumps(out, indent=2))
-    write_report(out, out_dir / "c1_evaluation.md")
-    make_figure(out, out_dir / "figures" / "c1_evaluation.png")
-    make_confusion_figure(out, out_dir / "figures" / "c1_workflow_confusion.png")
-    logger.info("wrote %s", out_dir / "c1_evaluation.json")
+    (out_dir / f"c1_evaluation{tag}.json").write_text(json.dumps(out, indent=2))
+    write_report(out, out_dir / f"c1_evaluation{tag}.md")
+    make_figure(out, out_dir / "figures" / f"c1_evaluation{tag}.png")
+    make_confusion_figure(out, out_dir / "figures" / f"c1_workflow_confusion{tag}.png")
+    logger.info("wrote %s", out_dir / f"c1_evaluation{tag}.json")
 
 
 def _cell(r: dict) -> str:
@@ -473,7 +546,8 @@ def write_report(out: dict, path: Path) -> None:
          f"Collection {out['collection_id']}: deployment A, llama3.2:3b, TLS on every agent link, one "
          f"session ({s['started']} → {s['finished']}), {s['complete_items']} traces in {s['rounds']} "
          f"balanced rounds, {s['failures']} failed attempts. Data `{out['data_dir']}`, commit "
-         f"`{out['git_commit'][:8]}`{' (uncommitted changes)' if out['git_dirty'] else ''}, seed {out['seed']}.",
+         f"`{out['git_commit'][:8]}`{' (uncommitted changes)' if out['git_dirty'] else ''}, seed {out['seed']}. "
+         f"Measurement: {out.get('measurement', 'all connections on the agent ports')}.",
          "", f"Capture checks: TLS record check {'passed' if c['tls_ok'] else 'FAILED'} "
          f"({c['tls_handshakes_per_connection']} handshakes per connection); median largest specialist "
          "reply " + ", ".join(f"{t} {v['median_largest_reply_pkts']:g} pkts ({v['share_cut']:.0%} cut)"
@@ -531,12 +605,34 @@ def write_report(out: dict, path: Path) -> None:
     for t, r in R.items():
         L.append(f"| {t} | " + " | ".join(f"{_cell(p)} ({p['train_per_class']:g}/class)"
                                           for p in r["learning_curve"]) + " |")
+    if out.get("sensitivity"):
+        L += sensitivity_report(out["sensitivity"])
     L += workflow_report(R["workflow"]["detail"])
     L += length_report(R["workflow"]["closed_world"]["gbt"], R["workflow"]["length_checks"])
     L += role_report(R["role"]["closed_world"]["gbt"], R["role"]["single_feature"])
     L += ["", f"k-FP: {out['kfp']['dims']} features from packet direction and timing only "
           f"(Hayes & Danezis 2016), {out['kfp']['classifier']}."]
     path.write_text("\n".join(L) + "\n")
+
+
+def sensitivity_report(s: dict) -> list[str]:
+    lo = s["leftover"]
+    L = ["", "## Sensitivity: own connections vs all connections", "",
+         f"Own connections: `{s['own']}`; all connections (earlier measurement): `{s['legacy']}`. Same samples "
+         f"and folds; paired differences own − all. {lo['traces_with_leftover_packets']} of {lo['traces']} "
+         f"traces contained packets of connections opened before the capture ({lo['leftover_packets_total']} "
+         f"packets; median {lo['leftover_packets_median_when_present']:g} when present). The first request moved "
+         f"to another link in {lo['first_request_link_changed']} traces and changed size in "
+         f"{lo['first_request_bytes_changed']}.", "",
+         "| Task | Measure | All connections | Own connections | Own − all |", "|---|---|---|---|---|"]
+    for task, r in s["tasks"].items():
+        for m, label in (("gbt", "GBT"), ("rf", "RF"), ("first_request", "first request only (GBT)"),
+                         ("response_side", "response side only (GBT)")):
+            if m in r:
+                L.append(f"| {task} | {label} | {_cell(r[m]['legacy'])} | {_cell(r[m]['own'])} | {_diff(r[m]['own_minus_legacy'])} |")
+        if r["n_own"] != r["n_legacy"]:
+            L.append(f"| {task} | samples | {r['n_legacy']} | {r['n_own']} | compared on {r['n_common']} |")
+    return L
 
 
 def workflow_report(w: dict) -> list[str]:
@@ -697,8 +793,13 @@ def make_figure(out: dict, path: Path) -> None:
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description="P1 evaluation of collection C1")
-    p.add_argument("--processed", default="data/processed_c1")
+    p.add_argument("--processed", default=None,
+                   help="default data/processed_c1_own (data/processed_c1 with --legacy-all-connections)")
     p.add_argument("--raw", default="data/raw_c1")
-    p.add_argument("--tls-processed", default="data/processed_tlspair_tls")
+    p.add_argument("--legacy-all-connections", action="store_true", dest="legacy_all_connections",
+                   help="the earlier measurement: every connection on the agent ports")
+    p.add_argument("--compare-legacy", default="data/processed_c1", dest="compare_legacy",
+                   help="all-connections features for the sensitivity section")
+    p.add_argument("--tls-processed", default=None)
     p.add_argument("--tls-raw", default="data/raw_tlspair_tls")
     main(p.parse_args())

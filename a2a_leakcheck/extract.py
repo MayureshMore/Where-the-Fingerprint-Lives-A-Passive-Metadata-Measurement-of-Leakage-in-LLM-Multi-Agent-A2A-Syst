@@ -21,12 +21,15 @@ from features.roles import role_vectors
 logger = logging.getLogger(__name__)
 
 
-def extract(traces: list) -> dict:
+def extract(traces: list, legacy: bool = False) -> dict:
+    """legacy: every connection on the agent ports instead of only those each trace opens itself
+    (features/connections.py)."""
     extractors: dict[frozenset, FeatureExtractor] = {}
     rows, first, keep, role_rows, role_y, role_trace, failed = [], [], [], [], [], [], []
     for i, tr in enumerate(traces):
         ports = frozenset(tr.port_role)
-        ex = extractors.setdefault(ports, FeatureExtractor(agent_ports=set(ports), use_scapy=True))
+        ex = extractors.setdefault(ports, FeatureExtractor(agent_ports=set(ports), use_scapy=True,
+                                                           own_connections=not legacy))
         try:
             packets = ex._read_pcap(tr.pcap)
         except Exception as exc:  # noqa: BLE001 — one unreadable capture must not stop the run
@@ -36,7 +39,7 @@ def extract(traces: list) -> dict:
             failed.append({"pcap": tr.pcap.name, "reason": "no packets on the agent ports"})
             continue
         rows.append(ex._compute_features(tr.run_id, packets).flat_vector())
-        first.append(first_request_bytes(tr.pcap, set(ports)))
+        first.append(first_request_bytes(tr.pcap, set(ports), legacy))
         keep.append(i)
         for _, (role, vec, _, _) in sorted(role_vectors(ex, packets, {str(p): r for p, r in tr.port_role.items()}).items()):
             role_rows.append(vec)
@@ -53,5 +56,7 @@ def extract(traces: list) -> dict:
         "role_trace": np.array(role_trace, dtype=int),   # into the extracted traces
         "summary": {"traces": len(rows), "failed": failed, "role_samples": len(role_rows),
                     "trace_dims": int(rows[0].shape[0]), "role_dims": 35,
+                    "measurement": "all connections on the agent ports (legacy)" if legacy else
+                                   "own connections: only TCP connections whose SYN is in the capture",
                     "first_request": FIRST_REQUEST_DEF},
     }
