@@ -1,14 +1,14 @@
 # Leak check: TLS control, tls arm
 
-432 traces from 432 captures in `data/raw_tlspair_tls` (0 skipped, 432 analysed as stripped copies). a2a-leakcheck 0.1.0, 2026-11-01T15:41:48-0800.
+432 traces from 432 captures in `data/raw_tlspair_tls` (0 skipped, 432 analysed as stripped copies). a2a-leakcheck 0.1.0, 2026-11-02T16:23:02-0800.
 
-Verdict: LEAK if the 95% CI lower bound of macro-F1 is above chance + 0.05; NO LEAK if the upper bound is at most chance + 0.05; INCONCLUSIVE otherwise, or when the minimum-sample check fails, or when a LEAK fails the label-permutation test (p > 0.05, 19 permutations). 5-fold grouped CV, GBT, 1000 cluster-bootstrap resamples, seed 42.
+Verdict: LEAK if the 95% CI lower bound of macro-F1 is above chance + 0.05; NO LEAK if the upper bound is at most chance + 0.05; INCONCLUSIVE otherwise, or when the minimum-sample check fails, or when a LEAK fails the label-permutation test (p > 0.05, 99 permutations scored with RF-LIGHT). 5-fold grouped CV, GBT, 1000 cluster-bootstrap resamples, seed 42.
 
 | Attribute | Verdict | Severity | macro-F1 [95% CI] | Chance + margin | Permutation p | False positives on permuted labels | Leak carried by |
 |---|---|---|---|---|---|---|---|
-| role | **LEAK** | high | 0.988 [0.980, 0.994] | 0.383 | 0.050 | 0.00 | sizes (alone matches all) |
-| workflow | **LEAK** | high | 0.741 [0.689, 0.788] | 0.300 | 0.050 | 0.00 | sizes (alone matches all) |
-| topology | **LEAK** | high | 1.000 [1.000, 1.000] | 0.383 | 0.050 | 0.00 | sizes (alone matches all) |
+| role | **LEAK** | high | 0.988 [0.980, 0.994] | 0.383 | 0.010 | 0.00 | sizes (alone matches all) |
+| workflow | **LEAK** | high | 0.741 [0.689, 0.788] | 0.300 | 0.010 | 0.00 | sizes (alone matches all) |
+| topology | **LEAK** | high | 1.000 [1.000, 1.000] | 0.383 | 0.010 | 0.00 | sizes (alone matches all) |
 
 ## role
 
@@ -26,7 +26,7 @@ Verdict: LEAK if the 95% CI lower bound of macro-F1 is above chance + 0.05; NO L
 
 Effect size 0.98 (share of the way from chance to perfect); severity high.
 
-Permutation test: p = 0.050; permuted-label macro-F1 mean 0.339, max 0.362; verdicts on permuted labels: 0 LEAK, 18 NO LEAK, 1 INCONCLUSIVE.
+Permutation test (rf-light: macro-F1 0.991 on the real labels): p = 0.010; permuted-label macro-F1 mean 0.333, max 0.376; verdicts on permuted labels: 0 LEAK, 93 NO LEAK, 6 INCONCLUSIVE.
 
 - **pad-messages**: Message sizes carry the leak, beyond any single request. Pad streamed response events to fixed cells (defense=pad) as well as request bodies to buckets.
 
@@ -48,7 +48,7 @@ Permutation test: p = 0.050; permuted-label macro-F1 mean 0.339, max 0.362; verd
 
 Effect size 0.65 (share of the way from chance to perfect); severity high.
 
-Permutation test: p = 0.050; permuted-label macro-F1 mean 0.247, max 0.298; verdicts on permuted labels: 0 LEAK, 14 NO LEAK, 5 INCONCLUSIVE.
+Permutation test (rf-light: macro-F1 0.749 on the real labels): p = 0.010; permuted-label macro-F1 mean 0.246, max 0.332; verdicts on permuted labels: 0 LEAK, 70 NO LEAK, 29 INCONCLUSIVE.
 
 - **pad-messages**: Message sizes carry the leak, beyond any single request. Pad streamed response events to fixed cells (defense=pad) as well as request bodies to buckets.
 
@@ -68,7 +68,7 @@ Permutation test: p = 0.050; permuted-label macro-F1 mean 0.247, max 0.298; verd
 
 Effect size 1.00 (share of the way from chance to perfect); severity high.
 
-Permutation test: p = 0.050; permuted-label macro-F1 mean 0.333, max 0.404; verdicts on permuted labels: 0 LEAK, 11 NO LEAK, 8 INCONCLUSIVE.
+Permutation test (rf-light: macro-F1 0.998 on the real labels): p = 0.010; permuted-label macro-F1 mean 0.332, max 0.391; verdicts on permuted labels: 0 LEAK, 56 NO LEAK, 43 INCONCLUSIVE.
 
 - **pad-messages**: Message sizes carry the leak, beyond any single request. Pad streamed response events to fixed cells (defense=pad) as well as request bodies to buckets.
 
@@ -76,4 +76,4 @@ Permutation test: p = 0.050; permuted-label macro-F1 mean 0.333, max 0.404; verd
 
 ## Runtime
 
-2975.1 s in all (collection 0.6 s, extraction 21.6 s, analysis 2952.8 s); peak memory 521 MB (worker processes 6 MB).
+137.4 s in all (collection 0.7 s, extraction 22.8 s, analysis 113.3 s); peak memory 419 MB in the main process, up to 434 MB in each of 14 worker processes.

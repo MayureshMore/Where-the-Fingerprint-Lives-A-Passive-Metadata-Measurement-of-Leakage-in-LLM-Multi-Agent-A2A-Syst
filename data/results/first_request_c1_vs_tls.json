@@ -2,8 +2,8 @@
   "paper": "P1",
   "question": "first-request size vs all features for workflow, C1 vs TLS control",
   "seed": 42,
-  "git_commit": "5a73d9fac16d7142e744bfd7c8ec639ee398a26b",
-  "git_dirty": true,
+  "git_commit": "757cf6db6617d2db16eb15a20db4fc5e0791de4e",
+  "git_dirty": false,
   "sets": {
     "C1": {
       "processed": "data/processed_c1",

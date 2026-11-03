@@ -1,6 +1,6 @@
 # First-request size vs all features for workflow: C1 and the TLS control
 
-GBT, 5-fold StratifiedGroupKFold by prompt group (shuffle, seed 42), the same folds for every model of a set; macro-F1 and per-class F1 with 95% cluster-bootstrap CIs over prompt groups; paired differences on the same group resamples. Commit `5a73d9fa` (uncommitted changes).
+GBT, 5-fold StratifiedGroupKFold by prompt group (shuffle, seed 42), the same folds for every model of a set; macro-F1 and per-class F1 with 95% cluster-bootstrap CIs over prompt groups; paired differences on the same group resamples. Commit `757cf6db`.
 
 ## Overall
 

@@ -1,9 +1,9 @@
 {
   "tool": "a2a-leakcheck",
   "version": "0.1.0",
-  "created": "2026-11-01T16:30:36-0800",
-  "git_commit": "6f6357c29f8fd0250cea8d3e7e9ec1bb41714efa",
-  "git_dirty": true,
+  "created": "2026-11-02T16:47:51-0800",
+  "git_commit": "757cf6db6617d2db16eb15a20db4fc5e0791de4e",
+  "git_dirty": false,
   "input": {
     "folder": "data/raw_tlspair_clear",
     "label": "TLS control, clear arm"
@@ -17,11 +17,13 @@
     "margin": 0.05,
     "folds": 5,
     "n_boot": 1000,
-    "permutations": 19,
+    "permutations": 99,
     "alpha": 0.05,
     "min_per_class": 20,
     "seed": 42,
     "model": "gbt",
+    "null_model": "rf-light",
+    "jobs": -1,
     "rules": "default",
     "strip": true
   },
@@ -72,15 +74,17 @@
           }
         },
         "permutation": {
-          "permutations": 19,
+          "permutations": 99,
           "alpha": 0.05,
-          "p_value": 0.05,
-          "null_mean": 0.3328454376530758,
-          "null_max": 0.35109943636454916,
+          "null_model": "rf-light",
+          "observed_macro_f1": 0.9922830492857195,
+          "p_value": 0.01,
+          "null_mean": 0.3309380301263645,
+          "null_max": 0.3888605778365559,
           "null_verdicts": {
             "LEAK": 0,
-            "NO LEAK": 19,
-            "INCONCLUSIVE": 0
+            "NO LEAK": 95,
+            "INCONCLUSIVE": 4
           },
           "false_positive_rate": 0.0
         }
@@ -200,15 +204,17 @@
           }
         },
         "permutation": {
-          "permutations": 19,
+          "permutations": 99,
           "alpha": 0.05,
-          "p_value": 0.05,
-          "null_mean": 0.2500252006863523,
-          "null_max": 0.29167405520510326,
+          "null_model": "rf-light",
+          "observed_macro_f1": 0.6414184798255984,
+          "p_value": 0.01,
+          "null_mean": 0.2533586579237413,
+          "null_max": 0.31855143100510036,
           "null_verdicts": {
             "LEAK": 0,
-            "NO LEAK": 13,
-            "INCONCLUSIVE": 6
+            "NO LEAK": 63,
+            "INCONCLUSIVE": 36
           },
           "false_positive_rate": 0.0
         }
@@ -321,15 +327,17 @@
           }
         },
         "permutation": {
-          "permutations": 19,
+          "permutations": 99,
           "alpha": 0.05,
-          "p_value": 0.05,
-          "null_mean": 0.3333925294116358,
-          "null_max": 0.37870547176483255,
+          "null_model": "rf-light",
+          "observed_macro_f1": 0.9976851572766839,
+          "p_value": 0.01,
+          "null_mean": 0.33523117969717553,
+          "null_max": 0.4046224157679266,
           "null_verdicts": {
             "LEAK": 0,
-            "NO LEAK": 12,
-            "INCONCLUSIVE": 7
+            "NO LEAK": 53,
+            "INCONCLUSIVE": 46
           },
           "false_positive_rate": 0.0
         }
@@ -429,14 +437,15 @@
     "INCONCLUSIVE": []
   },
   "runtime": {
-    "total_s": 2925.4333739169815,
+    "total_s": 131.7642615000077,
     "stages_s": {
-      "collection": 0.5845823330164421,
-      "extraction": 20.23100150001119,
-      "analysis": 2904.563266375015
+      "collection": 0.4456231249787379,
+      "extraction": 21.042660125007387,
+      "analysis": 109.63258041700465
     },
-    "peak_rss_mb": 520.078125,
-    "peak_rss_children_mb": 5.609375,
+    "peak_rss_mb": 433.21875,
+    "peak_rss_children_mb": 436.46875,
+    "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"
   }
