@@ -13,6 +13,10 @@ cross-fitted (evaluation/crossfit.py). For workflow, topology and role it report
 
   1. within-cleartext — GBT, 5-fold group-safe CV on the session's cleartext arm
   2. within-TLS       — the same CV on the TLS arm
+  4. TLS − cleartext  — paired difference: out-of-fold predictions in each arm (the same 5-fold
+                        StratifiedGroupKFold as scripts/evaluate_c1.py), macro-F1 of the TLS arm
+                        minus the cleartext arm, with a cluster bootstrap that resamples the
+                        shared prompt groups and scores both arms on the same resample
   3. cleartext → TLS  — cross-fitted transfer: for each of 5 group folds of the
                         TLS arm, train on the cleartext traces of the OTHER prompt
                         groups and predict the held-out TLS traces, so no test
@@ -63,6 +67,7 @@ from features.connections import own_packets  # noqa: E402
 from features.kfp import tcp_packets  # noqa: E402
 from models.gradient_boosted import GBTClassifier  # noqa: E402
 from scripts.check_tls_capture import _parse  # noqa: E402
+from scripts.evaluate_c1 import N_BOOT, folds, oof_predict  # noqa: E402
 from scripts.evaluate_cross_deployment import load_deployment  # noqa: E402
 from scripts.strip_payload import _MAGICS  # noqa: E402
 
@@ -79,6 +84,35 @@ def within(X, y, g, task: str) -> dict:
     return {"macro_f1": f["mean"], "ci_lo": f["ci_lo"], "ci_hi": f["ci_hi"],
             "accuracy": r["accuracy"]["mean"], "n": int(len(y)),
             "ci_method": r["ci_method"], "ci_n_clusters": r["ci_n_clusters"]}
+
+
+def paired_arms(Xc, yc, gc, Xt, yt, gt, task: str) -> dict:
+    """macro-F1(TLS) − macro-F1(cleartext) on out-of-fold predictions, cluster bootstrap over the
+    prompt groups the two arms share (the same prompt runs in both arms of a pair)."""
+    from sklearn.metrics import f1_score
+    yc, gc, yt, gt = (np.asarray(v) for v in (yc, gc, yt, gt))
+    pc = oof_predict("gbt", task, Xc, yc, folds(yc, gc))
+    pt = oof_predict("gbt", task, Xt, yt, folds(yt, gt))
+    classes = sorted(set(yc.tolist()) | set(yt.tolist()))
+    f1 = lambda y, p: f1_score(y, p, labels=classes, average="macro", zero_division=0)  # noqa: E731
+    shared = np.intersect1d(np.unique(gc), np.unique(gt))
+    ic = {u: np.where(gc == u)[0] for u in shared}
+    it = {u: np.where(gt == u)[0] for u in shared}
+    rng = np.random.default_rng(SEED)
+    diffs = np.empty(N_BOOT)
+    for b in range(N_BOOT):
+        pick = rng.choice(shared, len(shared), replace=True)
+        c = np.concatenate([ic[u] for u in pick])
+        t = np.concatenate([it[u] for u in pick])
+        diffs[b] = f1(yt[t], pt[t]) - f1(yc[c], pc[c])
+    lo, hi = np.percentile(diffs, [2.5, 97.5])
+    return {"clear_oof_macro_f1": float(f1(yc, pc)), "tls_oof_macro_f1": float(f1(yt, pt)),
+            "diff": float(f1(yt, pt) - f1(yc, pc)), "ci_lo": float(lo), "ci_hi": float(hi),
+            "significant": bool(lo > 0 or hi < 0), "shared_groups": int(len(shared)),
+            "groups_only_clear": int(len(np.setdiff1d(np.unique(gc), shared))),
+            "groups_only_tls": int(len(np.setdiff1d(np.unique(gt), shared))), "n_boot": N_BOOT,
+            "protocol": "out-of-fold GBT predictions per arm (pooled over folds); cluster bootstrap "
+                        "over shared prompt groups, both arms scored on the same resample"}
 
 
 def _scored(yt, yp, gt, classes, **extra) -> dict:
@@ -176,11 +210,13 @@ def main(a: argparse.Namespace) -> None:
             "within_clear": within(Xc, yc, gc, task),
             "within_tls": within(Xt, yt, gt, task),
             "clear_to_tls": transfer_crossfit(Xc, yc, gc, Xt, yt, gt, task),
+            "tls_minus_clear": paired_arms(Xc, yc, gc, Xt, yt, gt, task),
         }
         out["results"][task] = res
-        logger.info("[%s] within-clear %.3f  within-TLS %.3f  clear→TLS %.3f  (chance %.3f)", task,
-                    res["within_clear"]["macro_f1"], res["within_tls"]["macro_f1"],
-                    res["clear_to_tls"]["macro_f1"], res["chance"])
+        d = res["tls_minus_clear"]
+        logger.info("[%s] within-clear %.3f  within-TLS %.3f  clear→TLS %.3f  TLS − clear %+.3f [%+.3f, %+.3f]"
+                    "  (chance %.3f)", task, res["within_clear"]["macro_f1"], res["within_tls"]["macro_f1"],
+                    res["clear_to_tls"]["macro_f1"], d["diff"], d["ci_lo"], d["ci_hi"], res["chance"])
 
     if a.clear_raw and a.tls_raw:
         vc, vt = trace_volume(Path(a.clear_raw), legacy), trace_volume(Path(a.tls_raw), legacy)
@@ -206,7 +242,7 @@ def main(a: argparse.Namespace) -> None:
     (out_dir / f"{stem}.json").write_text(json.dumps(out, indent=2))
     make_figure(out, out_dir / "figures" / f"{stem}.png")
     write_report(out, out_dir / f"{stem}.md")
-    print(json.dumps({t: {k: round(v["macro_f1"], 3) for k, v in r.items() if isinstance(v, dict)}
+    print(json.dumps({t: {k: round(v["macro_f1"], 3) for k, v in r.items() if isinstance(v, dict) and "macro_f1" in v}
                       for t, r in out["results"].items()}, indent=2))
 
 
@@ -272,11 +308,19 @@ def write_report(out: dict, path: Path) -> None:
              "pair). macro-F1 with 95% cluster-bootstrap CIs over prompt groups; cleartext → TLS "
              f"is prompt-disjoint. Measurement: {out.get('measurement', 'all connections')}; commit "
              f"`{out.get('git_commit', '?')[:8]}`{' (uncommitted changes)' if out.get('git_dirty') else ''}.", "",
-             "| Task | Chance | Within cleartext | Within TLS | Cleartext → TLS | n (TLS) |",
-             "|---|---|---|---|---|---|"]
+             "| Task | Chance | Within cleartext | Within TLS | TLS − cleartext (paired) | Cleartext → TLS | n (TLS) |",
+             "|---|---|---|---|---|---|---|"]
     for t, r in out["results"].items():
-        lines.append(f"| {t} | {r['chance']:.3f} | {cell(r['within_clear'])} | {cell(r['within_tls'])} | "
+        d = r.get("tls_minus_clear")
+        dc = (f"{d['diff']:+.3f} [{d['ci_lo']:+.3f}, {d['ci_hi']:+.3f}]{'' if d['significant'] else ' (n.s.)'}"
+              if d else "—")
+        lines.append(f"| {t} | {r['chance']:.3f} | {cell(r['within_clear'])} | {cell(r['within_tls'])} | {dc} | "
                      f"{cell(r['clear_to_tls'])} | {r['within_tls']['n']} |")
+    if any("tls_minus_clear" in r for r in out["results"].values()):
+        d = next(r["tls_minus_clear"] for r in out["results"].values() if "tls_minus_clear" in r)
+        lines += ["", f"Within-arm cells: mean over the 5 folds (CI from the cluster bootstrap). The paired "
+                  f"difference scores pooled out-of-fold predictions of each arm and resamples the "
+                  f"{d['shared_groups']} prompt groups both arms share ({d['n_boot']} resamples)."]
     ov = out.get("overhead")
     if ov:
         c, t = ov["cleartext"], ov["tls"]
