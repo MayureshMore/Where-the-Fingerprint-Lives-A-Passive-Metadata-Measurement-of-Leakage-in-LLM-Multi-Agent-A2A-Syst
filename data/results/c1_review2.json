@@ -1,0 +1,378 @@
+{
+  "paper": "P1",
+  "collection_id": "C1",
+  "data_dir": "data/processed_c1_own",
+  "raw_dir": "data/raw_c1",
+  "seed": 42,
+  "git_commit": "5d92b8ddc40bbb9d49e47783b4adbdb12531647f",
+  "git_dirty": false,
+  "measurement": "own connections: only TCP connections whose SYN is in the trace (features/connections.py)",
+  "results": {
+    "B1_prompt_length": {
+      "n": 600,
+      "folds": 5,
+      "prompt_json_bytes": {
+        "median": 1237.0,
+        "range": [
+          101.0,
+          6424.0
+        ],
+        "per_workflow_median": {
+          "code_review": 5284.0,
+          "data_analysis": 3972.0,
+          "research_retrieval": 127.5,
+          "support_triage": 226.0
+        }
+      },
+      "learned_per_fold": {
+        "constant_c": [
+          1038.0,
+          1032.5,
+          1039.5,
+          1040.0,
+          1040.5
+        ],
+        "linear": [
+          {
+            "slope": 0.999713479630042,
+            "intercept": -1063.8541913578065
+          },
+          {
+            "slope": 1.000277448378925,
+            "intercept": -1061.8642293246771
+          },
+          {
+            "slope": 0.9966261061251952,
+            "intercept": -1056.9918988711845
+          },
+          {
+            "slope": 0.9948020598383227,
+            "intercept": -1057.2719149187383
+          },
+          {
+            "slope": 0.9984449956180701,
+            "intercept": -1070.8730025496322
+          }
+        ],
+        "per_workflow_c": [
+          {
+            "code_review": 1061.0,
+            "data_analysis": 948.0,
+            "research_retrieval": 1177.5,
+            "support_triage": 1008.5
+          },
+          {
+            "code_review": 1039.0,
+            "data_analysis": 939.5,
+            "research_retrieval": 1173.0,
+            "support_triage": 1005.5
+          },
+          {
+            "code_review": 1052.5,
+            "data_analysis": 949.0,
+            "research_retrieval": 1168.5,
+            "support_triage": 1006.5
+          },
+          {
+            "code_review": 1058.5,
+            "data_analysis": 948.0,
+            "research_retrieval": 1170.5,
+            "support_triage": 1015.5
+          },
+          {
+            "code_review": 1051.5,
+            "data_analysis": 951.0,
+            "research_retrieval": 1204.5,
+            "support_triage": 1010.5
+          }
+        ]
+      },
+      "estimators": {
+        "constant": {
+          "overall": {
+            "n": 600,
+            "median_abs_error": 105.75,
+            "mae": 132.335,
+            "p90_abs_error": 258.65000000000003,
+            "within_100B": 0.4866666666666667,
+            "within_200B": 0.8183333333333334,
+            "within_300B": 0.9283333333333333,
+            "median_relative_error": 0.09007223523326485,
+            "median_signed_error": 1.25
+          },
+          "per_workflow": {
+            "code_review": {
+              "n": 150,
+              "median_abs_error": 95.75,
+              "mae": 141.13333333333333,
+              "p90_abs_error": 285.2,
+              "within_100B": 0.5333333333333333,
+              "within_200B": 0.7933333333333333,
+              "within_300B": 0.9066666666666666,
+              "median_relative_error": 0.033272641250730824,
+              "median_signed_error": 19.5
+            },
+            "data_analysis": {
+              "n": 150,
+              "median_abs_error": 115.0,
+              "mae": 118.60666666666667,
+              "p90_abs_error": 195.5,
+              "within_100B": 0.43333333333333335,
+              "within_200B": 0.9066666666666666,
+              "within_300B": 0.98,
+              "median_relative_error": 0.037736318182473944,
+              "median_signed_error": -88.25
+            },
+            "research_retrieval": {
+              "n": 150,
+              "median_abs_error": 136.25,
+              "mae": 174.55333333333334,
+              "p90_abs_error": 341.69999999999993,
+              "within_100B": 0.37333333333333335,
+              "within_200B": 0.6533333333333333,
+              "within_300B": 0.8733333333333333,
+              "median_relative_error": 0.44343921753145993,
+              "median_signed_error": 136.25
+            },
+            "support_triage": {
+              "n": 150,
+              "median_abs_error": 73.75,
+              "mae": 95.04666666666667,
+              "p90_abs_error": 194.6,
+              "within_100B": 0.6066666666666667,
+              "within_200B": 0.92,
+              "within_300B": 0.9533333333333334,
+              "median_relative_error": 0.14861573435089714,
+              "median_signed_error": -27.75
+            }
+          },
+          "description": "one overhead c = median(first_request_bytes \u2212 prompt_json_bytes) on the training folds; prompt bytes = first_request_bytes \u2212 c (does not know the workflow)"
+        },
+        "linear": {
+          "overall": {
+            "n": 600,
+            "median_abs_error": 110.22464812941962,
+            "mae": 135.17648493769764,
+            "p90_abs_error": 252.1332672803221,
+            "within_100B": 0.44333333333333336,
+            "within_200B": 0.7983333333333333,
+            "within_300B": 0.935,
+            "median_relative_error": 0.0959684721518041,
+            "median_signed_error": -27.02226620265924
+          },
+          "per_workflow": {
+            "code_review": {
+              "n": 150,
+              "median_abs_error": 104.10193386751598,
+              "mae": 141.43433151060395,
+              "p90_abs_error": 298.23460861800334,
+              "within_100B": 0.4666666666666667,
+              "within_200B": 0.78,
+              "within_300B": 0.9066666666666666,
+              "median_relative_error": 0.03273564090759988,
+              "median_signed_error": -17.04451176461589
+            },
+            "data_analysis": {
+              "n": 150,
+              "median_abs_error": 137.1456001735637,
+              "mae": 138.40310574804613,
+              "p90_abs_error": 224.07507841706288,
+              "within_100B": 0.34,
+              "within_200B": 0.7933333333333333,
+              "within_300B": 0.98,
+              "median_relative_error": 0.04233943163364906,
+              "median_signed_error": -118.89852524024604
+            },
+            "research_retrieval": {
+              "n": 150,
+              "median_abs_error": 117.12737865184931,
+              "mae": 155.751586302338,
+              "p90_abs_error": 314.8916926112916,
+              "within_100B": 0.42,
+              "within_200B": 0.7266666666666667,
+              "within_300B": 0.8866666666666667,
+              "median_relative_error": 0.4157848724368144,
+              "median_signed_error": 112.21232728338771
+            },
+            "support_triage": {
+              "n": 150,
+              "median_abs_error": 92.02365978238731,
+              "mae": 105.11691618980238,
+              "p90_abs_error": 212.85471391692144,
+              "within_100B": 0.5466666666666666,
+              "within_200B": 0.8933333333333333,
+              "within_300B": 0.9666666666666667,
+              "median_relative_error": 0.19095205258937306,
+              "median_signed_error": -56.099372508262036
+            }
+          },
+          "description": "least-squares prompt_json_bytes ~ a + b\u00b7first_request_bytes on the training folds (does not know the workflow)"
+        },
+        "per_workflow_constant": {
+          "overall": {
+            "n": 600,
+            "median_abs_error": 79.0,
+            "mae": 111.49833333333333,
+            "p90_abs_error": 235.20000000000005,
+            "within_100B": 0.595,
+            "within_200B": 0.8533333333333334,
+            "within_300B": 0.9483333333333334,
+            "median_relative_error": 0.07271995120420213,
+            "median_signed_error": 2.25
+          },
+          "per_workflow": {
+            "code_review": {
+              "n": 150,
+              "median_abs_error": 106.0,
+              "mae": 141.42,
+              "p90_abs_error": 279.15,
+              "within_100B": 0.4866666666666667,
+              "within_200B": 0.8,
+              "within_300B": 0.9066666666666666,
+              "median_relative_error": 0.0333749876459648,
+              "median_signed_error": 4.25
+            },
+            "data_analysis": {
+              "n": 150,
+              "median_abs_error": 72.0,
+              "mae": 94.04666666666667,
+              "p90_abs_error": 211.1,
+              "within_100B": 0.7,
+              "within_200B": 0.8933333333333333,
+              "within_300B": 0.9733333333333334,
+              "median_relative_error": 0.022689104000735556,
+              "median_signed_error": 2.0
+            },
+            "research_retrieval": {
+              "n": 150,
+              "median_abs_error": 89.25,
+              "mae": 119.00666666666666,
+              "p90_abs_error": 228.89999999999992,
+              "within_100B": 0.5466666666666666,
+              "within_200B": 0.82,
+              "within_300B": 0.9533333333333334,
+              "median_relative_error": 0.331892697466468,
+              "median_signed_error": 2.5
+            },
+            "support_triage": {
+              "n": 150,
+              "median_abs_error": 69.0,
+              "mae": 91.52,
+              "p90_abs_error": 200.89999999999992,
+              "within_100B": 0.6466666666666666,
+              "within_200B": 0.9,
+              "within_300B": 0.96,
+              "median_relative_error": 0.14316411096864917,
+              "median_signed_error": 2.0
+            }
+          },
+          "description": "reference only: c learned per workflow on the training folds and applied with the test trace's true workflow (knows the workflow)"
+        }
+      }
+    },
+    "B2_role_loto_confusion": {
+      "classes": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "rows": "true role",
+      "columns": "predicted role",
+      "folds": "train on two topologies, test on the third (evaluate_c1_revision.py A7)",
+      "overall": {
+        "macro_f1": 0.4677700278963128,
+        "ci_lo": 0.43729486300103076,
+        "ci_hi": 0.4978418324854329,
+        "accuracy": 0.46166666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "per_held_out": {
+        "chain": {
+          "n": 600,
+          "macro_f1": 0.9074978092669205,
+          "confusion": [
+            [
+              157,
+              42,
+              1
+            ],
+            [
+              0,
+              188,
+              12
+            ],
+            [
+              0,
+              0,
+              200
+            ]
+          ],
+          "recall": {
+            "executor": 0.785,
+            "retriever": 0.94,
+            "validator": 1.0
+          }
+        },
+        "mesh": {
+          "n": 600,
+          "macro_f1": 0.3856108635862398,
+          "confusion": [
+            [
+              200,
+              0,
+              0
+            ],
+            [
+              73,
+              13,
+              114
+            ],
+            [
+              0,
+              157,
+              43
+            ]
+          ],
+          "recall": {
+            "executor": 1.0,
+            "retriever": 0.065,
+            "validator": 0.215
+          }
+        },
+        "star": {
+          "n": 600,
+          "macro_f1": 0.03303781488494864,
+          "confusion": [
+            [
+              0,
+              0,
+              200
+            ],
+            [
+              0,
+              1,
+              199
+            ],
+            [
+              76,
+              95,
+              29
+            ]
+          ],
+          "recall": {
+            "executor": 0.0,
+            "retriever": 0.005,
+            "validator": 0.145
+          }
+        }
+      }
+    }
+  },
+  "B3_padding_facts": [
+    "Padded trace vectors are recomputed: for each scheme, the padded packet list goes through FeatureExtractor._compute_features and role_vectors (evaluate_c1_revision.py padding()), and the unpadded rebuild matches the stored features for 600 of 600 traces.",
+    "The GBT is retrained and tested on padded traffic: oof_predict fits each fold on the padded vectors of the training traces and predicts the padded vectors of the test traces; the folds are the same prompt-group folds as the unpadded run. Nothing is trained on unpadded traffic.",
+    "Overhead = (padded wire bytes \u2212 unpadded wire bytes) / unpadded wire bytes, summed over every packet of each trace's own connections in both directions (handshakes, requests, responses, ACKs). Wire bytes are the captured frame length, so IP and TCP headers (and the loopback link header) are included, and each extra segment created by padding adds its own header."
+  ]
+}
