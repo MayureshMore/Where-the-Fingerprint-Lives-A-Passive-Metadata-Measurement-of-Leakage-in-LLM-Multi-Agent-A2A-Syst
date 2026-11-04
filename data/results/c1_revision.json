@@ -1,0 +1,549 @@
+{
+  "paper": "P1",
+  "collection_id": "C1",
+  "data_dir": "data/processed_c1_own",
+  "raw_dir": "data/raw_c1",
+  "seed": 42,
+  "git_commit": "da31192ab160c58767221fb2818a70e9cbe69894",
+  "git_dirty": false,
+  "measurement": "own connections: only TCP connections whose SYN is in the trace (features/connections.py)",
+  "results": {
+    "A10_capture": {
+      "max_wire_bytes": {
+        "request": 9928,
+        "response": 16388
+      },
+      "max_tcp_payload_bytes": {
+        "request": 9872,
+        "response": 16332
+      },
+      "header_bytes": {
+        "56": 377779,
+        "68": 4572,
+        "44": 912
+      },
+      "link_types": {
+        "0": 600
+      },
+      "loopback_mtu_inferred": 16384,
+      "first_request_segments": {
+        "code_review": {
+          "2": 135,
+          "3": 15
+        },
+        "data_analysis": {
+          "2": 135,
+          "3": 15
+        },
+        "research_retrieval": {
+          "2": 135,
+          "3": 15
+        },
+        "support_triage": {
+          "2": 135,
+          "3": 15
+        }
+      }
+    },
+    "A2_input_size": {
+      "per_workflow": {
+        "code_review": {
+          "c_w": 1085.1066666666666,
+          "residual_sd": 199.26893724620106,
+          "max_abs_residual": 783.8933333333334,
+          "free_fit_slope": 1.0016815152089622,
+          "free_fit_intercept": 1079.1417605053075,
+          "plan_json_bytes_median": 476.5,
+          "plan_json_bytes_iqr": [
+            373.0,
+            598.75
+          ]
+        },
+        "data_analysis": {
+          "c_w": 976.9933333333333,
+          "residual_sd": 144.4948849175562,
+          "max_abs_residual": 1093.0066666666667,
+          "free_fit_slope": 1.0061631906489827,
+          "free_fit_intercept": 958.0689277421333,
+          "plan_json_bytes_median": 367.0,
+          "plan_json_bytes_iqr": [
+            303.5,
+            454.0
+          ]
+        },
+        "research_retrieval": {
+          "c_w": 1199.8266666666666,
+          "residual_sd": 159.46259356728015,
+          "max_abs_residual": 693.1733333333334,
+          "free_fit_slope": 1.1526617164344077,
+          "free_fit_intercept": 1121.002333747701,
+          "plan_json_bytes_median": 597.5,
+          "plan_json_bytes_iqr": [
+            516.0,
+            703.25
+          ]
+        },
+        "support_triage": {
+          "c_w": 1011.1266666666667,
+          "residual_sd": 121.22530450323302,
+          "max_abs_residual": 331.87333333333333,
+          "free_fit_slope": 1.0594066160860354,
+          "free_fit_intercept": 968.3087540564965,
+          "plan_json_bytes_median": 430.0,
+          "plan_json_bytes_iqr": [
+            359.25,
+            497.75
+          ]
+        }
+      },
+      "header_record_bytes": {
+        "277": 400,
+        "276": 140,
+        "197": 60
+      },
+      "note": "first-request bytes = HTTP header record + body record; body = JSON-RPC envelope + 'Sub-task i of n' + the orchestrator's LLM-written sub-task plan + the prompt (agents/orchestrator.py:45-53); plan bytes estimated as body record \u2212 22 B TLS overhead \u2212 the body built with an empty plan"
+    },
+    "A3_pairs_response_side": {
+      "code_review_vs_data_analysis": {
+        "chance": 0.5,
+        "n": 300,
+        "dims": 81,
+        "response_side": {
+          "macro_f1": 0.6965823839955543,
+          "ci_lo": 0.638064891732912,
+          "ci_hi": 0.7517994804088542,
+          "accuracy": 0.6966666666666667,
+          "n": 300,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 125
+        },
+        "all": {
+          "macro_f1": 0.8933143669985775,
+          "ci_lo": 0.8468830217193498,
+          "ci_hi": 0.9314523675837545,
+          "accuracy": 0.8933333333333333,
+          "n": 300,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 125
+        },
+        "all_minus_response_side": {
+          "diff": 0.1967319830030232,
+          "ci_lo": 0.12827156268364584,
+          "ci_hi": 0.263465224837664,
+          "significant": true
+        }
+      },
+      "research_retrieval_vs_support_triage": {
+        "chance": 0.5,
+        "n": 300,
+        "dims": 81,
+        "response_side": {
+          "macro_f1": 0.5020885547201337,
+          "ci_lo": 0.44530589500540435,
+          "ci_hi": 0.5547097962817604,
+          "accuracy": 0.5033333333333333,
+          "n": 300,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 157
+        },
+        "all": {
+          "macro_f1": 0.54995499549955,
+          "ci_lo": 0.4753139126116123,
+          "ci_hi": 0.6194071782308755,
+          "accuracy": 0.55,
+          "n": 300,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 157
+        },
+        "all_minus_response_side": {
+          "diff": 0.047866440779416264,
+          "ci_lo": -0.026058987185776795,
+          "ci_hi": 0.12367925526508297,
+          "significant": false
+        }
+      }
+    },
+    "A6_topology_rule": {
+      "accuracy": 1.0,
+      "n": 600,
+      "macro_f1": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "confusion": {
+        "chain": {
+          "chain": 200,
+          "mesh": 0,
+          "star": 0
+        },
+        "mesh": {
+          "chain": 0,
+          "mesh": 200,
+          "star": 0
+        },
+        "star": {
+          "chain": 0,
+          "mesh": 0,
+          "star": 200
+        }
+      },
+      "shapes": {
+        "chain": {
+          "3 calls, nesting 3": 200
+        },
+        "mesh": {
+          "5 calls, nesting 4": 200
+        },
+        "star": {
+          "3 calls, nesting 1": 200
+        }
+      }
+    },
+    "A5_kfp_features_gbt": {
+      "role": {
+        "gbt_all_features": {
+          "macro_f1": 0.9938870062137525,
+          "ci_lo": 0.9898481294695036,
+          "ci_hi": 0.9973756912346238,
+          "accuracy": 0.9938888888888889,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282
+        },
+        "gbt_kfp_features": {
+          "macro_f1": 0.9877656266102063,
+          "ci_lo": 0.982035085574015,
+          "ci_hi": 0.9933431243630036,
+          "accuracy": 0.9877777777777778,
+          "n": 1800,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282
+        },
+        "all_minus_kfp": {
+          "diff": 0.006121379603546195,
+          "ci_lo": 0.001701538474604422,
+          "ci_hi": 0.010814552943152827,
+          "significant": true
+        }
+      },
+      "workflow": {
+        "gbt_all_features": {
+          "macro_f1": 0.6597522840407621,
+          "ci_lo": 0.6126719640479875,
+          "ci_hi": 0.7026371667919474,
+          "accuracy": 0.66,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282
+        },
+        "gbt_kfp_features": {
+          "macro_f1": 0.5112865399184755,
+          "ci_lo": 0.46062881325924476,
+          "ci_hi": 0.556361312296444,
+          "accuracy": 0.5083333333333333,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282
+        },
+        "all_minus_kfp": {
+          "diff": 0.14846574412228664,
+          "ci_lo": 0.10560605812080316,
+          "ci_hi": 0.19495217988770708,
+          "significant": true
+        }
+      },
+      "topology": {
+        "gbt_all_features": {
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282
+        },
+        "gbt_kfp_features": {
+          "macro_f1": 0.9983333229166016,
+          "ci_lo": 0.994520120790627,
+          "ci_hi": 1.0,
+          "accuracy": 0.9983333333333333,
+          "n": 600,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 282
+        },
+        "all_minus_kfp": {
+          "diff": 0.0016666770833984046,
+          "ci_lo": 0.0,
+          "ci_hi": 0.0054798792093729435,
+          "significant": false
+        }
+      }
+    },
+    "A7_role_held_out": {
+      "grouped_cv": {
+        "macro_f1": 0.9938870062137525,
+        "ci_lo": 0.9898481294695036,
+        "ci_hi": 0.9973756912346238,
+        "accuracy": 0.9938888888888889,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "leave_one_workflow_out": {
+        "macro_f1": 0.9922235763973525,
+        "ci_lo": 0.9879637997283364,
+        "ci_hi": 0.9962727524112526,
+        "accuracy": 0.9922222222222222,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282,
+        "folds": 4,
+        "per_held_out": {
+          "code_review": 1.0,
+          "data_analysis": 0.9844588658294388,
+          "research_retrieval": 0.9955555308639231,
+          "support_triage": 0.9888813826326466
+        }
+      },
+      "leave_one_topology_out": {
+        "macro_f1": 0.4677700278963128,
+        "ci_lo": 0.43729486300103076,
+        "ci_hi": 0.4978418324854329,
+        "accuracy": 0.46166666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282,
+        "folds": 3,
+        "per_held_out": {
+          "chain": 0.9074978092669205,
+          "mesh": 0.3856108635862398,
+          "star": 0.03303781488494864
+        }
+      }
+    },
+    "A8_replies": {
+      "response_bytes_per_role": {
+        "executor": {
+          "n": 600,
+          "median": 25201.0,
+          "iqr": [
+            23337.0,
+            162424.0
+          ],
+          "cv": 0.9311119403507744
+        },
+        "retriever": {
+          "n": 600,
+          "median": 47422.0,
+          "iqr": [
+            25198.5,
+            162802.5
+          ],
+          "cv": 0.7784133953030982
+        },
+        "validator": {
+          "n": 600,
+          "median": 25200.0,
+          "iqr": [
+            22853.5,
+            44812.5
+          ],
+          "cv": 0.40761153431412683
+        }
+      },
+      "tokens": "not logged: the agents never record Ollama's eval_count or done_reason, so the share of replies that hit the 256-token cap cannot be measured from C1"
+    },
+    "A4_padding": {
+      "method": "every request message (request writes on one connection \u2264 50 ms apart; TLS handshake records and alerts excluded) padded to its bucket and re-segmented at the capture's largest TCP payload (16332 B); timestamps and header sizes kept; responses and ACKs unchanged (a real sender would also trigger a few more ACKs)",
+      "reconstruction_check": "600 of 600 unpadded trace vectors rebuilt from packet headers equal the stored features",
+      "schemes": {
+        "none": {
+          "overhead": 0.0,
+          "wire_bytes": [
+            128785490,
+            128785490
+          ],
+          "workflow": {
+            "macro_f1": 0.6597522840407621,
+            "ci_lo": 0.6126719640479875,
+            "ci_hi": 0.7026371667919474,
+            "accuracy": 0.66,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282
+          },
+          "topology": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282
+          },
+          "workflow_first_request_only": {
+            "macro_f1": 0.6414460591221728,
+            "ci_lo": 0.5891328679713896,
+            "ci_hi": 0.6872502163286259,
+            "accuracy": 0.65,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282
+          },
+          "role": {
+            "macro_f1": 0.9938870062137525,
+            "ci_lo": 0.9898481294695036,
+            "ci_hi": 0.9973756912346238,
+            "accuracy": 0.9938888888888889,
+            "n": 1800,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282
+          }
+        },
+        "linear_1KB": {
+          "overhead": 0.008439165002206383,
+          "wire_bytes": [
+            128785490,
+            129872332
+          ],
+          "workflow": {
+            "macro_f1": 0.5518661435363822,
+            "ci_lo": 0.497477531328317,
+            "ci_hi": 0.6001450050859934,
+            "accuracy": 0.55,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282
+          },
+          "workflow_unpadded_minus_this": {
+            "diff": 0.10788614050437995,
+            "ci_lo": 0.0704523100062457,
+            "ci_hi": 0.1452806328005171,
+            "significant": true
+          },
+          "topology": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282
+          },
+          "workflow_first_request_only": {
+            "macro_f1": 0.46495214085788195,
+            "ci_lo": 0.3986539323870693,
+            "ci_hi": 0.5266339012294667,
+            "accuracy": 0.4483333333333333,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282
+          },
+          "role": {
+            "macro_f1": 0.9938870062137525,
+            "ci_lo": 0.9895836560786396,
+            "ci_hi": 0.9976021028288995,
+            "accuracy": 0.9938888888888889,
+            "n": 1800,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282
+          }
+        },
+        "pow2_from_1KB": {
+          "overhead": 0.027230288132614938,
+          "wire_bytes": [
+            128785490,
+            132292356
+          ],
+          "workflow": {
+            "macro_f1": 0.5539408784004802,
+            "ci_lo": 0.5061271481215078,
+            "ci_hi": 0.6001649059329466,
+            "accuracy": 0.5516666666666666,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282
+          },
+          "workflow_unpadded_minus_this": {
+            "diff": 0.10581140564028191,
+            "ci_lo": 0.07035979525769001,
+            "ci_hi": 0.14367151364526654,
+            "significant": true
+          },
+          "topology": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282
+          },
+          "workflow_first_request_only": {
+            "macro_f1": 0.32411033393552324,
+            "ci_lo": 0.2634236530632707,
+            "ci_hi": 0.38741328658139584,
+            "accuracy": 0.3383333333333333,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282
+          },
+          "role": {
+            "macro_f1": 0.9933333240663388,
+            "ci_lo": 0.9892872241623112,
+            "ci_hi": 0.9969721109149321,
+            "accuracy": 0.9933333333333333,
+            "n": 1800,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 282
+          }
+        }
+      }
+    },
+    "A9_templates": {
+      "prompt_minus_template_grouped": {
+        "diff": 0.055446101655416635,
+        "ci_lo": 0.009961201668501273,
+        "ci_hi": 0.10465549032869949,
+        "significant": true
+      },
+      "unmatched": 0,
+      "templates_per_workflow": {
+        "code_review": 9,
+        "data_analysis": 10,
+        "research_retrieval": 9,
+        "support_triage": 35
+      },
+      "prompts_per_workflow": {
+        "code_review": 51,
+        "data_analysis": 74,
+        "research_retrieval": 62,
+        "support_triage": 95
+      },
+      "template_grouped": {
+        "macro_f1": 0.6043061823853455,
+        "ci_lo": 0.4980930918417248,
+        "ci_hi": 0.6583401563631365,
+        "accuracy": 0.6016666666666667,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 63
+      },
+      "prompt_grouped": {
+        "macro_f1": 0.6597522840407621,
+        "ci_lo": 0.6126719640479875,
+        "ci_hi": 0.7026371667919474,
+        "accuracy": 0.66,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "note": "template = the generator's base element (code snippet, dataset, research question template, support ticket); prompts sharing one differ only in the ask or topic"
+    }
+  }
+}
