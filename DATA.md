@@ -12,16 +12,40 @@ figures you download a published data archive and unpack it into `data/`.
 
 ## Paper 1 archive (collection C1)
 
-**Zenodo:** https://doi.org/10.5281/zenodo.23868869 (version 1.0, published 2026-11-01; data CC BY 4.0)
+**Zenodo:** https://doi.org/10.5281/zenodo.23938311 (version 1.1; data CC BY 4.0). All versions:
+https://doi.org/10.5281/zenodo.23868868 (concept DOI). Version 1.0:
+https://doi.org/10.5281/zenodo.23868869 (published 2026-11-01).
+
+Version 1.1 measures every trace on its own connections: only TCP connections whose SYN is in
+the trace (`features/connections.py`). The captures are unchanged from v1.0.
+
+| File | SHA-256 |
+|---|---|
+| `c1-raw-pcaps-headers-only.zip` (`data/raw_c1/`, headers only; unchanged from v1.0) | `20c0d244cf0081d2a71b0e8cc58018d3059e0e575ffaac51abbab7508e094e58` |
+| `c1-features-own.zip` (`data/processed_c1_own/`) | `4bcd437a4aa8eee98ff3dcb7ac2bddf677946ad2724c0466503a372219b6f92d` |
+| `c1-figures-own.zip` (result figures) | `41b70d21a8eb93750f43d2a8bb1c1a2ce72b7e5dc97fa37697208138306c76d9` |
+| `c1_evaluation_own.json` (commit `da31192a`) | `fe6137f96b15e9dc8e81823cf1308fe096bbd8079dd57b0b5c3692ec7d3b404f` |
+| `c1_evaluation_own.md` | `d615e6ea314aa1b8e0b1abcb49d5ee1c595707c3681980e9bda8b3533c7bf3ad` |
+| `c1_revision.json` (commit `da31192a`) | `283935426f2d221e83e938bd4c403f62158be96b30b7e7bb0ef017c038388d13` |
+| `c1_revision.md` | `ae259b5da7561f1b53b38bc125334481ef48da5fd9940755988cb2dadc82cbb3` |
+| `c1_review2.json` (commit `5d92b8dd`) | `b6d5a3d720be48bbaa1694ee2b73410445b925ee3b24a308a2feb7281ece65c5` |
+| `c1_review2.md` | `ee155da5dac1bad90f972d91a0d5d1a006229d7239d50bafd0c057611a8edb2a` |
+| `c1_first_request_traces.csv` | `2adddd07b05d89a72d19094b0c8eeffc3fde78dc5cfaadf183bc0e3d0e20c613` |
+| `dropped_connections_c1.json` (commit `d2302703`) | `dfcf201cff661fbcc52599fb0531ee2779ac35e9e7a71c8394a527882f7318d1` |
+
+Legacy, kept from v1.0 for comparison (all connections on the agent ports; not used by the paper):
 
 | File | SHA-256 |
 |---|---|
 | `c1-features.zip` (`data/processed_c1/`) | `18d3907a357186672355c616b04c6b9c960e56243ac4da26a726291329b00354` |
-| `c1-raw-pcaps-headers-only.zip` (`data/raw_c1/`, headers only) | `20c0d244cf0081d2a71b0e8cc58018d3059e0e575ffaac51abbab7508e094e58` |
+| `c1_evaluation.json` (commit `fd46e23e`) | `426b4e42d5945dea6f6f8f9083ca19b07ac1ded7b50bb1cfb7cc46326480d0fc` |
+| `c1_evaluation.md` | `9a55a0cd8ff173cca6fa29533f7471ebb35c9bc15a6f2564a4ccfb109f83eb6b` |
 
-The record also holds `c1_evaluation.json`/`.md` (results at commit `fd46e23e`), a README and
-`SHA256SUMS.txt`. Unzip both archives into the repository root and run
-`python scripts/evaluate_c1.py`.
+The record also holds a README and `SHA256SUMS.txt`. Unzip `c1-raw-pcaps-headers-only.zip` and
+`c1-features-own.zip` into the repository root and run `python scripts/evaluate_c1.py`,
+`python scripts/evaluate_c1_revision.py` and `python scripts/evaluate_c1_review2.py` (own
+connections are the default). The v1.0 analysis is `python scripts/evaluate_c1.py
+--legacy-all-connections` on `c1-features.zip`.
 
 ## Published archives
 
