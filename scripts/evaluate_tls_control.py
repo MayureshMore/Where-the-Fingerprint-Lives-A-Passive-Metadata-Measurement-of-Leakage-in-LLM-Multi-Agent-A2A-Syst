@@ -29,8 +29,14 @@ its chain and mesh traces were collected while every specialist stream was cut
 after its first event (sse-starlette drain bug, fixed in agents/base.py), so it
 is not the same traffic.
 
+Measurement: own connections by default (features/connections.py): the processed sets are
+data/processed_tlspair_{clear,tls}_own and the on-wire volume counts only the connections each
+trace opens itself; writes tls_control_own.{json,md}. --legacy-all-connections reads the
+all-connections sets and writes tls_control.{json,md}, as committed before the rule.
+
 Usage:
     python scripts/evaluate_tls_control.py
+    python scripts/evaluate_tls_control.py --legacy-all-connections
     python scripts/evaluate_tls_control.py --clear data/processed_tlspair_clear \\
         --tls data/processed_tlspair_tls
 """
@@ -40,8 +46,10 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import ast
 import os
 import struct
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
@@ -51,6 +59,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from evaluation.crossfit import crossfit_predict, shared_prompt_fraction  # noqa: E402
 from evaluation.stats import bootstrap_ci  # noqa: E402
+from features.connections import own_packets  # noqa: E402
+from features.kfp import tcp_packets  # noqa: E402
 from models.gradient_boosted import GBTClassifier  # noqa: E402
 from scripts.check_tls_capture import _parse  # noqa: E402
 from scripts.evaluate_cross_deployment import load_deployment  # noqa: E402
@@ -87,11 +97,34 @@ def transfer_crossfit(Xtr, ytr, gtr, Xte, yte, gte, task: str) -> dict:
                             "of the other prompt groups only")
 
 
-def trace_volume(raw_dir: Path) -> dict:
+def _git() -> dict:
+    """Commit, and whether the code differs from it (changes under data/ do not count)."""
+    def run(*a):
+        return subprocess.run(["git", *a], capture_output=True, text=True).stdout.strip()
+    return {"git_commit": run("rev-parse", "HEAD"),
+            "git_dirty": bool(run("status", "--porcelain", "--", ".", ":(exclude)data"))}
+
+
+def _agent_ports(pcap: Path) -> set[int]:
+    sc = json.loads(pcap.with_suffix(".json").read_text())
+    eps = sc["agent_endpoints"]
+    eps = ast.literal_eval(eps) if isinstance(eps, str) else eps
+    return {int(str(v).rsplit(":", 1)[1]) for v in eps.values()}
+
+
+def trace_volume(raw_dir: Path, legacy: bool = False) -> dict:
     """Per-trace on-wire bytes, packets and TCP connections, from packet headers only
-    (so it works on payload-stripped captures)."""
+    (so it works on payload-stripped captures). Own connections (default): only the agent-port
+    connections each trace opens itself; legacy: every packet in the capture."""
     rows, by_port = [], Counter()
     for f in sorted(raw_dir.glob("*.pcap")):
+        if not legacy:
+            ports = _agent_ports(f)
+            pk = own_packets([p for p in tcp_packets(f) if p[1] in ports or p[2] in ports], ports)
+            syn = [p for p in pk if p[5] & 0x02 and not p[5] & 0x10]
+            by_port.update(p[2] for p in syn)
+            rows.append((sum(p[3] for p in pk), len(pk), len(syn)))
+            continue
         raw = f.read_bytes()
         endian = _MAGICS[raw[:4]]
         linktype = struct.unpack(endian + "I", raw[20:24])[0]
@@ -119,8 +152,13 @@ def _read_json(path: Path) -> dict | None:
 
 
 def main(a: argparse.Namespace) -> None:
-    clear, tls = Path(a.clear), Path(a.tls)
+    legacy = a.legacy_all_connections
+    clear = Path(a.clear or ("data/processed_tlspair_clear" if legacy else "data/processed_tlspair_clear_own"))
+    tls = Path(a.tls or ("data/processed_tlspair_tls" if legacy else "data/processed_tlspair_tls_own"))
     out = {
+        "paper": "P1", "collection_id": "TLS control", "seed": SEED, **_git(),
+        "measurement": "all connections on the agent ports (legacy)" if legacy else
+                       "own connections: only TCP connections whose SYN is in the trace (features/connections.py)",
         "task": "TLS control — fingerprinting with TLS on every agent link (same-session, paired)",
         "method": "Deployment A collected in one session with cleartext and TLS traces alternating "
                   "(same prompt per pair, arm order counterbalanced). GBT; "
@@ -145,7 +183,7 @@ def main(a: argparse.Namespace) -> None:
                     res["clear_to_tls"]["macro_f1"], res["chance"])
 
     if a.clear_raw and a.tls_raw:
-        vc, vt = trace_volume(Path(a.clear_raw)), trace_volume(Path(a.tls_raw))
+        vc, vt = trace_volume(Path(a.clear_raw), legacy), trace_volume(Path(a.tls_raw), legacy)
         if vc and vt:
             out["overhead"] = {
                 "cleartext": vc, "tls": vt,
@@ -164,9 +202,10 @@ def main(a: argparse.Namespace) -> None:
 
     out_dir = Path(os.environ.get("A2A_RESULTS_DIR", "data/results"))
     (out_dir / "figures").mkdir(parents=True, exist_ok=True)
-    (out_dir / "tls_control.json").write_text(json.dumps(out, indent=2))
-    make_figure(out, out_dir / "figures" / "tls_control.png")
-    write_report(out, out_dir / "tls_control.md")
+    stem = "tls_control" if legacy else "tls_control_own"
+    (out_dir / f"{stem}.json").write_text(json.dumps(out, indent=2))
+    make_figure(out, out_dir / "figures" / f"{stem}.png")
+    write_report(out, out_dir / f"{stem}.md")
     print(json.dumps({t: {k: round(v["macro_f1"], 3) for k, v in r.items() if isinstance(v, dict)}
                       for t, r in out["results"].items()}, indent=2))
 
@@ -231,7 +270,8 @@ def write_report(out: dict, path: Path) -> None:
     lines = ["# TLS control — summary", "",
              "Deployment A, cleartext and TLS traces alternating in one session (same prompt per "
              "pair). macro-F1 with 95% cluster-bootstrap CIs over prompt groups; cleartext → TLS "
-             "is prompt-disjoint.", "",
+             f"is prompt-disjoint. Measurement: {out.get('measurement', 'all connections')}; commit "
+             f"`{out.get('git_commit', '?')[:8]}`{' (uncommitted changes)' if out.get('git_dirty') else ''}.", "",
              "| Task | Chance | Within cleartext | Within TLS | Cleartext → TLS | n (TLS) |",
              "|---|---|---|---|---|---|"]
     for t, r in out["results"].items():
@@ -266,8 +306,10 @@ def write_report(out: dict, path: Path) -> None:
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description="TLS control evaluation (same-session paired design)")
-    p.add_argument("--clear", default="data/processed_tlspair_clear")
-    p.add_argument("--tls", default="data/processed_tlspair_tls")
+    p.add_argument("--clear", help="default: data/processed_tlspair_clear_own (legacy: without _own)")
+    p.add_argument("--tls", help="default: data/processed_tlspair_tls_own (legacy: without _own)")
     p.add_argument("--clear-raw", default="data/raw_tlspair_clear")
     p.add_argument("--tls-raw", default="data/raw_tlspair_tls")
+    p.add_argument("--legacy-all-connections", action="store_true",
+                   help="every connection on the agent ports (the earlier measurement); writes tls_control.*")
     main(p.parse_args())

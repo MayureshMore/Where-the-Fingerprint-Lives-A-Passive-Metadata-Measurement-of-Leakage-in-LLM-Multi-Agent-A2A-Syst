@@ -200,12 +200,15 @@ else
     if have "data/raw" "data/raw_crewai_matched"; then
         run $PY scripts/evaluate_crewai_matched_detection.py; fi
     stage "TLS control (deployment A, cleartext and TLS alternating in one session; scripts/run_tls_control.sh)"
-    if have "data/processed_tlspair_clear/labels.json" "data/processed_tlspair_tls/labels.json" \
+    if have "data/processed_tlspair_clear_own/labels.json" "data/processed_tlspair_tls_own/labels.json" \
             "data/raw_tlspair_clear" "data/raw_tlspair_tls"; then
-        run $PY scripts/evaluate_tls_control.py; fi
+        run $PY scripts/evaluate_tls_control.py; fi              # own connections -> tls_control_own.*
     stage "P1 on collection C1 (deployment A over TLS, one session; scripts/run_c1_collection.sh)"
     if have "data/processed_c1_own/labels.json" "data/processed_c1/labels.json" "data/raw_c1/session_meta.json" \
             "data/raw_c1/tls_check.json" "data/raw_c1/stream_integrity.json"; then
+        run $PY scripts/audit_dropped_connections.py --raw data/raw_c1 --name c1   # what the own-connection rule drops
+        run $PY scripts/audit_dropped_connections.py --raw data/raw_tlspair_tls --name tlspair_tls
+        run $PY scripts/audit_dropped_connections.py --raw data/raw_tlspair_clear --name tlspair_clear
         run $PY scripts/evaluate_c1.py                          # own connections, with the sensitivity section
         run $PY scripts/evaluate_c1_revision.py
         run $PY scripts/explain_tls_control_gap.py; fi

@@ -117,6 +117,6 @@ A2A_RESULTS_DIR="$RESULTS" "$PY" scripts/evaluate_tls_control.py \
   --clear "$PRO_C" --tls "$PRO_T" --clear-raw "$RAW_C" --tls-raw "$RAW_T"
 
 echo
-echo "Done → $RESULTS/tls_control.json, $RESULTS/tls_control.md, $RESULTS/figures/tls_control.png"
+echo "Done → $RESULTS/tls_control_own.json, $RESULTS/tls_control_own.md, $RESULTS/figures/tls_control_own.png"
 echo "(log: $LOG)"
-cat "$RESULTS/tls_control.md"
+cat "$RESULTS/tls_control_own.md"
