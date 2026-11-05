@@ -1,0 +1,210 @@
+{
+  "paper": "P1",
+  "collection_id": "TLS control",
+  "seed": 42,
+  "git_commit": "b0bf7901592e166781c24044f3d0bac0b144b6a0",
+  "git_dirty": false,
+  "measurement": "own connections: only TCP connections whose SYN is in the trace (features/connections.py)",
+  "task": "TLS control \u2014 fingerprinting with TLS on every agent link (same-session, paired)",
+  "method": "Deployment A collected in one session with cleartext and TLS traces alternating (same prompt per pair, arm order counterbalanced). GBT; group-safe 5-fold StratifiedGroupKFold by prompt_group; the cleartext\u2192TLS transfer is cross-fitted so no test prompt is in training; macro-F1 with cluster (group) bootstrap 95% CI; seed 42. Port never a feature.",
+  "clear_dir": "data/processed_tlspair_clear_own",
+  "tls_dir": "data/processed_tlspair_tls_own",
+  "results": {
+    "workflow": {
+      "chance": 0.25,
+      "within_clear": {
+        "macro_f1": 0.6419781478542548,
+        "ci_lo": 0.5888025070674652,
+        "ci_hi": 0.68983191844499,
+        "accuracy": 0.6367014167334937,
+        "n": 432,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231
+      },
+      "within_tls": {
+        "macro_f1": 0.5972360968392809,
+        "ci_lo": 0.5425399831453772,
+        "ci_hi": 0.6478537508492556,
+        "accuracy": 0.5996524993317294,
+        "n": 432,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231
+      },
+      "clear_to_tls": {
+        "macro_f1": 0.4781750705434916,
+        "ci_lo": 0.4226710027070696,
+        "ci_hi": 0.5296239173990578,
+        "accuracy": 0.5231481481481481,
+        "n_test": 432,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231,
+        "shared_prompt_fraction": 1.0,
+        "protocol": "cross-fitted: 5 group folds of the target; trained on source traces of the other prompt groups only"
+      },
+      "tls_minus_clear": {
+        "clear_oof_macro_f1": 0.6591310922554636,
+        "tls_oof_macro_f1": 0.6127851817820327,
+        "diff": -0.04634591047343095,
+        "ci_lo": -0.10489334900613621,
+        "ci_hi": 0.014706926997993175,
+        "significant": false,
+        "shared_groups": 231,
+        "groups_only_clear": 0,
+        "groups_only_tls": 0,
+        "n_boot": 2000,
+        "protocol": "out-of-fold GBT predictions per arm (pooled over folds); cluster bootstrap over shared prompt groups, both arms scored on the same resample"
+      }
+    },
+    "topology": {
+      "chance": 0.3333333333333333,
+      "within_clear": {
+        "macro_f1": 0.9977004658539002,
+        "ci_lo": 0.9923858079173947,
+        "ci_hi": 1.0,
+        "accuracy": 0.9976744186046511,
+        "n": 432,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231
+      },
+      "within_tls": {
+        "macro_f1": 0.9976579352850539,
+        "ci_lo": 0.991965241515118,
+        "ci_hi": 1.0,
+        "accuracy": 0.9976470588235294,
+        "n": 432,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231
+      },
+      "clear_to_tls": {
+        "macro_f1": 0.9953621925940265,
+        "ci_lo": 0.9880536652867381,
+        "ci_hi": 1.0,
+        "accuracy": 0.9953703703703703,
+        "n_test": 432,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231,
+        "shared_prompt_fraction": 1.0,
+        "protocol": "cross-fitted: 5 group folds of the target; trained on source traces of the other prompt groups only"
+      },
+      "tls_minus_clear": {
+        "clear_oof_macro_f1": 1.0,
+        "tls_oof_macro_f1": 1.0,
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false,
+        "shared_groups": 231,
+        "groups_only_clear": 0,
+        "groups_only_tls": 0,
+        "n_boot": 2000,
+        "protocol": "out-of-fold GBT predictions per arm (pooled over folds); cluster bootstrap over shared prompt groups, both arms scored on the same resample"
+      }
+    },
+    "role": {
+      "chance": 0.3333333333333333,
+      "within_clear": {
+        "macro_f1": 0.9899438393814926,
+        "ci_lo": 0.9839752823670916,
+        "ci_hi": 0.9951278498941339,
+        "accuracy": 0.9899403011672459,
+        "n": 1296,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231
+      },
+      "within_tls": {
+        "macro_f1": 0.9915082281826043,
+        "ci_lo": 0.9855200983739915,
+        "ci_hi": 0.9968777776116481,
+        "accuracy": 0.9914995990376905,
+        "n": 1296,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231
+      },
+      "clear_to_tls": {
+        "macro_f1": 0.9605529254295228,
+        "ci_lo": 0.9482516784043176,
+        "ci_hi": 0.9725480662167705,
+        "accuracy": 0.9606481481481481,
+        "n_test": 1296,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 231,
+        "shared_prompt_fraction": 1.0,
+        "protocol": "cross-fitted: 5 group folds of the target; trained on source traces of the other prompt groups only"
+      },
+      "tls_minus_clear": {
+        "clear_oof_macro_f1": 0.9899609063520062,
+        "tls_oof_macro_f1": 0.9907380398684432,
+        "diff": 0.0007771335164370452,
+        "ci_lo": -0.007197214769946847,
+        "ci_hi": 0.008323055004005164,
+        "significant": false,
+        "shared_groups": 231,
+        "groups_only_clear": 0,
+        "groups_only_tls": 0,
+        "n_boot": 2000,
+        "protocol": "out-of-fold GBT predictions per arm (pooled over folds); cluster bootstrap over shared prompt groups, both arms scored on the same resample"
+      }
+    }
+  },
+  "overhead": {
+    "cleartext": {
+      "n_traces": 432,
+      "bytes_mean": 197992.21527777778,
+      "packets_mean": 603.7083333333334,
+      "connections_mean": 3.474537037037037,
+      "connections_per_trace_by_port": {
+        "8001": 1.0,
+        "8002": 1.3333333333333333,
+        "8003": 1.1412037037037037
+      }
+    },
+    "tls": {
+      "n_traces": 432,
+      "bytes_mean": 214957.8148148148,
+      "packets_mean": 633.3055555555555,
+      "connections_mean": 3.4537037037037037,
+      "connections_per_trace_by_port": {
+        "8041": 1.0,
+        "8042": 1.3333333333333333,
+        "8043": 1.1203703703703705
+      }
+    },
+    "bytes_ratio": 1.0856882151312603,
+    "packets_ratio": 1.0490256976556926
+  },
+  "tls_params": {
+    "tls_version": "TLSv1.3",
+    "cipher": "TLS_AES_256_GCM_SHA384",
+    "cipher_bits": 256,
+    "http_version": "HTTP/1.1",
+    "openssl": "OpenSSL 3.0.11 19 Sep 2023",
+    "httpx": "0.28.1"
+  },
+  "session": {
+    "design": "deployment A; cleartext (ports 8000-8003) and TLS (ports 8040-8043) agent sets run side by side and alternate trace by trace in one session; the two traces of a pair share one prompt and one task-id format; arm order counterbalanced (cleartext first on even pairs, TLS first on odd); collected in balanced rounds (every topology x workflow condition gets the same number of pairs per round); a failed trace is retried once",
+    "model": "llama3.2:3b",
+    "n_per_condition": 36,
+    "rounds": 3,
+    "seed_offset": 1000,
+    "started": "2026-10-31T00:33:30-0700",
+    "finished": "2026-10-31T04:32:24-0700",
+    "failures": 0,
+    "complete_pairs": 432,
+    "stopped_at_deadline": false
+  },
+  "record_check": {
+    "n_traces": 432,
+    "connections_per_trace": 3.4537037037037037,
+    "client_hellos_per_trace": 3.4537037037037037,
+    "tls_handshakes_per_connection": 1.0,
+    "connections_per_trace_by_port": {
+      "8041": 1.0,
+      "8042": 1.3333333333333333,
+      "8043": 1.1203703703703705
+    },
+    "expect": "tls",
+    "ok": true,
+    "problems": [],
+    "skipped_failed_runs": 0
+  }
+}
