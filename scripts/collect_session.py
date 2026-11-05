@@ -20,8 +20,12 @@ and all arms instead of masquerading as one of them:
     loads it first, so model-load latency never lands inside a captured trace
 
 Each trace's label sidecar gets the session fields (collection_id, arm, round, position,
-seed_offset); <out>/session_meta.json holds the design, the schedule and, for TLS arms,
-the negotiated TLS parameters.
+seed_offset), its prompt_group (sha1 of the prompt, 8 hex digits, as scripts/extract_features.py
+computes it) and audit_null: a label a–d drawn per prompt group from a generator seeded with
+AUDIT_NULL_SEED and the group, so every trace of a prompt, in every arm, gets the same label and
+the label carries nothing about the traffic (the audit's known-null attribute).
+<out>/session_meta.json holds the design, the schedule and, for TLS arms, the negotiated TLS
+parameters.
 
 Arms are given as --arm name=...,deployment=...,model=...,tls=on|off,defense=...,out=...
 (ports=BASE optional; arm k defaults to 8100 + 100k, topology t adds 10t). Optional:
@@ -38,9 +42,11 @@ Usage:
     python scripts/collect_session.py --collection-id C1 --n 50 --rounds 5 --seed-offset 2000 \\
         --arm name=a_tls,deployment=a,model=llama3.2:3b,tls=on,out=data/raw_c1
     python scripts/collect_session.py ... --pilot        # one trace per topology into <out>_pilot/
-    # LAN: specialists on a Raspberry Pi at 192.168.2.2, captured on the Mac's Ethernet port
-    python scripts/collect_session.py --collection-id C2 --n 50 --rounds 5 --seed-offset 20000 \
-        --interface en7 --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2
+    # LAN: specialists on a Raspberry Pi at 192.168.2.2, captured at the Mac (docs/LAN_SETUP.md)
+    python scripts/collect_session.py --collection-id C2 --n 50 --rounds 5 --seed-offset 20000 \\
+        --interface bridge100 --ollama-url http://192.168.2.1:11434 --tls-dir data/tls_lan \\
+        --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2 \\
+        --arm name=lan_pad,deployment=a,tls=on,host=192.168.2.2,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad
 Capture needs read access to /dev/bpf* (or sudo).
 """
 
@@ -48,6 +54,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import logging
 import random
@@ -78,6 +85,8 @@ logger = logging.getLogger(__name__)
 TOPOLOGIES = ["star", "chain", "mesh"]
 ROLES = ("orchestrator", "executor", "retriever", "validator")
 SEED = 42
+AUDIT_NULL_SEED = 42
+AUDIT_NULL_LABELS = "abcd"
 OLLAMA = "http://localhost:11434"
 
 
@@ -104,6 +113,15 @@ class Arm:
 
     def dep(self, topology: str) -> dict:
         return {**DEPLOYMENTS[self.deployment], "ports": self.ports(topology)}
+
+
+def prompt_group(prompt: str) -> str:
+    return hashlib.sha1(prompt.encode()).hexdigest()[:8]
+
+
+def audit_null(group: str) -> str:
+    """A label with no relation to the traffic: random per prompt group, fixed seed."""
+    return random.Random(f"{AUDIT_NULL_SEED}:{group}").choice(AUDIT_NULL_LABELS)
 
 
 def parse_arm(spec: str, k: int) -> Arm:
@@ -275,6 +293,8 @@ async def main(a: argparse.Namespace) -> None:
             "seed_offset": a.seed_offset, "order_seed": SEED, "topologies": topologies,
             "workflows": workflows, "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             "schedule": [], "failures": 0, "tls_params": {},
+            "audit_null": {"labels": list(AUDIT_NULL_LABELS), "seed": AUDIT_NULL_SEED,
+                           "rule": "random.Random(f'{seed}:{prompt_group}').choice(labels)"},
         }
 
     def save() -> None:
@@ -337,7 +357,9 @@ async def main(a: argparse.Namespace) -> None:
                         sidecar = arm.out / f"{run.run_id}.json"
                         if sidecar.exists():
                             sc = json.loads(sidecar.read_text())
-                            sc.update({"collection_id": a.collection_id, "arm": arm.name, "round": rnd,
+                            group = prompt_group(sc.get("input_prompt") or prompts[(t, w)][i])
+                            sc.update({"prompt_group": group, "audit_null": audit_null(group),
+                                       "collection_id": a.collection_id, "arm": arm.name, "round": rnd,
                                        "position": position, "seed_offset": a.seed_offset,
                                        "model": arm.model, "tls": arm.tls, "defense": arm.defense,
                                        "agent_host": arm.host, "pad_buckets": arm.pad})

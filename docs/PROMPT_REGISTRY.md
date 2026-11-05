@@ -31,7 +31,7 @@ that must be prompt-disjoint from earlier ones need new templates first.
 | **C1** (`raw_c1`) | **10000** | 50 | `collect_session.py` |
 | C1 pilot (`raw_c1_pilot`) | 10000 | 1 per topology | `collect_session.py --pilot` |
 | **C2** LAN, Mac + Raspberry Pi (`raw_c2`; two arms: no mitigation, input padding) | **20000** | 50 | `collect_session.py --arm ...,host=` (docs/LAN_SETUP.md) |
-| C2 pilot (`raw_c2_pilot`) | 20000 | 1 hour (`--deadline-hours 1`) | `collect_session.py` |
+| C2 pilot (`raw_c2_pilot`, `raw_c2_pad_pilot`) | 20000 | 2 hours (`--deadline-hours 2`) | `collect_session.py` |
 
 ## C1 overlap (measured before collection)
 

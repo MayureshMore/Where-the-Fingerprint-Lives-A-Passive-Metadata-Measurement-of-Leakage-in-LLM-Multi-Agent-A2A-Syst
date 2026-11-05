@@ -6,9 +6,21 @@ gateway, and the capture sees what a compromised gateway would see (paper 2's th
 
 | | Mac (gateway) | Raspberry Pi |
 |---|---|---|
-| Runs | orchestrator (in the collector), Ollama, `collect_session.py`, tcpdump | executor, retriever, validator (`serve_agents.py`) |
+| Runs | orchestrator (in the collector), Ollama, `collect_session.py`, tcpdump | executor, retriever, validator (`serve_agents.py`, one instance per arm) |
 | Address | `192.168.2.1` on `bridge100` | `192.168.2.2` on `eth0` |
-| Ports | Ollama `11434` | topology *t* at `8100 + 10t`: executor `+1`, retriever `+2`, validator `+3` (8101–8123) |
+| Ports | Ollama `11434` | arm `lan`: topology *t* at `8100 + 10t` (8101–8123); arm `lan_pad`: `8200 + 10t` (8201–8223); executor `+1`, retriever `+2`, validator `+3` |
+
+C2 has two arms, collected in one session and alternating trace by trace on the same prompt:
+
+| Arm | Ports | Input padding (Mac orchestrator) |
+|---|---|---|
+| `lan` | 8100 | none |
+| `lan_pad` | 8200 | request bodies padded to 1024/2048/4096/8192/16384/32768 B |
+
+The top bucket must exceed the largest first request, so that every padded first request lands in
+a bucket rather than in a multiple of the top one. The largest first request so far is 7.8 KB
+(C1 7821 B, TLS control 7668 B), well under 32768. Each arm has its own ports so that one arm's
+closing connections never land in the other arm's captures.
 
 The addresses are macOS Internet Sharing's defaults; check yours in step 1 and use them
 everywhere below.
@@ -100,23 +112,32 @@ The key goes only to the Pi, over the direct link; `data/` is gitignored on both
 
 ## 5. Start the Pi's agents
 
-On the Pi, in `tmux` so it survives the SSH session:
+One instance per arm. On the Pi, in two `tmux` windows so they survive the SSH session:
 ```bash
+# window 1: arm lan
 cd ~/a2a
 venv/bin/python scripts/serve_agents.py --ports-base 8100 --tls-dir data/tls_lan \
     --ollama-url http://192.168.2.1:11434 --num-predict 256
 ```
-This serves all three topologies at once (nine servers, 8101–8103, 8111–8113, 8121–8123), over
-TLS, with Ollama on the Mac. Ctrl-C stops all nine. Check from the Mac:
 ```bash
-for p in 8101 8102 8103 8111 8112 8113 8121 8122 8123; do
+# window 2: arm lan_pad (no --pad-buckets; see below)
+cd ~/a2a
+venv/bin/python scripts/serve_agents.py --ports-base 8200 --tls-dir data/tls_lan \
+    --ollama-url http://192.168.2.1:11434 --num-predict 256
+```
+Each instance serves all three topologies at once (nine servers: `B+1`–`B+3`, `B+11`–`B+13`,
+`B+21`–`B+23` for base `B`), over TLS, with Ollama on the Mac. Ctrl-C stops one instance's nine.
+Check all 18 from the Mac:
+```bash
+for b in 8100 8200; do for t in 0 10 20; do for r in 1 2 3; do p=$((b + t + r))
   curl -s --cacert data/tls_lan/ca.pem -o /dev/null -w "$p %{http_code}\n" https://192.168.2.2:$p/.well-known/agent-card.json
-done                                        # nine lines ending in 200
+done; done; done                            # 18 lines ending in 200
 ```
 Input padding is applied by whoever sends a request. The calls that cross the link come from the
-Mac's orchestrator, so a padded arm sets `pad=` on the Mac's `--arm`. Giving the Pi
-`--pad-buckets` as well also pads the forwarding inside the Pi, which no observer at the gateway
-sees.
+Mac's orchestrator, so the padded arm sets `pad=` on the Mac's `--arm`, and the Pi's 8200
+instance runs **without** `--pad-buckets`. Padding on the Pi would only pad the forwarding inside
+the Pi, which no observer at the gateway sees, and the two arms would then differ in more than
+the padding the paper evaluates.
 
 ## 6. Capture on the Mac
 
@@ -131,28 +152,35 @@ sudo chmod o+r /dev/bpf*        # revoke afterwards: sudo chmod o-r /dev/bpf*
 Quick look that the agent traffic is on `bridge100` (Ctrl-C after a few lines while a test
 trace runs):
 ```bash
-tcpdump -i bridge100 -nn 'tcp and portrange 8101-8123 and host 192.168.2.2'
+tcpdump -i bridge100 -nn 'tcp and portrange 8101-8223 and host 192.168.2.2'
 ```
 
-## 7. One-hour pilot
+## 7. Two-hour pilot
 
 C2 uses seed offset 20000 (registered in `docs/PROMPT_REGISTRY.md`). On the
 Mac, in the repo:
 ```bash
 caffeinate -dimsu venv/bin/python scripts/collect_session.py --collection-id C2-pilot \
-    --n 50 --rounds 5 --seed-offset 20000 --deadline-hours 1 \
+    --n 50 --rounds 5 --seed-offset 20000 --deadline-hours 2 \
     --interface bridge100 --ollama-url http://192.168.2.1:11434 --tls-dir data/tls_lan \
-    --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2_pilot
+    --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2_pilot \
+    --arm name=lan_pad,deployment=a,tls=on,host=192.168.2.2,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad_pilot
 ```
-The C2 design, stopped after an hour: round 1 (all 12 conditions, 10 traces each, interleaved)
-completes in about 40 minutes. The collector does not start or restart the Pi's agents; if one
-stops answering, the trace fails and the retry waits for it.
+The C2 design, stopped after two hours: round 1 (all 12 conditions, 10 traces each, interleaved,
+both arms: 240 traces) takes about 75 minutes at C1's pace of 18 s per trace, longer if the Pi is
+slower. The collector does not start or restart the Pi's agents; if one stops answering, the
+trace fails and the retry waits for it. Every sidecar gets `prompt_group` and `audit_null` (a
+label a–d drawn at random per prompt group with a fixed seed, for the audit's known-null test).
 
-Then run the three checks on the raw (not yet stripped) captures:
+Then run the checks on the raw (not yet stripped) captures, the first three once per arm:
 ```bash
-venv/bin/python scripts/check_lan_capture.py data/raw_c2_pilot --json data/raw_c2_pilot/lan_check.json
-venv/bin/python scripts/check_tls_capture.py data/raw_c2_pilot --expect tls --json data/raw_c2_pilot/tls_check.json
-venv/bin/python scripts/check_stream_integrity.py data/raw_c2_pilot --json data/raw_c2_pilot/stream_integrity.json
+for d in data/raw_c2_pilot data/raw_c2_pad_pilot; do
+  venv/bin/python scripts/check_lan_capture.py $d --json $d/lan_check.json
+  venv/bin/python scripts/check_tls_capture.py $d --expect tls --json $d/tls_check.json
+  venv/bin/python scripts/check_stream_integrity.py $d --json $d/stream_integrity.json
+done
+venv/bin/python scripts/check_session_design.py data/raw_c2_pilot data/raw_c2_pad_pilot \
+    --json data/raw_c2_pilot/design_check.json
 ```
 
 ### Pass criteria
@@ -164,17 +192,33 @@ The pilot passes only if all of these hold:
 | Every cross-host call captured | `check_lan_capture.py` prints PASS: in every successful trace, each call the topology makes from the Mac (star 3, chain 1, mesh 2) shows a request after the TLS handshake and response data, and no other specialist port gets a request |
 | TLS on | `check_tls_capture.py --expect tls` passes: every trace carries ClientHellos and TLS application-data records, and no cleartext HTTP |
 | Streams complete | `check_stream_integrity.py`: share of cut replies ≤ 5% for every topology (the bar C1 passed), with median largest replies in C1's range (star 272, chain 44, mesh 78 packets) |
-| Collection healthy | `session_meta.json`: round 1 complete for all 12 conditions; failed attempts ≤ 1% of traces |
+| Collection healthy | `session_meta.json`: round 1 complete for all 12 conditions in both arms; failed attempts ≤ 1% of traces |
+| No fixed predecessor | `check_session_design.py` [a]: per arm and workflow, the workflow that ran last on the same ports. A share above 40% is flagged; it fails only if it is also unlikely under a random order (binomial test, Bonferroni), since one round gives about 30 traces per cell. The TLS control failed this (100%) |
+| Leftover connections | [b]: connections opened before the capture, per trace; none may carry data beyond the close |
+| Padding on the wire | [c], `lan_pad` only: first-request bytes − bucket (the HTTP header record and TLS overhead) is the same in at least 95% of traces (±32 B of the median, median 100–1000 B) |
+| Null label | [d]: every sidecar has `prompt_group` and `audit_null`, and `audit_null` is constant within a prompt group |
 
-Keep `pi-freeze.txt`, the Pi's Python version and the four JSON files with the pilot. If it
-passes, collect C2 with the same command, a new collection id and output directory, and without
-`--deadline-hours`.
+Keep `pi-freeze.txt`, the Pi's Python version and the JSON files of both arms with the pilot. If
+it passes, collect C2:
+```bash
+caffeinate -dimsu venv/bin/python scripts/collect_session.py --collection-id C2 \
+    --n 50 --rounds 5 --seed-offset 20000 \
+    --interface bridge100 --ollama-url http://192.168.2.1:11434 --tls-dir data/tls_lan \
+    --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2 \
+    --arm name=lan_pad,deployment=a,tls=on,host=192.168.2.2,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad
+```
+1200 traces (600 per arm), about 6–7 hours. Run the same checks on `data/raw_c2` and
+`data/raw_c2_pad` afterwards.
 
 ### If a check fails
 
 | Symptom | Likely cause |
 |---|---|
 | Missing calls in every trace | wrong `--interface`, or the Pi's address differs from `host=` |
+| Missing calls in one arm only | that arm's `serve_agents.py` instance is down or on another `--ports-base`: rerun the 18-port check |
+| [a] fails | the item order is not shuffled per round (a fixed workflow order, as in the TLS control) |
+| [c] fails: overhead not constant | `pad=` missing from the `lan_pad` arm, or the top bucket is below a first request |
+| [d] fails | the collector predates `audit_null`: update the repo on the Mac |
 | A specialist port gets unexpected requests | an agent from another topology answering on the wrong port: restart `serve_agents.py` with the same `--ports-base` as the arm |
 | TLS check finds cleartext HTTP | the Pi was started without `--tls-dir`, or the arm has `tls=off` |
 | Certificate errors when agents start | certificate made without the Pi's address: redo step 4 |
