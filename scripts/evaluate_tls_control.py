@@ -11,7 +11,9 @@ drift cannot masquerade as a TLS effect. The generators draw from small template
 pools, so prompts recur across collections; every transfer below is therefore
 cross-fitted (evaluation/crossfit.py). For workflow, topology and role it reports:
 
-  1. within-cleartext — GBT, 5-fold group-safe CV on the session's cleartext arm
+  1. within-cleartext — GBT, 5-fold group-safe CV on the session's cleartext arm (the
+                        StratifiedGroupKFold of scripts/evaluate_c1.py), macro-F1 on the
+                        out-of-fold predictions pooled across folds
   2. within-TLS       — the same CV on the TLS arm
   4. TLS − cleartext  — paired difference: out-of-fold predictions in each arm (the same 5-fold
                         StratifiedGroupKFold as scripts/evaluate_c1.py), macro-F1 of the TLS arm
@@ -20,7 +22,8 @@ cross-fitted (evaluation/crossfit.py). For workflow, topology and role it report
   3. cleartext → TLS  — cross-fitted transfer: for each of 5 group folds of the
                         TLS arm, train on the cleartext traces of the OTHER prompt
                         groups and predict the held-out TLS traces, so no test
-                        prompt is ever seen in training
+                        prompt is ever seen in training; scored on the predictions pooled
+                        across the folds
 
 plus the on-wire overhead (bytes, packets, TCP connections per trace and per
 agent port, read from packet headers), the negotiated TLS parameters recorded
@@ -36,7 +39,9 @@ is not the same traffic.
 Measurement: own connections by default (features/connections.py): the processed sets are
 data/processed_tlspair_{clear,tls}_own and the on-wire volume counts only the connections each
 trace opens itself; writes tls_control_own.{json,md}. --legacy-all-connections reads the
-all-connections sets and writes tls_control.{json,md}, as committed before the rule.
+all-connections sets and writes tls_control.{json,md}, as committed before the rule; it also
+keeps that run's within-arm scores (GBTClassifier.cross_validate, unshuffled folds, macro-F1
+averaged over folds) so tls_control.json reproduces.
 
 Usage:
     python scripts/evaluate_tls_control.py
@@ -67,7 +72,7 @@ from features.connections import own_packets  # noqa: E402
 from features.kfp import tcp_packets  # noqa: E402
 from models.gradient_boosted import GBTClassifier  # noqa: E402
 from scripts.check_tls_capture import _parse  # noqa: E402
-from scripts.evaluate_c1 import N_BOOT, folds, oof_predict  # noqa: E402
+from scripts.evaluate_c1 import N_BOOT, folds, oof_predict, score  # noqa: E402
 from scripts.evaluate_cross_deployment import load_deployment  # noqa: E402
 from scripts.strip_payload import _MAGICS  # noqa: E402
 
@@ -78,7 +83,17 @@ TASKS = ("workflow", "topology", "role")
 SEED = 42
 
 
-def within(X, y, g, task: str) -> dict:
+def oof(X, y, g, task: str) -> np.ndarray:
+    """Out-of-fold GBT predictions on the evaluate_c1 folds."""
+    return oof_predict("gbt", task, X, y, folds(y, g))
+
+
+def within(X, y, g, task: str, pred: np.ndarray | None = None) -> dict:
+    """macro-F1 on the out-of-fold predictions pooled across folds; without pred, the legacy
+    score: GBTClassifier.cross_validate, macro-F1 averaged over its folds."""
+    if pred is not None:
+        return {**score(y, pred, g, sorted(set(y.tolist()))),
+                "protocol": "out-of-fold GBT predictions pooled across the 5 folds"}
     r = GBTClassifier(task=task).cross_validate(X, list(y), n_splits=5, groups=list(g))
     f = r["f1_macro"]
     return {"macro_f1": f["mean"], "ci_lo": f["ci_lo"], "ci_hi": f["ci_hi"],
@@ -86,13 +101,10 @@ def within(X, y, g, task: str) -> dict:
             "ci_method": r["ci_method"], "ci_n_clusters": r["ci_n_clusters"]}
 
 
-def paired_arms(Xc, yc, gc, Xt, yt, gt, task: str) -> dict:
+def paired_arms(yc, pc, gc, yt, pt, gt) -> dict:
     """macro-F1(TLS) − macro-F1(cleartext) on out-of-fold predictions, cluster bootstrap over the
     prompt groups the two arms share (the same prompt runs in both arms of a pair)."""
     from sklearn.metrics import f1_score
-    yc, gc, yt, gt = (np.asarray(v) for v in (yc, gc, yt, gt))
-    pc = oof_predict("gbt", task, Xc, yc, folds(yc, gc))
-    pt = oof_predict("gbt", task, Xt, yt, folds(yt, gt))
     classes = sorted(set(yc.tolist()) | set(yt.tolist()))
     f1 = lambda y, p: f1_score(y, p, labels=classes, average="macro", zero_division=0)  # noqa: E731
     shared = np.intersect1d(np.unique(gc), np.unique(gt))
@@ -198,19 +210,24 @@ def main(a: argparse.Namespace) -> None:
                   "(same prompt per pair, arm order counterbalanced). GBT; "
                   "group-safe 5-fold StratifiedGroupKFold by prompt_group; the cleartext→TLS "
                   "transfer is cross-fitted so no test prompt is in training; macro-F1 with cluster (group) "
-                  "bootstrap 95% CI; seed 42. Port never a feature.",
+                  "bootstrap 95% CI; seed 42. Port never a feature. " + (
+                      "Within-arm: macro-F1 averaged over GBTClassifier.cross_validate folds (legacy)."
+                      if legacy else "Within-arm and transfer: macro-F1 on out-of-fold predictions "
+                      "pooled across folds (the evaluate_c1 folds within each arm)."),
         "clear_dir": str(clear), "tls_dir": str(tls),
         "results": {},
     }
     for task in TASKS:
         Xc, _, yc, gc = load_deployment(clear, task)
         Xt, _, yt, gt = load_deployment(tls, task)
+        yc, gc, yt, gt = (np.asarray(v) for v in (yc, gc, yt, gt))
+        pc, pt = oof(Xc, yc, gc, task), oof(Xt, yt, gt, task)
         res = {
             "chance": 1.0 / len(set(yt)),
-            "within_clear": within(Xc, yc, gc, task),
-            "within_tls": within(Xt, yt, gt, task),
+            "within_clear": within(Xc, yc, gc, task, None if legacy else pc),
+            "within_tls": within(Xt, yt, gt, task, None if legacy else pt),
             "clear_to_tls": transfer_crossfit(Xc, yc, gc, Xt, yt, gt, task),
-            "tls_minus_clear": paired_arms(Xc, yc, gc, Xt, yt, gt, task),
+            "tls_minus_clear": paired_arms(yc, pc, gc, yt, pt, gt),
         }
         out["results"][task] = res
         d = res["tls_minus_clear"]
@@ -318,9 +335,15 @@ def write_report(out: dict, path: Path) -> None:
                      f"{cell(r['clear_to_tls'])} | {r['within_tls']['n']} |")
     if any("tls_minus_clear" in r for r in out["results"].values()):
         d = next(r["tls_minus_clear"] for r in out["results"].values() if "tls_minus_clear" in r)
-        lines += ["", f"Within-arm cells: mean over the 5 folds (CI from the cluster bootstrap). The paired "
-                  f"difference scores pooled out-of-fold predictions of each arm and resamples the "
-                  f"{d['shared_groups']} prompt groups both arms share ({d['n_boot']} resamples)."]
+        pooled = "protocol" in next(iter(out["results"].values()))["within_tls"]
+        within_note = ("macro-F1 on the out-of-fold predictions pooled across the 5 folds" if pooled
+                       else "mean over the 5 folds")
+        paired_note = ("the same out-of-fold predictions" if pooled
+                       else "pooled out-of-fold predictions of each arm (evaluate_c1 folds)")
+        lines += ["", f"Within-arm cells: {within_note} (CI from the cluster bootstrap). The transfer is "
+                  f"scored on its predictions pooled across folds. The paired difference scores "
+                  f"{paired_note} and resamples the {d['shared_groups']} prompt groups both arms share "
+                  f"({d['n_boot']} resamples)."]
     ov = out.get("overhead")
     if ov:
         c, t = ov["cleartext"], ov["tls"]
