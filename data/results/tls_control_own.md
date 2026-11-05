@@ -1,14 +1,14 @@
 # TLS control — summary
 
-Deployment A, cleartext and TLS traces alternating in one session (same prompt per pair). macro-F1 with 95% cluster-bootstrap CIs over prompt groups; cleartext → TLS is prompt-disjoint. Measurement: own connections: only TCP connections whose SYN is in the trace (features/connections.py); commit `b0bf7901`.
+Deployment A, cleartext and TLS traces alternating in one session (same prompt per pair). macro-F1 with 95% cluster-bootstrap CIs over prompt groups; cleartext → TLS is prompt-disjoint. Measurement: own connections: only TCP connections whose SYN is in the trace (features/connections.py); commit `0c0e6e01`.
 
 | Task | Chance | Within cleartext | Within TLS | TLS − cleartext (paired) | Cleartext → TLS | n (TLS) |
 |---|---|---|---|---|---|---|
-| workflow | 0.250 | 0.642 [0.589, 0.690] | 0.597 [0.543, 0.648] | -0.046 [-0.105, +0.015] (n.s.) | 0.478 [0.423, 0.530] | 432 |
-| topology | 0.333 | 0.998 [0.992, 1.000] | 0.998 [0.992, 1.000] | +0.000 [+0.000, +0.000] (n.s.) | 0.995 [0.988, 1.000] | 432 |
-| role | 0.333 | 0.990 [0.984, 0.995] | 0.992 [0.986, 0.997] | +0.001 [-0.007, +0.008] (n.s.) | 0.961 [0.948, 0.973] | 1296 |
+| workflow | 0.250 | 0.659 [0.603, 0.708] | 0.613 [0.558, 0.662] | -0.046 [-0.105, +0.015] (n.s.) | 0.478 [0.423, 0.530] | 432 |
+| topology | 0.333 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] (n.s.) | 0.995 [0.988, 1.000] | 432 |
+| role | 0.333 | 0.990 [0.984, 0.996] | 0.991 [0.984, 0.996] | +0.001 [-0.007, +0.008] (n.s.) | 0.961 [0.948, 0.973] | 1296 |
 
-Within-arm cells: mean over the 5 folds (CI from the cluster bootstrap). The paired difference scores pooled out-of-fold predictions of each arm and resamples the 231 prompt groups both arms share (2000 resamples).
+Within-arm cells: macro-F1 on the out-of-fold predictions pooled across the 5 folds (CI from the cluster bootstrap). The transfer is scored on its predictions pooled across folds. The paired difference scores the same out-of-fold predictions and resamples the 231 prompt groups both arms share (2000 resamples).
 
 | On-wire, mean per trace | Cleartext | TLS | Ratio |
 |---|---|---|---|

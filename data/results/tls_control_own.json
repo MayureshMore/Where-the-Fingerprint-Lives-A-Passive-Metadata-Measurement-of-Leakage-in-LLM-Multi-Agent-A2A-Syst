@@ -2,33 +2,35 @@
   "paper": "P1",
   "collection_id": "TLS control",
   "seed": 42,
-  "git_commit": "b0bf7901592e166781c24044f3d0bac0b144b6a0",
+  "git_commit": "0c0e6e01e15c79bd523940dad0297b1db4f6d25b",
   "git_dirty": false,
   "measurement": "own connections: only TCP connections whose SYN is in the trace (features/connections.py)",
   "task": "TLS control \u2014 fingerprinting with TLS on every agent link (same-session, paired)",
-  "method": "Deployment A collected in one session with cleartext and TLS traces alternating (same prompt per pair, arm order counterbalanced). GBT; group-safe 5-fold StratifiedGroupKFold by prompt_group; the cleartext\u2192TLS transfer is cross-fitted so no test prompt is in training; macro-F1 with cluster (group) bootstrap 95% CI; seed 42. Port never a feature.",
+  "method": "Deployment A collected in one session with cleartext and TLS traces alternating (same prompt per pair, arm order counterbalanced). GBT; group-safe 5-fold StratifiedGroupKFold by prompt_group; the cleartext\u2192TLS transfer is cross-fitted so no test prompt is in training; macro-F1 with cluster (group) bootstrap 95% CI; seed 42. Port never a feature. Within-arm and transfer: macro-F1 on out-of-fold predictions pooled across folds (the evaluate_c1 folds within each arm).",
   "clear_dir": "data/processed_tlspair_clear_own",
   "tls_dir": "data/processed_tlspair_tls_own",
   "results": {
     "workflow": {
       "chance": 0.25,
       "within_clear": {
-        "macro_f1": 0.6419781478542548,
-        "ci_lo": 0.5888025070674652,
-        "ci_hi": 0.68983191844499,
-        "accuracy": 0.6367014167334937,
+        "macro_f1": 0.6591310922554636,
+        "ci_lo": 0.6030384656151885,
+        "ci_hi": 0.7084038731762169,
+        "accuracy": 0.6574074074074074,
         "n": 432,
         "ci_method": "group_bootstrap",
-        "ci_n_clusters": 231
+        "ci_n_clusters": 231,
+        "protocol": "out-of-fold GBT predictions pooled across the 5 folds"
       },
       "within_tls": {
-        "macro_f1": 0.5972360968392809,
-        "ci_lo": 0.5425399831453772,
-        "ci_hi": 0.6478537508492556,
-        "accuracy": 0.5996524993317294,
+        "macro_f1": 0.6127851817820327,
+        "ci_lo": 0.5584001905952592,
+        "ci_hi": 0.661598403874878,
+        "accuracy": 0.6134259259259259,
         "n": 432,
         "ci_method": "group_bootstrap",
-        "ci_n_clusters": 231
+        "ci_n_clusters": 231,
+        "protocol": "out-of-fold GBT predictions pooled across the 5 folds"
       },
       "clear_to_tls": {
         "macro_f1": 0.4781750705434916,
@@ -58,22 +60,24 @@
     "topology": {
       "chance": 0.3333333333333333,
       "within_clear": {
-        "macro_f1": 0.9977004658539002,
-        "ci_lo": 0.9923858079173947,
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
         "ci_hi": 1.0,
-        "accuracy": 0.9976744186046511,
+        "accuracy": 1.0,
         "n": 432,
         "ci_method": "group_bootstrap",
-        "ci_n_clusters": 231
+        "ci_n_clusters": 231,
+        "protocol": "out-of-fold GBT predictions pooled across the 5 folds"
       },
       "within_tls": {
-        "macro_f1": 0.9976579352850539,
-        "ci_lo": 0.991965241515118,
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
         "ci_hi": 1.0,
-        "accuracy": 0.9976470588235294,
+        "accuracy": 1.0,
         "n": 432,
         "ci_method": "group_bootstrap",
-        "ci_n_clusters": 231
+        "ci_n_clusters": 231,
+        "protocol": "out-of-fold GBT predictions pooled across the 5 folds"
       },
       "clear_to_tls": {
         "macro_f1": 0.9953621925940265,
@@ -103,22 +107,24 @@
     "role": {
       "chance": 0.3333333333333333,
       "within_clear": {
-        "macro_f1": 0.9899438393814926,
-        "ci_lo": 0.9839752823670916,
-        "ci_hi": 0.9951278498941339,
-        "accuracy": 0.9899403011672459,
+        "macro_f1": 0.9899609063520062,
+        "ci_lo": 0.983546071974185,
+        "ci_hi": 0.9957044435769359,
+        "accuracy": 0.9899691358024691,
         "n": 1296,
         "ci_method": "group_bootstrap",
-        "ci_n_clusters": 231
+        "ci_n_clusters": 231,
+        "protocol": "out-of-fold GBT predictions pooled across the 5 folds"
       },
       "within_tls": {
-        "macro_f1": 0.9915082281826043,
-        "ci_lo": 0.9855200983739915,
-        "ci_hi": 0.9968777776116481,
-        "accuracy": 0.9914995990376905,
+        "macro_f1": 0.9907380398684432,
+        "ci_lo": 0.9842181735957669,
+        "ci_hi": 0.9964364865377302,
+        "accuracy": 0.9907407407407407,
         "n": 1296,
         "ci_method": "group_bootstrap",
-        "ci_n_clusters": 231
+        "ci_n_clusters": 231,
+        "protocol": "out-of-fold GBT predictions pooled across the 5 folds"
       },
       "clear_to_tls": {
         "macro_f1": 0.9605529254295228,
