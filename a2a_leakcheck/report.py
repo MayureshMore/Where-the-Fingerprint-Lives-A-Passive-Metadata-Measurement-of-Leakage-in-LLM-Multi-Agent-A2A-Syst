@@ -40,6 +40,21 @@ def _rows(report: dict) -> list[dict]:
     return rows
 
 
+def _visible_md(c: dict) -> list[str]:
+    """Visible agents per topology: in how many traces each listed agent carries traffic."""
+    vis = c.get("visible_agents")
+    if not vis:
+        return []
+    roles = sorted({r for t in vis.values() for r in t["roles"]})
+    L = ["Visible agents per topology: traces in which each agent listed in `agent_endpoints` carries "
+         "traffic. An agent never seen gives no role samples.", "",
+         "| Topology | Traces | " + " | ".join(roles) + " |", "|---|---|" + "---|" * len(roles)]
+    for top, t in vis.items():
+        L.append(f"| {top} | {t['traces']} | " + " | ".join(
+            str(t["roles"][r]) if r in t["roles"] else "—" for r in roles) + " |")
+    return L + [""]
+
+
 def write_markdown(report: dict, path: Path) -> None:
     c, rt, p = report["collection"], report["runtime"], report["parameters"]
     L = [f"# Leak check: {report['input']['label'] or report['input']['folder']}", "",
@@ -52,6 +67,7 @@ def write_markdown(report: dict, path: Path) -> None:
          f"(p > {p['alpha']}, {p['permutations']} permutations scored with "
          f"{p.get('null_model', p['model']).upper()}). {p['folds']}-fold grouped CV, "
          f"{p['model'].upper()}, {p['n_boot']} cluster-bootstrap resamples, seed {p['seed']}.", "",
+         *_visible_md(c),
          "| Attribute | Verdict | Severity | macro-F1 [95% CI] | Chance + margin | Permutation p | "
          "False positives on permuted labels | Leak carried by |", "|---|---|---|---|---|---|---|---|"]
     for r in _rows(report):
@@ -126,6 +142,16 @@ def write_html(report: dict, path: Path) -> None:
                     f"<td>{e(r['severity'])}</td><td>{e(r['score'])}</td><td>{e(r['threshold'])}</td>"
                     f"<td>{e(r['p'])}</td><td>{e(r['fpr'])}</td><td>{e(r['carried'])}</td>"
                     f"<td>{e(r['reason'])}{'<ul>' + hints + '</ul>' if hints else ''}</td></tr>")
+    vis = c.get("visible_agents") or {}
+    roles = sorted({r for t in vis.values() for r in t["roles"]})
+    vis_html = "" if not vis else (
+        "<h2 style='font-size:16px'>Visible agents per topology</h2><div class='wrap'><table><thead><tr><th>Topology</th>"
+        "<th>Traces</th>" + "".join(f"<th>{e(r)}</th>" for r in roles) + "</tr></thead><tbody>"
+        + "".join(f"<tr><td>{e(top)}</td><td>{t['traces']}</td>"
+                  + "".join(f"<td>{t['roles'].get(r, '—')}</td>" for r in roles) + "</tr>"
+                  for top, t in vis.items())
+        + "</tbody></table></div><p class='meta'>Traces in which each listed agent carries traffic; "
+          "an agent never seen gives no role samples.</p>")
     title = e(report["input"]["label"] or Path(report["input"]["folder"]).name)
     path.write_text(f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -136,6 +162,7 @@ def write_html(report: dict, path: Path) -> None:
 <div class="wrap"><table><thead><tr><th>Attribute</th><th>Verdict</th><th>Severity</th><th>macro-F1 [95% CI]</th>
 <th>Chance + margin</th><th>Permutation p</th><th>False positives (permuted)</th><th>Carried by</th><th>Why, and what to do</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></div>
+{vis_html}
 <p class="meta">Full numbers: report.json and report.md next to this file.</p>
 </body></html>
 """)

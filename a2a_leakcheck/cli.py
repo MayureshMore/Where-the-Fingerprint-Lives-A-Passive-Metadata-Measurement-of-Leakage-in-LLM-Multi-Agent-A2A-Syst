@@ -59,6 +59,23 @@ def _git() -> dict:
         return {"git_commit": None, "git_dirty": None}
 
 
+def visible_agents(traces: list, visible: list[list[str]]) -> dict:
+    """Per topology: traces, and in how many of them each listed agent carries traffic. An agent
+    that is listed in agent_endpoints but never seen gives no role samples."""
+    out: dict[str, dict] = {}
+    for tr, seen in zip(traces, visible):
+        t = out.setdefault(tr.topology or "all", {"traces": 0, "roles": {}})
+        t["traces"] += 1
+        for role in tr.port_role.values():
+            t["roles"].setdefault(role, 0)
+        for role in seen:
+            t["roles"][role] += 1
+    for t in out.values():
+        t["never_seen"] = sorted(r for r, n in t["roles"].items() if n == 0)
+        t["roles"] = dict(sorted(t["roles"].items()))
+    return dict(sorted(out.items()))
+
+
 def run(a: argparse.Namespace) -> int:
     t0 = time.perf_counter()
     stages: dict[str, float] = {}
@@ -82,6 +99,7 @@ def run(a: argparse.Namespace) -> int:
         logger.info("extraction: %d traces, %d role samples", ext["summary"]["traces"], ext["summary"]["role_samples"])
 
     traces = [col["traces"][i] for i in ext["trace_index"]]
+    col["summary"]["visible_agents"] = visible_agents(traces, ext["visible_roles"])
     groups = np.array([tr.group for tr in traces])
     results = {}
     t = time.perf_counter()

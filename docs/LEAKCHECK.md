@@ -46,6 +46,16 @@ Captures are classic pcap (not pcapng) with link type BSD loopback, Ethernet, ra
 cooked. A packet *to* an agent port is a request, one *from* it a response; ports are never
 features.
 
+### Agents the capture does not see
+
+A vantage point may see only some agents. At a gateway between the orchestrator's host and the
+specialists' host only the orchestrator's calls cross the link (star: three agents; chain: the
+executor; mesh: executor and retriever), and calls between specialists never appear. Keep every
+agent in `agent_endpoints`: an agent with no traffic in a capture gives no role sample there, so
+the role classes follow what the capture shows and can be unbalanced. The minimum-sample check
+applies to each class. The report's collection section lists, per topology, in how many traces
+each agent carries traffic (`collection.visible_agents`).
+
 ## Reading a verdict
 
 - **LEAK** says an observer does better than chance + margin, with 95% confidence, and the

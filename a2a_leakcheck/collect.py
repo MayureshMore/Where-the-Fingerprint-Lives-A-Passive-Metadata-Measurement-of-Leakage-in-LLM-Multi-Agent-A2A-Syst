@@ -5,7 +5,7 @@ Sidecar fields read (anything else is ignored):
 
     agent_endpoints   {"executor": "10.0.0.2:8101", ...}   role of every agent port (required)
     workflow_class    or "workflow": the workflow label
-    topology          the topology label
+    topology          the topology label (also used to count the visible agents per topology)
     <any other key>   a trace-level attribute, if asked for with --attributes
     prompt_group      grouping key; else sha1(input_prompt)[:8]; else the run id
     success           false → the trace is skipped
@@ -37,6 +37,7 @@ class Trace:
     labels: dict[str, str] = field(default_factory=dict)
     group: str = ""
     group_source: str = ""                        # prompt_group | input_prompt | run_id
+    topology: str | None = None                   # sidecar topology, for the visibility summary
 
 
 def _label(sidecar: dict, attribute: str) -> str | None:
@@ -75,7 +76,7 @@ def read_trace(pcap: Path, trace_attributes: list[str]) -> tuple[Trace | None, s
         group, source = pcap.stem, "run_id"
     labels = {a: v for a in trace_attributes if (v := _label(sc, a)) is not None}
     return Trace(run_id=sc.get("run_id", pcap.stem), pcap=pcap, port_role=port_role,
-                 labels=labels, group=group, group_source=source), ""
+                 labels=labels, group=group, group_source=source, topology=_label(sc, "topology")), ""
 
 
 def collect(folder: Path, trace_attributes: list[str], strip_dir: Path | None = None) -> dict:

@@ -3,7 +3,10 @@ Extraction: the repository's header-only features (packet sizes, timestamps, dir
 
     trace samples   195-dim trace vector (features/extractor.py) + the first-request size
                     (features/first_request.py), one per capture: workflow, topology, ...
-    role samples    35-dim per-flow vector, one per agent port per capture (features/roles.py)
+    role samples    35-dim per-flow vector, one per agent port per capture (features/roles.py),
+                    only for the agents that carry traffic in that capture: an agent the vantage
+                    point never sees (at a gateway, the calls between specialists on the far
+                    side) gives no sample, so role classes can be unbalanced or missing
 
 Direction: a packet to an agent port is a request (caller → agent), from one a response.
 """
@@ -26,6 +29,7 @@ def extract(traces: list, legacy: bool = False) -> dict:
     (features/connections.py)."""
     extractors: dict[frozenset, FeatureExtractor] = {}
     rows, first, keep, role_rows, role_y, role_trace, failed = [], [], [], [], [], [], []
+    visible: list[list[str]] = []                    # per extracted trace: roles with traffic
     for i, tr in enumerate(traces):
         ports = frozenset(tr.port_role)
         ex = extractors.setdefault(ports, FeatureExtractor(agent_ports=set(ports), use_scapy=True,
@@ -41,10 +45,13 @@ def extract(traces: list, legacy: bool = False) -> dict:
         rows.append(ex._compute_features(tr.run_id, packets).flat_vector())
         first.append(first_request_bytes(tr.pcap, set(ports), legacy))
         keep.append(i)
+        seen = []
         for _, (role, vec, _, _) in sorted(role_vectors(ex, packets, {str(p): r for p, r in tr.port_role.items()}).items()):
             role_rows.append(vec)
             role_y.append(role)
             role_trace.append(len(keep) - 1)
+            seen.append(role)
+        visible.append(sorted(seen))
     if not rows:
         raise SystemExit("no capture yielded any agent traffic: check agent_endpoints and the capture filter")
     return {
@@ -54,6 +61,7 @@ def extract(traces: list, legacy: bool = False) -> dict:
         "role_X": np.stack(role_rows).astype(np.float32) if role_rows else np.zeros((0, 35), np.float32),
         "role_y": np.array(role_y),
         "role_trace": np.array(role_trace, dtype=int),   # into the extracted traces
+        "visible_roles": visible,                    # per extracted trace
         "summary": {"traces": len(rows), "failed": failed, "role_samples": len(role_rows),
                     "trace_dims": int(rows[0].shape[0]), "role_dims": 35,
                     "measurement": "all connections on the agent ports (legacy)" if legacy else
