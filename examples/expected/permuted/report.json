@@ -1,0 +1,478 @@
+{
+  "tool": "a2a-leakcheck",
+  "version": "0.1.0",
+  "created": "2026-11-05T07:36:45-0800",
+  "git_commit": "5e00add8b69c4fe14ee72c08e271fed11b2c4ff1",
+  "git_dirty": true,
+  "input": {
+    "folder": "examples/permuted",
+    "label": "example: permuted"
+  },
+  "parameters": {
+    "attributes": [
+      "role",
+      "workflow",
+      "topology"
+    ],
+    "margin": 0.05,
+    "folds": 5,
+    "n_boot": 1000,
+    "permutations": 99,
+    "alpha": 0.05,
+    "min_per_class": 20,
+    "seed": 42,
+    "model": "gbt",
+    "null_model": "rf-light",
+    "jobs": -1,
+    "rules": "default",
+    "strip": false,
+    "legacy_all_connections": false
+  },
+  "collection": {
+    "folder": "examples/permuted",
+    "pcaps": 40,
+    "traces": 40,
+    "skipped": [],
+    "stripped_copies": 0,
+    "group_source": {
+      "prompt_group": 40
+    },
+    "visible_agents": {
+      "chain": {
+        "traces": 20,
+        "roles": {
+          "executor": 16,
+          "orchestrator": 14,
+          "retriever": 16,
+          "validator": 14
+        },
+        "never_seen": []
+      },
+      "star": {
+        "traces": 20,
+        "roles": {
+          "executor": 12,
+          "orchestrator": 14,
+          "retriever": 17,
+          "validator": 17
+        },
+        "never_seen": []
+      }
+    }
+  },
+  "extraction": {
+    "traces": 40,
+    "failed": [],
+    "role_samples": 120,
+    "trace_dims": 195,
+    "role_dims": 35,
+    "measurement": "own connections: only TCP connections whose SYN is in the capture",
+    "first_request": "TCP payload bytes of the first request message that reaches an agent (the caller \u2192 orchestrator link is not captured): on the agent link, opened by the trace, whose first post-handshake request starts earliest, the request-direction writes \u2264 50 ms apart, TLS ClientHello and client Finished excluded; from headers only."
+  },
+  "attributes": {
+    "role": {
+      "classes": [
+        "executor",
+        "orchestrator",
+        "retriever",
+        "validator"
+      ],
+      "n": 120,
+      "n_groups": 40,
+      "chance": 0.25,
+      "margin": 0.05,
+      "threshold": 0.3,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "executor": 28,
+            "orchestrator": 28,
+            "retriever": 33,
+            "validator": 31
+          },
+          "groups_per_class": {
+            "executor": 28,
+            "orchestrator": 28,
+            "retriever": 33,
+            "validator": 31
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "observed_macro_f1": 0.1427889576883385,
+          "p_value": 0.99,
+          "null_mean": 0.24924384422227844,
+          "null_max": 0.37383684863523575,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 32,
+            "INCONCLUSIVE": 67
+          },
+          "false_positive_rate": 0.0
+        }
+      },
+      "analysis": {
+        "macro_f1": 0.16474790661518052,
+        "ci_lo": 0.09410663229454012,
+        "ci_hi": 0.24127009035047434,
+        "accuracy": 0.16666666666666666,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "NO LEAK",
+      "reason": "CI upper bound 0.241 <= chance + margin 0.300",
+      "prioritization": {
+        "effect_size": -0.11366945784642597,
+        "severity": "none"
+      },
+      "attribution": {
+        "families": {
+          "sizes": {
+            "macro_f1": 0.1399680964197093,
+            "ci_lo": 0.07996040788386768,
+            "ci_hi": 0.2023658378759912,
+            "accuracy": 0.14166666666666666,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.024779810195471208,
+              "ci_lo": -0.047889927215537295,
+              "ci_hi": 0.1017046091699481,
+              "significant": false
+            }
+          },
+          "timing": {
+            "macro_f1": 0.20323850851816136,
+            "ci_lo": 0.13471483845856297,
+            "ci_hi": 0.27249687142658774,
+            "accuracy": 0.20833333333333334,
+            "dims": 5,
+            "all_minus_this": {
+              "diff": -0.03849060190298084,
+              "ci_lo": -0.11447456411231943,
+              "ci_hi": 0.039610500125456895,
+              "significant": false
+            }
+          },
+          "counts_direction": {
+            "macro_f1": 0.16611254111254115,
+            "ci_lo": 0.10958849538058658,
+            "ci_hi": 0.2157920193590294,
+            "accuracy": 0.175,
+            "dims": 4,
+            "all_minus_this": {
+              "diff": -0.0013646344973606284,
+              "ci_lo": -0.07343446017386171,
+              "ci_hi": 0.08008436479854236,
+              "significant": false
+            }
+          }
+        },
+        "top_family": "timing",
+        "top_family_matches_all": true,
+        "single_request_size": {
+          "feature": "bytes_in",
+          "macro_f1": 0.215877747025288,
+          "ci_lo": 0.15352873385994795,
+          "ci_hi": 0.268330678617977,
+          "accuracy": 0.21666666666666667,
+          "all_minus_this": {
+            "diff": -0.051129840410107485,
+            "ci_lo": -0.1325820194093368,
+            "ci_hi": 0.036809259189575214,
+            "significant": false
+          },
+          "matches_all": true
+        }
+      },
+      "mitigations": []
+    },
+    "workflow": {
+      "classes": [
+        "code_review",
+        "support_triage"
+      ],
+      "n": 40,
+      "n_groups": 40,
+      "chance": 0.5,
+      "margin": 0.05,
+      "threshold": 0.55,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "code_review": 20,
+            "support_triage": 20
+          },
+          "groups_per_class": {
+            "code_review": 20,
+            "support_triage": 20
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "observed_macro_f1": 0.42174732872407295,
+          "p_value": 0.82,
+          "null_mean": 0.5034568110937253,
+          "null_max": 0.6992481203007519,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 18,
+            "INCONCLUSIVE": 81
+          },
+          "false_positive_rate": 0.0
+        }
+      },
+      "analysis": {
+        "macro_f1": 0.38618925831202044,
+        "ci_lo": 0.23061288305190747,
+        "ci_hi": 0.5396419437340154,
+        "accuracy": 0.4,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "NO LEAK",
+      "reason": "CI upper bound 0.540 <= chance + margin 0.550",
+      "prioritization": {
+        "effect_size": -0.2276214833759591,
+        "severity": "none"
+      },
+      "attribution": {
+        "families": {
+          "sizes": {
+            "macro_f1": 0.4373401534526854,
+            "ci_lo": 0.28365394612041733,
+            "ci_hi": 0.5835198209718668,
+            "accuracy": 0.45,
+            "dims": 139,
+            "all_minus_this": {
+              "diff": -0.051150895140664954,
+              "ci_lo": -0.2040389140760079,
+              "ci_hi": 0.10164666645664935,
+              "significant": false
+            }
+          },
+          "timing": {
+            "macro_f1": 0.41587301587301584,
+            "ci_lo": 0.26961975594835635,
+            "ci_hi": 0.5615731785944552,
+            "accuracy": 0.425,
+            "dims": 30,
+            "all_minus_this": {
+              "diff": -0.029683757560995394,
+              "ci_lo": -0.20325017088174976,
+              "ci_hi": 0.13882007620260803,
+              "significant": false
+            }
+          },
+          "counts_direction": {
+            "macro_f1": 0.65,
+            "ci_lo": 0.48849104859335035,
+            "ci_hi": 0.7953964194373402,
+            "accuracy": 0.65,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": -0.2638107416879796,
+              "ci_lo": -0.4604823618382173,
+              "ci_hi": -0.05354294827979045,
+              "significant": true
+            }
+          }
+        },
+        "top_family": "counts_direction",
+        "top_family_matches_all": true,
+        "single_request_size": {
+          "feature": "first_request_bytes",
+          "macro_f1": 0.2634920634920635,
+          "ci_lo": 0.1414141414141414,
+          "ci_hi": 0.39849624060150374,
+          "accuracy": 0.275,
+          "all_minus_this": {
+            "diff": 0.12269719481995695,
+            "ci_lo": -0.06843978638294995,
+            "ci_hi": 0.3088584539398989,
+            "significant": false
+          },
+          "matches_all": true
+        }
+      },
+      "mitigations": []
+    },
+    "topology": {
+      "classes": [
+        "chain",
+        "star"
+      ],
+      "n": 40,
+      "n_groups": 40,
+      "chance": 0.5,
+      "margin": 0.05,
+      "threshold": 0.55,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "chain": 20,
+            "star": 20
+          },
+          "groups_per_class": {
+            "chain": 20,
+            "star": 20
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "observed_macro_f1": 0.4584139264990329,
+          "p_value": 0.58,
+          "null_mean": 0.4782238236007538,
+          "null_max": 0.7248280175109443,
+          "null_verdicts": {
+            "LEAK": 1,
+            "NO LEAK": 28,
+            "INCONCLUSIVE": 70
+          },
+          "false_positive_rate": 0.010101010101010102
+        }
+      },
+      "analysis": {
+        "macro_f1": 0.4791666666666667,
+        "ci_lo": 0.3141871921182266,
+        "ci_hi": 0.6228786926461345,
+        "accuracy": 0.5,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "INCONCLUSIVE",
+      "reason": "CI [0.314, 0.623] straddles chance + margin 0.550",
+      "prioritization": {
+        "effect_size": -0.04166666666666663,
+        "severity": "none"
+      },
+      "attribution": {
+        "families": {
+          "sizes": {
+            "macro_f1": 0.4987468671679198,
+            "ci_lo": 0.3434343434343434,
+            "ci_hi": 0.6484110885733604,
+            "accuracy": 0.5,
+            "dims": 139,
+            "all_minus_this": {
+              "diff": -0.019580200501253142,
+              "ci_lo": -0.16837238106873686,
+              "ci_hi": 0.12508667788694763,
+              "significant": false
+            }
+          },
+          "timing": {
+            "macro_f1": 0.40683430045132174,
+            "ci_lo": 0.26323809523809527,
+            "ci_hi": 0.5523370638578011,
+            "accuracy": 0.425,
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.07233236621534495,
+              "ci_lo": -0.11059335549118621,
+              "ci_hi": 0.22624346359041908,
+              "significant": false
+            }
+          },
+          "counts_direction": {
+            "macro_f1": 0.32291666666666663,
+            "ci_lo": 0.191713048855906,
+            "ci_hi": 0.4585607211936998,
+            "accuracy": 0.35,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.15625000000000006,
+              "ci_lo": 0.006041998936735817,
+              "ci_hi": 0.3075014755380184,
+              "significant": true
+            }
+          }
+        },
+        "top_family": "sizes",
+        "top_family_matches_all": true,
+        "single_request_size": {
+          "feature": "first_request_bytes",
+          "macro_f1": 0.44862155388471175,
+          "ci_lo": 0.29292929292929293,
+          "ci_hi": 0.595959595959596,
+          "accuracy": 0.45,
+          "all_minus_this": {
+            "diff": 0.03054511278195493,
+            "ci_lo": -0.1685164056216688,
+            "ci_hi": 0.23616851845451534,
+            "significant": false
+          },
+          "matches_all": true
+        }
+      },
+      "mitigations": [
+        {
+          "id": "inconclusive",
+          "hint": "The interval straddles chance + margin: more traces will narrow it. Re-run before treating this attribute as safe."
+        }
+      ]
+    }
+  },
+  "summary": {
+    "LEAK": [],
+    "NO LEAK": [
+      "role",
+      "workflow"
+    ],
+    "INCONCLUSIVE": [
+      "topology"
+    ]
+  },
+  "runtime": {
+    "total_s": 51.33014083298622,
+    "stages_s": {
+      "collection": 0.02023220801493153,
+      "extraction": 2.597997250035405,
+      "analysis": 48.66551875002915
+    },
+    "analysis_by_attribute_s": {
+      "role": 17.24093654198805,
+      "workflow": 15.421766374958679,
+      "topology": 15.291325375030283
+    },
+    "peak_rss_by_stage_mb": {
+      "collection": {
+        "main_mb": 169.0625
+      },
+      "extraction": {
+        "main_mb": 245.921875
+      },
+      "analysis:role": {
+        "main_mb": 245.96875,
+        "worker_mb": 186.984375
+      },
+      "analysis:workflow": {
+        "main_mb": 246.203125,
+        "worker_mb": 196.203125
+      },
+      "analysis:topology": {
+        "main_mb": 246.296875,
+        "worker_mb": 196.5625
+      }
+    },
+    "peak_rss_mb": 246.296875,
+    "peak_rss_children_mb": 196.5625,
+    "workers": 14,
+    "python": "3.12.1",
+    "platform": "macOS-27.0.1-arm64-arm-64bit"
+  }
+}

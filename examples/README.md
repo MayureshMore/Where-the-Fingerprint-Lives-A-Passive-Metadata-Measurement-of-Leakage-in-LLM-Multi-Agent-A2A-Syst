@@ -23,7 +23,8 @@ compares them.
 
 What they show:
 
-- **leaky**: role (160 agent samples) and topology leak, p = 0.01. Workflow is visible in the
+- **leaky**: role (120 agent samples: the capture sees three of the four agents; the
+  orchestrator's own link is not captured) and topology leak, p = 0.01. Workflow is visible in the
   traffic (paper 1), but 20 traces per class are not enough to show it: the interval straddles
   chance + margin, and the report says to collect more.
 - **permuted**: with labels that say nothing about the traffic, nothing reads LEAK. Role and
