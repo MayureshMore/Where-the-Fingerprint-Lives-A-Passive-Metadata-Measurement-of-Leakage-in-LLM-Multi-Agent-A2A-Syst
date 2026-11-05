@@ -1,0 +1,13 @@
+{
+  "run_id": "code_review_star_a3457a",
+  "agent_endpoints": {
+    "orchestrator": "127.0.0.1:8040",
+    "executor": "127.0.0.1:8041",
+    "retriever": "127.0.0.1:8042",
+    "validator": "127.0.0.1:8043"
+  },
+  "workflow_class": "code_review",
+  "topology": "star",
+  "prompt_group": "806f01f0",
+  "success": true
+}

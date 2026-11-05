@@ -1,0 +1,14 @@
+{
+  "run_id": "code_review_star_d02d3b",
+  "agent_endpoints": {
+    "validator": "127.0.0.1:8040",
+    "executor": "127.0.0.1:8041",
+    "orchestrator": "127.0.0.1:8042",
+    "retriever": "127.0.0.1:8043"
+  },
+  "workflow_class": "code_review",
+  "topology": "star",
+  "prompt_group": "d412a8b9",
+  "success": true,
+  "labels": "permuted (examples/README.md)"
+}

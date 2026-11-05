@@ -1,0 +1,14 @@
+{
+  "run_id": "support_triage_chain_ad6006",
+  "agent_endpoints": {
+    "orchestrator": "127.0.0.1:8040",
+    "validator": "127.0.0.1:8041",
+    "executor": "127.0.0.1:8042",
+    "retriever": "127.0.0.1:8043"
+  },
+  "workflow_class": "support_triage",
+  "topology": "star",
+  "prompt_group": "b91fe9b7",
+  "success": true,
+  "labels": "permuted (examples/README.md)"
+}

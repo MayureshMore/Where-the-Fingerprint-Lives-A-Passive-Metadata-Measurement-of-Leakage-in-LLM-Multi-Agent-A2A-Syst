@@ -1,0 +1,14 @@
+{
+  "run_id": "support_triage_star_ff70cb",
+  "agent_endpoints": {
+    "retriever": "127.0.0.1:8040",
+    "executor": "127.0.0.1:8041",
+    "validator": "127.0.0.1:8042",
+    "orchestrator": "127.0.0.1:8043"
+  },
+  "workflow_class": "support_triage",
+  "topology": "star",
+  "prompt_group": "c77c1838",
+  "success": true,
+  "labels": "permuted (examples/README.md)"
+}

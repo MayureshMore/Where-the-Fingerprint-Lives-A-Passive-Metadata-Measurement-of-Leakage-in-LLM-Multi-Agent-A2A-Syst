@@ -1,0 +1,14 @@
+{
+  "run_id": "code_review_chain_666d01",
+  "agent_endpoints": {
+    "orchestrator": "127.0.0.1:8040",
+    "validator": "127.0.0.1:8041",
+    "executor": "127.0.0.1:8042",
+    "retriever": "127.0.0.1:8043"
+  },
+  "workflow_class": "support_triage",
+  "topology": "chain",
+  "prompt_group": "a6897adf",
+  "success": true,
+  "labels": "permuted (examples/README.md)"
+}

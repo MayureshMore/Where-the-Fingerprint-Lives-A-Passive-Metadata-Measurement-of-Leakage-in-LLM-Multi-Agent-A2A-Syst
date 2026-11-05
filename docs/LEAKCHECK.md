@@ -16,9 +16,9 @@ python -m a2a_leakcheck diff NEW/report.json OLD/report.json
 |---|---|---|
 | Collection | reads a folder of header-only pcaps, each with a JSON label sidecar; refuses captures that still hold payload bytes (`--strip` analyses header-only copies instead) | `collect.py` |
 | Extraction | the repository's header-only features: a 195-dim vector per trace, a 35-dim vector per agent per trace, and the size of the first request that reaches an agent; only from the TCP connections each capture opens itself (the tail of an earlier trace's connections is dropped; `--legacy-all-connections` keeps it) | `extract.py`, `features/` |
-| Analysis | per attribute, out-of-fold predictions from 5-fold `StratifiedGroupKFold` (a group of traces sharing a prompt is never split), GBT by default; macro-F1 with a 95% cluster-bootstrap CI over groups | `analyze.py` |
+| Analysis | per attribute, out-of-fold predictions from 5-fold `StratifiedGroupKFold` (a group of traces sharing a prompt is never split), GBT by default (the repository's, with the leaf size lowered on training folds under 2 × 20 samples per class, where 20 per leaf allows no split); macro-F1 with a 95% cluster-bootstrap CI over groups | `analyze.py` |
 | Detection | chance = 1/k classes. **LEAK** if the CI lower bound is above chance + margin; **NO LEAK** if the CI upper bound is at most chance + margin; **INCONCLUSIVE** otherwise. `--margin`, default 0.05 | `analyze.py` |
-| Validation | minimum-sample check (each class needs `--min-per-class` samples, default 20, in at least as many groups as folds; else INCONCLUSIVE). Label-permutation test: the same CV on `--permutations` shuffles of the labels (default 99, so p can reach 0.01), scored with `--null-model` (default `rf-light`, a 100-tree random forest); that model also scores the real labels, so the p-value is exact for it, and a weaker null model only makes the test more conservative. A LEAK whose p-value exceeds `--alpha` (0.05) becomes INCONCLUSIVE. The share of permuted runs that would read LEAK is reported as the false-positive rate | `analyze.py` |
+| Validation | minimum-sample check (each class needs `--min-per-class` samples, default 20, in at least as many groups as folds; else INCONCLUSIVE). Label-permutation test: the same CV on `--permutations` shuffles of the labels (default 99, so p can reach 0.01), scored with `--null-model` (default `rf-light`, a 100-tree random forest); that model also scores the real labels, so the p-value is exact for it, and a weaker null model only makes the test more conservative. A LEAK whose p-value exceeds `--alpha` (0.05) becomes INCONCLUSIVE, and so does a NO LEAK whose p-value is at most `--alpha` (the two models disagree). The share of permuted runs that would read LEAK is reported as the false-positive rate | `analyze.py` |
 | Prioritization | effect size = (macro-F1 − chance) / (1 − chance); severity high ≥ 0.6, medium ≥ 0.3, else low (thresholds in `rules.yaml`) | `analyze.py` |
 | Attribution | the same CV on each feature family alone (sizes; timing; counts and direction) and on one request-size feature alone, each paired against all features | `analyze.py` |
 | Report | `report.json` (everything), `report.md`, `report.html` with `--html`; mitigation hints from `rules.yaml`; runtime per stage and peak memory | `report.py`, `rules.py` |
@@ -66,74 +66,42 @@ each agent carries traffic (`collection.visible_agents`).
 - **INCONCLUSIVE** says to collect more data, or that the permutation test did not back a LEAK.
 
 The verdict only covers what the captures contain: one deployment, one vantage point, one
-period. Re-run when any of them changes; `--baseline` makes that a CI step.
+period. Re-run when any of them changes; `--baseline` makes that a CI step. A role verdict holds
+for the topologies in the captures; a role profile need not transfer to another topology. After a
+mitigation (padding, timing shaping), re-run the audit on the changed deployment: other features
+can still carry the leak.
+
+## On a Raspberry Pi
+
+The audit needs only `requirements-leakcheck.txt` (Python 3.11+): numpy, SciPy, scikit-learn,
+joblib, threadpoolctl, PyYAML and scapy, at the versions in `requirements-lock.txt`. PyTorch is
+not needed (`models/` and `evaluation/` import their deep-model code lazily). To time a full audit
+of the TLS control's TLS arm with one worker per core, with the Pi's agents stopped so that they
+do not compete for the cores:
+
+```bash
+# on the Mac: code (as in LAN_SETUP.md) and the captures
+rsync -a --exclude data --exclude venv --exclude .git --exclude dist ./ pi@192.168.2.2:a2a/
+rsync -a data/raw_tlspair_tls pi@192.168.2.2:a2a/data/
+rsync -aR data/results/leakcheck/tls_control_tls_own pi@192.168.2.2:a2a/      # the Mac's report
+
+# on the Pi
+sudo apt install -y time                        # GNU time, for -v
+cd ~/a2a && python3 -m venv venv-leakcheck && venv-leakcheck/bin/pip install -r requirements-leakcheck.txt
+mkdir -p data/results/leakcheck_pi
+{ cat /proc/device-tree/model; echo; nproc; free -m; python3 --version; du -sh venv-leakcheck; } \
+    > data/results/leakcheck_pi/machine.txt
+/usr/bin/time -v -o data/results/leakcheck_pi/time_tls.txt \
+    venv-leakcheck/bin/python -m a2a_leakcheck run data/raw_tlspair_tls --strip --jobs 4 \
+    --out data/results/leakcheck_pi/tls_control_tls_own
+venv-leakcheck/bin/python -m a2a_leakcheck diff data/results/leakcheck_pi/tls_control_tls_own/report.json \
+    data/results/leakcheck/tls_control_tls_own/report.json      # same verdicts as on the Mac
+```
+
+`time_tls.txt` gives the wall-clock time, CPU time and the maximum resident set size of the
+largest single process, main or worker (GNU time does not add the workers up); the report's runtime section gives the time per stage and
+the peak memory of the main process and of one worker after each stage.
 
 ## Extending
 
-### A new agent framework
-
-leakcheck needs only captures and sidecars, so any framework works if:
-
-1. Each agent listens on its own port (or address). With one shared endpoint for all agents,
-   role cannot be told apart by port, and the role attribute is meaningless.
-2. Traces are captured one task at a time, with a filter on the agent ports and hosts, at a
-   96-byte snaplen or less (`capture/recorder.py` does this), then stripped with
-   `scripts/strip_payload.py` (or use `--strip`).
-3. Each capture gets a sidecar with `agent_endpoints` and the labels. In this repo the
-   collectors write them (`capture/automation.py`); for another framework, write the same JSON
-   from its run log.
-
-Then `python -m a2a_leakcheck run DIR --out OUT`. Nothing in the tool knows about A2A.
-
-### A new protocol
-
-The features read packet sizes, times and direction from TCP headers. What to change for:
-
-- **Another protocol over TCP+TLS** (HTTP/2, gRPC, WebSocket, MCP over HTTP): nothing for the
-  features. If calls are multiplexed on one connection, the per-flow vectors describe connections
-  rather than calls, which is still what an observer sees. Check that the first-request measure
-  (`features/first_request.py`, which skips the TLS ClientHello and client Finished and groups
-  request writes ≤ 50 ms apart) still picks out one request; if not, adjust it there.
-- **Without TLS on TCP**: the first-request measure skips two packets it assumes are the TLS
-  handshake. Disable the skip in `first_request_bytes` for cleartext captures.
-- **QUIC or other UDP transports**: extend the packet readers to UDP
-  (`FeatureExtractor._read_with_scapy` in `features/extractor.py` and `tcp_packets` in
-  `features/kfp.py`), and give `first_request.py` a QUIC-aware handshake skip.
-
-Add a fixture for the new case to `tests/test_leakcheck.py` (see `_trace`).
-
-### A new capture source
-
-- **pcapng** (Wireshark's default): convert first, `editcap -F pcap in.pcapng out.pcap`.
-- **Another link type**: add its link-header length to `_LINK_HDR` in `scripts/strip_payload.py`;
-  the stripper, the header parser and the checks all use that table.
-- **Another vantage point** (a mirrored switch port, a router): only the filter and the interface
-  change. Limit the capture to the agent hosts and ports, as `PacketRecorder(hosts=...)` does,
-  and record the vantage point in the sidecars or the collection's metadata.
-
-### A new rule
-
-Rules live in `a2a_leakcheck/rules.yaml`; pass another file with `--rules`. Each rule has an
-`id`, a `when` mapping and a `hint`. Every rule whose `when` matches an attribute's facts adds
-its hint, in file order. A `when` value must equal the fact, or be a list containing it; dotted
-keys reach nested facts.
-
-```yaml
-rules:
-  - id: pad-task-inputs
-    when: {verdict: LEAK, request_size_single_matches_all: true}
-    hint: One request-size feature alone matches all features ... pad request bodies to buckets.
-  - id: timing-on-workflow
-    when: {verdict: LEAK, attribute: workflow, family_matches_all.timing: true}
-    hint: ...
-```
-
-Facts: `attribute`, `verdict`, `severity`, `top_family`, `top_family_matches_all`,
-`request_size_single_matches_all`, `family_matches_all.<sizes|timing|counts_direction>`,
-`too_few_samples`. A new fact goes in `facts()` in `a2a_leakcheck/rules.py`. Add a test next to
-`test_rules_file_is_configurable`.
-
-### A new attribute
-
-A trace-level attribute is a sidecar key: `--attributes role,workflow,topology,model` reads
-`model` from every sidecar. Traces without the key are left out of that attribute only.
+Another agent framework, protocol, capture source, rule or attribute: [EXTENDING.md](EXTENDING.md).

@@ -50,6 +50,8 @@ CLAUDE.md
 # ── Packet capture files ──────────────────────────────────────────────────────
 *.pcap
 *.pcapng
+# header-only example traces (examples/README.md)
+!examples/*/*.pcap
 *.cap
 
 # ── Trained model checkpoints ────────────────────────────────────────────────

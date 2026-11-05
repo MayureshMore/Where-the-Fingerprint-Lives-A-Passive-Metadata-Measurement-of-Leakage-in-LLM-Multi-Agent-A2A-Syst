@@ -1,0 +1,13 @@
+{
+  "run_id": "support_triage_star_707bfb",
+  "agent_endpoints": {
+    "orchestrator": "127.0.0.1:8040",
+    "executor": "127.0.0.1:8041",
+    "retriever": "127.0.0.1:8042",
+    "validator": "127.0.0.1:8043"
+  },
+  "workflow_class": "support_triage",
+  "topology": "star",
+  "prompt_group": "99fdfe29",
+  "success": true
+}

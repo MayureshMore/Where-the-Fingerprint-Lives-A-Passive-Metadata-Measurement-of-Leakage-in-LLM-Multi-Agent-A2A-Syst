@@ -87,6 +87,8 @@ evaluation/         Closed-world / open-world drivers, metrics, cluster-bootstra
 scripts/            Every runnable entry point: collect, extract, train, evaluate, reproduce
 a2a_leakcheck/      Leak audit tool: header-only captures in, LEAK / NO LEAK / INCONCLUSIVE per
                     attribute out (docs/LEAKCHECK.md)
+examples/           Two 40-trace leakcheck inputs (real and permuted labels) with expected reports
+baselines/          Standard TLS scanners (sslyze, testssl.sh) against the LAN deployment
 frameworks/         The independently authored comparison deployments (§5.10–5.11):
   autogen/            AutoGen distributed gRPC runtime (orchestrator + 3 workers) and its collector
   crewai/             CrewAI served over a2a-sdk, plus the fully matched A-vs-CrewAI pair
@@ -208,11 +210,51 @@ The US⇄India WAN experiment (§5.6) is documented step by step in
 tunnel interface, not the physical NIC. The Mac + Raspberry Pi LAN setup (gateway vantage) is in
 [docs/LAN_SETUP.md](docs/LAN_SETUP.md).
 
+The `a2a_mcp`, AutoGen, and CrewAI collections are in [RECREATE.md](RECREATE.md). Every
+evaluation step is also wired into `scripts/reproduce.sh`.
+
+---
+
+## Leak audit: a2a-leakcheck
+
+`a2a_leakcheck` asks of a folder of encrypted captures whether an observer of packet headers
+alone can tell which agent does what (role), which task runs (workflow) or how the agents are
+wired (topology), and answers LEAK, NO LEAK or INCONCLUSIVE per attribute, with a confidence
+interval, a label-permutation test and mitigation hints. Input: one header-only pcap per task with
+a JSON sidecar naming the agent ports and the labels. Full description:
+[docs/LEAKCHECK.md](docs/LEAKCHECK.md); other frameworks, protocols and capture sources:
+[docs/EXTENDING.md](docs/EXTENDING.md).
+
 ```bash
-# Leak audit of any folder of header-only captures with label sidecars (docs/LEAKCHECK.md)
-python -m a2a_leakcheck run data/raw_tlspair_tls --strip --out data/results/leakcheck/tls_control_tls --html
-``` The `a2a_mcp`, AutoGen, and CrewAI collections are in
-[RECREATE.md](RECREATE.md). Every evaluation step is also wired into `scripts/reproduce.sh`.
+python -m a2a_leakcheck run examples/leaky --out /tmp/leaky --html     # 40 traces, about a minute
+python -m a2a_leakcheck run data/raw_tlspair_tls --strip --out /tmp/tls --html
+python -m a2a_leakcheck run NEW_CAPTURES --out NEW --baseline OLD/report.json   # CI: exit 3 on a new LEAK
+```
+
+[examples/](examples/README.md) holds two 40-trace sets from the TLS control, one with real
+labels (leaks) and one with permuted labels (none), each with its expected report.
+
+**On a Raspberry Pi.** The audit needs only `requirements-leakcheck.txt` (numpy, SciPy,
+scikit-learn, joblib, threadpoolctl, PyYAML, scapy at the locked versions; no PyTorch), Python
+3.11+, and the captures:
+
+```bash
+python3 -m venv venv && venv/bin/pip install -r requirements-leakcheck.txt
+venv/bin/python -m a2a_leakcheck run CAPTURES --strip --jobs 4 --out REPORT
+```
+
+`--jobs 4` runs one cross-validation per core; the report's runtime section gives the time and
+peak memory per stage. In the C2 setup ([docs/LAN_SETUP.md](docs/LAN_SETUP.md)) the Pi serves
+the specialist agents; the audit runs after collection, not alongside it.
+
+**Paper 2.** `bash scripts/reproduce_paper2.sh` rebuilds every paper 2 number from the released
+captures into a sandbox and compares it with the committed one (`--quick`: the examples and the
+TLS-control reports, minutes; without it also the tool evaluation, hours).
+`scripts/evaluate_leakcheck.py` measures the tool on known answers: recall on real labels,
+false positives on permuted labels (and on `audit_null` in C2), the effect of sample size, and
+two baselines in the same verdict rule (k-FP with a random forest; the first request's size
+alone). `baselines/run_tls_scanners.sh` runs sslyze and testssl.sh against the same deployment
+for comparison.
 
 ---
 
