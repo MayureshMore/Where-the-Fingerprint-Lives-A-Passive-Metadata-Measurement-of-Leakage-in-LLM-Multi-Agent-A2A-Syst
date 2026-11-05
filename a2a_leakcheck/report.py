@@ -40,6 +40,10 @@ def _rows(report: dict) -> list[dict]:
     return rows
 
 
+ROLE_NOTE = ("A role verdict holds for the topologies in the captures; a role profile need not "
+             "transfer to another topology.")
+
+
 def _visible_md(c: dict) -> list[str]:
     """Visible agents per topology: in how many traces each listed agent carries traffic."""
     vis = c.get("visible_agents")
@@ -103,6 +107,8 @@ def write_markdown(report: dict, path: Path) -> None:
                       f"{nv['LEAK']} LEAK, {nv['NO LEAK']} NO LEAK, {nv['INCONCLUSIVE']} INCONCLUSIVE."]
         for h in r.get("mitigations", []):
             L += ["", f"- **{h['id']}**: {h['hint']}"]
+        if name == "role":
+            L += ["", ROLE_NOTE]
     if report.get("diff"):
         d = report["diff"]
         L += ["", "## Against the baseline", "", f"Baseline: `{d['baseline']}`.", ""]
@@ -113,6 +119,13 @@ def write_markdown(report: dict, path: Path) -> None:
           f"{rt['total_s']:.1f} s in all (" + ", ".join(f"{k} {v:.1f} s" for k, v in rt["stages_s"].items())
           + f"); peak memory {rt['peak_rss_mb']:.0f} MB in the main process, up to "
           f"{rt['peak_rss_children_mb']:.0f} MB in each of {rt.get('workers', '?')} worker processes."]
+    if rt.get("peak_rss_by_stage_mb"):
+        L += ["", "| Stage | Time (s) | Peak so far, main (MB) | Peak so far, one worker (MB) |", "|---|---|---|---|"]
+        times = {**{k: v for k, v in rt["stages_s"].items() if k != "analysis"},
+                 **{f"analysis:{k}": v for k, v in rt.get("analysis_by_attribute_s", {}).items()}}
+        for k, m in rt["peak_rss_by_stage_mb"].items():
+            w = m.get("worker_mb")
+            L.append(f"| {k} | {times.get(k, 0):.1f} | {m['main_mb']:.0f} | {'—' if w is None else f'{w:.0f}'} |")
     path.write_text("\n".join(L) + "\n")
 
 
@@ -138,10 +151,11 @@ def write_html(report: dict, path: Path) -> None:
     for r in _rows(report):
         cls = r["verdict"].split()[0]
         hints = "".join(f"<li><b>{e(h['id'])}</b>: {e(h['hint'])}</li>" for h in r["hints"])
+        note = f"<p class='meta'>{e(ROLE_NOTE)}</p>" if r["attribute"] == "role" else ""
         rows.append(f"<tr><td>{e(r['attribute'])}</td><td class='{cls}'>{e(r['verdict'])}</td>"
                     f"<td>{e(r['severity'])}</td><td>{e(r['score'])}</td><td>{e(r['threshold'])}</td>"
                     f"<td>{e(r['p'])}</td><td>{e(r['fpr'])}</td><td>{e(r['carried'])}</td>"
-                    f"<td>{e(r['reason'])}{'<ul>' + hints + '</ul>' if hints else ''}</td></tr>")
+                    f"<td>{e(r['reason'])}{'<ul>' + hints + '</ul>' if hints else ''}{note}</td></tr>")
     vis = c.get("visible_agents") or {}
     roles = sorted({r for t in vis.values() for r in t["roles"]})
     vis_html = "" if not vis else (

@@ -14,8 +14,12 @@ validation      minimum-sample check (every class needs min_per_class samples in
                 the real labels and every permutation with that model, so the p-value
                 (1 + #null ≥ observed) / (R + 1) is exact for it; a weaker null model can only
                 make the test more conservative. A LEAK whose p-value exceeds alpha becomes
-                INCONCLUSIVE. Each permuted run also gets a verdict, and the share of them that
-                read LEAK is the tool's false-positive rate on that data.
+                INCONCLUSIVE, and so does a NO LEAK the test contradicts (p <= alpha). Each
+                permuted run also gets a verdict, and the share of them that read LEAK is the
+                tool's false-positive rate on that data.
+model           GBT as in the repository (models/gradient_boosted.py), with the leaf size lowered
+                on training folds under 2 × 20 samples per class (gbt_min_leaf), where 20 per
+                leaf would allow no split
 prioritization  effect size = (macro-F1 − chance) / (1 − chance), the share of the way from
                 chance to perfect; severity high / medium / low by the thresholds in rules.yaml
 attribution     the same CV on each feature family alone (sizes, timing, counts and direction)
@@ -75,9 +79,23 @@ def severity(effect: float, thresholds: dict) -> str:
 MODELS = ("gbt", "rf", "rf-light")
 
 
-def _model(name: str, seed: int = 42):
+GBT_MIN_LEAF = 20                  # the repository's GBT (models/gradient_boosted.py)
+
+
+def gbt_min_leaf(n_train: int, n_classes: int) -> int:
+    """GBT leaf size for a training fold: the repository's 20, lowered on small folds so that a
+    split is possible at all. With 20 per leaf a fold under 40 samples cannot split, the model
+    predicts one class, and its chance-level score would read as NO LEAK. Folds with at least
+    2 × 20 samples per class keep 20."""
+    return max(1, min(GBT_MIN_LEAF, n_train // (2 * max(n_classes, 1))))
+
+
+def _model(name: str, seed: int = 42, n_train: int | None = None, n_classes: int | None = None):
     if name == "gbt":
-        return clone(GBTClassifier().pipeline)
+        m = clone(GBTClassifier().pipeline)
+        if n_train is not None:
+            m.set_params(gbt__min_samples_leaf=gbt_min_leaf(n_train, n_classes or 2))
+        return m
     if name == "rf":
         return clone(RFClassifier().pipeline)
     if name == "rf-light":
@@ -94,7 +112,8 @@ def _splits(y, g, cfg: Config):
 def _oof(X, y, splits, cfg: Config, model: str | None = None) -> np.ndarray:
     pred = np.empty(len(y), dtype=object)
     for tr, te in splits:
-        pred[te] = _model(model or cfg.model, cfg.seed).fit(X[tr], y[tr]).predict(X[te])
+        m = _model(model or cfg.model, cfg.seed, len(tr), len(np.unique(y[tr])))
+        pred[te] = m.fit(X[tr], y[tr]).predict(X[te])
     return pred
 
 
@@ -134,7 +153,8 @@ def sample_check(y, g, cfg: Config) -> dict:
 
 def analyze(X: np.ndarray, y: np.ndarray, g: np.ndarray, families: dict[str, np.ndarray],
             single: tuple[str, np.ndarray] | None, cfg: Config, severity_thresholds: dict) -> dict:
-    """Everything the report needs for one attribute. single = (name, one request-size column)."""
+    """Everything the report needs for one attribute. single = (name, one request-size column).
+    With no families and no single feature there is no attribution; the verdict does not use it."""
     y, g = np.asarray(y).astype(str), np.asarray(g).astype(str)
     classes = sorted(set(y.tolist()))
     chance = 1.0 / max(len(classes), 1)
@@ -195,22 +215,29 @@ def analyze(X: np.ndarray, y: np.ndarray, g: np.ndarray, families: dict[str, np.
                                    f"(p = {perm['p_value']:.3f} > {cfg.alpha})")
     elif v == LEAK and not cfg.permutations:
         reason += " (no permutation test run)"
+    elif v == NO_LEAK and cfg.permutations and perm["p_value"] <= cfg.alpha:
+        v, reason = INCONCLUSIVE, (f"{reason}, but the permutation test finds a signal "
+                                   f"(p = {perm['p_value']:.3f} <= {cfg.alpha}): the two models disagree")
     out["verdict"], out["reason"] = v, reason
 
     effect = (s["macro_f1"] - chance) / (1 - chance)
     out["prioritization"] = {"effect_size": effect,
                              "severity": severity(effect, severity_thresholds) if v == LEAK else "none"}
 
+    if not fam_cols and single is None:
+        out["attribution"] = None
+        return out
     f1 = lambda t, p: f1_score(t, p, labels=classes, average="macro", zero_division=0)  # noqa: E731
     attribution = {"families": {}}
     for (fam, cols), pf in zip(fam_cols, fam_preds):
         attribution["families"][fam] = {**_score(y, pf, g, classes, cfg), "dims": int(len(cols)),
                                         "all_minus_this": paired_bootstrap_diff(
                                             y, pred, pf, g, f1, n=cfg.n_boot, seed=cfg.seed)}
-    top = max(attribution["families"], key=lambda f: attribution["families"][f]["macro_f1"])
-    d = attribution["families"][top]["all_minus_this"]
-    attribution["top_family"] = top
-    attribution["top_family_matches_all"] = bool(d["ci_lo"] <= 0)
+    if fam_cols:
+        top = max(attribution["families"], key=lambda f: attribution["families"][f]["macro_f1"])
+        d = attribution["families"][top]["all_minus_this"]
+        attribution["top_family"] = top
+        attribution["top_family_matches_all"] = bool(d["ci_lo"] <= 0)
     if single is not None:
         d = paired_bootstrap_diff(y, pred, single_pred, g, f1, n=cfg.n_boot, seed=cfg.seed)
         attribution["single_request_size"] = {"feature": single[0], **_score(y, single_pred, g, classes, cfg),

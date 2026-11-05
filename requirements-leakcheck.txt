@@ -1,0 +1,9 @@
+# a2a-leakcheck alone (for example on a Raspberry Pi): the versions in requirements-lock.txt.
+# Python 3.11+. pip install -r requirements-leakcheck.txt
+numpy==2.4.6
+scipy==1.17.1
+scikit-learn==1.9.0
+joblib==1.5.3
+threadpoolctl==3.6.0
+PyYAML==6.0.3
+scapy==2.7.0

@@ -11,7 +11,7 @@ import json
 import numpy as np
 import pytest
 
-from a2a_leakcheck.analyze import INCONCLUSIVE, LEAK, NO_LEAK, verdict
+from a2a_leakcheck.analyze import INCONCLUSIVE, LEAK, NO_LEAK, Config, analyze, gbt_min_leaf, verdict
 from a2a_leakcheck.cli import main
 from a2a_leakcheck.rules import facts, hints, load_rules
 
@@ -49,11 +49,17 @@ def _trace(i, workflow, rng):
 
 
 def make_dataset(folder, n, leak=True, seed=0):
-    """n traces, half alpha and half beta; topology labels are random noise."""
+    """n traces, half alpha and half beta; topology labels are random noise. leak=False: workflow
+    labels balanced against the real workflow, roles shuffled across the agent ports."""
     rng = np.random.default_rng(seed)
     folder.mkdir(parents=True, exist_ok=True)
     workflows = ["alpha" if i % 2 == 0 else "beta" for i in range(n)]
-    labels = list(rng.permutation(workflows)) if not leak else workflows
+    labels = list(workflows)
+    if not leak:      # half of each real workflow gets each label: independent of the traffic in-sample
+        for wf in ("alpha", "beta"):
+            idx = [i for i, w in enumerate(workflows) if w == wf]
+            for i, lab in zip(idx, rng.permutation(["alpha", "beta"] * (len(idx) // 2) + ["alpha"] * (len(idx) % 2))):
+                labels[i] = str(lab)
     for i, wf in enumerate(workflows):
         run_id = f"t{i:04d}"
         wrpcap(str(folder / f"{run_id}.pcap"), _trace(i, wf, rng))
@@ -121,6 +127,44 @@ def test_runtime_and_memory_are_recorded(leak_report):
     rt = leak_report[1]["runtime"]
     assert rt["total_s"] > 0 and rt["peak_rss_mb"] > 0
     assert set(rt["stages_s"]) == {"collection", "extraction", "analysis"}
+    assert set(rt["peak_rss_by_stage_mb"]) == {"collection", "extraction", "analysis:role",
+                                               "analysis:workflow", "analysis:topology"}
+
+
+def test_gbt_leaf_size_allows_a_split_on_small_folds():
+    assert gbt_min_leaf(345, 4) == 20                     # full collections keep the repository's GBT
+    assert gbt_min_leaf(32, 2) == 8                       # 40 traces, 5 folds: 20 per leaf could not split
+
+
+def test_small_separable_data_is_not_an_all_clear():
+    """40 samples, 2 classes, one feature that separates them: GBT with 20 per leaf would predict
+    one class (macro-F1 1/3) and read NO LEAK."""
+    rng = np.random.default_rng(0)
+    y = np.array(["a", "b"] * 20)
+    X = np.c_[np.where(y == "a", 0.0, 1.0) + rng.normal(0, 0.05, 40), rng.normal(size=(40, 5))]
+    g = np.array([f"g{i}" for i in range(40)])
+    cfg = Config(permutations=19, n_boot=200, jobs=1)
+    r = analyze(X, y, g, {}, None, cfg, {})
+    assert r["verdict"] == LEAK, r["reason"]
+    assert r["attribution"] is None                       # no families, no single feature
+
+
+def test_contradicted_no_leak_is_inconclusive(monkeypatch):
+    """A NO LEAK the permutation test contradicts (its model finds a signal) is INCONCLUSIVE."""
+    import a2a_leakcheck.analyze as an
+    rng = np.random.default_rng(1)
+    y = np.array(["a", "b"] * 30)
+    X = np.c_[np.where(y == "a", 0.0, 1.0), rng.normal(size=(60, 3))]
+    g = np.array([f"g{i}" for i in range(60)])
+    real_oof = an._oof
+
+    def blind_main_model(X, y, splits, cfg, model=None):     # the main model sees nothing
+        if model is None:
+            return np.array([y[0]] * len(y), dtype=object)
+        return real_oof(X, y, splits, cfg, model)
+    monkeypatch.setattr(an, "_oof", blind_main_model)
+    r = an.analyze(X, y, g, {}, None, Config(permutations=19, n_boot=200, jobs=1), {})
+    assert r["verdict"] == INCONCLUSIVE and "the two models disagree" in r["reason"]
 
 
 def test_minimum_sample_check(tmp_path):

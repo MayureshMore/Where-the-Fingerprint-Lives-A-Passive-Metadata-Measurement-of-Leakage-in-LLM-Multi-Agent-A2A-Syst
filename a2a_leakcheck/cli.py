@@ -59,6 +59,15 @@ def _git() -> dict:
         return {"git_commit": None, "git_dirty": None}
 
 
+def _stop_workers() -> None:
+    """Worker processes count toward RUSAGE_CHILDREN only once they exit and are reaped, so the
+    (reusable) worker pool is stopped after each attribute before measuring. ru_maxrss of the
+    children is the largest single worker; peak use is about the main process plus workers × that.
+    Peaks are running maxima: the value at the end of a stage covers that stage and all before."""
+    from joblib.externals.loky import get_reusable_executor
+    get_reusable_executor().shutdown(wait=True)
+
+
 def visible_agents(traces: list, visible: list[list[str]]) -> dict:
     """Per topology: traces, and in how many of them each listed agent carries traffic. An agent
     that is listed in agent_endpoints but never seen gives no role samples."""
@@ -79,6 +88,7 @@ def visible_agents(traces: list, visible: list[list[str]]) -> dict:
 def run(a: argparse.Namespace) -> int:
     t0 = time.perf_counter()
     stages: dict[str, float] = {}
+    peaks: dict[str, dict] = {}                      # running peak memory at the end of each stage
     attributes = [x.strip() for x in a.attributes.split(",") if x.strip()]
     cfg = Config(margin=a.margin, n_splits=a.folds, n_boot=a.n_boot, permutations=a.permutations,
                  alpha=a.alpha, min_per_class=a.min_per_class, seed=a.seed, model=a.model,
@@ -92,18 +102,21 @@ def run(a: argparse.Namespace) -> int:
         col = collect(Path(a.captures), [x for x in attributes if x != ROLE],
                       strip_dir=Path(tmp) if a.strip else None)
         stages["collection"] = time.perf_counter() - t
+        peaks["collection"] = {"main_mb": _peak_mb(resource.RUSAGE_SELF)}
         logger.info("collection: %d traces from %d captures", col["summary"]["traces"], col["summary"]["pcaps"])
         t = time.perf_counter()
         ext = extract(col["traces"], legacy=a.legacy_all_connections)
         stages["extraction"] = time.perf_counter() - t
+        peaks["extraction"] = {"main_mb": _peak_mb(resource.RUSAGE_SELF)}
         logger.info("extraction: %d traces, %d role samples", ext["summary"]["traces"], ext["summary"]["role_samples"])
 
     traces = [col["traces"][i] for i in ext["trace_index"]]
     col["summary"]["visible_agents"] = visible_agents(traces, ext["visible_roles"])
     groups = np.array([tr.group for tr in traces])
-    results = {}
+    results, by_attr = {}, {}
     t = time.perf_counter()
     for attr in attributes:
+        ta = time.perf_counter()
         logger.info("analysis: %s", attr)
         if attr == ROLE:
             X, y, g = ext["role_X"], ext["role_y"], groups[ext["role_trace"]]
@@ -119,6 +132,10 @@ def run(a: argparse.Namespace) -> int:
         r = analyze(X, y, g, fams, single, cfg, rules["severity"])
         r["mitigations"] = hints(facts(attr, r), rules)
         results[attr] = r
+        by_attr[attr] = time.perf_counter() - ta
+        _stop_workers()
+        peaks[f"analysis:{attr}"] = {"main_mb": _peak_mb(resource.RUSAGE_SELF),
+                                     "worker_mb": _peak_mb(resource.RUSAGE_CHILDREN)}
         logger.info("  %s: %s (%s)", attr, r["verdict"], r["reason"])
     stages["analysis"] = time.perf_counter() - t
 
@@ -146,13 +163,9 @@ def run(a: argparse.Namespace) -> int:
     if a.fail_on_leak and report["summary"]["LEAK"] and code == 0:
         code = 2
 
-    # Worker processes count toward RUSAGE_CHILDREN only once they exit and are reaped, so stop
-    # the (reusable) worker pool before measuring. ru_maxrss of the children is the largest
-    # single worker; peak use is about the main process plus workers × that.
-    from joblib.externals.loky import get_reusable_executor
-    get_reusable_executor().shutdown(wait=True)
     # measured up to here; writing the reports takes milliseconds
     report["runtime"] = {"total_s": time.perf_counter() - t0, "stages_s": stages,
+                         "analysis_by_attribute_s": by_attr, "peak_rss_by_stage_mb": peaks,
                          "peak_rss_mb": _peak_mb(resource.RUSAGE_SELF),
                          "peak_rss_children_mb": _peak_mb(resource.RUSAGE_CHILDREN),
                          "workers": os.cpu_count() if cfg.jobs in (-1, 0) else cfg.jobs,

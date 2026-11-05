@@ -17,7 +17,7 @@
 #   family_matches_all.<family>       per family, as above
 #   too_few_samples                   true when the minimum-sample check failed
 #
-# Docs: docs/LEAKCHECK.md, "Adding a rule".
+# Docs: docs/EXTENDING.md, "A new rule".
 
 severity:
   high: 0.6
@@ -30,7 +30,9 @@ rules:
       One request-size feature alone matches all features: the size of the task input gives the
       attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this
       testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that
-      the inputs of different classes share one.
+      the inputs of different classes share one. Padding task inputs may not remove the leak:
+      other size and timing features can still carry it. Re-run the audit on the padded
+      deployment.
 
   - id: pad-messages
     when: {verdict: LEAK, top_family: sizes, request_size_single_matches_all: false}
