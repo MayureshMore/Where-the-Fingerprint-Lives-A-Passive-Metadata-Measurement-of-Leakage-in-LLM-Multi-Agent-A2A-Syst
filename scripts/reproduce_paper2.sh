@@ -137,7 +137,7 @@ if [ "$QUICK" -eq 0 ]; then
         --role-within star
     if [ -d data/raw_c2 ] && [ -d data/raw_c2_pad ]; then
         run_eval paper2_tool_eval_c2 "$CANON/paper2_tool_eval_c2.json" --collection-id C2 \
-            --arm lan=data/raw_c2 --arm lan_pad=data/raw_c2_pad --not-known lan_pad:workflow
+            --arm lan=data/raw_c2 --arm lan_pad=data/raw_c2_pad --not-known lan_pad:workflow --role-within star
     else
         echo "[skip] C2 captures absent"
     fi

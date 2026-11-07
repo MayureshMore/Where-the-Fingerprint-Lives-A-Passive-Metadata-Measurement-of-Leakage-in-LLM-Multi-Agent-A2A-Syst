@@ -3,9 +3,12 @@
 Paper 2: how well a2a-leakcheck's verdicts hold up, on collections whose answer is known.
 
   known leaks       the real labels: role, workflow and topology on each arm (paper 1 and the TLS
-                    control: all three leak, with and without TLS). --not-known ARM:ATTR leaves a
-                    cell out of the known leaks (the padded C2 arm's workflow, which is the open
-                    question there); it is still reported.
+                    control: all three leak, with and without TLS), and with --role-within TOPOLOGY
+                    role scored on that topology's traces only (role_within_<topology>; at C2's
+                    gateway, star is the one topology in which all three specialists are seen, and
+                    role leaks there on its own: 0.988 on the TLS control's gateway view).
+                    --not-known ARM:ATTR leaves a cell out of the known leaks (the padded C2 arm's
+                    workflow, which is the open question there); it is still reported.
   known non-leaks   permuted labels: --label-perms random permutations of each attribute's labels
                     over its samples (labels independent of the traffic), and audit_null, a
                     sidecar label drawn from the prompt group alone (C2 sidecars,
@@ -35,8 +38,8 @@ data/results/figures/paper2_tool_eval.png.
 
 Usage:
     python scripts/evaluate_leakcheck.py                                  # TLS control, both arms
-    python scripts/evaluate_leakcheck.py --collection-id C2 \\
-        --arm unpadded=data/raw_c2 --arm padded=data/raw_c2_pad --not-known padded:workflow
+    python scripts/evaluate_leakcheck.py --collection-id C2 --name paper2_tool_eval_c2 --role-within star \\
+        --arm lan=data/raw_c2 --arm lan_pad=data/raw_c2_pad --not-known lan_pad:workflow
 """
 
 from __future__ import annotations
@@ -66,6 +69,7 @@ from features.per_flow import PerFlowFeatures  # noqa: E402
 SEED = 42
 ATTRS = ("role", "workflow", "topology")
 NULL_ATTR = "audit_null"
+ROLE_WITHIN = "role_within_"
 SIZES = (5, 10, 20, 30, 50)
 VERDICTS = (LEAK, INCONCLUSIVE, NO_LEAK)
 METHODS = {"leakcheck": "a2a-leakcheck: GBT on the header-only features (195 per trace, 35 per agent)",
@@ -106,9 +110,18 @@ def kfp_rows(packets: list, servers: set[int], port: int | None) -> np.ndarray:
     return kfp_features(t, d)
 
 
-def load_arm(raw: Path) -> dict:
+def attr_index(attr: str, role_within: list[str]) -> int:
+    """Fixed index of an attribute for its random streams, so adding role_within_* attributes
+    leaves the draws of the others unchanged."""
+    if attr.startswith(ROLE_WITHIN):
+        return 10 + role_within.index(attr[len(ROLE_WITHIN):])
+    return (*ATTRS, NULL_ATTR).index(attr)
+
+
+def load_arm(raw: Path, role_within: list[str] = ()) -> dict:
     """Collect and extract once per arm, as the tool does, plus k-FP vectors per trace and per
-    agent. Samples per attribute: (X per method, labels, groups)."""
+    agent. Samples per attribute: (X per method, labels, groups). role_within: topologies whose
+    role samples also form an attribute of their own (role_within_<topology>)."""
     with tempfile.TemporaryDirectory(prefix="leakeval_") as tmp:
         col = collect(raw, ["workflow", "topology", NULL_ATTR], strip_dir=Path(tmp))
         ext = extract(col["traces"])
@@ -124,9 +137,17 @@ def load_arm(raw: Path) -> dict:
     groups = np.array([tr.group for tr in traces])
     out = {"traces": len(traces), "samples": {}}
     bytes_in = PerFlowFeatures.FEATURE_NAMES().index("bytes_in")
-    out["samples"]["role"] = {"X": {"leakcheck": ext["role_X"], "kfp_rf": np.stack(kfp_role),
-                                    "first_request": ext["role_X"][:, [bytes_in]]},
-                              "y": ext["role_y"].astype(str), "g": groups[ext["role_trace"]]}
+    role = {"X": {"leakcheck": ext["role_X"], "kfp_rf": np.stack(kfp_role),
+                  "first_request": ext["role_X"][:, [bytes_in]]},
+            "y": ext["role_y"].astype(str), "g": groups[ext["role_trace"]]}
+    out["samples"]["role"] = role
+    tops = np.array([tr.topology for tr in traces], dtype=object)[ext["role_trace"]]
+    for top in role_within:
+        keep = tops == top
+        if not keep.any():
+            raise SystemExit(f"--role-within {top}: no role samples from {top} traces in {raw}")
+        out["samples"][f"{ROLE_WITHIN}{top}"] = {"X": {m: x[keep] for m, x in role["X"].items()},
+                                                 "y": role["y"][keep], "g": role["g"][keep]}
     kt = np.stack(kfp_trace)
     for attr in ("workflow", "topology", NULL_ATTR):
         have = np.array([attr in tr.labels for tr in traces])
@@ -172,8 +193,11 @@ def verdict(X, y, g, a, method: str, sev: dict) -> dict:
 def run_tool(raw: Path, attrs: list[str], a: argparse.Namespace, out: Path) -> dict:
     """The tool as shipped, in a fresh process: full-data verdicts, runtime and memory."""
     cmd = [sys.executable, "-m", "a2a_leakcheck", "run", str(raw), "--out", str(out), "--strip",
-           "--attributes", ",".join(attrs), "--jobs", str(a.jobs), "--permutations", str(a.permutations),
+           "--attributes", ",".join(x for x in attrs if not x.startswith(ROLE_WITHIN)),
+           "--jobs", str(a.jobs), "--permutations", str(a.permutations),
            "--n-boot", str(a.n_boot), "--margin", str(a.margin), "--min-per-class", str(a.min_per_class)]
+    if a.role_within:
+        cmd += ["--role-within", ",".join(a.role_within)]
     subprocess.run(cmd, check=True, capture_output=True, text=True)
     rep = json.loads((out / "report.json").read_text())
     return {"attributes": {k: {"verdict": r["verdict"], "reason": r["reason"],
@@ -191,13 +215,15 @@ def run_tool(raw: Path, attrs: list[str], a: argparse.Namespace, out: Path) -> d
 
 def evaluate_arm(name: str, raw: Path, a: argparse.Namespace, sev: dict, tmp: Path) -> dict:
     t = time.perf_counter()
-    data = load_arm(raw)
-    attrs = [x for x in (*ATTRS, NULL_ATTR) if x in data["samples"]]
+    data = load_arm(raw, a.role_within)
+    attrs = [x for x in ("role", *(ROLE_WITHIN + t for t in a.role_within), *ATTRS[1:], NULL_ATTR)
+             if x in data["samples"]]
     print(f"[{name}] {data['traces']} traces; attributes {attrs} ({time.perf_counter() - t:.0f} s)", flush=True)
     tool = run_tool(raw, attrs, a, tmp / name)
     print(f"[{name}] tool: " + ", ".join(f"{k} {v['verdict']}" for k, v in tool["attributes"].items()), flush=True)
     res = {"data_dir": str(raw), "traces": data["traces"], "tool": tool, "attributes": {}}
-    for ai, attr in enumerate(attrs):
+    for attr in attrs:
+        ai = attr_index(attr, a.role_within)
         s = data["samples"][attr]
         y, g = s["y"], s["g"]
         perms = [np.random.default_rng([SEED, 1, ai, k]).permutation(y) for k in range(a.label_perms)]
@@ -344,7 +370,7 @@ def make_figure(out: dict, path: Path) -> None:
     import matplotlib.pyplot as plt
     colors = {LEAK: "#c0392b", INCONCLUSIVE: "#d9a400", NO_LEAK: "#2e7d4f"}
     arms = list(out["arms"])
-    attrs = [x for x in (*ATTRS, NULL_ATTR) if any(x in out["arms"][a]["attributes"] for a in arms)]
+    attrs = list(dict.fromkeys(x for a in arms for x in out["arms"][a]["attributes"]))
     sizes = out["parameters"]["sizes"]
     fig, axes = plt.subplots(len(arms), len(attrs), figsize=(3.0 * len(attrs), 2.6 * len(arms)),
                              sharex=True, sharey=True, squeeze=False)
@@ -397,7 +423,8 @@ def main(a: argparse.Namespace) -> None:
            "parameters": {"sizes": a.sizes, "subsamples": a.subsamples, "label_perms": a.label_perms,
                           "permutations": a.permutations, "n_boot": a.n_boot, "margin": a.margin,
                           "min_per_class": a.min_per_class, "folds": 5, "null_model": "rf-light", "alpha": 0.05,
-                          "jobs": a.jobs, "not_known": sorted([list(x) for x in not_known])},
+                          "jobs": a.jobs, "not_known": sorted([list(x) for x in not_known]),
+                          "role_within": a.role_within},
            "methods": METHODS, "arms": {}}
     with tempfile.TemporaryDirectory(prefix="leakeval_reports_") as tmp:
         for name, raw in arms.items():
@@ -420,6 +447,9 @@ if __name__ == "__main__":
     p.add_argument("--collection-id", default="TLS control", dest="collection_id")
     p.add_argument("--not-known", action="append", default=[], dest="not_known",
                    help="ARM:ATTRIBUTE whose real labels are not a known leak (repeat)")
+    p.add_argument("--role-within", default="", dest="role_within", metavar="TOPOLOGIES",
+                   type=lambda v: [x.strip() for x in v.split(",") if x.strip()],
+                   help="comma-separated topologies: also score role on each one's traces only, as a known leak")
     p.add_argument("--sizes", type=int, nargs="+", default=list(SIZES))
     p.add_argument("--subsamples", type=int, default=20)
     p.add_argument("--label-perms", type=int, default=20, dest="label_perms",
