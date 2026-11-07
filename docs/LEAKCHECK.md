@@ -56,6 +56,15 @@ the role classes follow what the capture shows and can be unbalanced. The minimu
 applies to each class. The report's collection section lists, per topology, in how many traces
 each agent carries traffic (`collection.visible_agents`).
 
+When the agents seen differ by topology, the pooled role score can partly reflect the topology:
+at the gateway the validator appears only in star traces, so "validator" can be predicted from
+"this is a star trace". The report says so under role. `--role-within star` also scores role on
+the star traces alone (attribute `role_within_star`, with its own verdict, permutation test and
+hints), next to the pooled score; within one topology the score cannot come from telling the
+topologies apart. Give several topologies comma-separated. On the gateway view of the TLS
+control's TLS arm (`scripts/make_gateway_view.py`), pooled role reads LEAK at 0.955 [0.939,
+0.969] and role within star LEAK at 0.988 [0.976, 0.998], p = 0.01 for both.
+
 ## Reading a verdict
 
 - **LEAK** says an observer does better than chance + margin, with 95% confidence, and the

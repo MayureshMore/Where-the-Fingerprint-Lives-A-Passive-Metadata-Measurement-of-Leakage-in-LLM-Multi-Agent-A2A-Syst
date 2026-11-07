@@ -131,8 +131,10 @@ if [ "$QUICK" -eq 0 ]; then
     fi
 
     echo "== 4. C2"
-    run_report c2_lan data/raw_c2 "$CANON/leakcheck/c2_lan" --strip --attributes role,workflow,topology,audit_null
-    run_report c2_lan_pad data/raw_c2_pad "$CANON/leakcheck/c2_lan_pad" --strip --attributes role,workflow,topology,audit_null
+    run_report c2_lan data/raw_c2 "$CANON/leakcheck/c2_lan" --strip --attributes role,workflow,topology,audit_null \
+        --role-within star
+    run_report c2_lan_pad data/raw_c2_pad "$CANON/leakcheck/c2_lan_pad" --strip --attributes role,workflow,topology,audit_null \
+        --role-within star
     if [ -d data/raw_c2 ] && [ -d data/raw_c2_pad ]; then
         run_eval paper2_tool_eval_c2 "$CANON/paper2_tool_eval_c2.json" --collection-id C2 \
             --arm lan=data/raw_c2 --arm lan_pad=data/raw_c2_pad --not-known lan_pad:workflow

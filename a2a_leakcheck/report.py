@@ -44,6 +44,36 @@ ROLE_NOTE = ("A role verdict holds for the topologies in the captures; a role pr
              "transfer to another topology.")
 
 
+def _seen_by_topology(report: dict) -> dict[str, list[str]]:
+    vis = report["collection"].get("visible_agents") or {}
+    return {top: sorted(r for r, n in t["roles"].items() if n) for top, t in vis.items()}
+
+
+def role_notes(report: dict, name: str, r: dict) -> list[str]:
+    """Notes under a role attribute: when the agents seen differ by topology, the pooled role
+    score can partly reflect the topology; a role_within_<topology> score cannot."""
+    notes = []
+    seen = _seen_by_topology(report)
+    if name == "role" and len({tuple(v) for v in seen.values()}) > 1:
+        within = [k for k, x in report["attributes"].items() if x.get("within_topology")]
+        best = max(seen, key=lambda t: len(seen[t]))
+        notes.append("The agents seen differ by topology (" + "; ".join(
+            f"{t}: {', '.join(v) or 'none'}" for t, v in seen.items()) + "): some roles occur only in some "
+            "topologies, so the pooled role score can partly reflect the topology. "
+            + (f"{', '.join(within)} scores role within one topology." if within else
+               f"Score role within one topology with --role-within {best} (the topology in which the most "
+               "agents are seen)."))
+    if r.get("within_topology"):
+        top = r["within_topology"]
+        notes.append(f"Role scored on the {top} traces only ({r['n']} agent samples"
+                     + (f"; agents seen: {', '.join(seen[top])}" if top in seen else "")
+                     + "). Every sample comes from one topology, so the score cannot come from telling the "
+                       "topologies apart.")
+    if name == "role" or r.get("within_topology"):
+        notes.append(ROLE_NOTE)
+    return notes
+
+
 def _visible_md(c: dict) -> list[str]:
     """Visible agents per topology: in how many traces each listed agent carries traffic."""
     vis = c.get("visible_agents")
@@ -83,9 +113,10 @@ def write_markdown(report: dict, path: Path) -> None:
                  + ", ".join(f"{k} {v}" for k, v in r["validation"]["min_samples"]["per_class"].items()) + ".")
         attr = r.get("attribution")
         if attr:
+            ex = report["extraction"]
+            dims = ex["role_dims"] if name == "role" or r.get("within_topology") else ex["trace_dims"]
             L += ["", "| Features | Dims | macro-F1 [95% CI] | All − this |", "|---|---|---|---|",
-                  f"| all | {report['extraction']['role_dims'] if name == 'role' else report['extraction']['trace_dims']}"
-                  f" | {_ci(r['analysis'])} | — |"]
+                  f"| all | {dims} | {_ci(r['analysis'])} | — |"]
             for fam, v in attr["families"].items():
                 d = v["all_minus_this"]
                 L.append(f"| {fam.replace('_', ' and ')} only | {v['dims']} | {_ci(v)} | {d['diff']:+.3f} "
@@ -107,8 +138,8 @@ def write_markdown(report: dict, path: Path) -> None:
                       f"{nv['LEAK']} LEAK, {nv['NO LEAK']} NO LEAK, {nv['INCONCLUSIVE']} INCONCLUSIVE."]
         for h in r.get("mitigations", []):
             L += ["", f"- **{h['id']}**: {h['hint']}"]
-        if name == "role":
-            L += ["", ROLE_NOTE]
+        for note in role_notes(report, name, r):
+            L += ["", note]
     if report.get("diff"):
         d = report["diff"]
         L += ["", "## Against the baseline", "", f"Baseline: `{d['baseline']}`.", ""]
@@ -151,7 +182,8 @@ def write_html(report: dict, path: Path) -> None:
     for r in _rows(report):
         cls = r["verdict"].split()[0]
         hints = "".join(f"<li><b>{e(h['id'])}</b>: {e(h['hint'])}</li>" for h in r["hints"])
-        note = f"<p class='meta'>{e(ROLE_NOTE)}</p>" if r["attribute"] == "role" else ""
+        note = "".join(f"<p class='meta'>{e(n)}</p>"
+                       for n in role_notes(report, r["attribute"], report["attributes"][r["attribute"]]))
         rows.append(f"<tr><td>{e(r['attribute'])}</td><td class='{cls}'>{e(r['verdict'])}</td>"
                     f"<td>{e(r['severity'])}</td><td>{e(r['score'])}</td><td>{e(r['threshold'])}</td>"
                     f"<td>{e(r['p'])}</td><td>{e(r['fpr'])}</td><td>{e(r['carried'])}</td>"

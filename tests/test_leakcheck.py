@@ -33,9 +33,11 @@ def _pkt(t, sport, dport, flags, n):
     return p
 
 
-def _trace(i, workflow, rng):
+def _trace(i, workflow, rng, seen=tuple(ROLES)):
     pkts, t0 = [], 1000.0 + 10 * i
     for k, (role, port) in enumerate(ROLES.items()):
+        if role not in seen:
+            continue
         c, t = 40000 + 3 * i + k, t0 + 0.01 * k
         seq = [(c, port, "S", 0), (port, c, "SA", 0), (c, port, "A", 0),
                (c, port, "PA", 517), (port, c, "PA", 1374), (c, port, "PA", 80),
@@ -165,6 +167,36 @@ def test_contradicted_no_leak_is_inconclusive(monkeypatch):
     monkeypatch.setattr(an, "_oof", blind_main_model)
     r = an.analyze(X, y, g, {}, None, Config(permutations=19, n_boot=200, jobs=1), {})
     assert r["verdict"] == INCONCLUSIVE and "the two models disagree" in r["reason"]
+
+
+def test_role_within_one_topology(tmp_path):
+    """A gateway-like view: chain traces carry only the executor, star traces all three agents.
+    role_within_star scores the star traces' agents alone, next to the pooled role score, and the
+    pooled role section says the agents seen differ by topology."""
+    rng = np.random.default_rng(3)
+    d = tmp_path / "gw"
+    d.mkdir()
+    for i in range(60):
+        top = "star" if i % 2 else "chain"
+        wrpcap(str(d / f"t{i:04d}.pcap"), _trace(i, "alpha", rng, ROLES if top == "star" else ("executor",)))
+        (d / f"t{i:04d}.json").write_text(json.dumps({
+            "run_id": f"t{i:04d}", "workflow_class": "alpha", "topology": top, "input_prompt": f"prompt {i}",
+            "agent_endpoints": {"orchestrator": f"10.0.0.1:{ORCH}", **{r: f"10.0.0.2:{p}" for r, p in ROLES.items()}},
+            "success": True}))
+    out = tmp_path / "out"
+    assert main(["run", str(d), "--out", str(out), "--strip", "--attributes", "role", "--role-within", "star", *FAST]) == 0
+    rep = json.loads((out / "report.json").read_text())
+    assert list(rep["attributes"]) == ["role", "role_within_star"]
+    pooled, star = rep["attributes"]["role"], rep["attributes"]["role_within_star"]
+    assert pooled["validation"]["min_samples"]["per_class"] == {"executor": 60, "retriever": 30, "validator": 30}
+    assert star["validation"]["min_samples"]["per_class"] == {"executor": 30, "retriever": 30, "validator": 30}
+    assert star["within_topology"] == "star" and star["verdict"] == LEAK
+    assert any(h["id"] == "role-endpoints" for h in star["mitigations"])
+    md = (out / "report.md").read_text()
+    assert "The agents seen differ by topology (chain: executor; star: executor, retriever, validator)" in md
+    assert "Role scored on the star traces only (90 agent samples" in md
+    with pytest.raises(SystemExit, match="no trace has topology mesh"):
+        main(["run", str(d), "--out", str(out), "--strip", "--attributes", "role", "--role-within", "mesh", *FAST])
 
 
 def test_minimum_sample_check(tmp_path):

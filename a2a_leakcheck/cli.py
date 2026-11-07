@@ -37,6 +37,7 @@ from features.per_flow import PerFlowFeatures  # noqa: E402
 
 logger = logging.getLogger("leakcheck")
 ROLE = "role"
+ROLE_WITHIN = "role_within_"                     # role scored on the traces of one topology
 
 
 def _peak_mb(who: int) -> float:
@@ -113,13 +114,25 @@ def run(a: argparse.Namespace) -> int:
     traces = [col["traces"][i] for i in ext["trace_index"]]
     col["summary"]["visible_agents"] = visible_agents(traces, ext["visible_roles"])
     groups = np.array([tr.group for tr in traces])
+    within = [x.strip() for x in a.role_within.split(",") if x.strip()]
+    tops = np.array([tr.topology for tr in traces], dtype=object)
+    for top in within:
+        if not (tops == top).any():
+            raise SystemExit(f"--role-within {top}: no trace has topology {top} "
+                             f"(have: {', '.join(sorted({str(x) for x in tops}))})")
+    tasks = attributes + [f"{ROLE_WITHIN}{top}" for top in within]   # role_within_* right after role
+    if ROLE in attributes:
+        i = attributes.index(ROLE) + 1
+        tasks = attributes[:i] + tasks[len(attributes):] + attributes[i:]
     results, by_attr = {}, {}
     t = time.perf_counter()
-    for attr in attributes:
+    for attr in tasks:
         ta = time.perf_counter()
         logger.info("analysis: %s", attr)
-        if attr == ROLE:
-            X, y, g = ext["role_X"], ext["role_y"], groups[ext["role_trace"]]
+        if attr == ROLE or attr.startswith(ROLE_WITHIN):
+            keep = np.ones(len(ext["role_y"]), bool) if attr == ROLE else \
+                tops[ext["role_trace"]] == attr[len(ROLE_WITHIN):]
+            X, y, g = ext["role_X"][keep], ext["role_y"][keep], groups[ext["role_trace"][keep]]
             fams = {f: family_columns(f, True) for f in FAMILIES}
             single = ("bytes_in", X[:, PerFlowFeatures.FEATURE_NAMES().index("bytes_in")])
         else:
@@ -130,7 +143,9 @@ def run(a: argparse.Namespace) -> int:
             fams = {f: family_columns(f, False) for f in FAMILIES}
             single = ("first_request_bytes", ext["first_request"][have])
         r = analyze(X, y, g, fams, single, cfg, rules["severity"])
-        r["mitigations"] = hints(facts(attr, r), rules)
+        if attr.startswith(ROLE_WITHIN):
+            r["within_topology"] = attr[len(ROLE_WITHIN):]
+        r["mitigations"] = hints(facts(ROLE if attr.startswith(ROLE_WITHIN) else attr, r), rules)
         results[attr] = r
         by_attr[attr] = time.perf_counter() - ta
         _stop_workers()
@@ -143,8 +158,9 @@ def run(a: argparse.Namespace) -> int:
         "tool": "a2a-leakcheck", "version": __version__,
         "created": time.strftime("%Y-%m-%dT%H:%M:%S%z"), **_git(),
         "input": {"folder": str(Path(a.captures)), "label": a.label},
-        "parameters": {"attributes": attributes, "margin": cfg.margin, "folds": cfg.n_splits,
-                       "n_boot": cfg.n_boot, "permutations": cfg.permutations, "alpha": cfg.alpha,
+        "parameters": {"attributes": attributes, "role_within": within, "margin": cfg.margin,
+                       "folds": cfg.n_splits, "n_boot": cfg.n_boot, "permutations": cfg.permutations,
+                       "alpha": cfg.alpha,
                        "min_per_class": cfg.min_per_class, "seed": cfg.seed, "model": cfg.model,
                        "null_model": cfg.null_model, "jobs": cfg.jobs,
                        "rules": str(a.rules or "default"), "strip": a.strip,
@@ -202,6 +218,10 @@ def parser() -> argparse.ArgumentParser:
     r.add_argument("--out", required=True, help="report folder (report.json, report.md[, report.html])")
     r.add_argument("--attributes", default="role,workflow,topology",
                    help="comma-separated; role comes from agent_endpoints, others from sidecar keys")
+    r.add_argument("--role-within", default="", dest="role_within", metavar="TOPOLOGIES",
+                   help="comma-separated topologies; for each, also score role on that topology's traces "
+                        "only (attribute role_within_<topology>), next to the pooled role score. Use it "
+                        "when the agents a capture sees depend on the topology, as at a gateway")
     r.add_argument("--margin", type=float, default=0.05, help="macro-F1 above chance that counts as a leak")
     r.add_argument("--permutations", type=int, default=99,
                    help="label permutations (0 = skip the test); 99 lets p reach 0.01")
