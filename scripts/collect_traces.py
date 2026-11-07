@@ -33,7 +33,7 @@ from agents.base import AgentConfig, AgentRole
 from agents.orchestrator import OrchestratorAgent
 from capture.automation import TraceCollector
 from capture.recorder import PacketRecorder
-from workflows import WORKFLOW_REGISTRY, WorkflowClass
+from workflows import CLASSIC_WORKFLOWS, WORKFLOW_REGISTRY, WorkflowClass
 from workflows.base import TopologyType
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -147,7 +147,7 @@ async def main(args: argparse.Namespace) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Collect A2A traffic traces")
     parser.add_argument("--workflow", required=True,
-                        choices=[wf.value for wf in WorkflowClass])
+                        choices=[wf.value for wf in CLASSIC_WORKFLOWS])
     parser.add_argument("--topology", required=True,
                         choices=[t.value for t in TopologyType])
     parser.add_argument("--n", type=int, default=50, help="Number of traces")

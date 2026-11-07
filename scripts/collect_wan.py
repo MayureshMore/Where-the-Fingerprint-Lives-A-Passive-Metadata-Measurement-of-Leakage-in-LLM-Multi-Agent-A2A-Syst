@@ -51,7 +51,7 @@ from agents.orchestrator import OrchestratorAgent
 from agents_b.orchestrator_b import OrchestratorB
 from capture.automation import TraceCollector
 from capture.recorder import PacketRecorder
-from workflows import WORKFLOW_REGISTRY, WorkflowClass
+from workflows import CLASSIC_WORKFLOWS, WORKFLOW_REGISTRY, WorkflowClass
 from workflows.base import TopologyType
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -101,7 +101,7 @@ async def main(args: argparse.Namespace) -> None:
 
     # One topology per run — must match how serve_agents was started remotely.
     topologies = [args.topology]
-    workflows = [args.workflow] if args.workflow else [wf.value for wf in WorkflowClass]
+    workflows = [args.workflow] if args.workflow else [wf.value for wf in CLASSIC_WORKFLOWS]
 
     # Confirm the remote specialists are up before capturing.
     if not await _reachable(args.remote_host, ports["executor"]):
@@ -125,7 +125,7 @@ async def main(args: argparse.Namespace) -> None:
             wf_instance = WORKFLOW_REGISTRY[wf_class]()
             # Same seed scheme as the pilots → identical prompts to the local runs.
             _TOPOS = ["star", "chain", "mesh"]
-            _WFS = [wf.value for wf in WorkflowClass]
+            _WFS = [wf.value for wf in CLASSIC_WORKFLOWS]
             seed = _TOPOS.index(topology) * len(_WFS) + _WFS.index(wf_name) + 100
             prompts = wf_instance.sample_prompts(n=args.n, seed=seed)
 
@@ -164,7 +164,7 @@ def _parse() -> argparse.Namespace:
     p.add_argument("--deployment", choices=["a", "b"], default="a")
     p.add_argument("--topology", required=True, choices=["star", "chain", "mesh"],
                    help="MUST match the --topology serve_agents was started with on the remote host")
-    p.add_argument("--workflow", choices=[wf.value for wf in WorkflowClass])
+    p.add_argument("--workflow", choices=[wf.value for wf in CLASSIC_WORKFLOWS])
     p.add_argument("--n", type=int, default=50, help="Traces per (workflow, topology) pair (match local: 50)")
     p.add_argument("--model", default=None)
     p.add_argument("--num-predict", type=int, default=256, dest="num_predict",

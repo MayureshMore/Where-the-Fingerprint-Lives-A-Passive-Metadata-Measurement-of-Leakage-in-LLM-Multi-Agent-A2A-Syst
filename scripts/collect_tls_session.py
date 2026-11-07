@@ -49,7 +49,7 @@ from scripts.collect_deployment import (  # noqa: E402
     DEFAULT_NUM_PREDICT, DEPLOYMENTS, TOPO_EDGES, _agent_configs, _kill_port, _orchestrator,
     _wait_ready,
 )
-from workflows import WORKFLOW_REGISTRY, WorkflowClass  # noqa: E402
+from workflows import CLASSIC_WORKFLOWS, WORKFLOW_REGISTRY, WorkflowClass  # noqa: E402
 from workflows.base import TopologyType  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -126,8 +126,8 @@ async def main(a: argparse.Namespace) -> None:
             sys.exit(f"{d} already holds pcaps; move it aside or pass --allow-existing")
 
     topologies = [a.topology] if a.topology else TOPOLOGIES
-    workflows = [a.workflow] if a.workflow else [wf.value for wf in WorkflowClass]
-    wfs_all = [wf.value for wf in WorkflowClass]
+    workflows = [a.workflow] if a.workflow else [wf.value for wf in CLASSIC_WORKFLOWS]
+    wfs_all = [wf.value for wf in CLASSIC_WORKFLOWS]
     meta_path = outs["tls"] / "session_meta.json"
     meta = json.loads(meta_path.read_text()) if a.resume and meta_path.exists() else None
     if meta is None:
@@ -239,7 +239,7 @@ def _parse() -> argparse.Namespace:
     p.add_argument("--pilot", action="store_true",
                    help="one pair (star, first workflow) into data/tls_pilot/{clear,tls}")
     p.add_argument("--topology", choices=TOPOLOGIES, default=None)
-    p.add_argument("--workflow", choices=[wf.value for wf in WorkflowClass], default=None)
+    p.add_argument("--workflow", choices=[wf.value for wf in CLASSIC_WORKFLOWS], default=None)
     p.add_argument("--seed-offset", type=int, default=1000, dest="seed_offset",
                    help="prompt seed offset (prompts still overlap the main collections; transfers are cross-fitted)")
     p.add_argument("--model", default=None)
@@ -258,7 +258,7 @@ def _parse() -> argparse.Namespace:
     args = p.parse_args()
     if args.pilot:
         args.n, args.rounds, args.topology = 1, 1, args.topology or "star"
-        args.workflow = args.workflow or list(WorkflowClass)[0].value
+        args.workflow = args.workflow or CLASSIC_WORKFLOWS[0].value
         args.out_clear, args.out_tls = "data/tls_pilot/clear", "data/tls_pilot/tls"
         args.allow_existing = True
     return args

@@ -1,14 +1,35 @@
 # Prompt registry
 
 Every collection draws its prompts from the workflow generators (`workflows/`) with
-`seed = topology_index × 4 + workflow_index + 100 + seed_offset`. Register each collection's
-offsets here before collecting, and report its overlap with every collection it will be
-compared with. `prompt_group = sha1(prompt)[:8]` is the grouping key in every evaluation.
+`seed = topology_index × 4 + workflow_index + 100 + seed_offset` (`workflows.prompt_seed`), where
+`workflow_index` is the workflow's position in its set. Register each collection's offsets here
+before collecting, and report its overlap with every collection it will be compared with.
+`prompt_group = sha1(prompt)[:8]` is the grouping key in every evaluation.
 
-## The pool is small
+## Workflow sets
 
-Over 4,000 seeds the generators produce only this many distinct prompts per workflow, so a new
-seed offset does **not** give prompts disjoint from earlier collections:
+A collection draws all its workflows from one set (`collect_session.py --workflows`). Both sets
+have the same design: two workflows with long task inputs and two with short ones.
+
+| Set | Workflows (in index order) | Used by |
+|---|---|---|
+| `classic` | research_retrieval, code_review, data_analysis, support_triage | every collection up to C1; unchanged (its seeds and prompts are those of the original four-member registry, checked against C1's sidecars) |
+| `iot` | sensor_analysis, fault_diagnosis, procedure_lookup, alert_triage | C2: an edge AI assistant for building and factory operations |
+
+The IoT generators are synthetic: invented sites, assets, telemetry, logs and configurations, no
+real or third-party data. Their template pools:
+
+| Workflow | Input | Template pools |
+|---|---|---|
+| sensor_analysis | a telemetry window as CSV (8–110 rows), with one injected anomaly in most windows | 8 equipment kinds, 6 asks, 10 sites, 5 sample intervals, 6 anomaly patterns (none, spike, drift, step, stuck, dropout) |
+| fault_diagnosis | a device log (30–80 lines) and a config excerpt | 6 device kinds, 18 fault scenarios, 5 asks, 10 sites, 30 routine log lines |
+| procedure_lookup | a short maintenance or procedure question | 20 question templates, 4 prefixes; slots: 14 assets, 9 parts, 7 sensors, 8 locations, 7 tasks, 5 faults |
+| alert_triage | a short alarm or occupant request | 5 alarm and 3 request templates, 5 asks; slots: 11 assets, 7 conditions, 5 faults, 9 locations, 10 complaints |
+
+## The classic pool is small
+
+Over 4,000 seeds the classic generators produce only this many distinct prompts per workflow, so a
+new seed offset does **not** give prompts disjoint from earlier collections:
 
 | Workflow | Distinct prompts (whole pool) |
 |---|---|
@@ -21,6 +42,10 @@ Within one collection this is handled by grouping (cross-validation holds out wh
 groups). Across collections, transfers are cross-fitted (`evaluation/crossfit.py`). Collections
 that must be prompt-disjoint from earlier ones need new templates first.
 
+The IoT generators draw their content at random (telemetry values, log timelines, slot values), so
+their pool is large: 4,000 seeds give 4,000 distinct sensor_analysis and fault_diagnosis prompts,
+2,163 procedure_lookup and 3,531 alert_triage.
+
 ## Collections
 
 | Collection | Seed offsets | Per condition | Script |
@@ -30,8 +55,9 @@ that must be prompt-disjoint from earlier ones need new templates first.
 | TLS control (`raw_tlspair_*`) | 1000 | 36 pairs | `collect_tls_session.py` |
 | **C1** (`raw_c1`) | **10000** | 50 | `collect_session.py` |
 | C1 pilot (`raw_c1_pilot`) | 10000 | 1 per topology | `collect_session.py --pilot` |
-| **C2** LAN, Mac + Raspberry Pi (`raw_c2`; two arms: no mitigation, input padding) | **20000** | 50 | `collect_session.py --arm ...,host=` (docs/LAN_SETUP.md) |
-| C2 pilot (`raw_c2_pilot`, `raw_c2_pad_pilot`) | 20000 | 2 hours (`--deadline-hours 2`) | `collect_session.py` |
+| **C2** LAN, Mac + Raspberry Pi (`raw_c2`, `raw_c2_pad`; two arms: no mitigation, input padding), **IoT set** | **20000** | 50 | `collect_session.py --workflows iot --arm ...,host=` (docs/LAN_SETUP.md) |
+| C2 pilot (`raw_c2_pilot`, `raw_c2_pad_pilot`), IoT set | 20000 | 2 hours (`--deadline-hours 2`) | `collect_session.py --workflows iot` |
+| C2 smoke test (Nov 6; loopback, one arm, discarded) | 20000 | 1 per topology (item 0) | `collect_session.py --workflows iot --n 1 --rounds 1` |
 
 ## C1 overlap (measured before collection)
 
@@ -49,18 +75,21 @@ C1 results are within-collection (grouped CV, temporal holdout with test-round p
 from training), so the overlap does not leak into them. Any transfer between C1 and another
 collection must be cross-fitted.
 
-## C2 overlap (measured before collection)
+## C2 prompts (IoT set, measured before collection)
 
-Distinct prompts C2 draws per workflow (seed offset 20000, 150 traces each), and how many of those
-also occur in C1 and in the TLS control's TLS arm. (The same computation reproduces C1's actual
-prompts exactly.)
+C2 draws 150 prompts per workflow (seed offset 20000, 50 per topology). Prompt length in bytes:
 
-| Workflow | C2 distinct | Also in C1 | Also in TLS control |
-|---|---|---|---|
-| research_retrieval | 54 | 42 (78%) | 30 (56%) |
-| code_review | 59 | 44 (75%) | 42 (71%) |
-| data_analysis | 74 | 56 (76%) | 51 (69%) |
-| support_triage | 85 | 55 (65%) | 33 (39%) |
+| Workflow | Distinct of 150 | Median | Min | Max |
+|---|---|---|---|---|
+| sensor_analysis | 150 | 2805 | 610 | 5213 |
+| fault_diagnosis | 150 | 3340 | 2080 | 5780 |
+| procedure_lookup | 144 | 79 | 50 | 131 |
+| alert_triage | 149 | 154 | 124 | 193 |
 
-C2 is paper 2's own data and its results are within-collection; any comparison with C1 or the
-TLS control must be cross-fitted.
+None of these prompts occurs in any earlier collection: checked against the sidecars of all 29
+`data/raw*` folders (C1, the TLS control, the summer sets, WAN, off-the-shelf systems). The IoT
+templates share no text with the classic ones, so C2 is prompt-disjoint from every earlier
+collection by construction.
+
+An earlier version of this table (Nov 4) counted the classic prompts C2 would have drawn at
+offset 20000 (65–78% also in C1); C2 uses the IoT set instead.

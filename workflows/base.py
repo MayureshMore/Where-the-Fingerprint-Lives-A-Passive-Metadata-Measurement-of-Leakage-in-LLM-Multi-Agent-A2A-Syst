@@ -18,6 +18,36 @@ class WorkflowClass(str, enum.Enum):
     CODE_REVIEW = "code_review"
     DATA_ANALYSIS = "data_analysis"
     SUPPORT_TRIAGE = "support_triage"
+    # IoT use case (C2): an edge AI assistant for building and factory operations
+    SENSOR_ANALYSIS = "sensor_analysis"
+    FAULT_DIAGNOSIS = "fault_diagnosis"
+    PROCEDURE_LOOKUP = "procedure_lookup"
+    ALERT_TRIAGE = "alert_triage"
+
+
+# Workflow sets: a collection draws all its workflows from one set. "classic" is every collection
+# up to C1 and must not change (its prompts depend on this order); "iot" is C2's use case. Both
+# have the same design: two long-input workflows and two short-input ones.
+WORKFLOW_SETS: dict[str, tuple[WorkflowClass, ...]] = {
+    "classic": (WorkflowClass.RESEARCH_RETRIEVAL, WorkflowClass.CODE_REVIEW,
+                WorkflowClass.DATA_ANALYSIS, WorkflowClass.SUPPORT_TRIAGE),
+    "iot": (WorkflowClass.SENSOR_ANALYSIS, WorkflowClass.FAULT_DIAGNOSIS,
+            WorkflowClass.PROCEDURE_LOOKUP, WorkflowClass.ALERT_TRIAGE),
+}
+CLASSIC_WORKFLOWS = WORKFLOW_SETS["classic"]
+
+
+def workflow_set(workflow: str | WorkflowClass) -> str:
+    wf = WorkflowClass(workflow)
+    return next(name for name, members in WORKFLOW_SETS.items() if wf in members)
+
+
+def prompt_seed(topology_index: int, workflow: str | WorkflowClass, seed_offset: int) -> int:
+    """Seed of one topology × workflow condition's prompt sample: topology_index × 4 + the
+    workflow's index in its set + 100 + seed_offset. For the classic set this is the formula every
+    collection up to C1 used (with the enum's first four members), so their prompts are unchanged."""
+    members = WORKFLOW_SETS[workflow_set(workflow)]
+    return topology_index * len(members) + members.index(WorkflowClass(workflow)) + 100 + seed_offset
 
 
 class TopologyType(str, enum.Enum):
@@ -56,6 +86,8 @@ class BaseWorkflow:
     """
 
     workflow_class: WorkflowClass
+    # sizes of the template pools a generator draws from (recorded per collection)
+    template_pools: dict[str, int] = {}
 
     def generate_prompt(self) -> str:
         raise NotImplementedError

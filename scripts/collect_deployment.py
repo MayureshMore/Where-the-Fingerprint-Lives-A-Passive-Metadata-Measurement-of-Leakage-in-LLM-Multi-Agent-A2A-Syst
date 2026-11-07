@@ -47,7 +47,7 @@ from agents_b.validator_b import ValidatorB
 from agents_langgraph.orchestrator_langgraph import OrchestratorLangGraph
 from capture.automation import TraceCollector
 from capture.recorder import PacketRecorder
-from workflows import WORKFLOW_REGISTRY, WorkflowClass
+from workflows import CLASSIC_WORKFLOWS, WORKFLOW_REGISTRY, WorkflowClass
 from workflows.base import TopologyType
 
 logging.basicConfig(
@@ -317,7 +317,7 @@ async def run_topology(
         # generators use small template pools, so samples still overlap; evaluate by prompt
         # group), e.g. a temporal-interleaving confound control that spreads prompts across time.
         _TOPOS = ["star", "chain", "mesh"]
-        _WFS   = [wf.value for wf in WorkflowClass]
+        _WFS   = [wf.value for wf in CLASSIC_WORKFLOWS]
         _seed  = _TOPOS.index(topology) * len(_WFS) + _WFS.index(wf_name) + 100 + seed_offset
         prompts = wf_instance.sample_prompts(n=n, seed=_seed)
 
@@ -386,7 +386,7 @@ async def main(args: argparse.Namespace) -> None:
     num_predict = args.num_predict if args.num_predict > 0 else None
 
     topologies = [args.topology] if args.topology else ["star", "chain", "mesh"]
-    workflows  = [args.workflow] if args.workflow else [wf.value for wf in WorkflowClass]
+    workflows  = [args.workflow] if args.workflow else [wf.value for wf in CLASSIC_WORKFLOWS]
 
     # Confirm the model is pulled on the target Ollama before a long run
     try:
@@ -460,7 +460,7 @@ def _parse() -> argparse.Namespace:
     p.add_argument("--topology", choices=["star", "chain", "mesh"],
                    help="Run one topology only (default: all three)")
     p.add_argument("--workflow",
-                   choices=[wf.value for wf in WorkflowClass],
+                   choices=[wf.value for wf in CLASSIC_WORKFLOWS],
                    help="Run one workflow only (default: all four)")
     p.add_argument("--n", type=int, default=5,
                    help="Traces per (workflow, topology) pair (default: 5)")

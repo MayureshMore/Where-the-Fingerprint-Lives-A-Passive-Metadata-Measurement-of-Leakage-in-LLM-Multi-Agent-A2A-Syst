@@ -4,6 +4,13 @@ The specialist agents run on a Raspberry Pi; the orchestrator, Ollama, the colle
 capture run on the Mac. The Pi reaches the network only through the Mac, so the Mac is the Pi's
 gateway, and the capture sees what a compromised gateway would see (paper 2's threat model).
 
+**Use case:** an edge AI assistant for building and factory operations. The coordinator
+(orchestrator) runs on the site's IoT gateway, the specialists on an edge device. C2 uses the IoT
+workflow set (`--workflows iot`, `docs/PROMPT_REGISTRY.md`), four synthetic task types with the same
+design as paper 1's: sensor_analysis (a telemetry window as CSV) and fault_diagnosis (a device log
+and config excerpt) have long task inputs; procedure_lookup (a maintenance question) and
+alert_triage (an alarm or occupant request) short ones.
+
 | | Mac (gateway) | Raspberry Pi |
 |---|---|---|
 | Runs | orchestrator (in the collector), Ollama, `collect_session.py`, tcpdump | executor, retriever, validator (`serve_agents.py`, one instance per arm) |
@@ -18,9 +25,13 @@ C2 has two arms, collected in one session and alternating trace by trace on the 
 | `lan_pad` | 8200 | request bodies padded to 1024/2048/4096/8192/16384/32768 B |
 
 The top bucket must exceed the largest first request, so that every padded first request lands in
-a bucket rather than in a multiple of the top one. The largest first request so far is 7.8 KB
-(C1 7821 B, TLS control 7668 B), well under 32768. Each arm has its own ports so that one arm's
-closing connections never land in the other arm's captures.
+a bucket rather than in a multiple of the top one. The first A2A message is the orchestrator's
+sub-task plan plus the whole task input; C2's longest task input is 5.8 KB (fault_diagnosis), and
+in the smoke test the first request was the task input plus 1.1–1.5 KB, so about 7.3 KB at most,
+well under 32768 (C1's largest was 7821 B). The short task inputs put the first message near the
+1024 bucket's edge: procedure_lookup about 0.8–0.9 KB (bucket 1024), alert_triage about 1.0–1.1 KB
+(1024 or 2048, depending on the plan's length), as with the classic short workflows. Each arm has
+its own ports so that one arm's closing connections never land in the other arm's captures.
 
 The addresses are macOS Internet Sharing's defaults; check yours in step 1 and use them
 everywhere below.
@@ -157,11 +168,19 @@ tcpdump -i bridge100 -nn 'tcp and portrange 8101-8223 and host 192.168.2.2'
 
 ## 7. Two-hour pilot
 
-C2 uses seed offset 20000 (registered in `docs/PROMPT_REGISTRY.md`). On the
-Mac, in the repo:
+C2 uses seed offset 20000 and the IoT workflows (both registered in `docs/PROMPT_REGISTRY.md`).
+A local smoke test first, without the Pi (agents on loopback, TLS on, 3 traces per workflow, about
+4 minutes; the folder is discarded afterwards):
+```bash
+venv/bin/python scripts/collect_session.py --collection-id C2-smoke --n 1 --rounds 1 --seed-offset 20000 \
+    --workflows iot --arm name=smoke,deployment=a,tls=on,out=/tmp/c2_smoke
+venv/bin/python scripts/check_tls_capture.py /tmp/c2_smoke --expect tls
+venv/bin/python scripts/check_stream_integrity.py /tmp/c2_smoke
+```
+Then the pilot, on the Mac, in the repo:
 ```bash
 caffeinate -dimsu venv/bin/python scripts/collect_session.py --collection-id C2-pilot \
-    --n 50 --rounds 5 --seed-offset 20000 --deadline-hours 2 \
+    --n 50 --rounds 5 --seed-offset 20000 --workflows iot --deadline-hours 2 \
     --interface bridge100 --ollama-url http://192.168.2.1:11434 --tls-dir data/tls_lan \
     --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2_pilot \
     --arm name=lan_pad,deployment=a,tls=on,host=192.168.2.2,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad_pilot
@@ -191,8 +210,8 @@ The pilot passes only if all of these hold:
 |---|---|
 | Every cross-host call captured | `check_lan_capture.py` prints PASS: in every successful trace, each call the topology makes from the Mac (star 3, chain 1, mesh 2) shows a request after the TLS handshake and response data, and no other specialist port gets a request |
 | TLS on | `check_tls_capture.py --expect tls` passes: every trace carries ClientHellos and TLS application-data records, and no cleartext HTTP |
-| Streams complete | `check_stream_integrity.py`: share of cut replies ≤ 5% for every topology (the bar C1 passed), with median largest replies in C1's range (star 272, chain 44, mesh 78 packets) |
-| Collection healthy | `session_meta.json`: round 1 complete for all 12 conditions in both arms; failed attempts ≤ 1% of traces |
+| Streams complete | `check_stream_integrity.py`: share of cut replies ≤ 5% for every topology (the bar C1 passed), with median largest replies far above the truncation signature of 7–10 packets. C1 (classic prompts): star 272, chain 44, mesh 78; the IoT smoke test on loopback: star 274, chain 45, mesh 48.5 (4 traces each), so IoT replies can differ from C1's |
+| Collection healthy | `session_meta.json`: `workflows` are the four IoT ones; round 1 complete for all 12 conditions in both arms; failed attempts ≤ 1% of traces |
 | No fixed predecessor | `check_session_design.py` [a]: per arm and workflow, the workflow that ran last on the same ports. A share above 40% is flagged; it fails only if it is also unlikely under a random order (binomial test, Bonferroni), since one round gives about 30 traces per cell. The TLS control failed this (100%) |
 | Leftover connections | [b]: connections opened before the capture, per trace; none may carry data beyond the close |
 | Padding on the wire | [c], `lan_pad` only: first-request bytes − bucket (the HTTP header record and TLS overhead) is the same in at least 95% of traces (±32 B of the median, median 100–1000 B) |
@@ -202,7 +221,7 @@ Keep `pi-freeze.txt`, the Pi's Python version and the JSON files of both arms wi
 it passes, collect C2:
 ```bash
 caffeinate -dimsu venv/bin/python scripts/collect_session.py --collection-id C2 \
-    --n 50 --rounds 5 --seed-offset 20000 \
+    --n 50 --rounds 5 --seed-offset 20000 --workflows iot \
     --interface bridge100 --ollama-url http://192.168.2.1:11434 --tls-dir data/tls_lan \
     --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2 \
     --arm name=lan_pad,deployment=a,tls=on,host=192.168.2.2,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad

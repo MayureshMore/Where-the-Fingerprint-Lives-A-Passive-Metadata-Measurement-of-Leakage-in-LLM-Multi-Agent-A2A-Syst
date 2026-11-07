@@ -27,6 +27,13 @@ the label carries nothing about the traffic (the audit's known-null attribute).
 <out>/session_meta.json holds the design, the schedule and, for TLS arms, the negotiated TLS
 parameters.
 
+Workflows: --workflows classic (default: research_retrieval, code_review, data_analysis,
+support_triage; every collection up to C1) or iot (sensor_analysis, fault_diagnosis,
+procedure_lookup, alert_triage; C2), or a comma-separated list from one set. Prompt seeds are
+workflows.prompt_seed: topology_index × 4 + the workflow's index in its set + 100 + seed_offset, so
+classic prompts are what they were. session_meta.json records the template pools and how many
+distinct prompts were drawn per workflow.
+
 Arms are given as --arm name=...,deployment=...,model=...,tls=on|off,defense=...,out=...
 (ports=BASE optional; arm k defaults to 8100 + 100k, topology t adds 10t). Optional:
 
@@ -42,8 +49,9 @@ Usage:
     python scripts/collect_session.py --collection-id C1 --n 50 --rounds 5 --seed-offset 2000 \\
         --arm name=a_tls,deployment=a,model=llama3.2:3b,tls=on,out=data/raw_c1
     python scripts/collect_session.py ... --pilot        # one trace per topology into <out>_pilot/
-    # LAN: specialists on a Raspberry Pi at 192.168.2.2, captured at the Mac (docs/LAN_SETUP.md)
-    python scripts/collect_session.py --collection-id C2 --n 50 --rounds 5 --seed-offset 20000 \\
+    # LAN: specialists on a Raspberry Pi at 192.168.2.2, captured at the Mac (docs/LAN_SETUP.md),
+    # with the IoT workflows (an edge AI assistant for building and factory operations)
+    python scripts/collect_session.py --collection-id C2 --n 50 --rounds 5 --seed-offset 20000 --workflows iot \\
         --interface bridge100 --ollama-url http://192.168.2.1:11434 --tls-dir data/tls_lan \\
         --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2 \\
         --arm name=lan_pad,deployment=a,tls=on,host=192.168.2.2,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad
@@ -76,7 +84,7 @@ from scripts.collect_deployment import (  # noqa: E402
     _wait_ready,
 )
 from scripts.collect_tls_session import probe_tls  # noqa: E402
-from workflows import WORKFLOW_REGISTRY, WorkflowClass  # noqa: E402
+from workflows import WORKFLOW_REGISTRY, WORKFLOW_SETS, WorkflowClass, prompt_seed, workflow_set  # noqa: E402
 from workflows.base import TopologyType  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -122,6 +130,34 @@ def prompt_group(prompt: str) -> str:
 def audit_null(group: str) -> str:
     """A label with no relation to the traffic: random per prompt group, fixed seed."""
     return random.Random(f"{AUDIT_NULL_SEED}:{group}").choice(AUDIT_NULL_LABELS)
+
+
+def resolve_workflows(spec: str, only: str | None) -> list[str]:
+    """--workflows: a set name (classic, iot) or comma-separated workflows of one set, in set order
+    as given; --workflow narrows it to one."""
+    names = [w.value for w in WORKFLOW_SETS[spec]] if spec in WORKFLOW_SETS else \
+        [x.strip() for x in spec.split(",") if x.strip()]
+    valid = {w.value for w in WorkflowClass}
+    if not names or set(names) - valid:
+        raise SystemExit(f"--workflows {spec!r}: give one of {sorted(WORKFLOW_SETS)} or workflows from "
+                         f"{sorted(valid)}")
+    if len({workflow_set(w) for w in names}) > 1:
+        raise SystemExit(f"--workflows {spec!r} mixes workflow sets; a collection uses one set")
+    if only is not None:
+        if only not in names:
+            raise SystemExit(f"--workflow {only} is not in --workflows {spec}")
+        return [only]
+    return names
+
+
+def prompt_pool(prompts: dict, topologies: list[str], workflows: list[str]) -> dict:
+    """Per workflow: the generator's template pools, prompts drawn, distinct prompts among them."""
+    out = {}
+    for w in workflows:
+        drawn = [p for t in topologies for p in prompts[(t, w)]]
+        out[w] = {"template_pools": WORKFLOW_REGISTRY[WorkflowClass(w)].template_pools,
+                  "drawn": len(drawn), "distinct": len(set(drawn))}
+    return out
 
 
 def parse_arm(spec: str, k: int) -> Arm:
@@ -272,10 +308,14 @@ async def main(a: argparse.Namespace) -> None:
             sys.exit(f"{arm.out} already holds pcaps; move it aside, or pass --resume")
 
     topologies = [a.topology] if a.topology else TOPOLOGIES
-    workflows = [a.workflow] if a.workflow else [wf.value for wf in WorkflowClass]
-    wfs_all = [wf.value for wf in WorkflowClass]
+    workflows = resolve_workflows(a.workflows, a.workflow)
     meta_paths = [arm.out / "session_meta.json" for arm in arms]
     meta = json.loads(meta_paths[0].read_text()) if a.resume and meta_paths[0].exists() else None
+    if meta is not None and meta["workflows"] != workflows:
+        raise SystemExit(f"--resume: the session collected {meta['workflows']}, not {workflows}")
+    prompts = {(t, w): WORKFLOW_REGISTRY[WorkflowClass(w)]().sample_prompts(
+                   n=a.n, seed=prompt_seed(TOPOLOGIES.index(t), w, a.seed_offset))
+               for t in TOPOLOGIES for w in workflows}
     if meta is None:
         meta = {
             "collection_id": a.collection_id,
@@ -291,7 +331,11 @@ async def main(a: argparse.Namespace) -> None:
             "interface": a.interface, "ollama_url": a.ollama_url,
             "num_predict": num_predict, "n_per_condition": a.n, "rounds": a.rounds,
             "seed_offset": a.seed_offset, "order_seed": SEED, "topologies": topologies,
-            "workflows": workflows, "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+            "workflows": workflows, "workflow_set": sorted({workflow_set(w) for w in workflows}),
+            "prompt_seed": "topology_index × 4 + index of the workflow in its set + 100 + seed_offset "
+                           "(workflows.prompt_seed)",
+            "prompt_pool": prompt_pool(prompts, topologies, workflows),
+            "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             "schedule": [], "failures": 0, "tls_params": {},
             "audit_null": {"labels": list(AUDIT_NULL_LABELS), "seed": AUDIT_NULL_SEED,
                            "rule": "random.Random(f'{seed}:{prompt_group}').choice(labels)"},
@@ -303,9 +347,6 @@ async def main(a: argparse.Namespace) -> None:
 
     done = {(e["item"], e["arm"]) for e in meta["schedule"] if e["success"]}
     deadline = time.time() + a.deadline_hours * 3600 if a.deadline_hours else None
-    prompts = {(t, w): WORKFLOW_REGISTRY[WorkflowClass(w)]().sample_prompts(
-                   n=a.n, seed=TOPOLOGIES.index(t) * len(wfs_all) + wfs_all.index(w) + 100 + a.seed_offset)
-               for t in TOPOLOGIES for w in wfs_all}
     bounds = [round(a.n * r / a.rounds) for r in range(a.rounds + 1)]
     position = len(meta["schedule"])
     last_model = None
@@ -404,7 +445,11 @@ def _parse() -> argparse.Namespace:
                    help="prompt seed offset; register it in docs/PROMPT_REGISTRY.md")
     p.add_argument("--num-predict", type=int, default=DEFAULT_NUM_PREDICT, dest="num_predict")
     p.add_argument("--topology", choices=TOPOLOGIES, default=None)
-    p.add_argument("--workflow", choices=[wf.value for wf in WorkflowClass], default=None)
+    p.add_argument("--workflows", default="classic",
+                   help=f"workflow set ({', '.join(WORKFLOW_SETS)}; classic = every collection up to C1, iot = C2) "
+                        "or comma-separated workflows of one set")
+    p.add_argument("--workflow", choices=[wf.value for wf in WorkflowClass], default=None,
+                   help="only this workflow (must be in --workflows)")
     p.add_argument("--tls-dir", default="data/tls", dest="tls_dir")
     p.add_argument("--deadline-hours", type=float, default=None, dest="deadline_hours")
     p.add_argument("--resume", action="store_true")
@@ -414,7 +459,7 @@ def _parse() -> argparse.Namespace:
     args = p.parse_args()
     if args.pilot:
         args.n, args.rounds = 1, 1
-        args.workflow = args.workflow or list(WorkflowClass)[0].value
+        args.workflow = args.workflow or resolve_workflows(args.workflows, None)[0]
         args.arm = [",".join(f"out={v}_pilot" if kv.startswith("out=") else kv
                              for kv, v in ((kv, kv.split("=", 1)[1]) for kv in s.split(",")))
                     for s in args.arm]
