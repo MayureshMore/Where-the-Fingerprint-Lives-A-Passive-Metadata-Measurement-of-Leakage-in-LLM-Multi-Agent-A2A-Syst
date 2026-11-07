@@ -1,0 +1,1636 @@
+{
+  "paper": "P2",
+  "collection_id": "TLS control",
+  "data_dir": {
+    "tls": "data/raw_tlspair_tls",
+    "cleartext": "data/raw_tlspair_clear"
+  },
+  "seed": 42,
+  "git_commit": "a8556554c8450101c766aec1b2ca6600d5e0a8a3",
+  "git_dirty": false,
+  "task": "a2a-leakcheck verdicts on known leaks (real labels) and known non-leaks (permuted labels, audit_null)",
+  "method": "Full-data verdicts on the real labels, and runtime and memory, from `python -m a2a_leakcheck run --strip` in a fresh process per arm. Permuted labels, baselines and subsamples go through the same verdict rule (a2a_leakcheck.analyze: 5-fold StratifiedGroupKFold by prompt group, macro-F1 with a 1000-resample cluster-bootstrap 95% CI, LEAK above chance + 0.05, 99-permutation test with the rf-light null at alpha 0.05, at least 20 samples per class in 5 groups), without feature attribution, which the verdict does not use. Own connections only. Ports are never features.",
+  "parameters": {
+    "sizes": [
+      5,
+      10,
+      20,
+      30,
+      50
+    ],
+    "subsamples": 20,
+    "label_perms": 20,
+    "permutations": 99,
+    "n_boot": 1000,
+    "margin": 0.05,
+    "min_per_class": 20,
+    "folds": 5,
+    "null_model": "rf-light",
+    "alpha": 0.05,
+    "jobs": -1,
+    "not_known": []
+  },
+  "methods": {
+    "leakcheck": "a2a-leakcheck: GBT on the header-only features (195 per trace, 35 per agent)",
+    "kfp_rf": "k-FP features (138, direction and timing only) with the tool's RF",
+    "first_request": "first-request size alone with GBT (role: bytes the agent receives)"
+  },
+  "arms": {
+    "tls": {
+      "data_dir": "data/raw_tlspair_tls",
+      "traces": 432,
+      "tool": {
+        "attributes": {
+          "role": {
+            "verdict": "LEAK",
+            "reason": "CI lower bound 0.984 > chance + margin 0.383",
+            "macro_f1": 0.9907380398684432,
+            "ci": [
+              0.9842316190663191,
+              0.9967795780209356
+            ],
+            "p": 0.01,
+            "false_positive_rate_on_permutations": 0.0,
+            "carried_by": "timing",
+            "n": 1296,
+            "groups": 231
+          },
+          "workflow": {
+            "verdict": "LEAK",
+            "reason": "CI lower bound 0.558 > chance + margin 0.300",
+            "macro_f1": 0.6127851817820327,
+            "ci": [
+              0.5577012317452725,
+              0.6600383384590842
+            ],
+            "p": 0.01,
+            "false_positive_rate_on_permutations": 0.0,
+            "carried_by": "sizes",
+            "n": 432,
+            "groups": 231
+          },
+          "topology": {
+            "verdict": "LEAK",
+            "reason": "CI lower bound 1.000 > chance + margin 0.383",
+            "macro_f1": 1.0,
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "p": 0.01,
+            "false_positive_rate_on_permutations": 0.0,
+            "carried_by": "sizes",
+            "n": 432,
+            "groups": 231
+          }
+        },
+        "runtime": {
+          "total_s": 125.78794295800617,
+          "stages_s": {
+            "collection": 0.467176542035304,
+            "extraction": 21.2566431669984,
+            "analysis": 104.00135174999014
+          },
+          "analysis_by_attribute_s": {
+            "role": 39.634096042020246,
+            "workflow": 37.28374845802318,
+            "topology": 26.356984957994428
+          },
+          "peak_rss_by_stage_mb": {
+            "collection": {
+              "main_mb": 168.03125
+            },
+            "extraction": {
+              "main_mb": 245.78125
+            },
+            "analysis:role": {
+              "main_mb": 264.578125,
+              "worker_mb": 207.875
+            },
+            "analysis:workflow": {
+              "main_mb": 273.484375,
+              "worker_mb": 267.875
+            },
+            "analysis:topology": {
+              "main_mb": 275.671875,
+              "worker_mb": 267.875
+            }
+          },
+          "peak_rss_mb": 275.671875,
+          "peak_rss_children_mb": 267.875,
+          "workers": 14,
+          "python": "3.12.1",
+          "platform": "macOS-27.0.1-arm64-arm-64bit"
+        },
+        "git_commit": "a8556554c8450101c766aec1b2ca6600d5e0a8a3",
+        "git_dirty": false,
+        "visible_agents": {
+          "chain": {
+            "traces": 144,
+            "roles": {
+              "executor": 144,
+              "orchestrator": 0,
+              "retriever": 144,
+              "validator": 144
+            },
+            "never_seen": [
+              "orchestrator"
+            ]
+          },
+          "mesh": {
+            "traces": 144,
+            "roles": {
+              "executor": 144,
+              "orchestrator": 0,
+              "retriever": 144,
+              "validator": 144
+            },
+            "never_seen": [
+              "orchestrator"
+            ]
+          },
+          "star": {
+            "traces": 144,
+            "roles": {
+              "executor": 144,
+              "orchestrator": 0,
+              "retriever": 144,
+              "validator": 144
+            },
+            "never_seen": [
+              "orchestrator"
+            ]
+          }
+        }
+      },
+      "attributes": {
+        "role": {
+          "classes": {
+            "executor": 432,
+            "retriever": 432,
+            "validator": 432
+          },
+          "groups": 231,
+          "full": {
+            "leakcheck": {
+              "verdict": "LEAK",
+              "reason": "CI lower bound 0.984 > chance + margin 0.383",
+              "macro_f1": 0.9907380398684432,
+              "ci": [
+                0.9842316190663191,
+                0.9967795780209356
+              ],
+              "p": 0.01,
+              "false_positive_rate_on_permutations": 0.0,
+              "carried_by": "timing",
+              "n": 1296,
+              "groups": 231,
+              "source": "a2a_leakcheck run"
+            },
+            "kfp_rf": {
+              "verdict": "LEAK",
+              "macro_f1": 0.9922828985858154,
+              "ci": [
+                0.9863880851172342,
+                0.9970793944494757
+              ],
+              "p": 0.01,
+              "n": 1296,
+              "groups": 231,
+              "sample_check_ok": true
+            },
+            "first_request": {
+              "verdict": "LEAK",
+              "macro_f1": 0.526489115085051,
+              "ci": [
+                0.4906879674073981,
+                0.5594635265892296
+              ],
+              "p": 0.01,
+              "n": 1296,
+              "groups": 231,
+              "sample_check_ok": true
+            }
+          },
+          "permuted": {
+            "leakcheck": [
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK"
+            ],
+            "kfp_rf": [
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK"
+            ],
+            "first_request": [
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK"
+            ]
+          },
+          "sample_size": {
+            "5": {
+              "real": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              }
+            },
+            "10": {
+              "real": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              }
+            },
+            "20": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 13,
+                "NO LEAK": 7
+              }
+            },
+            "30": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 13,
+                "NO LEAK": 7
+              }
+            },
+            "50": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 16,
+                "NO LEAK": 4
+              }
+            }
+          }
+        },
+        "workflow": {
+          "classes": {
+            "code_review": 108,
+            "data_analysis": 108,
+            "research_retrieval": 108,
+            "support_triage": 108
+          },
+          "groups": 231,
+          "full": {
+            "leakcheck": {
+              "verdict": "LEAK",
+              "reason": "CI lower bound 0.558 > chance + margin 0.300",
+              "macro_f1": 0.6127851817820327,
+              "ci": [
+                0.5577012317452725,
+                0.6600383384590842
+              ],
+              "p": 0.01,
+              "false_positive_rate_on_permutations": 0.0,
+              "carried_by": "sizes",
+              "n": 432,
+              "groups": 231,
+              "source": "a2a_leakcheck run"
+            },
+            "kfp_rf": {
+              "verdict": "LEAK",
+              "macro_f1": 0.535575054952151,
+              "ci": [
+                0.476131906366877,
+                0.5906741571048665
+              ],
+              "p": 0.01,
+              "n": 432,
+              "groups": 231,
+              "sample_check_ok": true
+            },
+            "first_request": {
+              "verdict": "LEAK",
+              "macro_f1": 0.5824903688096503,
+              "ci": [
+                0.5148876746405205,
+                0.6418855164588322
+              ],
+              "p": 0.01,
+              "n": 432,
+              "groups": 231,
+              "sample_check_ok": true
+            }
+          },
+          "permuted": {
+            "leakcheck": [
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE"
+            ],
+            "kfp_rf": [
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK"
+            ],
+            "first_request": [
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK"
+            ]
+          },
+          "sample_size": {
+            "5": {
+              "real": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              }
+            },
+            "10": {
+              "real": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              }
+            },
+            "20": {
+              "real": {
+                "LEAK": 12,
+                "INCONCLUSIVE": 8,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.6,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 15,
+                "NO LEAK": 5
+              }
+            },
+            "30": {
+              "real": {
+                "LEAK": 18,
+                "INCONCLUSIVE": 2,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.9,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 16,
+                "NO LEAK": 4
+              }
+            },
+            "50": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 12,
+                "NO LEAK": 8
+              }
+            }
+          }
+        },
+        "topology": {
+          "classes": {
+            "chain": 144,
+            "mesh": 144,
+            "star": 144
+          },
+          "groups": 231,
+          "full": {
+            "leakcheck": {
+              "verdict": "LEAK",
+              "reason": "CI lower bound 1.000 > chance + margin 0.383",
+              "macro_f1": 1.0,
+              "ci": [
+                1.0,
+                1.0
+              ],
+              "p": 0.01,
+              "false_positive_rate_on_permutations": 0.0,
+              "carried_by": "sizes",
+              "n": 432,
+              "groups": 231,
+              "source": "a2a_leakcheck run"
+            },
+            "kfp_rf": {
+              "verdict": "LEAK",
+              "macro_f1": 0.9976851572766839,
+              "ci": [
+                0.9924716908739355,
+                1.0
+              ],
+              "p": 0.01,
+              "n": 432,
+              "groups": 231,
+              "sample_check_ok": true
+            },
+            "first_request": {
+              "verdict": "INCONCLUSIVE",
+              "macro_f1": 0.3555019305019305,
+              "ci": [
+                0.31254844167185863,
+                0.39780318061332065
+              ],
+              "p": 0.07,
+              "n": 432,
+              "groups": 231,
+              "sample_check_ok": true
+            }
+          },
+          "permuted": {
+            "leakcheck": [
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK"
+            ],
+            "kfp_rf": [
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK"
+            ],
+            "first_request": [
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK"
+            ]
+          },
+          "sample_size": {
+            "5": {
+              "real": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              }
+            },
+            "10": {
+              "real": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              }
+            },
+            "20": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 1,
+                "INCONCLUSIVE": 13,
+                "NO LEAK": 6
+              }
+            },
+            "30": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 17,
+                "NO LEAK": 3
+              }
+            },
+            "50": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 14,
+                "NO LEAK": 6
+              }
+            }
+          }
+        }
+      }
+    },
+    "cleartext": {
+      "data_dir": "data/raw_tlspair_clear",
+      "traces": 432,
+      "tool": {
+        "attributes": {
+          "role": {
+            "verdict": "LEAK",
+            "reason": "CI lower bound 0.983 > chance + margin 0.383",
+            "macro_f1": 0.9899609063520062,
+            "ci": [
+              0.9834298275172777,
+              0.9951901743375623
+            ],
+            "p": 0.01,
+            "false_positive_rate_on_permutations": 0.0,
+            "carried_by": "timing",
+            "n": 1296,
+            "groups": 231
+          },
+          "workflow": {
+            "verdict": "LEAK",
+            "reason": "CI lower bound 0.602 > chance + margin 0.300",
+            "macro_f1": 0.6591310922554636,
+            "ci": [
+              0.6020670109030845,
+              0.7113712175773608
+            ],
+            "p": 0.01,
+            "false_positive_rate_on_permutations": 0.0,
+            "carried_by": "sizes",
+            "n": 432,
+            "groups": 231
+          },
+          "topology": {
+            "verdict": "LEAK",
+            "reason": "CI lower bound 1.000 > chance + margin 0.383",
+            "macro_f1": 1.0,
+            "ci": [
+              1.0,
+              1.0
+            ],
+            "p": 0.01,
+            "false_positive_rate_on_permutations": 0.0,
+            "carried_by": "timing",
+            "n": 432,
+            "groups": 231
+          }
+        },
+        "runtime": {
+          "total_s": 138.29694979201304,
+          "stages_s": {
+            "collection": 0.6495492500253022,
+            "extraction": 22.985941749997437,
+            "analysis": 114.53378300002078
+          },
+          "analysis_by_attribute_s": {
+            "role": 44.142108874977566,
+            "workflow": 40.77321583300363,
+            "topology": 28.776927749975584
+          },
+          "peak_rss_by_stage_mb": {
+            "collection": {
+              "main_mb": 170.859375
+            },
+            "extraction": {
+              "main_mb": 249.765625
+            },
+            "analysis:role": {
+              "main_mb": 249.765625,
+              "worker_mb": 205.15625
+            },
+            "analysis:workflow": {
+              "main_mb": 249.765625,
+              "worker_mb": 264.609375
+            },
+            "analysis:topology": {
+              "main_mb": 249.765625,
+              "worker_mb": 264.609375
+            }
+          },
+          "peak_rss_mb": 249.765625,
+          "peak_rss_children_mb": 264.609375,
+          "workers": 14,
+          "python": "3.12.1",
+          "platform": "macOS-27.0.1-arm64-arm-64bit"
+        },
+        "git_commit": "a8556554c8450101c766aec1b2ca6600d5e0a8a3",
+        "git_dirty": false,
+        "visible_agents": {
+          "chain": {
+            "traces": 144,
+            "roles": {
+              "executor": 144,
+              "orchestrator": 0,
+              "retriever": 144,
+              "validator": 144
+            },
+            "never_seen": [
+              "orchestrator"
+            ]
+          },
+          "mesh": {
+            "traces": 144,
+            "roles": {
+              "executor": 144,
+              "orchestrator": 0,
+              "retriever": 144,
+              "validator": 144
+            },
+            "never_seen": [
+              "orchestrator"
+            ]
+          },
+          "star": {
+            "traces": 144,
+            "roles": {
+              "executor": 144,
+              "orchestrator": 0,
+              "retriever": 144,
+              "validator": 144
+            },
+            "never_seen": [
+              "orchestrator"
+            ]
+          }
+        }
+      },
+      "attributes": {
+        "role": {
+          "classes": {
+            "executor": 432,
+            "retriever": 432,
+            "validator": 432
+          },
+          "groups": 231,
+          "full": {
+            "leakcheck": {
+              "verdict": "LEAK",
+              "reason": "CI lower bound 0.983 > chance + margin 0.383",
+              "macro_f1": 0.9899609063520062,
+              "ci": [
+                0.9834298275172777,
+                0.9951901743375623
+              ],
+              "p": 0.01,
+              "false_positive_rate_on_permutations": 0.0,
+              "carried_by": "timing",
+              "n": 1296,
+              "groups": 231,
+              "source": "a2a_leakcheck run"
+            },
+            "kfp_rf": {
+              "verdict": "LEAK",
+              "macro_f1": 0.9930624940951348,
+              "ci": [
+                0.9872193767515193,
+                0.9977237464306363
+              ],
+              "p": 0.01,
+              "n": 1296,
+              "groups": 231,
+              "sample_check_ok": true
+            },
+            "first_request": {
+              "verdict": "LEAK",
+              "macro_f1": 0.5196405694141564,
+              "ci": [
+                0.48318722693417987,
+                0.5512657687631333
+              ],
+              "p": 0.01,
+              "n": 1296,
+              "groups": 231,
+              "sample_check_ok": true
+            }
+          },
+          "permuted": {
+            "leakcheck": [
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK"
+            ],
+            "kfp_rf": [
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK"
+            ],
+            "first_request": [
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK"
+            ]
+          },
+          "sample_size": {
+            "5": {
+              "real": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              }
+            },
+            "10": {
+              "real": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              }
+            },
+            "20": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 11,
+                "NO LEAK": 9
+              }
+            },
+            "30": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 1,
+                "INCONCLUSIVE": 14,
+                "NO LEAK": 5
+              }
+            },
+            "50": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 15,
+                "NO LEAK": 5
+              }
+            }
+          }
+        },
+        "workflow": {
+          "classes": {
+            "code_review": 108,
+            "data_analysis": 108,
+            "research_retrieval": 108,
+            "support_triage": 108
+          },
+          "groups": 231,
+          "full": {
+            "leakcheck": {
+              "verdict": "LEAK",
+              "reason": "CI lower bound 0.602 > chance + margin 0.300",
+              "macro_f1": 0.6591310922554636,
+              "ci": [
+                0.6020670109030845,
+                0.7113712175773608
+              ],
+              "p": 0.01,
+              "false_positive_rate_on_permutations": 0.0,
+              "carried_by": "sizes",
+              "n": 432,
+              "groups": 231,
+              "source": "a2a_leakcheck run"
+            },
+            "kfp_rf": {
+              "verdict": "LEAK",
+              "macro_f1": 0.5098270110703718,
+              "ci": [
+                0.4538938919766621,
+                0.5631103809178438
+              ],
+              "p": 0.01,
+              "n": 432,
+              "groups": 231,
+              "sample_check_ok": true
+            },
+            "first_request": {
+              "verdict": "LEAK",
+              "macro_f1": 0.5904874714657323,
+              "ci": [
+                0.5274174293121542,
+                0.6449187415416164
+              ],
+              "p": 0.01,
+              "n": 432,
+              "groups": 231,
+              "sample_check_ok": true
+            }
+          },
+          "permuted": {
+            "leakcheck": [
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE"
+            ],
+            "kfp_rf": [
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE"
+            ],
+            "first_request": [
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE"
+            ]
+          },
+          "sample_size": {
+            "5": {
+              "real": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              }
+            },
+            "10": {
+              "real": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              }
+            },
+            "20": {
+              "real": {
+                "LEAK": 13,
+                "INCONCLUSIVE": 7,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.65,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 13,
+                "NO LEAK": 7
+              }
+            },
+            "30": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 14,
+                "NO LEAK": 6
+              }
+            },
+            "50": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 12,
+                "NO LEAK": 8
+              }
+            }
+          }
+        },
+        "topology": {
+          "classes": {
+            "chain": 144,
+            "mesh": 144,
+            "star": 144
+          },
+          "groups": 231,
+          "full": {
+            "leakcheck": {
+              "verdict": "LEAK",
+              "reason": "CI lower bound 1.000 > chance + margin 0.383",
+              "macro_f1": 1.0,
+              "ci": [
+                1.0,
+                1.0
+              ],
+              "p": 0.01,
+              "false_positive_rate_on_permutations": 0.0,
+              "carried_by": "timing",
+              "n": 432,
+              "groups": 231,
+              "source": "a2a_leakcheck run"
+            },
+            "kfp_rf": {
+              "verdict": "LEAK",
+              "macro_f1": 1.0,
+              "ci": [
+                1.0,
+                1.0
+              ],
+              "p": 0.01,
+              "n": 432,
+              "groups": 231,
+              "sample_check_ok": true
+            },
+            "first_request": {
+              "verdict": "INCONCLUSIVE",
+              "macro_f1": 0.34929889014593957,
+              "ci": [
+                0.30376032814813725,
+                0.3935542682703778
+              ],
+              "p": 0.16,
+              "n": 432,
+              "groups": 231,
+              "sample_check_ok": true
+            }
+          },
+          "permuted": {
+            "leakcheck": [
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK"
+            ],
+            "kfp_rf": [
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK"
+            ],
+            "first_request": [
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK"
+            ]
+          },
+          "sample_size": {
+            "5": {
+              "real": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              }
+            },
+            "10": {
+              "real": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 0.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 20,
+                "NO LEAK": 0
+              }
+            },
+            "20": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 12,
+                "NO LEAK": 8
+              }
+            },
+            "30": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 13,
+                "NO LEAK": 7
+              }
+            },
+            "50": {
+              "real": {
+                "LEAK": 20,
+                "INCONCLUSIVE": 0,
+                "NO LEAK": 0
+              },
+              "agreement_with_full": 1.0,
+              "permuted": {
+                "LEAK": 0,
+                "INCONCLUSIVE": 14,
+                "NO LEAK": 6
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "summary": {
+    "full_data": {
+      "leakcheck": {
+        "known_leaks": 6,
+        "known_non_leaks": 120,
+        "true_positives": 6,
+        "false_positives": 0,
+        "recall": 1.0,
+        "recall_ci": [
+          0.6096657083436265,
+          1.0
+        ],
+        "false_negative_rate": 0.0,
+        "false_negative_rate_ci": [
+          0.0,
+          0.39033429165637346
+        ],
+        "inconclusive_on_leaks": 0,
+        "no_leak_on_leaks": 0,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci": [
+          0.0,
+          0.03101916689287469
+        ],
+        "precision": 1.0,
+        "precision_ci": [
+          0.6096657083436265,
+          1.0
+        ]
+      },
+      "kfp_rf": {
+        "known_leaks": 6,
+        "known_non_leaks": 120,
+        "true_positives": 6,
+        "false_positives": 0,
+        "recall": 1.0,
+        "recall_ci": [
+          0.6096657083436265,
+          1.0
+        ],
+        "false_negative_rate": 0.0,
+        "false_negative_rate_ci": [
+          0.0,
+          0.39033429165637346
+        ],
+        "inconclusive_on_leaks": 0,
+        "no_leak_on_leaks": 0,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci": [
+          0.0,
+          0.03101916689287469
+        ],
+        "precision": 1.0,
+        "precision_ci": [
+          0.6096657083436265,
+          1.0
+        ]
+      },
+      "first_request": {
+        "known_leaks": 6,
+        "known_non_leaks": 120,
+        "true_positives": 4,
+        "false_positives": 0,
+        "recall": 0.6666666666666666,
+        "recall_ci": [
+          0.29999331299474324,
+          0.9032285897864654
+        ],
+        "false_negative_rate": 0.3333333333333333,
+        "false_negative_rate_ci": [
+          0.09677141021353453,
+          0.7000066870052566
+        ],
+        "inconclusive_on_leaks": 2,
+        "no_leak_on_leaks": 0,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci": [
+          0.0,
+          0.03101916689287469
+        ],
+        "precision": 1.0,
+        "precision_ci": [
+          0.5101091596030786,
+          0.9999999999999999
+        ]
+      }
+    },
+    "sample_size": {
+      "5": {
+        "known_leaks": 120,
+        "known_non_leaks": 120,
+        "true_positives": 0,
+        "false_positives": 0,
+        "recall": 0.0,
+        "recall_ci": [
+          0.0,
+          0.03101916689287469
+        ],
+        "false_negative_rate": 1.0,
+        "false_negative_rate_ci": [
+          0.9689808331071251,
+          0.9999999999999999
+        ],
+        "inconclusive_on_leaks": 120,
+        "no_leak_on_leaks": 0,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci": [
+          0.0,
+          0.03101916689287469
+        ],
+        "precision": null,
+        "precision_ci": null,
+        "agreement_with_full_mean": 0.0
+      },
+      "10": {
+        "known_leaks": 120,
+        "known_non_leaks": 120,
+        "true_positives": 0,
+        "false_positives": 0,
+        "recall": 0.0,
+        "recall_ci": [
+          0.0,
+          0.03101916689287469
+        ],
+        "false_negative_rate": 1.0,
+        "false_negative_rate_ci": [
+          0.9689808331071251,
+          0.9999999999999999
+        ],
+        "inconclusive_on_leaks": 120,
+        "no_leak_on_leaks": 0,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci": [
+          0.0,
+          0.03101916689287469
+        ],
+        "precision": null,
+        "precision_ci": null,
+        "agreement_with_full_mean": 0.0
+      },
+      "20": {
+        "known_leaks": 120,
+        "known_non_leaks": 120,
+        "true_positives": 105,
+        "false_positives": 1,
+        "recall": 0.875,
+        "recall_ci": [
+          0.8039705972707158,
+          0.922765027559628
+        ],
+        "false_negative_rate": 0.125,
+        "false_negative_rate_ci": [
+          0.07723497244037196,
+          0.19602940272928399
+        ],
+        "inconclusive_on_leaks": 15,
+        "no_leak_on_leaks": 0,
+        "false_positive_rate": 0.008333333333333333,
+        "false_positive_rate_ci": [
+          0.00147255571707176,
+          0.04569629172758835
+        ],
+        "precision": 0.9905660377358491,
+        "precision_ci": [
+          0.948486451429492,
+          0.9983327283156644
+        ],
+        "agreement_with_full_mean": 0.875
+      },
+      "30": {
+        "known_leaks": 120,
+        "known_non_leaks": 120,
+        "true_positives": 118,
+        "false_positives": 1,
+        "recall": 0.9833333333333333,
+        "recall_ci": [
+          0.9412640365282555,
+          0.9954174354752988
+        ],
+        "false_negative_rate": 0.016666666666666666,
+        "false_negative_rate_ci": [
+          0.004582564524701124,
+          0.05873596347174441
+        ],
+        "inconclusive_on_leaks": 2,
+        "no_leak_on_leaks": 0,
+        "false_positive_rate": 0.008333333333333333,
+        "false_positive_rate_ci": [
+          0.00147255571707176,
+          0.04569629172758835
+        ],
+        "precision": 0.9915966386554622,
+        "precision_ci": [
+          0.9539321140806404,
+          0.9985150569763176
+        ],
+        "agreement_with_full_mean": 0.9833333333333334
+      },
+      "50": {
+        "known_leaks": 120,
+        "known_non_leaks": 120,
+        "true_positives": 120,
+        "false_positives": 0,
+        "recall": 1.0,
+        "recall_ci": [
+          0.9689808331071251,
+          0.9999999999999999
+        ],
+        "false_negative_rate": 0.0,
+        "false_negative_rate_ci": [
+          0.0,
+          0.03101916689287469
+        ],
+        "inconclusive_on_leaks": 0,
+        "no_leak_on_leaks": 0,
+        "false_positive_rate": 0.0,
+        "false_positive_rate_ci": [
+          0.0,
+          0.03101916689287469
+        ],
+        "precision": 1.0,
+        "precision_ci": [
+          0.9689808331071251,
+          0.9999999999999999
+        ],
+        "agreement_with_full_mean": 1.0
+      }
+    }
+  },
+  "runtime_s": 15071.829387417005
+}
