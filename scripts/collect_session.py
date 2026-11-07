@@ -39,6 +39,9 @@ Arms are given as --arm name=...,deployment=...,model=...,tls=on|off,defense=...
 
   * pad=1024/2048/4096  input padding: every request body padded to the smallest bucket that
                         fits (above the largest, to a multiple of it)
+  * pad_expect=8192     with pad=: every first request of the arm is meant to land in this one
+                        bucket (C2's lan_padmax); scripts/check_session_design.py [c] then fails
+                        unless all of them do
   * host=ADDR           the specialists run on another machine (docs/LAN_SETUP.md): this
                         collector neither starts nor restarts them, it waits until they answer
                         at ADDR on the arm's ports (scripts/serve_agents.py --ports-base there),
@@ -54,7 +57,8 @@ Usage:
     python scripts/collect_session.py --collection-id C2 --n 50 --rounds 5 --seed-offset 20000 --workflows iot \\
         --interface bridge100 --ollama-url http://192.168.2.1:11434 --tls-dir data/tls_lan \\
         --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2 \\
-        --arm name=lan_pad,deployment=a,tls=on,host=192.168.2.2,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad
+        --arm name=lan_pad,deployment=a,tls=on,host=192.168.2.2,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad \\
+        --arm name=lan_padmax,deployment=a,tls=on,host=192.168.2.2,ports=8300,pad=8192/16384,pad_expect=8192,out=data/raw_c2_padmax
 Capture needs read access to /dev/bpf* (or sudo).
 """
 
@@ -109,6 +113,7 @@ class Arm:
     ports_base: int
     host: str | None = None                         # remote specialists (LAN); None = local
     pad: list[int] = field(default_factory=list)    # input-padding buckets; empty = off
+    pad_expect: int | None = None                   # the one bucket every first request should land in
     sets: dict = field(default_factory=dict)        # topology → (agents, tasks)
 
     @property
@@ -162,17 +167,22 @@ def prompt_pool(prompts: dict, topologies: list[str], workflows: list[str]) -> d
 
 def parse_arm(spec: str, k: int) -> Arm:
     kv = dict(part.split("=", 1) for part in spec.split(","))
-    unknown = set(kv) - {"name", "deployment", "model", "tls", "defense", "out", "ports", "pad", "host"}
+    unknown = set(kv) - {"name", "deployment", "model", "tls", "defense", "out", "ports", "pad", "host",
+                         "pad_expect"}
     if unknown or not {"name", "deployment", "out"} <= set(kv):
         raise SystemExit(f"bad --arm {spec!r}: needs name, deployment, out; unknown keys {sorted(unknown)}")
     if kv["deployment"] not in DEPLOYMENTS:
         raise SystemExit(f"unknown deployment {kv['deployment']!r} (choose from {sorted(DEPLOYMENTS)})")
+    pad = [int(b) for b in kv["pad"].split("/")] if kv.get("pad") else []
+    expect = int(kv["pad_expect"]) if kv.get("pad_expect") else None
+    if expect is not None and expect not in pad:
+        raise SystemExit(f"bad --arm {spec!r}: pad_expect must be one of the pad buckets")
     return Arm(name=kv["name"], deployment=kv["deployment"],
                model=kv.get("model") or DEPLOYMENTS[kv["deployment"]]["default_model"],
                tls=kv.get("tls", "off").lower() in ("on", "1", "true", "yes"),
                defense=kv.get("defense", "none"), out=Path(kv["out"]),
                ports_base=int(kv.get("ports", 8100 + 100 * k)), host=kv.get("host") or None,
-               pad=[int(b) for b in kv["pad"].split("/")] if kv.get("pad") else [])
+               pad=pad, pad_expect=expect)
 
 
 class _DownstreamFailures(logging.Handler):
@@ -327,7 +337,7 @@ async def main(a: argparse.Namespace) -> None:
                       "is failed and retried once; models warmed up outside capture",
             "arms": [{"name": x.name, "deployment": x.deployment, "model": x.model, "tls": x.tls,
                       "defense": x.defense, "out": str(x.out), "ports_base": x.ports_base,
-                      "host": x.host, "pad_buckets": x.pad} for x in arms],
+                      "host": x.host, "pad_buckets": x.pad, "pad_expect": x.pad_expect} for x in arms],
             "interface": a.interface, "ollama_url": a.ollama_url,
             "num_predict": num_predict, "n_per_condition": a.n, "rounds": a.rounds,
             "seed_offset": a.seed_offset, "order_seed": SEED, "topologies": topologies,
@@ -403,7 +413,8 @@ async def main(a: argparse.Namespace) -> None:
                                        "collection_id": a.collection_id, "arm": arm.name, "round": rnd,
                                        "position": position, "seed_offset": a.seed_offset,
                                        "model": arm.model, "tls": arm.tls, "defense": arm.defense,
-                                       "agent_host": arm.host, "pad_buckets": arm.pad})
+                                       "agent_host": arm.host, "pad_buckets": arm.pad,
+                                       "pad_expect": arm.pad_expect})
                             sidecar.write_text(json.dumps(sc, indent=2))
                         if run.success:
                             done.add((item, arm.name))
@@ -433,7 +444,7 @@ def _parse() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Collect one or more arms in one session, one trace at a time")
     p.add_argument("--arm", action="append", required=True,
                    help="name=...,deployment=a|b|langgraph,model=...,tls=on|off,defense=none|pad|rate|both,"
-                        "out=DIR[,ports=BASE][,pad=B1/B2/...][,host=ADDR]  (repeat for more arms)")
+                        "out=DIR[,ports=BASE][,pad=B1/B2/...[,pad_expect=B]][,host=ADDR]  (repeat for more arms)")
     p.add_argument("--ollama-url", default=OLLAMA, dest="ollama_url",
                    help="Ollama for the model warm-up and the agents this process runs")
     p.add_argument("--interface", default="lo0",

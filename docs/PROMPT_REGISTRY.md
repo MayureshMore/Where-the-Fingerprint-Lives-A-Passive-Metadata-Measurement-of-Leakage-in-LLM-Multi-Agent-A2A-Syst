@@ -55,9 +55,9 @@ their pool is large: 4,000 seeds give 4,000 distinct sensor_analysis and fault_d
 | TLS control (`raw_tlspair_*`) | 1000 | 36 pairs | `collect_tls_session.py` |
 | **C1** (`raw_c1`) | **10000** | 50 | `collect_session.py` |
 | C1 pilot (`raw_c1_pilot`) | 10000 | 1 per topology | `collect_session.py --pilot` |
-| **C2** LAN, Mac + Raspberry Pi (`raw_c2`, `raw_c2_pad`; two arms: no mitigation, input padding), **IoT set** | **20000** | 50 | `collect_session.py --workflows iot --arm ...,host=` (docs/LAN_SETUP.md) |
-| C2 pilot (`raw_c2_pilot`, `raw_c2_pad_pilot`), IoT set | 20000 | 2 hours (`--deadline-hours 2`) | `collect_session.py --workflows iot` |
-| C2 smoke test (Nov 6; loopback, one arm, discarded) | 20000 | 1 per topology (item 0) | `collect_session.py --workflows iot --n 1 --rounds 1` |
+| **C2** LAN, Mac + Raspberry Pi (`raw_c2`, `raw_c2_pad`, `raw_c2_padmax`; three arms: no mitigation, pow2 input padding, input padding to one 8 KB bucket), **IoT set** | **20000** | 50 | `collect_session.py --workflows iot --arm ...,host=` (docs/LAN_SETUP.md) |
+| C2 pilot (`raw_c2_pilot`, `raw_c2_pad_pilot`, `raw_c2_padmax_pilot`), IoT set | 20000 | 2.5 hours (`--deadline-hours 2.5`) | `collect_session.py --workflows iot` |
+| C2 smoke tests (Nov 6; loopback, unpadded and `lan_padmax` padding, discarded) | 20000 | 1 per topology (item 0) | `collect_session.py --workflows iot --n 1 --rounds 1` |
 
 ## C1 overlap (measured before collection)
 

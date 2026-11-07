@@ -7,8 +7,8 @@ Paper 2: how well a2a-leakcheck's verdicts hold up, on collections whose answer 
                     role scored on that topology's traces only (role_within_<topology>; at C2's
                     gateway, star is the one topology in which all three specialists are seen, and
                     role leaks there on its own: 0.988 on the TLS control's gateway view).
-                    --not-known ARM:ATTR leaves a cell out of the known leaks (the padded C2 arm's
-                    workflow, which is the open question there); it is still reported.
+                    --not-known ARM:ATTR leaves a cell out of the known leaks (workflow on the two
+                    padded C2 arms, which is the open question there); it is still reported.
   known non-leaks   permuted labels: --label-perms random permutations of each attribute's labels
                     over its samples (labels independent of the traffic), and audit_null, a
                     sidecar label drawn from the prompt group alone (C2 sidecars,
@@ -39,7 +39,8 @@ data/results/figures/paper2_tool_eval.png.
 Usage:
     python scripts/evaluate_leakcheck.py                                  # TLS control, both arms
     python scripts/evaluate_leakcheck.py --collection-id C2 --name paper2_tool_eval_c2 --role-within star \\
-        --arm lan=data/raw_c2 --arm lan_pad=data/raw_c2_pad --not-known lan_pad:workflow
+        --arm lan=data/raw_c2 --arm lan_pad=data/raw_c2_pad --arm lan_padmax=data/raw_c2_padmax \\
+        --not-known lan_pad:workflow --not-known lan_padmax:workflow
 """
 
 from __future__ import annotations

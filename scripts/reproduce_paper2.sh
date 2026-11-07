@@ -9,8 +9,9 @@
 #                      (data/raw_tlspair_{tls,clear}) → leakcheck/tls_control_{tls,clear}_own  ~5 min
 #   3. tool evaluation scripts/evaluate_leakcheck.py on both TLS-control arms
 #                      → paper2_tool_eval.{json,md}, figures/paper2_tool_eval.png             hours
-#   4. C2              once released: leakcheck on both LAN arms (data/raw_c2, data/raw_c2_pad)
-#                      → leakcheck/c2_{lan,lan_pad}, and the tool evaluation with audit_null
+#   4. C2              once released: leakcheck on the three LAN arms (data/raw_c2, data/raw_c2_pad,
+#                      data/raw_c2_padmax) → leakcheck/c2_{lan,lan_pad,lan_padmax}, and the tool
+#                      evaluation with audit_null and role within star
 #                      → paper2_tool_eval_c2.{json,md}                                         hours
 #
 # A stage whose inputs are absent is skipped. Each result is compared with the committed one:
@@ -135,9 +136,12 @@ if [ "$QUICK" -eq 0 ]; then
         --role-within star
     run_report c2_lan_pad data/raw_c2_pad "$CANON/leakcheck/c2_lan_pad" --strip --attributes role,workflow,topology,audit_null \
         --role-within star
-    if [ -d data/raw_c2 ] && [ -d data/raw_c2_pad ]; then
+    run_report c2_lan_padmax data/raw_c2_padmax "$CANON/leakcheck/c2_lan_padmax" --strip \
+        --attributes role,workflow,topology,audit_null --role-within star
+    if [ -d data/raw_c2 ] && [ -d data/raw_c2_pad ] && [ -d data/raw_c2_padmax ]; then
         run_eval paper2_tool_eval_c2 "$CANON/paper2_tool_eval_c2.json" --collection-id C2 \
-            --arm lan=data/raw_c2 --arm lan_pad=data/raw_c2_pad --not-known lan_pad:workflow --role-within star
+            --arm lan=data/raw_c2 --arm lan_pad=data/raw_c2_pad --arm lan_padmax=data/raw_c2_padmax \
+            --not-known lan_pad:workflow --not-known lan_padmax:workflow --role-within star
     else
         echo "[skip] C2 captures absent"
     fi

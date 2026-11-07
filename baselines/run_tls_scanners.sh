@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# Standard TLS scanners against the Pi's 18 agent ports (docs/LAN_SETUP.md, section 5): what an
+# Standard TLS scanners against the Pi's 27 agent ports (docs/LAN_SETUP.md, section 5): what an
 # operator's usual TLS check reports for the same deployment that a2a-leakcheck audits. Both
 # scanners look at the TLS configuration (versions, cipher suites, certificate, known
 # vulnerabilities); neither looks at what the sizes and timing of the encrypted traffic reveal.
 #
-# Run from the Mac during the pilot, with both serve_agents.py instances up on the Pi:
+# Run from the Mac during the pilot, with all three serve_agents.py instances up on the Pi:
 #   bash baselines/run_tls_scanners.sh                     # Pi at 192.168.2.2
 #   HOST=192.168.2.2 OUT=data/results/tls_scanners bash baselines/run_tls_scanners.sh
 #
@@ -25,7 +25,7 @@ done
 mkdir -p "$OUT"
 
 PORTS=()
-for b in 8100 8200; do for t in 0 10 20; do for r in 1 2 3; do PORTS+=($((b + t + r))); done; done; done
+for b in 8100 8200 8300; do for t in 0 10 20; do for r in 1 2 3; do PORTS+=($((b + t + r))); done; done; done
 
 START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 FAILED=()

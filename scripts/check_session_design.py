@@ -24,12 +24,14 @@ the full collection:
                     request as features/first_request.py measures it also takes in a GET of the
                     agent card when the orchestrator has just started (the first trace of each
                     condition in each round: 197 B more on loopback, 60 of C1's 600 traces); those
-                    traces are counted, not failed.
+                    traces are counted, not failed. An arm with pad_expect (C2's lan_padmax: buckets
+                    8192/16384, every first request meant for 8192) also FAILS unless every first
+                    message lands in that one bucket; the share in it is reported.
   d. audit_null     every sidecar carries prompt_group and audit_null (scripts/collect_session.py),
                     audit_null constant within a prompt group.
 
 Usage:
-    python scripts/check_session_design.py data/raw_c2_pilot data/raw_c2_pad_pilot \\
+    python scripts/check_session_design.py data/raw_c2_pilot data/raw_c2_pad_pilot data/raw_c2_padmax_pilot \\
         --json data/raw_c2_pilot/design_check.json
 """
 
@@ -143,20 +145,28 @@ def first_message(pcap: Path, servers: set[int], tls: bool) -> tuple[int, int]:
     return fr["bytes"], next((m for m in msgs if m >= MIN_MESSAGE), 0)
 
 
-def padding(rows: list[tuple[dict, tuple[int, int]]], buckets: list[int]) -> dict:
+def padding(rows: list[tuple[dict, tuple[int, int]]], buckets: list[int], expect: int | None = None) -> dict:
+    """expect: the one bucket every first message should land in (pad_expect), or None."""
     msg = [m for _, (_, m) in rows]
     over = np.array([m - _bucket_below(m, buckets) for m in msg], dtype=float)
     med = float(np.median(over))
     within = float((np.abs(over - med) <= PAD_TOLERANCE).mean())
     by = Counter(_bucket_below(m, buckets) for m in msg)
     extra = [fr - m for _, (fr, m) in rows if fr - m > 0]
+    one = None
+    if expect is not None:
+        n_in = by.get(expect, 0)
+        one = {"bucket": expect, "share": n_in / len(msg) if msg else 0.0, "traces_in": n_in,
+               "traces_outside": len(msg) - n_in, "largest_message": max(msg) if msg else 0,
+               "ok": bool(msg) and n_in == len(msg)}
     return {"buckets": buckets, "traces": len(rows), "median_overhead": med,
             "overhead_range": [float(over.min()), float(over.max())], "share_within_tolerance": within,
             "message_bytes_by_bucket": {str(k): v for k, v in sorted(by.items())},
             "distinct_message_sizes": len(set(msg)),
             "first_request_includes_card_fetch": {"traces": len(extra),
                                                   "extra_bytes": dict(Counter(extra).most_common(5))},
-            "ok": within >= 0.95 and PAD_OVERHEAD[0] <= med <= PAD_OVERHEAD[1]}
+            "expected_bucket": one,
+            "ok": within >= 0.95 and PAD_OVERHEAD[0] <= med <= PAD_OVERHEAD[1] and (one is None or one["ok"])}
 
 
 def check_arm(raw: Path) -> dict:
@@ -184,7 +194,7 @@ def check_arm(raw: Path) -> dict:
                           "counts": dict(Counter(sc.get("audit_null") for sc, _ in rows))}}
     pad = (arm or {}).get("pad_buckets") or []
     if pad:
-        res["padding"] = padding([r for r in rows if r[1][1]], pad)
+        res["padding"] = padding([r for r in rows if r[1][1]], pad, (arm or {}).get("pad_expect"))
     res["audit_null"]["missing_prompt_group"] = sum(1 for sc, _ in rows if not sc.get("prompt_group"))
     res["ok"] = (not res["leftovers"]["traces_with_application_data"]
                  and res["audit_null"]["present"] == len(rows)
@@ -228,6 +238,11 @@ def main() -> None:
                   f"{p['share_within_tolerance']:.0%} within ±{PAD_TOLERANCE} B; by bucket "
                   f"{p['message_bytes_by_bucket']}; agent-card GET in the first request: "
                   f"{p['first_request_includes_card_fetch']['traces']} traces  {'ok' if p['ok'] else 'FAIL'}")
+            if p.get("expected_bucket"):
+                e = p["expected_bucket"]
+                print(f"[c] {r['arm']:10s} first A2A messages in the {e['bucket']} bucket: {e['share']:.1%} "
+                      f"({e['traces_in']} of {e['traces_in'] + e['traces_outside']}); largest message "
+                      f"{e['largest_message']} B on the wire  {'ok' if e['ok'] else 'FAIL'}")
         an = r["audit_null"]
         print(f"[d] {r['arm']:10s} audit_null in {an['present']} of {r['traces']} sidecars, "
               f"{an['groups_with_two_values']} groups with two values, {an['missing_prompt_group']} without "

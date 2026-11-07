@@ -46,3 +46,19 @@ def test_remote_host_and_padding_arm(tmp_path):
     assert col.agent_endpoints["orchestrator"] == "127.0.0.1:8100"
     assert col.recorder.interface == "en7"
     assert col.recorder._bpf_filter() == "tcp and (port 8100 or port 8101 or port 8102 or port 8103) and (host 192.168.2.2)"
+
+
+def test_padmax_arm_expects_one_bucket():
+    from scripts.check_session_design import padding
+    arm = parse_arm("name=lan_padmax,deployment=a,tls=on,host=192.168.2.2,ports=8300,pad=8192/16384,"
+                    "pad_expect=8192,out=d", 2)
+    assert arm.pad == [8192, 16384] and arm.pad_expect == 8192 and arm.ports("star")["executor"] == 8301
+    with pytest.raises(SystemExit):
+        parse_arm("name=x,deployment=a,out=d,pad=8192/16384,pad_expect=4096", 0)
+    # first A2A messages on the wire: the 8192-byte body plus a constant ~300 B of HTTP and TLS
+    rows = [({}, (8790, 8491)), ({}, (8491, 8491)), ({}, (8492, 8492))]
+    r = padding(rows, arm.pad, arm.pad_expect)
+    assert r["ok"] and r["expected_bucket"]["share"] == 1.0
+    r = padding(rows + [({}, (16683, 16683))], arm.pad, arm.pad_expect)    # one body above 8192
+    assert not r["ok"] and r["expected_bucket"]["traces_outside"] == 1
+    assert padding(rows + [({}, (16683, 16683))], arm.pad)["expected_bucket"] is None   # lan_pad: no such rule
