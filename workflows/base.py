@@ -54,6 +54,8 @@ class TopologyType(str, enum.Enum):
     STAR = "star"
     CHAIN = "chain"
     MESH = "mesh"
+    # C2's edge-cloud placement: a fixed architecture, not a topology label to infer
+    EDGE_CLOUD = "edge_cloud"
 
 
 class WorkflowRun(BaseModel):

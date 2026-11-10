@@ -34,6 +34,19 @@ workflows.prompt_seed: topology_index × 4 + the workflow's index in its set + 1
 classic prompts are what they were. session_meta.json records the template pools and how many
 distinct prompts were drawn per workflow.
 
+Edge-cloud placement (--placement edge-cloud; C2, docs/LAN_SETUP.md): the agent that runs the task
+is the edge agent on the IoT gateway (scripts/serve_edge.py on the Raspberry Pi); it answers
+alert_triage itself and escalates the other task types to the cloud agents (scripts/serve_cloud.py
+on the Mac's cloud alias), then files a ticket with the building's ticket service. This collector
+sends each task to the edge agent's trigger port (arm base + 9) and captures the gateway's flows
+to the cloud agents (base + 1, + 2) and the ticket service (base + 5); the trigger port is not in
+the capture filter, so no observer view contains it. There is one condition per task type (no
+topology; items are edge_cloud/<task type>/<i>). Sidecars add task_type, escalated (yes/no),
+cloud_role (escalated tasks only), the observer views (vantages: v1 building network, v2 upstream),
+the padded endpoints, the edge agent's timings and the Pi's temperature and throttling
+(pi_throttled). With --wan-target, every round starts with the edge agent measuring its TCP
+connect time to the cloud address; outside the target ± --wan-tolerance the session stops.
+
 Arms are given as --arm name=...,deployment=...,model=...,tls=on|off,defense=...,out=...
 (ports=BASE optional; arm k defaults to 8100 + 100k, topology t adds 10t). Optional:
 
@@ -90,6 +103,9 @@ from scripts.collect_deployment import (  # noqa: E402
 from scripts.collect_tls_session import probe_tls  # noqa: E402
 from workflows import WORKFLOW_REGISTRY, WORKFLOW_SETS, WorkflowClass, prompt_seed, workflow_set  # noqa: E402
 from workflows.base import TopologyType  # noqa: E402
+from agents.edge import (  # noqa: E402
+    CLOUD_PORTS, PADDED_ENDPOINTS, ROUTES, TRIGGER_PORT, VANTAGES, endpoints as edge_endpoints,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -165,13 +181,22 @@ def prompt_pool(prompts: dict, topologies: list[str], workflows: list[str]) -> d
     return out
 
 
-def parse_arm(spec: str, k: int) -> Arm:
+EDGE_CLOUD = "edge_cloud"
+
+
+def parse_arm(spec: str, k: int, placement: str = "local") -> Arm:
     kv = dict(part.split("=", 1) for part in spec.split(","))
+    if placement == "edge-cloud":            # the edge and cloud agents are configured where they run
+        kv.setdefault("deployment", EDGE_CLOUD)
+        kv.setdefault("model", "llama3.2:3b")
+        kv.setdefault("tls", "on")
+        if kv["tls"].lower() not in ("on", "1", "true", "yes") or "host" in kv or kv.get("defense", "none") != "none":
+            raise SystemExit(f"bad --arm {spec!r}: edge-cloud arms are TLS on, without host= or defense=")
     unknown = set(kv) - {"name", "deployment", "model", "tls", "defense", "out", "ports", "pad", "host",
                          "pad_expect"}
     if unknown or not {"name", "deployment", "out"} <= set(kv):
         raise SystemExit(f"bad --arm {spec!r}: needs name, deployment, out; unknown keys {sorted(unknown)}")
-    if kv["deployment"] not in DEPLOYMENTS:
+    if kv["deployment"] not in DEPLOYMENTS and not (placement == "edge-cloud" and kv["deployment"] == EDGE_CLOUD):
         raise SystemExit(f"unknown deployment {kv['deployment']!r} (choose from {sorted(DEPLOYMENTS)})")
     pad = [int(b) for b in kv["pad"].split("/")] if kv.get("pad") else []
     expect = int(kv["pad_expect"]) if kv.get("pad_expect") else None
@@ -305,8 +330,108 @@ def make_collector(arm: Arm, topology: str, workflow: str, num_predict: int | No
     )
 
 
+async def _ready(c: httpx.AsyncClient, method: str, url: str, wait_s: float = 60, **kw) -> dict:
+    """Retry until url answers 2xx (or wait_s passes); the JSON body."""
+    end = time.time() + wait_s
+    while True:
+        try:
+            r = await c.request(method, url, **kw)
+            r.raise_for_status()
+            return r.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            if time.time() > end:
+                raise RuntimeError(f"{method} {url} not answering: {exc}") from exc
+            await asyncio.sleep(2.0)
+
+
+async def start_edge(arm: Arm, a: argparse.Namespace) -> dict:
+    """Edge-cloud arm, between captures: the cloud agents' cards and the ticket service answer,
+    and the edge agent has fetched the cards and loaded its local model (POST /prepare)."""
+    eps = edge_endpoints(arm.ports_base, a.cloud_host, a.ticket_host)
+    async with httpx.AsyncClient(timeout=30, verify=tls.client_verify()) as c:
+        for role in CLOUD_PORTS:
+            await _ready(c, "GET", f"https://{eps[role]}/.well-known/agent-card.json")
+        await _ready(c, "GET", f"https://{eps['ticket']}/health")
+        return await _ready(c, "POST", f"{edge_url(arm, a)}/prepare", timeout=300)
+
+
+def edge_url(arm: Arm, a: argparse.Namespace) -> str:
+    return f"http://{a.edge_host}:{arm.ports_base + TRIGGER_PORT}"
+
+
+async def wan_probe(arm: Arm, a: argparse.Namespace, target_ms: float) -> dict:
+    """The edge agent's TCP connect times to the cloud address, against the emulated WAN's target."""
+    async with httpx.AsyncClient(timeout=120) as c:
+        r = await _ready(c, "POST", f"{edge_url(arm, a)}/probe", json={"n": a.wan_probes})
+    dev = (r["median_ms"] - target_ms) / target_ms
+    return {"arm": arm.name, "median_ms": r["median_ms"], "connect_ms": r["connect_ms"], "target_ms": target_ms,
+            "deviation": dev, "ok": abs(dev) <= a.wan_tolerance}
+
+
+def make_edge_collector(arm: Arm, workflow: str, a: argparse.Namespace, last: dict) -> TraceCollector:
+    """One task = one trigger to the edge agent; the capture holds the gateway's flows to the cloud
+    agents and the ticket service. `last` receives the edge agent's report of the task."""
+    eps = edge_endpoints(arm.ports_base, a.cloud_host, a.ticket_host)
+
+    # Same task-id format in every arm: the id travels in the ticket post.
+    async def exec_fn(prompt: str) -> None:
+        last.clear()
+        async with httpx.AsyncClient(timeout=600) as c:
+            r = await c.post(f"{edge_url(arm, a)}/task", json={
+                "task_id": f"edge_{uuid.uuid4().hex[:8]}", "task_type": workflow, "content": prompt,
+                "pad_buckets": arm.pad})
+        r.raise_for_status()
+        last.update(r.json())
+        if not last.get("ok"):
+            raise RuntimeError(f"edge agent: {last.get('error')}")
+
+    return TraceCollector(
+        orchestrator_fn=exec_fn,
+        recorder=PacketRecorder(output_dir=arm.out, interface=a.interface,
+                                agent_ports=[int(e.rsplit(":", 1)[1]) for e in eps.values()],
+                                hosts=[a.edge_host]),
+        workflow_class=WorkflowClass(workflow), topology=TopologyType.EDGE_CLOUD, agent_endpoints=eps,
+        topology_edges=[["edge", role] for role in eps], output_dir=arm.out, deployment=EDGE_CLOUD,
+    )
+
+
+def edge_sidecar(workflow: str, prompt: str, a: argparse.Namespace, last: dict) -> dict:
+    """Edge-cloud sidecar fields. escalated and cloud_role follow the routing rule; the edge
+    agent's own report of what it did must agree (check_lan_capture.py checks the packets)."""
+    route = ROUTES[workflow]
+    pi = (last.get("pi") or {})
+    out = {"placement": EDGE_CLOUD, "task_type": workflow, "escalated": "yes" if route else "no",
+           "vantages": VANTAGES, "padded_endpoints": PADDED_ENDPOINTS, "edge_host": a.edge_host,
+           "prompt_bytes": len(prompt.encode()),
+           "edge_report": {k: last.get(k) for k in ("escalated", "cloud_role", "answer_chars", "ticket_id",
+                                                     "seconds", "padded", "model", "error")},
+           "pi_temp_c": (pi.get("after") or {}).get("temp_c"), "pi_throttled": pi.get("throttled")}
+    if route:
+        out["cloud_role"] = route
+    if last.get("ok") and (last.get("escalated") != bool(route) or last.get("cloud_role") != route):
+        out["edge_report"]["mismatch"] = True
+    return out
+
+
+def pace(meta: dict) -> dict:
+    """Seconds per trace over the session (median gap between consecutive trace starts, gaps over
+    10 minutes dropped: a stop between nights) and what 1,800 and 1,200 traces would take."""
+    ts = sorted(e["start_ts"] for e in meta["schedule"])
+    gaps = [b - x for x, b in zip(ts, ts[1:]) if b - x < 600]
+    if not gaps:
+        return {}
+    import statistics
+    s = statistics.median(gaps)
+    return {"median_s_per_trace": s, "traces": len(ts), "projected_hours": {"1800": 1800 * s / 3600,
+                                                                             "1200": 1200 * s / 3600}}
+
+
 async def main(a: argparse.Namespace) -> None:
-    arms = [parse_arm(s, k) for k, s in enumerate(a.arm)]
+    edge = a.placement == "edge-cloud"
+    arms = [parse_arm(s, k, a.placement) for k, s in enumerate(a.arm)]
+    if edge and a.topology:
+        raise SystemExit("--topology does not apply to --placement edge-cloud")
+    wan_target = json.loads(Path(a.wan_target).read_text())["delay_ms"] if a.wan_target else None
     if len({arm.name for arm in arms}) != len(arms) or len({arm.out for arm in arms}) != len(arms):
         raise SystemExit("arm names and output dirs must be unique")
     if any(arm.tls for arm in arms):
@@ -317,15 +442,17 @@ async def main(a: argparse.Namespace) -> None:
         if any(arm.out.glob("*.pcap")) and not (a.allow_existing or a.resume):
             sys.exit(f"{arm.out} already holds pcaps; move it aside, or pass --resume")
 
-    topologies = [a.topology] if a.topology else TOPOLOGIES
+    topologies = [EDGE_CLOUD] if edge else [a.topology] if a.topology else TOPOLOGIES
     workflows = resolve_workflows(a.workflows, a.workflow)
+    if edge and set(workflows) - set(ROUTES):
+        raise SystemExit(f"--placement edge-cloud routes only {sorted(ROUTES)} (--workflows iot)")
     meta_paths = [arm.out / "session_meta.json" for arm in arms]
     meta = json.loads(meta_paths[0].read_text()) if a.resume and meta_paths[0].exists() else None
     if meta is not None and meta["workflows"] != workflows:
         raise SystemExit(f"--resume: the session collected {meta['workflows']}, not {workflows}")
     prompts = {(t, w): WORKFLOW_REGISTRY[WorkflowClass(w)]().sample_prompts(
-                   n=a.n, seed=prompt_seed(TOPOLOGIES.index(t), w, a.seed_offset))
-               for t in TOPOLOGIES for w in workflows}
+                   n=a.n, seed=prompt_seed(0 if t == EDGE_CLOUD else TOPOLOGIES.index(t), w, a.seed_offset))
+               for t in (topologies if edge else TOPOLOGIES) for w in workflows}
     if meta is None:
         meta = {
             "collection_id": a.collection_id,
@@ -347,6 +474,7 @@ async def main(a: argparse.Namespace) -> None:
             "prompt_pool": prompt_pool(prompts, topologies, workflows),
             "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             "schedule": [], "failures": 0, "tls_params": {},
+            "placement": a.placement,
             "audit_null": {"labels": list(AUDIT_NULL_LABELS), "seed": AUDIT_NULL_SEED,
                            "rule": "random.Random(f'{seed}:{prompt_group}').choice(labels)"},
         }
@@ -378,12 +506,33 @@ async def main(a: argparse.Namespace) -> None:
         logger.info("=" * 60)
         try:
             for arm in arms:
+                if edge:
+                    meta.setdefault("edge", {})[arm.name] = await start_edge(arm, a)
+                    if wan_target is not None:
+                        probe = {"round": rnd, **await wan_probe(arm, a, wan_target)}
+                        meta.setdefault("wan_probes", []).append(probe)
+                        save()
+                        logger.info("  WAN probe (%s): median %.1f ms, target %.1f ms", arm.name,
+                                    probe["median_ms"], wan_target)
+                        if not probe["ok"]:
+                            raise SystemExit(f"{arm.name}: edge-to-cloud connect time {probe['median_ms']:.1f} ms is "
+                                             f"outside {wan_target} ms ± {a.wan_tolerance:.0%}: is the WAN "
+                                             "emulation on (scripts/wan_emulation.sh show on the Pi)?")
+                    if arm.name not in meta["tls_params"]:
+                        eps = edge_endpoints(arm.ports_base, a.cloud_host, a.ticket_host)
+                        meta["tls_params"][arm.name] = {
+                            role: await probe_tls(int(eps[role].rsplit(":", 1)[1]), host=eps[role].rsplit(":", 1)[0])
+                            for role in ("diagnostics", "ticket")}
+                        logger.info("  TLS parameters (%s): %s", arm.name, meta["tls_params"][arm.name])
+                    continue
                 await start_sets(arm, topologies, num_predict, a.ollama_url)
                 if arm.tls and arm.name not in meta["tls_params"]:
                     meta["tls_params"][arm.name] = await probe_tls(arm.ports(topologies[0])["executor"],
                                                                    host=arm.agent_host)
                     logger.info("  TLS parameters (%s): %s", arm.name, meta["tls_params"][arm.name])
-            collectors = {(arm.name, t, w): make_collector(arm, t, w, num_predict, a.interface, a.ollama_url)
+            last: dict = {}                                 # the edge agent's report of the current task
+            collectors = {(arm.name, t, w): make_edge_collector(arm, w, a, last) if edge else
+                          make_collector(arm, t, w, num_predict, a.interface, a.ollama_url)
                           for arm in arms for t in topologies for w in workflows}
             for k, (t, w, i) in enumerate(todo):
                 if deadline and time.time() > deadline:
@@ -415,12 +564,18 @@ async def main(a: argparse.Namespace) -> None:
                                        "model": arm.model, "tls": arm.tls, "defense": arm.defense,
                                        "agent_host": arm.host, "pad_buckets": arm.pad,
                                        "pad_expect": arm.pad_expect})
+                            if edge:
+                                sc.update(edge_sidecar(w, prompts[(t, w)][i], a, last))
+                                entry["pi_throttled"] = sc["pi_throttled"]
                             sidecar.write_text(json.dumps(sc, indent=2))
                         if run.success:
                             done.add((item, arm.name))
                             break
                         meta["failures"] += 1
-                        await restart_set(arm, t, num_predict, a.ollama_url)
+                        if edge:                            # remote agents: wait until they answer again
+                            await start_edge(arm, a)
+                        else:
+                            await restart_set(arm, t, num_predict, a.ollama_url)
                 save()
         finally:
             for arm in arms:
@@ -432,12 +587,19 @@ async def main(a: argparse.Namespace) -> None:
 
     meta["finished"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     meta["stopped_at_deadline"] = stopped
+    meta["pace"] = pace(meta)
+    if edge:
+        meta["throttled_traces"] = sum(1 for e in meta["schedule"] if e.get("pi_throttled"))
     planned = a.n * len(topologies) * len(workflows)
     meta["complete_items"] = sum(1 for t in topologies for w in workflows for i in range(a.n)
                                  if all((f"{t}/{w}/{i}", arm.name) in done for arm in arms))
     save()
     print(f"\n{a.collection_id}: {meta['complete_items']} of {planned} items complete in every arm, "
           f"{meta['failures']} failed attempts → " + ", ".join(f"{x.out}/" for x in arms))
+    if meta["pace"]:
+        print(f"pace: {meta['pace']['median_s_per_trace']:.1f} s per trace; 1,800 traces ≈ "
+              f"{meta['pace']['projected_hours']['1800']:.1f} h, 1,200 ≈ {meta['pace']['projected_hours']['1200']:.1f} h"
+              + (f"; {meta['throttled_traces']} traces taken while the Pi was throttled" if edge else ""))
 
 
 def _parse() -> argparse.Namespace:
@@ -456,6 +618,17 @@ def _parse() -> argparse.Namespace:
                    help="prompt seed offset; register it in docs/PROMPT_REGISTRY.md")
     p.add_argument("--num-predict", type=int, default=DEFAULT_NUM_PREDICT, dest="num_predict")
     p.add_argument("--topology", choices=TOPOLOGIES, default=None)
+    p.add_argument("--placement", choices=["local", "edge-cloud"], default="local",
+                   help="local: this process runs the orchestrator (and the agents, unless host=); "
+                        "edge-cloud: the edge agent on the gateway runs each task (C2)")
+    p.add_argument("--edge-host", default="192.168.2.2", dest="edge_host", help="edge-cloud: the gateway")
+    p.add_argument("--cloud-host", default="192.168.2.100", dest="cloud_host", help="edge-cloud: the cloud alias")
+    p.add_argument("--ticket-host", default="192.168.2.1", dest="ticket_host",
+                   help="edge-cloud: the building server running the ticket service")
+    p.add_argument("--wan-target", default=None, dest="wan_target",
+                   help="edge-cloud: data/c2_wan_emulation.json; each round checks the emulated round trip")
+    p.add_argument("--wan-tolerance", type=float, default=0.20, dest="wan_tolerance")
+    p.add_argument("--wan-probes", type=int, default=10, dest="wan_probes")
     p.add_argument("--workflows", default="classic",
                    help=f"workflow set ({', '.join(WORKFLOW_SETS)}; classic = every collection up to C1, iot = C2) "
                         "or comma-separated workflows of one set")

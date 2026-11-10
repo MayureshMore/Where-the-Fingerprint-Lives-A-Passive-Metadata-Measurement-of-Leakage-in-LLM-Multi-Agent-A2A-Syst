@@ -15,6 +15,10 @@ Per data set and topology it reports the median and the share of traces at or be
 --cut-at packets. Failed runs are included: a cut stream is often what made them fail.
 Headers only, so it works on payload-stripped captures.
 
+Edge-cloud placement (sidecar topology edge_cloud): the streamed replies are the cloud agents'
+(the ticket service is not an agent), grouped per task type; alert_triage is answered on the
+gateway and has no cloud reply, so it is left out.
+
 Usage:
     python scripts/check_stream_integrity.py data/raw data/raw_b_sdk ...
     python scripts/check_stream_integrity.py --all --json data/results/stream_integrity.json
@@ -35,7 +39,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from scripts.strip_payload import _MAGICS, _network_offset  # noqa: E402
 
-NOT_SPECIALIST = {"orchestrator", "mcp"}
+NOT_SPECIALIST = {"orchestrator", "mcp", "ticket", "edge"}
 
 
 def specialist_ports(sidecar: dict) -> set[int]:
@@ -87,6 +91,11 @@ def scan(d: Path, cut_at: int) -> dict:
             continue
         ports = specialist_ports(sc)
         if not ports:
+            continue
+        if sc.get("topology") == "edge_cloud":
+            if sc.get("escalated") == "no":
+                continue
+            by_topo[f"edge_cloud/{sc.get('task_type') or sc.get('workflow_class')}"].append(largest_reply(pcap, ports))
             continue
         by_topo[sc.get("topology") or "-"].append(largest_reply(pcap, ports))
     out = {}

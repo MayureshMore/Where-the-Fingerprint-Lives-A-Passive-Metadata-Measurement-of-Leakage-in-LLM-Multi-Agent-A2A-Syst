@@ -1,60 +1,78 @@
-# LAN setup: Mac + Raspberry Pi over a direct Ethernet link (collection C2)
+# LAN setup: edge agent on a Raspberry Pi, emulated cloud on the Mac (collection C2)
 
-The specialist agents run on a Raspberry Pi; the orchestrator, Ollama, the collector and the
-capture run on the Mac. The Pi reaches the network only through the Mac, so the Mac is the Pi's
-gateway, and the capture sees what a compromised gateway would see (paper 2's threat model).
+**Use case:** an edge AI assistant for building and factory operations. The assistant's agent runs
+**on the building's IoT gateway** (the Raspberry Pi). It answers alarm triage itself with a small
+local model, sends sensor analysis and fault diagnosis to a cloud agent `diagnostics` and procedure
+questions to a cloud agent `knowledge`, and files every result with the building's maintenance-ticket
+service. The Mac stands in for both the cloud (on a separate address) and the building server, and
+it is the gateway's router, so its capture is what a passive observer on the building network sees.
 
-**Use case:** an edge AI assistant for building and factory operations. The coordinator
-(orchestrator) runs on the site's IoT gateway, the specialists on an edge device. C2 uses the IoT
-workflow set (`--workflows iot`, `docs/PROMPT_REGISTRY.md`), four synthetic task types with the same
-design as paper 1's: sensor_analysis (a telemetry window as CSV) and fault_diagnosis (a device log
-and config excerpt) have long task inputs; procedure_lookup (a maintenance question) and
-alert_triage (an alarm or occupant request) short ones.
+| Role | Host | Address | Model |
+|---|---|---|---|
+| Edge agent (A2A client) + local triage (`scripts/serve_edge.py`) | Raspberry Pi 5 | `192.168.2.2` | Ollama on the Pi, `llama3.2:1b`, `num_predict 128` |
+| Cloud agents `diagnostics`, `knowledge` (`scripts/serve_cloud.py`) | Mac, cloud alias | `192.168.2.100` (alias on `bridge100`) | Ollama on the Mac (localhost), `llama3.2:3b`, `num_predict 256` |
+| Ticket service, HTTPS `POST /tickets` (`scripts/serve_cloud.py`) | Mac, building server | `192.168.2.1` | none |
+| Collector and capture (= the building router) | Mac, `bridge100` | | |
 
-| | Mac (gateway) | Raspberry Pi |
+**Routing on the edge agent is a fixed rule on the task type** (`agents/edge.py`), as a building
+management system tags its requests: `alert_triage` is answered on the gateway and never leaves the
+building; `sensor_analysis` and `fault_diagnosis` go to `diagnostics`; `procedure_lookup` goes to
+`knowledge`. After every task the edge agent POSTs its result to the ticket service. Every link is
+TLS 1.3. No LLM router (it would cost Pi time and make routing a random variable).
+
+**Ports, per arm base B** (`lan` 8100, `lan_pad` 8200, `lan_padmax` 8300): `diagnostics` B+1 and
+`knowledge` B+2 on `192.168.2.100`; tickets B+5 on `192.168.2.1`; the edge agent's task trigger
+B+9 on `192.168.2.2`. Each arm has its own ports, so one arm's closing connections never land in
+another arm's captures.
+
+| Arm | Input padding (the edge agent's request to the cloud agent) |
+|---|---|
+| `lan` | none |
+| `lan_pad` | request bodies padded to 1024/2048/4096/8192/16384/32768 B (paper 1's pow2 buckets from 1 KB) |
+| `lan_padmax` | request bodies padded to 8192 B (16384 above it): every cloud request in one bucket (`pad_expect=8192`) |
+
+The edge agent sends the task text to the cloud agent as it is (no sub-task plan), so the padded
+body is the task input plus about 0.4 KB; C2's longest input is 5.3 KB, so every request fits in
+8192. Ticket posts are not padded: the building-network leg stays exposed, and the paper says so.
+Padding is set once, on the collector's `--arm pad=`; each task carries it to the edge agent.
+
+**The task trigger.** The collector stays on the Mac and sends each task to the edge agent's trigger
+port (B+9, plain HTTP). The trigger port is not in the capture filter, so no capture, and hence
+neither observer view, contains it; in the paper the trigger stands for the sensors and building
+systems wired to the gateway. Why not an injector on the Pi reading a pushed schedule: every
+capture would then have to be cut out of one continuous capture by the Pi's clock, and the
+session machinery (balanced rounds, arms alternating on the same prompt, a retry per failed
+trace, `--resume`, sidecars) would have to be rebuilt on the Pi. With the trigger, each capture
+starts before the task and stops after its last connection closes, exactly as in C1.
+
+**Observer views** (one capture, two vantage points; `a2a_leakcheck --vantage`):
+
+| View | Who | Sees |
 |---|---|---|
-| Runs | orchestrator (in the collector), Ollama, `collect_session.py`, tcpdump | executor, retriever, validator (`serve_agents.py`, one instance per arm) |
-| Address | `192.168.2.1` on `bridge100` | `192.168.2.2` on `eth0` |
-| Ports | Ollama `11434` | arm `lan`: topology *t* at `8100 + 10t` (8101–8123); arm `lan_pad`: `8200 + 10t` (8201–8223); arm `lan_padmax`: `8300 + 10t` (8301–8323); executor `+1`, retriever `+2`, validator `+3` |
+| `v1` building network | a compromised gateway or router, a mirrored switch port | every flow of the Pi to the cloud alias and to the ticket service |
+| `v2` upstream | the ISP, a cellular backhaul, the cloud's edge | only the flows between the Pi and the cloud alias |
 
-C2 has three arms, collected in one session and alternating trace by trace on the same prompt:
+At `v2` every `alert_triage` task shows no flow at all. That is an observation, not a missing
+trace: leakcheck keeps such traces with all-zero features. Attributes: `task_type` (4 classes),
+`escalated` (cloud call or not; at `v2` padding cannot hide whether a call happened),
+`cloud_role` (`diagnostics` or `knowledge`, escalated tasks only), and the input size (the
+first-request estimator). The architecture is fixed, so C2 has no topology attribute.
 
-| Arm | Ports | Input padding (Mac orchestrator) |
-|---|---|---|
-| `lan` | 8100 | none |
-| `lan_pad` | 8200 | request bodies padded to 1024/2048/4096/8192/16384/32768 B (paper 1's pow2 buckets from 1 KB) |
-| `lan_padmax` | 8300 | request bodies padded to 8192 B (16384 above it): every first request in one bucket (`pad_expect=8192`) |
+**Emulated WAN.** Traffic from the Pi to the cloud alias is delayed on the Pi's egress with
+`tc netem`, by a round trip measured from the Mac to the nearest public cloud region (section 7).
+The whole delay sits on the Pi's side of the capture point, so the Mac captures each of the Pi's
+packets to the cloud after the delay, like an observer next to the cloud: sizes, counts and
+whether a call happened are as any observer sees them, but the round trip shows up after a
+response (before the Pi's next packet) rather than between a request and its response.
 
-The top bucket must exceed the largest first request, so that every padded first request lands in
-a bucket rather than in a multiple of the top one. The first A2A message is the orchestrator's
-sub-task plan plus the whole task input; C2's longest task input is 5.8 KB (fault_diagnosis), and
-in the smoke test the first request was the task input plus 1.1–1.5 KB, so about 7.3 KB at most,
-well under 32768 (C1's largest was 7821 B). The short task inputs put the first message near the
-1024 bucket's edge: procedure_lookup about 0.8–0.9 KB (bucket 1024), alert_triage about 1.0–1.1 KB
-(1024 or 2048, depending on the plan's length), as with the classic short workflows, so
-`lan_pad` leaves the task input's size class visible. `lan_padmax` removes it: the largest first
-message C2 can produce is about 7.8 KB (the longest fault_diagnosis input with a 1,600-character
-sub-task plan, more than 256 tokens give), under 8192, so every first request lands in the 8192
-bucket and check [c] fails if one does not. Each arm has its own ports so that one arm's closing
-connections never land in another arm's captures.
-
-The addresses are macOS Internet Sharing's defaults; check yours in step 1 and use them
-everywhere below.
-
-**What crosses the link:** the orchestrator's calls to the specialists (star: all three;
-chain: executor; mesh: executor and retriever), and the specialists' calls to Ollama. Chain and
-mesh forwarding *between* specialists stays inside the Pi and never reaches the link, so a
-gateway observer does not see it. Write that down in the paper's setup. The capture keeps only
-agent ports to and from the Pi; the Ollama calls (port 11434) cross the link but are filtered
-out.
-
-**Ethics:** the cable connects only your own two devices, and the capture filter is limited to
-the Pi's address and the agent ports. Never point the capture at a shared network.
+**Ethics:** the cable connects only your own two devices, and the capture filter is limited to the
+Pi's address and the agent and ticket ports. Keep the Pi off Wi-Fi: it reaches the network only
+through the Mac. Never capture on a shared interface.
 
 ## 0. You need
 
 - The Mac with this repo, its `venv`, Ollama with `llama3.2:3b`, and an Ethernet port or adapter.
-- A Raspberry Pi 4 or 5 (4 GB or more) running Raspberry Pi OS 64-bit (Bookworm), with SSH on.
+- A Raspberry Pi 5 (4 GB or more) running Raspberry Pi OS 64-bit (Bookworm), with SSH on.
 - One Ethernet cable from the Pi to the Mac. Nothing else on that link.
 
 ## 1. The link, with the Mac as gateway
@@ -68,12 +86,13 @@ the Pi's address and the agent ports. Never point the capture at a shared networ
    ifconfig bridge100 | grep 'inet '          # inet 192.168.2.1 ...
    arp -a -i bridge100                         # the Pi's DHCP address
    ```
-4. SSH to the Pi at that address and fix its address, so every run uses the same one:
+4. SSH to the Pi at that address, fix its address, and turn its Wi-Fi off:
    ```bash
    nmcli con show                              # the wired connection's name, e.g. "Wired connection 1"
    sudo nmcli con mod "Wired connection 1" ipv4.method manual \
        ipv4.addresses 192.168.2.2/24 ipv4.gateway 192.168.2.1 ipv4.dns 192.168.2.1
    sudo nmcli con up "Wired connection 1"
+   sudo nmcli radio wifi off
    ```
 5. Check from the Pi: the Mac is its gateway and it reaches the internet through it.
    ```bash
@@ -81,23 +100,32 @@ the Pi's address and the agent ports. Never point the capture at a shared networ
    ping -c 3 192.168.2.1 && ping -c 3 1.1.1.1
    ```
 
-## 2. Ollama on the Mac, reachable from the Pi only
+## 2. The cloud alias on the Mac
 
-Bind Ollama to the link address instead of all interfaces, so it is not exposed on Wi-Fi:
-
+The cloud agents get their own address on the link, so the Pi's flows to "the cloud" and to the
+building server are told apart by address, as on a real network:
 ```bash
-# quit the Ollama app first, then:
-OLLAMA_HOST=192.168.2.1:11434 ollama serve      # leave running (or in tmux)
+sudo ifconfig bridge100 alias 192.168.2.100 netmask 255.255.255.255
+ifconfig bridge100 | grep 'inet '               # 192.168.2.1 and 192.168.2.100
 ```
+From the Pi: `ping -c 3 192.168.2.100`. The alias goes away when Internet Sharing restarts or the
+Mac reboots; add it again before starting the cloud services.
 
-Allow incoming connections for Ollama if the macOS firewall asks. From then on every Mac-side
-command passes `--ollama-url http://192.168.2.1:11434`. Check from the Pi:
+## 3. Ollama
 
-```bash
-curl -s http://192.168.2.1:11434/api/tags | head -c 200      # lists llama3.2:3b
-```
+- **Mac:** Ollama as usual, on localhost (the cloud agents call it locally; it never crosses the
+  link). If an earlier setup ran `OLLAMA_HOST=192.168.2.1 ollama serve`, quit it and start the
+  Ollama app. `ollama list` shows `llama3.2:3b`.
+- **Pi:** install Ollama and the edge model (the Pi reaches the internet through the Mac):
+  ```bash
+  curl -fsSL https://ollama.com/install.sh | sh
+  ollama pull llama3.2:1b
+  time ollama run llama3.2:1b "Triage: ALARM A512 HIGH: chiller CH-1 high temperature. Priority, team, first action."
+  ```
+  If `qwen2.5:1.5b` answers faster on your Pi (`ollama pull qwen2.5:1.5b`, same `time` line), use
+  it and pass `--model qwen2.5:1.5b` in section 6. Record the choice.
 
-## 3. Code on the Pi
+## 4. Code on the Pi
 
 On the Pi:
 ```bash
@@ -108,7 +136,7 @@ From the Mac, in the repo:
 ```bash
 rsync -a --exclude data --exclude venv --exclude .git --exclude dist ./ pi@192.168.2.2:a2a/
 ```
-On the Pi, install only what the agents need, at the Mac's versions (requirements-lock.txt):
+On the Pi, install what the edge agent needs, at the Mac's versions (requirements-lock.txt):
 ```bash
 cd ~/a2a && python3 -m venv venv
 venv/bin/pip install "a2a-sdk[http-server]==0.3.26" "sse-starlette==3.6.0" "uvicorn[standard]==0.49.0" \
@@ -116,156 +144,172 @@ venv/bin/pip install "a2a-sdk[http-server]==0.3.26" "sse-starlette==3.6.0" "uvic
 venv/bin/python --version; venv/bin/pip freeze > ~/pi-freeze.txt    # keep both with the collection
 ```
 
-## 4. TLS certificates valid for the Pi's address
+## 5. TLS certificates
 
-On the Mac (a separate directory, so the loopback certificates stay as they were):
+One certificate for the Mac's two TLS services (the cloud alias and the building server); the Pi is
+only a TLS client and needs only the CA:
 ```bash
-bash scripts/make_tls_certs.sh data/tls_lan 192.168.2.2
+bash scripts/make_tls_certs.sh data/tls_lan 192.168.2.100 192.168.2.1
 ssh pi@192.168.2.2 mkdir -p a2a/data/tls_lan
-scp data/tls_lan/ca.pem data/tls_lan/agent.pem data/tls_lan/agent-key.pem pi@192.168.2.2:a2a/data/tls_lan/
+scp data/tls_lan/ca.pem pi@192.168.2.2:a2a/data/tls_lan/
 ```
-The key goes only to the Pi, over the direct link; `data/` is gitignored on both machines.
+This replaces the earlier `data/tls_lan` (made for the Pi's address). `data/` is gitignored.
 
-## 5. Start the Pi's agents
+## 6. Start the services
 
-One instance per arm. On the Pi, in three `tmux` windows so they survive the SSH session:
+On the Mac, in a `tmux` window (the cloud agents for all three arms and the ticket services):
 ```bash
-# window 1: arm lan
+venv/bin/python scripts/serve_cloud.py --bases 8100,8200,8300 --tls-dir data/tls_lan \
+    --cloud-host 192.168.2.100 --ticket-host 192.168.2.1
+```
+On the Pi, in a `tmux` window (one edge agent per arm; padding comes with each task):
+```bash
 cd ~/a2a
-venv/bin/python scripts/serve_agents.py --ports-base 8100 --tls-dir data/tls_lan \
-    --ollama-url http://192.168.2.1:11434 --num-predict 256
+venv/bin/python scripts/serve_edge.py --bases 8100,8200,8300 --tls-dir data/tls_lan \
+    --cloud-host 192.168.2.100 --ticket-host 192.168.2.1 --model llama3.2:1b --num-predict 128
 ```
+Allow incoming connections for Python if the macOS firewall asks. Check from the Mac: the nine TLS
+endpoints answer, and each edge agent fetches the cloud agents' cards and loads its model:
 ```bash
-# window 2: arm lan_pad (no --pad-buckets; see below)
-cd ~/a2a
-venv/bin/python scripts/serve_agents.py --ports-base 8200 --tls-dir data/tls_lan \
-    --ollama-url http://192.168.2.1:11434 --num-predict 256
+for b in 8100 8200 8300; do
+  for e in 192.168.2.100:$((b+1)) 192.168.2.100:$((b+2)); do
+    curl -s --cacert data/tls_lan/ca.pem -o /dev/null -w "$e %{http_code}\n" https://$e/.well-known/agent-card.json; done
+  curl -s --cacert data/tls_lan/ca.pem -w " 192.168.2.1:$((b+5))\n" https://192.168.2.1:$((b+5))/health
+  curl -s -X POST http://192.168.2.2:$((b+9))/prepare | head -c 160; echo
+done                                         # 200s, {"ok":true,...}, and three edge configurations
 ```
+
+## 7. Emulated WAN
+
+On the Mac, measure the round trip to the nearest public cloud region (TCP connect time, 30 tries)
+and write the netem settings and the exact `tc` commands:
 ```bash
-# window 3: arm lan_padmax (no --pad-buckets either)
-cd ~/a2a
-venv/bin/python scripts/serve_agents.py --ports-base 8300 --tls-dir data/tls_lan \
-    --ollama-url http://192.168.2.1:11434 --num-predict 256
+venv/bin/python scripts/measure_cloud_rtt.py            # https://ec2.us-west-1.amazonaws.com
+ssh pi@192.168.2.2 mkdir -p a2a/data/results
+scp data/results/c2_wan_emulation.json pi@192.168.2.2:a2a/data/results/
 ```
-Each instance serves all three topologies at once (nine servers: `B+1`–`B+3`, `B+11`–`B+13`,
-`B+21`–`B+23` for base `B`), over TLS, with Ollama on the Mac. Ctrl-C stops one instance's nine.
-Check all 27 from the Mac:
+It writes `data/results/c2_wan_emulation.json` (raw times, median, IQR, delay = median,
+jitter = half the IQR, the `tc` commands; the paper cites it). On the Pi:
 ```bash
-for b in 8100 8200 8300; do for t in 0 10 20; do for r in 1 2 3; do p=$((b + t + r))
-  curl -s --cacert data/tls_lan/ca.pem -o /dev/null -w "$p %{http_code}\n" https://192.168.2.2:$p/.well-known/agent-card.json
-done; done; done                            # 27 lines ending in 200
+sudo bash scripts/wan_emulation.sh on data/results/c2_wan_emulation.json
+bash scripts/wan_emulation.sh show                   # prio bands 4, netem on 1:4, u32 filter dst 192.168.2.100
 ```
-Input padding is applied by whoever sends a request. The calls that cross the link come from the
-Mac's orchestrator, so the padded arms set `pad=` on the Mac's `--arm`, and the Pi's 8200 and
-8300 instances run **without** `--pad-buckets`. Padding on the Pi would only pad the forwarding
-inside the Pi, which no observer at the gateway sees, and the arms would then differ in more than
-the padding the paper evaluates.
+The commands put a 4-band `prio` qdisc on `eth0` (the default priomap never uses band 4, so no
+other traffic is delayed), `netem delay <median>ms <jitter>ms distribution normal` on band 4 with
+a `pfifo` child (netem with jitter would otherwise reorder packets, adding retransmissions to the
+captures), and a `u32` filter that sends only traffic to `192.168.2.100` there. Turn it off with
+`sudo bash scripts/wan_emulation.sh off`. Then, from the Mac:
+```bash
+venv/bin/python scripts/check_wan_emulation.py --json data/raw_c2_pilot/wan_check.json
+```
+Each edge agent measures its TCP connect time to the cloud alias 30 times; the median must be
+within ±20% of the delay, or the check fails. The collector repeats this (10 tries) at the start of
+every round with `--wan-target` and stops if the emulation is off.
 
-## 6. Capture on the Mac
+## 8. Capture on the Mac
 
-The collector runs tcpdump on `--interface bridge100` and limits each capture to the trace's
-agent ports and the Pi's address, for example
-`tcp and (port 8100 or port 8101 or port 8102 or port 8103) and (host 192.168.2.2)`.
-
-Before a run: charger in, `caffeinate`, and capture access for your user:
+The collector runs tcpdump on `--interface bridge100`, limited to the Pi's address and the arm's
+cloud and ticket ports, for example
+`tcp and (port 8101 or port 8102 or port 8105) and (host 192.168.2.2)`. The trigger port (B+9) is
+not in the filter. Before a run: charger in, `caffeinate`, and capture access for your user:
 ```bash
 sudo chmod o+r /dev/bpf*        # revoke afterwards: sudo chmod o-r /dev/bpf*
 ```
-Quick look that the agent traffic is on `bridge100` (Ctrl-C after a few lines while a test
-trace runs):
-```bash
-tcpdump -i bridge100 -nn 'tcp and portrange 8101-8323 and host 192.168.2.2'
-```
 
-## 7. Two-hour pilot
+## 9. Smoke test (Mac only) and the 1-hour pilot
 
-C2 uses seed offset 20000 and the IoT workflows (both registered in `docs/PROMPT_REGISTRY.md`).
-Local smoke tests first, without the Pi (agents on loopback, TLS on, 3 traces per workflow, about
-4 minutes each; the folders are discarded afterwards): the unpadded arm, and `lan_padmax`'s
-padding, whose first requests must all land in the 8192 bucket:
+C2 uses seed offset 30000 and the IoT workflows (`docs/PROMPT_REGISTRY.md`): one condition per
+task type, 150 tasks each per arm. First a smoke test on the Mac alone, everything on loopback
+(the loopback certificates in `data/tls`; the edge agent uses the Mac's `llama3.2:3b`; no WAN
+emulation), 3 tasks per task type and arm:
 ```bash
-venv/bin/python scripts/collect_session.py --collection-id C2-smoke --n 1 --rounds 1 --seed-offset 20000 \
-    --workflows iot --arm name=smoke,deployment=a,tls=on,out=/tmp/c2_smoke
-venv/bin/python scripts/collect_session.py --collection-id C2-smoke-padmax --n 1 --rounds 1 --seed-offset 20000 \
-    --workflows iot --arm name=smoke_padmax,deployment=a,tls=on,pad=8192/16384,pad_expect=8192,out=/tmp/c2_smoke_padmax
-for d in /tmp/c2_smoke /tmp/c2_smoke_padmax; do
-  venv/bin/python scripts/check_tls_capture.py $d --expect tls
-  venv/bin/python scripts/check_stream_integrity.py $d
-done
-venv/bin/python scripts/check_session_design.py /tmp/c2_smoke_padmax      # [c]: 100% in the 8192 bucket
+venv/bin/python scripts/serve_cloud.py --bases 8100,8200,8300 --tls-dir data/tls --cloud-host 127.0.0.1 --ticket-host 127.0.0.1 &
+venv/bin/python scripts/serve_edge.py --bases 8100,8200,8300 --tls-dir data/tls --cloud-host 127.0.0.1 \
+    --ticket-host 127.0.0.1 --bind 127.0.0.1 --model llama3.2:3b &
+venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2-smoke --n 3 --rounds 1 \
+    --seed-offset 30000 --workflows iot --tls-dir data/tls --edge-host 127.0.0.1 --cloud-host 127.0.0.1 \
+    --ticket-host 127.0.0.1 \
+    --arm name=lan,ports=8100,out=/tmp/c2s/lan --arm name=lan_pad,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=/tmp/c2s/lan_pad \
+    --arm name=lan_padmax,ports=8300,pad=8192/16384,pad_expect=8192,out=/tmp/c2s/lan_padmax
+venv/bin/python scripts/check_lan_capture.py /tmp/c2s/lan /tmp/c2s/lan_pad /tmp/c2s/lan_padmax
+venv/bin/python scripts/check_session_design.py /tmp/c2s/lan /tmp/c2s/lan_pad /tmp/c2s/lan_padmax
+kill %1 %2
 ```
-Then the pilot, on the Mac, in the repo:
+Then the pilot on the LAN, one hour, all three arms:
 ```bash
-caffeinate -dimsu venv/bin/python scripts/collect_session.py --collection-id C2-pilot \
-    --n 50 --rounds 5 --seed-offset 20000 --workflows iot --deadline-hours 2.5 \
-    --interface bridge100 --ollama-url http://192.168.2.1:11434 --tls-dir data/tls_lan \
-    --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2_pilot \
-    --arm name=lan_pad,deployment=a,tls=on,host=192.168.2.2,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad_pilot \
-    --arm name=lan_padmax,deployment=a,tls=on,host=192.168.2.2,ports=8300,pad=8192/16384,pad_expect=8192,out=data/raw_c2_padmax_pilot
+caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2-pilot \
+    --n 150 --rounds 5 --seed-offset 30000 --workflows iot --deadline-hours 1 \
+    --interface bridge100 --tls-dir data/tls_lan --wan-target data/results/c2_wan_emulation.json \
+    --arm name=lan,ports=8100,out=data/raw_c2_pilot \
+    --arm name=lan_pad,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad_pilot \
+    --arm name=lan_padmax,ports=8300,pad=8192/16384,pad_expect=8192,out=data/raw_c2_padmax_pilot
 ```
-The C2 design, stopped after two and a half hours: round 1 (all 12 conditions, 10 traces each,
-interleaved, three arms: 360 traces) takes about 110 minutes at C1's pace of 18 s per trace,
-longer if the Pi is slower; the pass criteria need round 1 complete, hence 2.5 hours rather than
-2. The collector does not start or restart the Pi's agents; if one stops answering, the
-trace fails and the retry waits for it. Every sidecar gets `prompt_group` and `audit_null` (a
-label a–d drawn at random per prompt group with a fixed seed, for the audit's known-null test).
+The last line it prints is the pace: seconds per trace, and the hours 1,800 traces (three arms)
+and 1,200 traces (two arms) would take. **If 1,800 traces do not fit in about 30 hours, C2 runs
+`lan` and `lan_padmax` only; record why** (`session_meta.json` keeps the pace).
 
-Then run the checks on the raw (not yet stripped) captures, the first three once per arm:
+Checks on the raw (not yet stripped) pilot captures:
 ```bash
-for d in data/raw_c2_pilot data/raw_c2_pad_pilot data/raw_c2_padmax_pilot; do
-  venv/bin/python scripts/check_lan_capture.py $d --json $d/lan_check.json
+P="data/raw_c2_pilot data/raw_c2_pad_pilot data/raw_c2_padmax_pilot"
+venv/bin/python scripts/check_lan_capture.py $P --json data/raw_c2_pilot/lan_check.json
+for d in $P; do
   venv/bin/python scripts/check_tls_capture.py $d --expect tls --json $d/tls_check.json
   venv/bin/python scripts/check_stream_integrity.py $d --json $d/stream_integrity.json
 done
-venv/bin/python scripts/check_session_design.py data/raw_c2_pilot data/raw_c2_pad_pilot data/raw_c2_padmax_pilot \
-    --json data/raw_c2_pilot/design_check.json
+venv/bin/python scripts/check_session_design.py $P --json data/raw_c2_pilot/design_check.json
+venv/bin/python scripts/check_wan_emulation.py --json data/raw_c2_pilot/wan_check.json
+bash baselines/run_tls_scanners.sh                   # sslyze and testssl.sh on the nine TLS endpoints
 ```
 
 ### Pass criteria
 
-The pilot passes only if all of these hold:
-
 | Check | Pass when |
 |---|---|
-| Every cross-host call captured | `check_lan_capture.py` prints PASS: in every successful trace, each call the topology makes from the Mac (star 3, chain 1, mesh 2) shows a request after the TLS handshake and response data, and no other specialist port gets a request |
-| TLS on | `check_tls_capture.py --expect tls` passes: every trace carries ClientHellos and TLS application-data records, and no cleartext HTTP |
-| Streams complete | `check_stream_integrity.py`: share of cut replies ≤ 5% for every topology (the bar C1 passed), with median largest replies far above the truncation signature of 7–10 packets. C1 (classic prompts): star 272, chain 44, mesh 78; the IoT smoke test on loopback: star 274, chain 45, mesh 48.5 (4 traces each), so IoT replies can differ from C1's |
-| Collection healthy | `session_meta.json`: `workflows` are the four IoT ones; round 1 complete for all 12 conditions in all three arms; failed attempts ≤ 1% of traces |
-| No fixed predecessor | `check_session_design.py` [a]: per arm and workflow, the workflow that ran last on the same ports. A share above 40% is flagged; it fails only if it is also unlikely under a random order (binomial test, Bonferroni), since one round gives about 30 traces per cell. The TLS control failed this (100%) |
-| Leftover connections | [b]: connections opened before the capture, per trace; none may carry data beyond the close |
-| Padding on the wire | [c], `lan_pad` and `lan_padmax`: first-request bytes − bucket (the HTTP header record and TLS overhead) is the same in at least 95% of traces (±32 B of the median, median 100–1000 B); `lan_padmax` also needs every first A2A message in the 8192 bucket (the share is printed; 100% to pass) |
-| Null label | [d]: every sidecar has `prompt_group` and `audit_null`, and `audit_null` is constant within a prompt group |
+| Every call captured, nothing extra | `check_lan_capture.py` PASS: every escalated task shows a request after the TLS handshake and response data on the cloud agent the routing rule names and no request to the other; every task shows exactly one ticket POST; no `alert_triage` task opens a connection to the cloud alias; the edge agent's report agrees with the rule |
+| TLS on | `check_tls_capture.py --expect tls`: every trace carries ClientHellos and application-data records, no cleartext HTTP; the scanners report TLS 1.3 on all nine endpoints |
+| Streams complete | `check_stream_integrity.py`: per escalated task type, share of cut cloud replies ≤ 5% and median largest reply far above the truncation signature of 7–10 packets |
+| WAN emulation | `check_wan_emulation.py`: the edge-to-cloud connect time within ±20% of the measured delay, for all three edge agents; no round stopped by `--wan-target` |
+| Collection healthy | `session_meta.json`: `workflows` are the four IoT ones; every task type has traces in every arm; failed attempts ≤ 1% of traces; `throttled_traces` (traces taken while the Pi was throttled) reported; the pace line decides `lan_pad` |
+| No fixed predecessor | `check_session_design.py` [a], as before |
+| Leftover connections | [b]: none may carry data beyond the close |
+| Padding on the wire | [c], `lan_pad` and `lan_padmax`, on the edge-to-cloud requests only (the sidecar's `padded_endpoints`): message − bucket constant in at least 95% of traces; `lan_padmax` needs every cloud request in the 8192 bucket (100%) |
+| Null label | [d], as before |
 
-Keep `pi-freeze.txt`, the Pi's Python version and the JSON files of all three arms with the pilot.
-If it passes, collect C2 over three nights:
+Keep `pi-freeze.txt`, the Pi's Python version and model, `data/results/c2_wan_emulation.json` and
+the pilot's JSON files.
+
+## 10. C2
+
+If the pilot passes (arms as the pace decided; nights of a few hours each):
 ```bash
-# night 1
-caffeinate -dimsu venv/bin/python scripts/collect_session.py --collection-id C2 \
-    --n 50 --rounds 5 --seed-offset 20000 --workflows iot --deadline-hours 3.5 \
-    --interface bridge100 --ollama-url http://192.168.2.1:11434 --tls-dir data/tls_lan \
-    --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2 \
-    --arm name=lan_pad,deployment=a,tls=on,host=192.168.2.2,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad \
-    --arm name=lan_padmax,deployment=a,tls=on,host=192.168.2.2,ports=8300,pad=8192/16384,pad_expect=8192,out=data/raw_c2_padmax
-# nights 2 and 3: the same command with --resume added (it continues the round where night 1 stopped)
+caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2 \
+    --n 150 --rounds 5 --seed-offset 30000 --workflows iot --deadline-hours 8 \
+    --interface bridge100 --tls-dir data/tls_lan --wan-target data/results/c2_wan_emulation.json \
+    --arm name=lan,ports=8100,out=data/raw_c2 \
+    --arm name=lan_pad,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad \
+    --arm name=lan_padmax,ports=8300,pad=8192/16384,pad_expect=8192,out=data/raw_c2_padmax
+# following nights: the same command with --resume added
 ```
-1800 traces (600 per arm), about 9 hours at 18 s per trace, so three nights of about 3 hours;
-`--deadline-hours` stops starting new items, and `--resume` continues with the same order and
-prompts. Leave the Pi's three instances running between nights, or restart them as in step 5 and
-rerun the 27-port check. Run the same checks on `data/raw_c2`, `data/raw_c2_pad` and
-`data/raw_c2_padmax` afterwards.
+600 tasks per arm. Between nights leave the services and the WAN emulation running, or restart them
+(sections 2, 6 and 7) and rerun section 6's check. Run the section 9 checks on the C2 folders
+afterwards. The audit, per arm and view:
+```bash
+for arm in c2 c2_pad c2_padmax; do for v in v1 v2; do
+  venv/bin/python -m a2a_leakcheck run data/raw_$arm --strip --vantage $v \
+      --attributes task_type,escalated,cloud_role,audit_null --out data/results/leakcheck/${arm}_$v --html
+done; done
+```
 
 ### If a check fails
 
 | Symptom | Likely cause |
 |---|---|
-| Missing calls in every trace | wrong `--interface`, or the Pi's address differs from `host=` |
-| Missing calls in one arm only | that arm's `serve_agents.py` instance is down or on another `--ports-base`: rerun the 27-port check |
-| [a] fails | the item order is not shuffled per round (a fixed workflow order, as in the TLS control) |
-| [c] fails: overhead not constant | `pad=` missing from a padded arm, or the top bucket is below a first request |
-| [c] fails: `lan_padmax` messages outside 8192 | a first message above 8192 B (the largest is printed): a longer task input or sub-task plan than estimated; raise the bucket (e.g. `pad=16384/32768,pad_expect=16384`) and rerun the pilot |
-| [d] fails | the collector predates `audit_null`: update the repo on the Mac |
-| A specialist port gets unexpected requests | an agent from another topology answering on the wrong port: restart `serve_agents.py` with the same `--ports-base` as the arm |
-| TLS check finds cleartext HTTP | the Pi was started without `--tls-dir`, or the arm has `tls=off` |
-| Certificate errors when agents start | certificate made without the Pi's address: redo step 4 |
-| Cut streams | the Pi or Ollama overloaded or restarted mid-trace: check the Pi's log and `top` |
-| Agents time out on Ollama | Ollama not bound to `192.168.2.1`, or the firewall blocks it: redo step 2 |
+| Every trace fails at once | capture access (`/dev/bpf*`), wrong `--interface`, or the edge agents are not running (`curl http://192.168.2.2:8109/health`) |
+| `check_lan_capture.py`: no complete call to the cloud agent | `serve_cloud.py` is down, the alias is gone (section 2), or the certificate lacks `192.168.2.100` (section 5) |
+| An `alert_triage` task reaches the cloud | the Pi runs an older `agents/edge.py`: rsync the code again (section 4) |
+| Two ticket connections in one trace | a retry inside the edge agent, or a previous task still running: check the Pi's log |
+| `--wan-target` stops the session, or `check_wan_emulation.py` fails | the emulation is off or on the wrong interface: `bash scripts/wan_emulation.sh show` on the Pi |
+| [c] fails: overhead not constant | `pad=` missing from a padded arm |
+| [c] fails: `lan_padmax` messages outside 8192 | a cloud request above 8192 B (the largest is printed): raise the bucket (`pad=16384/32768,pad_expect=16384`) |
+| Traces taken while throttled | the Pi is too hot or under-powered: a fan or heatsink, the official 27 W supply; the traces are flagged in the sidecars (`pi_throttled`) |
+| Cut streams | Ollama on the Mac overloaded or restarted mid-trace |

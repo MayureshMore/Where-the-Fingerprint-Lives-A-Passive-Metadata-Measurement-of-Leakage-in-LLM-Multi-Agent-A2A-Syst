@@ -74,6 +74,16 @@ def role_notes(report: dict, name: str, r: dict) -> list[str]:
     return notes
 
 
+def _vantage_md(report: dict) -> list[str]:
+    v = report["input"].get("vantage")
+    if not v:
+        return []
+    n = report["extraction"].get("empty_traces", 0)
+    return [f"Vantage `{v}`: only the flows of the endpoints this observer sees (the sidecars' `vantages`). "
+            f"{n} of {report['extraction']['traces']} traces show no flow there; they stay in the analysis with "
+            "all-zero features, since seeing nothing is what this observer sees for them.", ""]
+
+
 def _visible_md(c: dict) -> list[str]:
     """Visible agents per topology: in how many traces each listed agent carries traffic."""
     vis = c.get("visible_agents")
@@ -95,6 +105,7 @@ def write_markdown(report: dict, path: Path) -> None:
          f"{c['traces']} traces from {c['pcaps']} captures in `{c['folder']}` "
          f"({len(c['skipped'])} skipped, {c['stripped_copies']} analysed as stripped copies). "
          f"a2a-leakcheck {report['version']}, {report['created']}.", "",
+         *_vantage_md(report),
          f"Verdict: LEAK if the 95% CI lower bound of macro-F1 is above chance + {p['margin']}; NO LEAK "
          f"if the upper bound is at most chance + {p['margin']}; INCONCLUSIVE otherwise, or when "
          f"the minimum-sample check fails, or when a LEAK fails the label-permutation test "

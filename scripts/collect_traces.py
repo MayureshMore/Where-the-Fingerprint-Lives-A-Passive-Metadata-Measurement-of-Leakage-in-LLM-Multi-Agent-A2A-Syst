@@ -149,7 +149,7 @@ if __name__ == "__main__":
     parser.add_argument("--workflow", required=True,
                         choices=[wf.value for wf in CLASSIC_WORKFLOWS])
     parser.add_argument("--topology", required=True,
-                        choices=[t.value for t in TopologyType])
+                        choices=[t.value for t in TopologyType if t != TopologyType.EDGE_CLOUD])
     parser.add_argument("--n", type=int, default=50, help="Number of traces")
     parser.add_argument("--out", default="data/raw", help="Output directory")
     parser.add_argument("--config", default="configs/testbed_local.yaml",

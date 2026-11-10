@@ -65,6 +65,18 @@ topologies apart. Give several topologies comma-separated. On the gateway view o
 control's TLS arm (`scripts/make_gateway_view.py`), pooled role reads LEAK at 0.955 [0.939,
 0.969] and role within star LEAK at 0.988 [0.976, 0.998], p = 0.01 for both.
 
+### Observer views (`--vantage`)
+
+One capture can stand for several observers. A sidecar may list, per view, the endpoints that
+observer sees (`"vantages": {"v1": ["diagnostics", "knowledge", "ticket"], "v2": ["diagnostics",
+"knowledge"]}`, written by `scripts/collect_session.py --placement edge-cloud`), and
+`--vantage v2` keeps only those endpoints' flows before feature extraction. A trace in which the
+view sees nothing stays in the analysis with all-zero features and a first-request size of 0:
+at C2's upstream view every task answered on the gateway looks like that, and that the observer
+sees no traffic is what it learns. The report says how many traces were empty. Trace attributes
+missing from some sidecars (C2's `cloud_role`, set only for escalated tasks) are scored on the
+traces that have them.
+
 ## Reading a verdict
 
 - **LEAK** says an observer does better than chance + margin, with 95% confidence, and the

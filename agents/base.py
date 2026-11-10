@@ -125,6 +125,10 @@ class AgentRole(str, enum.Enum):
     EXECUTOR = "executor"
     RETRIEVER = "retriever"
     VALIDATOR = "validator"
+    # edge-cloud placement (C2): the edge agent on the IoT gateway and its cloud agents
+    EDGE = "edge"
+    DIAGNOSTICS = "diagnostics"
+    KNOWLEDGE = "knowledge"
 
 
 def _new_http_client() -> httpx.AsyncClient:

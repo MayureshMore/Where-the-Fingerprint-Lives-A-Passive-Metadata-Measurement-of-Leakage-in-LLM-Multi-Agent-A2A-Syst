@@ -9,6 +9,11 @@ Extraction: the repository's header-only features (packet sizes, timestamps, dir
                     side) gives no sample, so role classes can be unbalanced or missing
 
 Direction: a packet to an agent port is a request (caller → agent), from one a response.
+
+keep_empty (leakcheck --vantage): a capture with no packets on the endpoints left in view is kept
+as an all-zero trace vector with a first-request size of 0 and no role samples, instead of failing:
+at an upstream vantage point every task answered on the gateway looks like that, and that the
+observer sees nothing is the observation.
 """
 
 from __future__ import annotations
@@ -24,9 +29,10 @@ from features.roles import role_vectors
 logger = logging.getLogger(__name__)
 
 
-def extract(traces: list, legacy: bool = False) -> dict:
+def extract(traces: list, legacy: bool = False, keep_empty: bool = False) -> dict:
     """legacy: every connection on the agent ports instead of only those each trace opens itself
-    (features/connections.py)."""
+    (features/connections.py). keep_empty: a capture with no packets on the agent ports becomes
+    an all-zero trace (see above) rather than a failure."""
     extractors: dict[frozenset, FeatureExtractor] = {}
     rows, first, keep, role_rows, role_y, role_trace, failed = [], [], [], [], [], [], []
     visible: list[list[str]] = []                    # per extracted trace: roles with traffic
@@ -40,6 +46,12 @@ def extract(traces: list, legacy: bool = False) -> dict:
             failed.append({"pcap": tr.pcap.name, "reason": f"unreadable: {exc}"})
             continue
         if not packets:
+            if keep_empty:
+                rows.append(None)                  # all-zero vector, filled in below
+                first.append(0.0)
+                keep.append(i)
+                visible.append([])
+                continue
             failed.append({"pcap": tr.pcap.name, "reason": "no packets on the agent ports"})
             continue
         rows.append(ex._compute_features(tr.run_id, packets).flat_vector())
@@ -52,8 +64,11 @@ def extract(traces: list, legacy: bool = False) -> dict:
             role_trace.append(len(keep) - 1)
             seen.append(role)
         visible.append(sorted(seen))
-    if not rows:
+    dims = next((r.shape[0] for r in rows if r is not None), None)
+    if dims is None:
         raise SystemExit("no capture yielded any agent traffic: check agent_endpoints and the capture filter")
+    empty = sum(r is None for r in rows)
+    rows = [np.zeros(dims, np.float32) if r is None else r for r in rows]
     return {
         "trace_X": np.stack(rows).astype(np.float32),
         "first_request": np.array(first, dtype=np.float32),
@@ -63,7 +78,7 @@ def extract(traces: list, legacy: bool = False) -> dict:
         "role_trace": np.array(role_trace, dtype=int),   # into the extracted traces
         "visible_roles": visible,                    # per extracted trace
         "summary": {"traces": len(rows), "failed": failed, "role_samples": len(role_rows),
-                    "trace_dims": int(rows[0].shape[0]), "role_dims": 35,
+                    "empty_traces": empty, "trace_dims": int(dims), "role_dims": 35,
                     "measurement": "all connections on the agent ports (legacy)" if legacy else
                                    "own connections: only TCP connections whose SYN is in the capture",
                     "first_request": FIRST_REQUEST_DEF},

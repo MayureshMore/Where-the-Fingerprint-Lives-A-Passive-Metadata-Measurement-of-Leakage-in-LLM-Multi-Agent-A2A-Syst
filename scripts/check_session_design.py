@@ -26,7 +26,11 @@ the full collection:
                     condition in each round: 197 B more on loopback, 60 of C1's 600 traces); those
                     traces are counted, not failed. An arm with pad_expect (C2's lan_padmax: buckets
                     8192/16384, every first request meant for 8192) also FAILS unless every first
-                    message lands in that one bucket; the share in it is reported.
+                    message lands in that one bucket; the share in it is reported. When the sidecar
+                    names padded_endpoints (the edge-cloud placement: only the edge agent's requests
+                    to the cloud agents are padded, not its ticket posts), only those endpoints'
+                    links are measured, and a trace that does not reach them (alert_triage) has no
+                    padded message and is left out of [c].
   d. audit_null     every sidecar carries prompt_group and audit_null (scripts/collect_session.py),
                     audit_null constant within a prompt group.
 
@@ -74,6 +78,16 @@ def _ports(sc: dict) -> set[int]:
     eps = sc["agent_endpoints"]
     eps = ast.literal_eval(eps) if isinstance(eps, str) else eps
     return {int(str(v).rsplit(":", 1)[1]) for v in eps.values()}
+
+
+def _padded_ports(sc: dict) -> set[int] | None:
+    """Ports of the sidecar's padded_endpoints, or None when it names none (every agent port)."""
+    names = sc.get("padded_endpoints")
+    if names is None:
+        return None
+    eps = sc["agent_endpoints"]
+    eps = ast.literal_eval(eps) if isinstance(eps, str) else eps
+    return {int(str(eps[n]).rsplit(":", 1)[1]) for n in names if n in eps}
 
 
 def predecessors(meta: dict) -> dict:
@@ -180,7 +194,9 @@ def check_arm(raw: Path) -> dict:
         ports, pcap = _ports(sc), side.with_suffix(".pcap")
         a = audit_trace(pcap, ports, bool(sc.get("tls", True)))
         left.append(a)
-        rows.append((sc, first_message(pcap, ports, bool(sc.get("tls", True)))))
+        padded = _padded_ports(sc)
+        rows.append((sc, first_message(pcap, padded or ports, bool(sc.get("tls", True))) if padded != set()
+                     else (0, 0)))
         groups[sc.get("prompt_group")].add(sc.get("audit_null"))
     n_left = np.array([len(a["connections"]) for a in left])
     res = {"arm": name, "raw_dir": str(raw), "traces": len(rows),

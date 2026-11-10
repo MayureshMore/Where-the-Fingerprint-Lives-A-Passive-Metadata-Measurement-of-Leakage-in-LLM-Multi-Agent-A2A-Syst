@@ -101,12 +101,15 @@ def run(a: argparse.Namespace) -> int:
     with tempfile.TemporaryDirectory(prefix="leakcheck_") as tmp:
         t = time.perf_counter()
         col = collect(Path(a.captures), [x for x in attributes if x != ROLE],
-                      strip_dir=Path(tmp) if a.strip else None)
+                      strip_dir=Path(tmp) if a.strip else None, vantage=a.vantage)
         stages["collection"] = time.perf_counter() - t
+        if not col["traces"]:
+            reasons = sorted({x["reason"] for x in col["summary"]["skipped"]})
+            raise SystemExit(f"no usable trace in {a.captures}: " + ("; ".join(reasons) or "no pcaps"))
         peaks["collection"] = {"main_mb": _peak_mb(resource.RUSAGE_SELF)}
         logger.info("collection: %d traces from %d captures", col["summary"]["traces"], col["summary"]["pcaps"])
         t = time.perf_counter()
-        ext = extract(col["traces"], legacy=a.legacy_all_connections)
+        ext = extract(col["traces"], legacy=a.legacy_all_connections, keep_empty=a.vantage is not None)
         stages["extraction"] = time.perf_counter() - t
         peaks["extraction"] = {"main_mb": _peak_mb(resource.RUSAGE_SELF)}
         logger.info("extraction: %d traces, %d role samples", ext["summary"]["traces"], ext["summary"]["role_samples"])
@@ -157,7 +160,7 @@ def run(a: argparse.Namespace) -> int:
     report = {
         "tool": "a2a-leakcheck", "version": __version__,
         "created": time.strftime("%Y-%m-%dT%H:%M:%S%z"), **_git(),
-        "input": {"folder": str(Path(a.captures)), "label": a.label},
+        "input": {"folder": str(Path(a.captures)), "label": a.label, "vantage": a.vantage},
         "parameters": {"attributes": attributes, "role_within": within, "margin": cfg.margin,
                        "folds": cfg.n_splits, "n_boot": cfg.n_boot, "permutations": cfg.permutations,
                        "alpha": cfg.alpha,
@@ -242,6 +245,9 @@ def parser() -> argparse.ArgumentParser:
                    help="use every connection on the agent ports, not only those each capture opens "
                         "itself (the earlier measurement)")
     r.add_argument("--label", default="", help="name for this run in the report")
+    r.add_argument("--vantage", default=None,
+                   help="observer view from the sidecars' vantages (e.g. v1, v2): keep only the flows of "
+                        "the endpoints it sees; a trace with none in view stays, with all-zero features")
     r.add_argument("--baseline", type=Path, default=None,
                    help="previous report.json; exit 3 if an attribute is newly LEAK")
     r.add_argument("--fail-on-leak", action="store_true", dest="fail_on_leak", help="exit 2 on any LEAK")

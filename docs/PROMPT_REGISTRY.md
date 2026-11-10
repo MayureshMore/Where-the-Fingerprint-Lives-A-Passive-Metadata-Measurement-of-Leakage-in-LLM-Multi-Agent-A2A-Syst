@@ -55,9 +55,10 @@ their pool is large: 4,000 seeds give 4,000 distinct sensor_analysis and fault_d
 | TLS control (`raw_tlspair_*`) | 1000 | 36 pairs | `collect_tls_session.py` |
 | **C1** (`raw_c1`) | **10000** | 50 | `collect_session.py` |
 | C1 pilot (`raw_c1_pilot`) | 10000 | 1 per topology | `collect_session.py --pilot` |
-| **C2** LAN, Mac + Raspberry Pi (`raw_c2`, `raw_c2_pad`, `raw_c2_padmax`; three arms: no mitigation, pow2 input padding, input padding to one 8 KB bucket), **IoT set** | **20000** | 50 | `collect_session.py --workflows iot --arm ...,host=` (docs/LAN_SETUP.md) |
-| C2 pilot (`raw_c2_pilot`, `raw_c2_pad_pilot`, `raw_c2_padmax_pilot`), IoT set | 20000 | 2.5 hours (`--deadline-hours 2.5`) | `collect_session.py --workflows iot` |
-| C2 smoke tests (Nov 6; loopback, unpadded and `lan_padmax` padding, discarded) | 20000 | 1 per topology (item 0) | `collect_session.py --workflows iot --n 1 --rounds 1` |
+| **C2** edge-cloud: edge agent on the Raspberry Pi, cloud agents and ticket service on the Mac (`raw_c2`, `raw_c2_pad`, `raw_c2_padmax`; arms: no mitigation, pow2 input padding, input padding to one 8 KB bucket), **IoT set**, one condition per task type | **30000** | 150 | `collect_session.py --placement edge-cloud --workflows iot` (docs/LAN_SETUP.md) |
+| C2 pilot (`raw_c2_pilot`, `raw_c2_pad_pilot`, `raw_c2_padmax_pilot`) | 30000 | 1 hour (`--deadline-hours 1`) | as C2 |
+| C2 smoke test (Mac only, loopback, discarded) | 30000 | 3 per task type (items 0–2) | as C2, `--n 3 --rounds 1` |
+| *Superseded C2 design* (orchestrator on the Mac, specialists on the Pi; never collected) | 20000 | — | only two discarded loopback smoke tests (Nov 6) used it |
 
 ## C1 overlap (measured before collection)
 
@@ -77,19 +78,17 @@ collection must be cross-fitted.
 
 ## C2 prompts (IoT set, measured before collection)
 
-C2 draws 150 prompts per workflow (seed offset 20000, 50 per topology). Prompt length in bytes:
+C2 draws 150 prompts per task type (seed offset 30000; one condition per task type, so
+`workflows.prompt_seed` with topology index 0). Prompt length in bytes:
 
-| Workflow | Distinct of 150 | Median | Min | Max |
+| Task type | Distinct of 150 | Median | Min | Max |
 |---|---|---|---|---|
-| sensor_analysis | 150 | 2805 | 610 | 5213 |
-| fault_diagnosis | 150 | 3340 | 2080 | 5780 |
-| procedure_lookup | 144 | 79 | 50 | 131 |
-| alert_triage | 149 | 154 | 124 | 193 |
+| sensor_analysis | 150 | 2988 | 573 | 5238 |
+| fault_diagnosis | 150 | 3681 | 2040 | 5310 |
+| procedure_lookup | 145 | 81 | 48 | 124 |
+| alert_triage | 150 | 153 | 124 | 185 |
 
-None of these prompts occurs in any earlier collection: checked against the sidecars of all 29
-`data/raw*` folders (C1, the TLS control, the summer sets, WAN, off-the-shelf systems). The IoT
-templates share no text with the classic ones, so C2 is prompt-disjoint from every earlier
-collection by construction.
-
-An earlier version of this table (Nov 4) counted the classic prompts C2 would have drawn at
-offset 20000 (65–78% also in C1); C2 uses the IoT set instead.
+None of these prompts occurs in any earlier collection (checked against the sidecars of all
+`data/raw*` folders). Eleven procedure_lookup questions also occur in the offset-20000 draw of the
+superseded design, which was never collected (only its discarded smoke tests used items 0 of each
+condition).
