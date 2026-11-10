@@ -125,3 +125,27 @@ def test_unknown_vantage_skips_traces(edge_data, tmp_path):
     with pytest.raises(SystemExit):                                       # no trace left to analyse
         leakcheck(["run", str(edge_data), "--out", str(tmp_path / "v9"), "--strip", "--vantage", "v9",
                    "--attributes", "escalated", *FAST])
+
+
+def test_handshake_times_at_the_capture(tmp_path):
+    """check_wan_emulation: SYN → SYN-ACK per server, as a capture on the building side sees it."""
+    from scripts.check_wan_emulation import handshakes
+    pkts = []
+    for k, (port, rtt) in enumerate([(9101, 0.030), (9101, 0.031), (9105, 0.0004)]):
+        c, t = 50000 + k, 10.0 + k
+        for when, (src, dst, sp, dp, flags) in ((t, (EDGE, CLOUD, c, port, "S")), (t + rtt, (CLOUD, EDGE, port, c, "SA"))):
+            p = Ether() / IP(src=src, dst=dst) / TCP(sport=sp, dport=dp, flags=flags)
+            p.time = when
+            pkts.append(p)
+    wrpcap(str(tmp_path / "p.pcap"), pkts)
+    hs = handshakes(tmp_path / "p.pcap", {9101: "cloud", 9105: "ticket"})
+    assert [round(x) for x in hs["cloud"]] == [30, 31] and hs["ticket"][0] < 1
+
+
+def test_recorder_uses_immediate_mode(tmp_path):
+    """Without it macOS hands packets over in batches, and a capture stopped right after a task
+    loses its last ones (C2's ticket post, a whole alert_triage task)."""
+    from capture.recorder import PacketRecorder
+    s = PacketRecorder(output_dir=tmp_path, interface="lo0", agent_ports=[9101]).new_session("x")
+    assert s.immediate
+    assert not PacketRecorder(output_dir=tmp_path, agent_ports=[9101], immediate=False).new_session("y").immediate

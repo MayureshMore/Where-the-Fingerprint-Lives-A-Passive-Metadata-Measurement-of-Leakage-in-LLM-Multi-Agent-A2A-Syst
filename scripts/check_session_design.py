@@ -30,7 +30,12 @@ the full collection:
                     names padded_endpoints (the edge-cloud placement: only the edge agent's requests
                     to the cloud agents are padded, not its ticket posts), only those endpoints'
                     links are measured, and a trace that does not reach them (alert_triage) has no
-                    padded message and is left out of [c].
+                    padded message and is left out of [c]. There the cloud agents' cards are
+                    fetched between captures, so the first request (writes ≤ 50 ms apart,
+                    features/first_request.py) is the A2A message itself; it is measured instead,
+                    so that a TLS 1.3 session ticket from the server arriving between the HTTP
+                    header and the body does not split the message (a card fetch inside a trace
+                    would show as an overhead outlier).
   d. audit_null     every sidecar carries prompt_group and audit_null (scripts/collect_session.py),
                     audit_null constant within a prompt group.
 
@@ -195,8 +200,11 @@ def check_arm(raw: Path) -> dict:
         a = audit_trace(pcap, ports, bool(sc.get("tls", True)))
         left.append(a)
         padded = _padded_ports(sc)
-        rows.append((sc, first_message(pcap, padded or ports, bool(sc.get("tls", True))) if padded != set()
-                     else (0, 0)))
+        if padded is None:
+            rows.append((sc, first_message(pcap, ports, bool(sc.get("tls", True)))))
+        else:                                 # edge-cloud: the first request on the padded links
+            fr = first_message(pcap, padded, bool(sc.get("tls", True)))[0] if padded else 0
+            rows.append((sc, (fr, fr)))
         groups[sc.get("prompt_group")].add(sc.get("audit_null"))
     n_left = np.array([len(a["connections"]) for a in left])
     res = {"arm": name, "raw_dir": str(raw), "traces": len(rows),

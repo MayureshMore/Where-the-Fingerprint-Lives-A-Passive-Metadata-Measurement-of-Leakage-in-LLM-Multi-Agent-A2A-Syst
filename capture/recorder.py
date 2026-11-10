@@ -25,6 +25,13 @@ logger = logging.getLogger(__name__)
 _SNAPLEN = 96
 _TCPDUMP_BASE = ["tcpdump", "-n", "-s", str(_SNAPLEN), "-w"]
 
+# Immediate mode: the kernel hands every packet to tcpdump as it arrives. Without it, macOS
+# BPF delivers packets in batches (when its buffer fills or about once a second), and the
+# packets still in the kernel when the capture is stopped are lost: the last fraction of a
+# second of every trace (its connection closes, a short final call such as C2's ticket post,
+# or a whole sub-second task). Captures up to C1 and the TLS control ran without it.
+_IMMEDIATE = "--immediate-mode"
+
 # A pcap file with only the 24-byte global header (no packet records) means the
 # capture started but recorded nothing — i.e. it failed.  Anything > this has at
 # least one packet.
@@ -36,6 +43,7 @@ class CaptureSession:
     pcap_path: Path
     filter_expr: str = ""
     interface: str = "any"
+    immediate: bool = True
     _proc: subprocess.Popen | None = field(default=None, repr=False)
     _start_time: float = field(default=0.0, repr=False)
 
@@ -43,6 +51,7 @@ class CaptureSession:
         cmd = (
             _TCPDUMP_BASE
             + [str(self.pcap_path), "-i", self.interface]
+            + ([_IMMEDIATE] if self.immediate else [])
             + ([self.filter_expr] if self.filter_expr else [])
         )
         logger.info("tcpdump: %s", " ".join(cmd))
@@ -100,8 +109,10 @@ class PacketRecorder:
         interface: str = "any",
         agent_ports: list[int] | None = None,
         hosts: list[str] | None = None,
+        immediate: bool = True,
     ) -> None:
         self.output_dir = Path(output_dir)
+        self.immediate = immediate            # tcpdump --immediate-mode (see _IMMEDIATE)
         # Limit every capture to these hosts as well as the agent ports (the remote agent
         # host in the LAN setup); per-session extra_hosts are added to them.
         self.hosts = list(hosts or [])
@@ -128,6 +139,7 @@ class PacketRecorder:
             pcap_path=pcap_path,
             filter_expr=self._bpf_filter(extra_hosts),
             interface=self.interface,
+            immediate=self.immediate,
         )
 
     async def record_async(

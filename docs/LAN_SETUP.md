@@ -58,12 +58,14 @@ trace: leakcheck keeps such traces with all-zero features. Attributes: `task_typ
 `cloud_role` (`diagnostics` or `knowledge`, escalated tasks only), and the input size (the
 first-request estimator). The architecture is fixed, so C2 has no topology attribute.
 
-**Emulated WAN.** Traffic from the Pi to the cloud alias is delayed on the Pi's egress with
-`tc netem`, by a round trip measured from the Mac to the nearest public cloud region (section 7).
-The whole delay sits on the Pi's side of the capture point, so the Mac captures each of the Pi's
-packets to the cloud after the delay, like an observer next to the cloud: sizes, counts and
-whether a call happened are as any observer sees them, but the round trip shows up after a
-response (before the Pi's next packet) rather than between a request and its response.
+**Emulated WAN.** Traffic between the Pi and the cloud alias is delayed on the Mac with pf
+dummynet, half of a round trip measured to the nearest public cloud region each way (section 7),
+and nothing else is: the ticket service and the Pi's internet traffic are not delayed. The capture
+on `bridge100` sits where a building router would: the Pi's packets to the cloud are captured
+before the delay and the cloud's replies after it, so the round trip shows up between a request
+and its response. dummynet has no jitter: the delay is constant, and the measured spread is not
+reproduced (`data/results/c2_wan_emulation.json` records this). The fallback, netem on the Pi
+(`scripts/wan_emulation_pi.sh`), is used only if the Mac emulation cannot run.
 
 **Ethics:** the cable connects only your own two devices, and the capture filter is limited to the
 Pi's address and the agent and ticket ports. Keep the Pi off Wi-Fi: it reaches the network only
@@ -181,40 +183,70 @@ done                                         # 200s, {"ok":true,...}, and three 
 
 ## 7. Emulated WAN
 
-On the Mac, measure the round trip to the nearest public cloud region (TCP connect time, 30 tries)
-and write the netem settings and the exact `tc` commands:
+On the Mac, measure the round trip to the nearest public cloud region (TCP connect time, 30 tries):
 ```bash
 venv/bin/python scripts/measure_cloud_rtt.py            # https://ec2.us-west-1.amazonaws.com
+```
+It writes `data/results/c2_wan_emulation.json` (the paper cites it): the raw times, the median and
+IQR, the round trip the checks expect (`delay_ms`, twice the one-way delay), the Mac emulation
+(`emulation`: half the median each way, no jitter, the exact commands) and the Pi fallback
+(`fallback_pi_netem`). Check that `/etc/pf.conf` evaluates Apple's dummynet anchors, then turn the
+emulation on:
+```bash
+grep dummynet-anchor /etc/pf.conf                     # dummynet-anchor "com.apple/*"
+sudo bash scripts/wan_emulation.sh on                 # prints "main ruleset and NAT unchanged"
+sudo bash scripts/wan_emulation.sh show
+```
+`on` runs, for the measured 30 ms round trip:
+```bash
+dnctl pipe 1 config delay 15 ; dnctl pipe 2 config delay 15
+printf 'dummynet in quick on bridge100 proto tcp from 192.168.2.2 to 192.168.2.100 pipe 1\ndummynet out quick on bridge100 proto tcp from 192.168.2.100 to 192.168.2.2 pipe 2\n' \
+    | pfctl -a com.apple/c2-wan -f -
+pfctl -E                                              # the token is kept in /var/tmp/c2-wan; off releases it
+```
+The rules live in their own anchor under `com.apple/`, so Internet Sharing's NAT and the main
+ruleset are untouched; `on` diffs both before and after. `sudo bash scripts/wan_emulation.sh off`
+flushes the anchor, deletes the two pipes and releases the token. Then, with the services of
+section 6 running:
+```bash
+venv/bin/python scripts/check_wan_emulation.py --interface bridge100 --json data/raw_c2_pilot/wan_check.json
+```
+(a) every edge agent still reaches `1.1.1.1:443` through the Mac; (b) its connect time to the
+cloud alias, and the SYN → SYN-ACK time seen in a capture on `bridge100`, are within ±20% of the
+round trip; (c) the ticket service on `192.168.2.1` is not delayed (under a fifth of it), in the
+probes and in the capture. The collector repeats (b) at the start of every round with
+`--wan-target` and stops if the emulation is off.
+
+**Fallback, only if the Mac emulation cannot run** (for example if (a) fails: turn it off first):
+netem on the Pi's egress to the cloud alias, delay = median, jitter = half the IQR, with a 4-band
+`prio` qdisc, a `pfifo` child under netem so that jitter does not reorder packets, and a `u32`
+filter on `192.168.2.100`:
+```bash
 ssh pi@192.168.2.2 mkdir -p a2a/data/results
 scp data/results/c2_wan_emulation.json pi@192.168.2.2:a2a/data/results/
+# on the Pi:
+sudo bash scripts/wan_emulation_pi.sh on data/results/c2_wan_emulation.json
+# on the Mac:
+venv/bin/python scripts/check_wan_emulation.py --interface bridge100 --fallback-pi --json data/raw_c2_pilot/wan_check.json
 ```
-It writes `data/results/c2_wan_emulation.json` (raw times, median, IQR, delay = median,
-jitter = half the IQR, the `tc` commands; the paper cites it). On the Pi:
-```bash
-sudo bash scripts/wan_emulation.sh on data/results/c2_wan_emulation.json
-bash scripts/wan_emulation.sh show                   # prio bands 4, netem on 1:4, u32 filter dst 192.168.2.100
-```
-The commands put a 4-band `prio` qdisc on `eth0` (the default priomap never uses band 4, so no
-other traffic is delayed), `netem delay <median>ms <jitter>ms distribution normal` on band 4 with
-a `pfifo` child (netem with jitter would otherwise reorder packets, adding retransmissions to the
-captures), and a `u32` filter that sends only traffic to `192.168.2.100` there. Turn it off with
-`sudo bash scripts/wan_emulation.sh off`. Then, from the Mac:
-```bash
-venv/bin/python scripts/check_wan_emulation.py --json data/raw_c2_pilot/wan_check.json
-```
-Each edge agent measures its TCP connect time to the cloud alias 30 times; the median must be
-within ±20% of the delay, or the check fails. The collector repeats this (10 tries) at the start of
-every round with `--wan-target` and stops if the emulation is off.
+With the fallback the capture sits on the cloud side of the delay: the Pi's packets reach the
+capture already delayed, so the round trip shows up after a response rather than between a
+request and its response; record that the fallback was used.
 
 ## 8. Capture on the Mac
 
 The collector runs tcpdump on `--interface bridge100`, limited to the Pi's address and the arm's
 cloud and ticket ports, for example
 `tcp and (port 8101 or port 8102 or port 8105) and (host 192.168.2.2)`. The trigger port (B+9) is
-not in the filter. Before a run: charger in, `caffeinate`, and capture access for your user:
+not in the filter. tcpdump runs with `--immediate-mode`: without it macOS hands packets over in
+batches, and a capture stopped right after a task loses the last ones (the ticket post, a whole
+`alert_triage` task; in C1-style traces only the final 2–5 connection-close packets). Before a run: charger in, `caffeinate`, and capture access for the admin group
+(your user is in it; other local users are not given access):
 ```bash
-sudo chmod o+r /dev/bpf*        # revoke afterwards: sudo chmod o-r /dev/bpf*
+sudo chgrp admin /dev/bpf* && sudo chmod g+r /dev/bpf*
+# afterwards: sudo chmod g-r /dev/bpf* && sudo chgrp wheel /dev/bpf*
 ```
+The permissions reset when the Mac restarts; set them again before each run.
 
 ## 9. Smoke test (Mac only) and the 1-hour pilot
 
@@ -257,7 +289,7 @@ for d in $P; do
   venv/bin/python scripts/check_stream_integrity.py $d --json $d/stream_integrity.json
 done
 venv/bin/python scripts/check_session_design.py $P --json data/raw_c2_pilot/design_check.json
-venv/bin/python scripts/check_wan_emulation.py --json data/raw_c2_pilot/wan_check.json
+venv/bin/python scripts/check_wan_emulation.py --interface bridge100 --json data/raw_c2_pilot/wan_check.json
 bash baselines/run_tls_scanners.sh                   # sslyze and testssl.sh on the nine TLS endpoints
 ```
 
@@ -268,15 +300,15 @@ bash baselines/run_tls_scanners.sh                   # sslyze and testssl.sh on 
 | Every call captured, nothing extra | `check_lan_capture.py` PASS: every escalated task shows a request after the TLS handshake and response data on the cloud agent the routing rule names and no request to the other; every task shows exactly one ticket POST; no `alert_triage` task opens a connection to the cloud alias; the edge agent's report agrees with the rule |
 | TLS on | `check_tls_capture.py --expect tls`: every trace carries ClientHellos and application-data records, no cleartext HTTP; the scanners report TLS 1.3 on all nine endpoints |
 | Streams complete | `check_stream_integrity.py`: per escalated task type, share of cut cloud replies ≤ 5% and median largest reply far above the truncation signature of 7–10 packets |
-| WAN emulation | `check_wan_emulation.py`: the edge-to-cloud connect time within ±20% of the measured delay, for all three edge agents; no round stopped by `--wan-target` |
+| WAN emulation | `wan_emulation.sh on`: main ruleset and NAT unchanged. `check_wan_emulation.py --interface bridge100`, for all three edge agents: (a) `1.1.1.1:443` reachable; (b) connect time to the cloud alias and SYN → SYN-ACK at the capture within ±20% of the round trip; (c) the ticket service undelayed. No round stopped by `--wan-target` |
 | Collection healthy | `session_meta.json`: `workflows` are the four IoT ones; every task type has traces in every arm; failed attempts ≤ 1% of traces; `throttled_traces` (traces taken while the Pi was throttled) reported; the pace line decides `lan_pad` |
 | No fixed predecessor | `check_session_design.py` [a], as before |
 | Leftover connections | [b]: none may carry data beyond the close |
 | Padding on the wire | [c], `lan_pad` and `lan_padmax`, on the edge-to-cloud requests only (the sidecar's `padded_endpoints`): message − bucket constant in at least 95% of traces; `lan_padmax` needs every cloud request in the 8192 bucket (100%) |
 | Null label | [d], as before |
 
-Keep `pi-freeze.txt`, the Pi's Python version and model, `data/results/c2_wan_emulation.json` and
-the pilot's JSON files.
+Keep `pi-freeze.txt`, the Pi's Python version and model, `data/results/c2_wan_emulation.json`,
+`sudo bash scripts/wan_emulation.sh show`, and the pilot's JSON files.
 
 ## 10. C2
 
@@ -291,7 +323,8 @@ caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cl
 # following nights: the same command with --resume added
 ```
 600 tasks per arm. Between nights leave the services and the WAN emulation running, or restart them
-(sections 2, 6 and 7) and rerun section 6's check. Run the section 9 checks on the C2 folders
+(sections 2, 6 and 7) and rerun the checks of sections 6 and 7. The WAN rules and pipes do not
+survive a restart of the Mac, and the alias goes when Internet Sharing restarts. Run the section 9 checks on the C2 folders
 afterwards. The audit, per arm and view:
 ```bash
 for arm in c2 c2_pad c2_padmax; do for v in v1 v2; do
@@ -304,11 +337,14 @@ done; done
 
 | Symptom | Likely cause |
 |---|---|
-| Every trace fails at once | capture access (`/dev/bpf*`), wrong `--interface`, or the edge agents are not running (`curl http://192.168.2.2:8109/health`) |
+| Every trace fails at once | capture access (`/dev/bpf*`, section 8), wrong `--interface`, or the edge agents are not running (`curl http://192.168.2.2:8109/health`) |
 | `check_lan_capture.py`: no complete call to the cloud agent | `serve_cloud.py` is down, the alias is gone (section 2), or the certificate lacks `192.168.2.100` (section 5) |
 | An `alert_triage` task reaches the cloud | the Pi runs an older `agents/edge.py`: rsync the code again (section 4) |
 | Two ticket connections in one trace | a retry inside the edge agent, or a previous task still running: check the Pi's log |
-| `--wan-target` stops the session, or `check_wan_emulation.py` fails | the emulation is off or on the wrong interface: `bash scripts/wan_emulation.sh show` on the Pi |
+| `--wan-target` stops the session, or `check_wan_emulation.py` (b) fails | the emulation is off (a Mac restart clears it): `sudo bash scripts/wan_emulation.sh show`, then `on` |
+| `check_wan_emulation.py` (a) fails, or the Pi loses the internet | the WAN rules disturbed Internet Sharing: `sudo bash scripts/wan_emulation.sh off`, check `ping 1.1.1.1` on the Pi, and use the Pi fallback (section 7) |
+| (b) passes in the probes but the capture's SYN → SYN-ACK is near zero | the delay is applied on the Pi (fallback) or before the capture point: check which emulation is on |
+| (c) fails: the ticket service is delayed | the anchor's rules match more than the cloud alias: `sudo bash scripts/wan_emulation.sh show` |
 | [c] fails: overhead not constant | `pad=` missing from a padded arm |
 | [c] fails: `lan_padmax` messages outside 8192 | a cloud request above 8192 B (the largest is printed): raise the bucket (`pad=16384/32768,pad_expect=16384`) |
 | Traces taken while throttled | the Pi is too hot or under-powered: a fan or heatsink, the official 27 W supply; the traces are flagged in the sidecars (`pi_throttled`) |

@@ -23,7 +23,7 @@ flow); captures leave its port out, so no observer view contains it.
 scripts/serve_edge.py serves the trigger endpoints:
     POST /task     {"task_id", "task_type", "content", "pad_buckets"} → run one task
     POST /prepare  fetch the cloud agents' cards and load the local model (between captures)
-    POST /probe    {"n"} → TCP connect times to the cloud address (the emulated WAN round trip)
+    POST /probe    {"n", "target": cloud|ticket|internet} → TCP connect times from the gateway
     GET  /health   configuration
 """
 
@@ -119,18 +119,26 @@ class EdgeAgent(BaseA2AAgent):
             r.raise_for_status()
         return self.info()
 
-    async def probe(self, n: int = 30) -> dict:
-        """TCP connect time to the cloud address (diagnostics port), n times: one round trip each."""
-        port = self.base + CLOUD_PORTS["diagnostics"]
+    def probe_targets(self) -> dict[str, tuple[str, int]]:
+        return {"cloud": (self.cloud_host, self.base + CLOUD_PORTS["diagnostics"]),
+                "ticket": (self.ticket_host, self.base + TICKET_PORT),
+                "internet": ("1.1.1.1", 443)}               # through the building router's NAT
+
+    async def probe(self, n: int = 30, target: str = "cloud") -> dict:
+        """TCP connect time from the gateway to the cloud alias (the emulated WAN), the ticket
+        service (must not be delayed) or the internet (the router still routes), n times: one
+        round trip each."""
+        host, port = self.probe_targets()[target]
         ms = []
         for _ in range(n):
             t = time.perf_counter()
-            _, writer = await asyncio.wait_for(asyncio.open_connection(self.cloud_host, port), 10)
+            _, writer = await asyncio.wait_for(asyncio.open_connection(host, port), 10)
             ms.append((time.perf_counter() - t) * 1000)
             writer.close()
             await writer.wait_closed()
             await asyncio.sleep(0.1)
-        return {"host": self.cloud_host, "port": port, "n": n, "connect_ms": ms, "median_ms": statistics.median(ms)}
+        return {"target": target, "host": host, "port": port, "n": n, "connect_ms": ms,
+                "median_ms": statistics.median(ms)}
 
     async def _call_cloud(self, url: str, task_id: str, content: str, pad: list[int]) -> str:
         client = await self._get_http_client()
@@ -202,7 +210,13 @@ def trigger_app(edge: EdgeAgent):
 
     async def probe(request: Request) -> JSONResponse:
         b = await request.json() if (await request.body()) else {}
-        return JSONResponse(await edge.probe(int(b.get("n", 30))))
+        target = b.get("target", "cloud")
+        if target not in edge.probe_targets():
+            return JSONResponse({"error": f"unknown target {target!r}"}, status_code=400)
+        try:
+            return JSONResponse(await edge.probe(int(b.get("n", 30)), target))
+        except (OSError, asyncio.TimeoutError) as exc:
+            return JSONResponse({"target": target, "error": f"{type(exc).__name__}: {exc}"}, status_code=502)
 
     async def health(_: Request) -> JSONResponse:
         return JSONResponse(edge.info())
