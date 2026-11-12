@@ -361,16 +361,15 @@ def edge_url(arm: Arm, a: argparse.Namespace) -> str:
 
 
 async def wan_probe(arm: Arm, a: argparse.Namespace, target_ms: float) -> dict:
-    """The edge agent's TCP connect times to the cloud alias and to the Mac's own address (the
-    ticket service, never delayed: the base Wi-Fi round trip); the added delay, cloud minus base,
-    against the emulated WAN's target."""
+    """The edge agent's TCP connect times to the cloud alias, end to end, against the cloud round
+    trip the emulation reproduces (target_rtt_ms); its connect time to the Mac's own address (never
+    delayed: the base Wi-Fi round trip) is recorded alongside."""
     async with httpx.AsyncClient(timeout=120) as c:
         r = await _ready(c, "POST", f"{edge_url(arm, a)}/probe", json={"n": a.wan_probes})
         base = await _ready(c, "POST", f"{edge_url(arm, a)}/probe", json={"n": a.wan_probes, "target": "ticket"})
-    added = r["median_ms"] - base["median_ms"]
-    dev = (added - target_ms) / target_ms
+    dev = (r["median_ms"] - target_ms) / target_ms
     return {"arm": arm.name, "median_ms": r["median_ms"], "connect_ms": r["connect_ms"],
-            "base_median_ms": base["median_ms"], "added_ms": added, "target_ms": target_ms,
+            "base_median_ms": base["median_ms"], "target_ms": target_ms,
             "deviation": dev, "ok": abs(dev) <= a.wan_tolerance}
 
 
@@ -444,7 +443,16 @@ async def main(a: argparse.Namespace) -> None:
     arms = [parse_arm(s, k, a.placement) for k, s in enumerate(a.arm)]
     if edge and a.topology:
         raise SystemExit("--topology does not apply to --placement edge-cloud")
-    wan_target = json.loads(Path(a.wan_target).read_text())["delay_ms"] if a.wan_target else None
+    wan_target = json.loads(Path(a.wan_target).read_text())["target_rtt_ms"] if a.wan_target else None
+    network = None
+    if edge and not a.edge_host.startswith("127."):          # before each session: the Mac and the Pi's route
+        from scripts.check_c2_network import check_network
+        network = check_network(c2_network(), [arm.ports_base for arm in arms], a.edge_host)
+        for c in network["checks"]:
+            logger.info("  network %-5s %s  %s", c["check"], "ok" if c["ok"] else "FAIL", c["detail"])
+        if not network["ok"]:
+            raise SystemExit("network check failed (scripts/check_c2_network.py): "
+                             + "; ".join(c["detail"] for c in network["checks"] if not c["ok"]))
     if len({arm.name for arm in arms}) != len(arms) or len({arm.out for arm in arms}) != len(arms):
         raise SystemExit("arm names and output dirs must be unique")
     if any(arm.tls for arm in arms):
@@ -492,6 +500,9 @@ async def main(a: argparse.Namespace) -> None:
                            "rule": "random.Random(f'{seed}:{prompt_group}').choice(labels)"},
         }
 
+    if network is not None:                                   # one per session (a --resume adds one)
+        meta.setdefault("network_checks", []).append({"at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), **network})
+
     def save() -> None:
         for p in meta_paths:
             p.write_text(json.dumps(meta, indent=2))
@@ -525,11 +536,11 @@ async def main(a: argparse.Namespace) -> None:
                         probe = {"round": rnd, **await wan_probe(arm, a, wan_target)}
                         meta.setdefault("wan_probes", []).append(probe)
                         save()
-                        logger.info("  WAN probe (%s): cloud %.1f ms − base %.1f ms = %.1f ms added, target %.1f ms",
-                                    arm.name, probe["median_ms"], probe["base_median_ms"], probe["added_ms"], wan_target)
+                        logger.info("  WAN probe (%s): cloud alias %.1f ms (base %.1f ms), target %.1f ms",
+                                    arm.name, probe["median_ms"], probe["base_median_ms"], wan_target)
                         if not probe["ok"]:
-                            raise SystemExit(f"{arm.name}: the delay to the cloud alias ({probe['added_ms']:.1f} ms over "
-                                             f"the base Wi-Fi round trip) is outside {wan_target} ms ± "
+                            raise SystemExit(f"{arm.name}: the Pi's round trip to the cloud alias "
+                                             f"({probe['median_ms']:.1f} ms) is outside {wan_target:.1f} ms ± "
                                              f"{a.wan_tolerance:.0%}: is the WAN emulation on "
                                              "(sudo bash scripts/wan_emulation.sh show)?")
                     if arm.name not in meta["tls_params"]:

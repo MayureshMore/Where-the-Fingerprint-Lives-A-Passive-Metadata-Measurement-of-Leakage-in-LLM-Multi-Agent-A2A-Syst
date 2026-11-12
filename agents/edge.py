@@ -61,7 +61,7 @@ TRIAGE_PROMPT = ("You are the edge assistant on a building's IoT gateway. Triage
 
 
 NETWORK_CONF = Path(__file__).resolve().parent.parent / "configs" / "c2_network.conf"
-NETWORK_KEYS = ("C2_IFACE", "C2_MAC", "C2_PI", "C2_CLOUD", "C2_PI_IFACE", "C2_PI_USER")
+NETWORK_KEYS = ("C2_IFACE", "C2_MAC", "C2_PI", "C2_CLOUD", "C2_PI_IFACE", "C2_PI_USER", "C2_BASES")
 
 
 def c2_network(path: Path | None = None) -> dict[str, str]:
@@ -118,6 +118,17 @@ def pi_telemetry() -> dict:
             "throttled_now": None if bits is None else bool(bits & 0xF)}
 
 
+def route_to(host: str) -> dict | None:
+    """The gateway's route to host (`ip route get`, Linux): via, dev and src; None elsewhere."""
+    try:
+        out = subprocess.run(["ip", "route", "get", host], capture_output=True, text=True, timeout=5).stdout.split()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if not out:
+        return None
+    return {k: out[out.index(k) + 1] for k in ("via", "dev", "src") if k in out[:-1]}
+
+
 class EdgeAgent(BaseA2AAgent):
     def __init__(self, base: int, cloud_host: str, ticket_host: str, ollama_url: str = "http://127.0.0.1:11434",
                  model: str = "llama3.2:1b", num_predict: int | None = 128, tls_on: bool = True) -> None:
@@ -135,7 +146,8 @@ class EdgeAgent(BaseA2AAgent):
         return {"base": self.base, "cloud": self.cloud, "ticket": self.ticket_url, "model": self.config.ollama_model,
                 "num_predict": self.config.ollama_num_predict, "ollama": self.config.ollama_base_url,
                 "routes": ROUTES, "host": platform.node(), "python": platform.python_version(),
-                "pi": pi_telemetry(), "cards": sorted(self._card_cache)}
+                "pi": pi_telemetry(), "cards": sorted(self._card_cache),
+                "route_to_cloud": route_to(self.cloud_host)}
 
     async def prepare(self) -> dict:
         """Fetch the cloud agents' cards and load the local model, outside any capture."""

@@ -12,7 +12,8 @@
 #   bash baselines/run_tls_scanners.sh
 #   CLOUD=10.0.0.240 TICKET=10.0.0.228 OUT=data/results/tls_scanners bash baselines/run_tls_scanners.sh
 #
-# Needs sslyze (pip install sslyze) and testssl.sh (https://testssl.sh, or brew install testssl)
+# Needs sslyze (python3 -m venv venv-scanners && venv-scanners/bin/pip install sslyze==6.3.1) and
+# testssl.sh (brew install testssl)
 # on PATH; set SSLYZE / TESTSSL to override. Writes, per endpoint, sslyze_<host>_<port>.json and
 # testssl_<host>_<port>.json, plus scanners.json (endpoints, scanner versions, start and end).
 set -u
@@ -23,7 +24,9 @@ CLOUD="${CLOUD:-${C2_CLOUD:-}}"
 TICKET="${TICKET:-${C2_MAC:-}}"
 [ -n "$CLOUD" ] && [ -n "$TICKET" ] || { echo "set C2_CLOUD and C2_MAC in $CONF" >&2; exit 1; }
 OUT="${OUT:-data/results/tls_scanners}"
-SSLYZE="${SSLYZE:-sslyze}"
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+# sslyze lives in its own venv (it pins an older cryptography than requirements-lock.txt)
+SSLYZE="${SSLYZE:-$([ -x "$REPO/venv-scanners/bin/sslyze" ] && echo "$REPO/venv-scanners/bin/sslyze" || echo sslyze)}"
 TESTSSL="${TESTSSL:-testssl.sh}"
 command -v "$TESTSSL" >/dev/null 2>&1 || TESTSSL=testssl
 for tool in "$SSLYZE" "$TESTSSL"; do
@@ -50,7 +53,8 @@ done
 END="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 SSLYZE_V="$("$SSLYZE" --help 2>/dev/null | head -1)"
-PY_SSLYZE_V="$(python3 -c 'import importlib.metadata as m; print(m.version("sslyze"))' 2>/dev/null)"
+SPY="$(dirname "$SSLYZE")/python"; [ -x "$SPY" ] || SPY=python3
+PY_SSLYZE_V="$("$SPY" -c 'import importlib.metadata as m; print(m.version("sslyze"))' 2>/dev/null)"
 TESTSSL_V="$("$TESTSSL" --version 2>/dev/null | grep -m1 -i 'testssl.sh' | tr -s ' ')"
 python3 - "$OUT/scanners.json" "$START" "$END" "${PY_SSLYZE_V:-$SSLYZE_V}" "$TESTSSL_V" \
     "$(git rev-parse HEAD 2>/dev/null)" "${TARGETS[*]}" "${FAILED[*]:-}" <<'PY'

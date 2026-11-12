@@ -158,7 +158,7 @@ def test_network_config_file_and_overrides(tmp_path, monkeypatch):
     for k in NETWORK_KEYS:
         monkeypatch.delenv(k, raising=False)
     net = c2_network(conf)
-    assert net == {"C2_IFACE": "en0", "C2_MAC": "10.0.0.228", "C2_PI": "", "C2_CLOUD": "10.0.0.240", "C2_PI_IFACE": "", "C2_PI_USER": ""}
+    assert net == {"C2_IFACE": "en0", "C2_MAC": "10.0.0.228", "C2_PI": "", "C2_CLOUD": "10.0.0.240", "C2_PI_IFACE": "", "C2_PI_USER": "", "C2_BASES": ""}
     monkeypatch.setenv("C2_PI", "10.0.0.50")
     assert c2_network(conf)["C2_PI"] == "10.0.0.50"                    # the environment overrides the file
     with pytest.raises(SystemExit, match="configs/c2_network.conf"):
@@ -182,3 +182,42 @@ def test_capture_command_never_promiscuous_and_pi_only(tmp_path, monkeypatch):
     cmd = seen["cmd"]
     assert "-p" in cmd and "--immediate-mode" in cmd and cmd[cmd.index("-i") + 1] == "en0"
     assert cmd[-1] == "tcp and (port 8101 or port 8102 or port 8105) and (host 10.0.0.50)"
+
+
+def test_end_to_end_delay_and_port_lock():
+    from scripts.measure_cloud_rtt import anchor_rules, emulated_delay, lock_ports
+    assert emulated_delay(24.9, 12.3) == (pytest.approx(12.6), 6, 12)      # cloud − base, split, whole ms
+    assert emulated_delay(10.0, 12.3) == (0.0, 0, 0)                        # floored at 0
+    assert lock_ports([8100, 8200]) == [8101, 8102, 8105, 8201, 8202, 8205]
+    rules = anchor_rules(6, "en0", "10.0.0.171", "172.30.0.100", "10.0.0.228", [8100])
+    assert rules[0] == "dummynet in quick on en0 proto tcp from 10.0.0.171 to 172.30.0.100 pipe 1"
+    assert rules[1] == "dummynet out quick on en0 proto tcp from 172.30.0.100 to 10.0.0.171 pipe 2"
+    assert rules[2].startswith("pass in quick on en0 proto tcp from 10.0.0.171 to { 10.0.0.228 172.30.0.100 }")
+    assert rules[3] == "block in quick on en0 proto tcp from any to { 10.0.0.228 172.30.0.100 } port { 8101 8102 8105 }"
+
+
+def test_route_and_network_check(monkeypatch):
+    import agents.edge as edge
+    import scripts.check_c2_network as chk
+
+    class Out:
+        stdout = "172.30.0.100 via 10.0.0.228 dev wlan0 src 10.0.0.171 uid 1000 \n    cache \n"
+    monkeypatch.setattr(edge.subprocess, "run", lambda *a, **k: Out())
+    assert edge.route_to("172.30.0.100") == {"via": "10.0.0.228", "dev": "wlan0", "src": "10.0.0.171"}
+
+    net = {"C2_IFACE": "en0", "C2_MAC": "10.0.0.228", "C2_CLOUD": "172.30.0.100", "C2_PI": "10.0.0.171"}
+    monkeypatch.setattr(chk, "interface_addresses", lambda iface: ["10.0.0.228", "172.30.0.100"])
+
+    class Health:
+        def __init__(self, via):
+            self.via = via
+
+        def json(self):
+            return {"route_to_cloud": {"via": self.via, "dev": "wlan0"}}
+    monkeypatch.setattr(chk.httpx, "get", lambda url, timeout: Health("10.0.0.228"))
+    assert chk.check_network(net, [8100, 8200])["ok"]
+    monkeypatch.setattr(chk.httpx, "get", lambda url, timeout: Health("10.0.0.1"))   # route via the router
+    r = chk.check_network(net, [8100])
+    assert not r["ok"] and [c["check"] for c in r["checks"] if not c["ok"]] == ["route"]
+    monkeypatch.setattr(chk, "interface_addresses", lambda iface: ["10.0.0.229"])     # the Mac moved
+    assert [c["check"] for c in chk.check_network(net, [8100])["checks"] if not c["ok"]] == ["mac", "alias", "route"]

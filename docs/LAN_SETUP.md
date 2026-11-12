@@ -14,12 +14,13 @@ both). In a shell, `. configs/c2_network.conf` sets them for the commands below.
 
 | Name | What | Value |
 |---|---|---|
-| `C2_IFACE` | the Mac's Wi-Fi interface: capture and WAN emulation | `en0` |
-| `C2_MAC` | the Mac's own address: the ticket service (the building server) | `10.0.0.228` |
-| `C2_PI` | the Pi's reserved address on the Wi-Fi | set it (section 1) |
-| `C2_CLOUD` | the cloud alias on the Mac: an unused address outside the router's DHCP range | set it (section 1) |
+| `C2_IFACE` | the Mac's network interface: capture, WAN emulation and port lock (Wi-Fi; the Ethernet port if the Mac is wired, section 2) | `en0` |
+| `C2_MAC` | the Mac's own address: the ticket service (the building server) and the Pi's route to the cloud alias | `10.0.0.228` |
+| `C2_PI` | the Pi's reserved address on the Wi-Fi | `10.0.0.171` |
+| `C2_CLOUD` | the cloud alias on the Mac, outside the home LAN, reached by a host route via the Mac | `172.30.0.100` |
 | `C2_PI_IFACE` | the Pi's Wi-Fi interface (only for the WAN fallback on the Pi) | `wlan0` |
 | `C2_PI_USER` | the Pi's login user, for `ssh`, `scp` and `rsync` from the Mac | `ms` |
+| `C2_BASES` | the arms' port bases | `8100,8200,8300` |
 
 The C2 scripts stop with a message while `C2_PI` or `C2_CLOUD` is empty; they never guess an
 address on the home network.
@@ -75,30 +76,31 @@ trace: leakcheck keeps such traces with all-zero features. Attributes: `task_typ
 `cloud_role` (`diagnostics` or `knowledge`, escalated tasks only), and the input size (the
 first-request estimator). The architecture is fixed, so C2 has no topology attribute.
 
-**Emulated WAN.** Traffic between the Pi and the cloud alias is delayed on the Mac with pf
-dummynet on `C2_IFACE`, half of a round trip measured to the nearest public cloud region each way
-(section 8), and nothing else is: the ticket service and the Pi's internet traffic are not delayed.
-The capture on `C2_IFACE` sits where a building router would: the Pi's packets to the cloud are
-captured before the delay and the cloud's replies after it, so the round trip shows up between a
-request and its response. dummynet has no jitter: the delay is constant, and the measured spread
-is not reproduced (`data/results/c2_wan_emulation.json` records this). On top of the delay the Pi
-sees the Wi-Fi round trip to the Mac (the base round trip, measured and recorded in section 8). The
-fallback, netem on the Pi (`scripts/wan_emulation_pi.sh`), is used only if the Mac emulation
-cannot run.
+**Emulated WAN, matched end to end.** Traffic between the Pi and the cloud alias is delayed on the
+Mac with pf dummynet on `C2_IFACE`, and nothing else is: the ticket service and the Pi's internet
+traffic are not delayed. The delay is the median round trip from the Mac to the nearest public
+cloud region minus the median round trip between the Pi and the Mac (the Wi-Fi's own share),
+split evenly each way and floored at 0, so the Pi's round trip to the cloud alias equals the
+measured cloud round trip (section 8). The capture on `C2_IFACE` sits where a building router
+would: the Pi's packets to the cloud are captured before the delay and the cloud's replies after
+it, so the delay shows up between a request and its response. dummynet has no jitter: the delay is
+constant and the cloud round trip's spread is not reproduced (the Wi-Fi's own spread is there);
+`data/results/c2_wan_emulation.json` records all three numbers. The fallback, netem on the Pi
+(`scripts/wan_emulation_pi.sh`), is used only if the Mac emulation cannot run.
 
 **Ethics and the home network:** other people's devices share this Wi-Fi. The capture never runs in
 promiscuous mode (`tcpdump -p`) and its filter names the Pi's address and the arm's ports, so no
 other device's traffic is ever written. The Mac's Ollama stays on localhost; the Pi's trigger ports
-accept only the Mac (section 6). While `serve_cloud.py` runs, its TLS services listen on the Mac's
-two Wi-Fi addresses, where other devices on the network could reach them: stop it after each
-session.
+accept only the Mac (section 6). While the WAN emulation is on, its anchor also holds a port lock:
+the cloud agents' and ticket service's ports on the Mac's two addresses accept only the Pi and
+refuse every other device (section 8). Stop `serve_cloud.py` after each session.
 
 ## 0. You need
 
 - The Mac with this repo, its `venv`, and Ollama with `llama3.2:3b`.
 - A Raspberry Pi 5 (4 GB or more) running Raspberry Pi OS 64-bit (Bookworm), with SSH on.
-- The home Wi-Fi, and access to the router's admin page (an address reservation for the Pi, and
-  the DHCP range).
+- The home Wi-Fi, and access to the router's admin page (address reservations for the Pi and the
+  Mac).
 
 ## 1. The network
 
@@ -115,13 +117,10 @@ session.
    Wi-Fi MAC address, `ip link show wlan0`). The Wi-Fi connection's name is in `nmcli con show`
    (the SSID, or `preconfigured` when Raspberry Pi Imager set it up). Renew the lease
    (`sudo nmcli con up "<connection>"`) and check: `ip -4 addr show wlan0`. That address is `C2_PI`.
-3. **The cloud alias.** An address in the same subnet that the router never hands out: outside
-   its DHCP range and not reserved for anything. Check that nothing answers on it:
-   ```bash
-   ping -c 2 10.0.0.240; arp -an | grep '10.0.0.240'       # for example: no reply, no entry
-   ```
-   That address is `C2_CLOUD`.
-4. Fill in `configs/c2_network.conf` (`C2_PI`, `C2_CLOUD`; check `C2_IFACE` and `C2_MAC`).
+3. **The cloud alias** is outside the home LAN (`172.30.0.100`), so it can never collide with an
+   address the router hands out. The router never sees it: the Pi reaches it through a host route
+   via the Mac (section 2), and the Mac answers on it as an alias.
+4. Check `configs/c2_network.conf` (`C2_IFACE`, `C2_MAC`, `C2_PI`, `C2_CLOUD`).
 5. **Wi-Fi power saving off on the Pi** (it adds tens to hundreds of milliseconds to some packets):
    ```bash
    sudo iw dev wlan0 set power_save off                                # now
@@ -129,18 +128,36 @@ session.
    iw dev wlan0 get power_save                                          # Power save: off
    ```
 
-## 2. The cloud alias on the Mac
+## 2. The cloud alias and the Pi's route to it
 
-The cloud agents get their own address, so the Pi's flows to "the cloud" and to the building server
-are told apart by address, as on a real network:
+The cloud agents get their own address, outside the home LAN, so the Pi's flows to "the cloud" and
+to the building server are told apart by address, as on a real network. On the Mac:
 ```bash
 . configs/c2_network.conf
-sudo ifconfig "$C2_IFACE" alias "$C2_CLOUD" netmask 255.255.255.255
-ifconfig "$C2_IFACE" | grep 'inet '               # C2_MAC and C2_CLOUD
+sudo ifconfig "$C2_IFACE" alias "$C2_CLOUD" 255.255.255.255
+ifconfig "$C2_IFACE" | grep 'inet '               # 10.0.0.228 and 172.30.0.100
 ```
-From the Pi: `ping -c 3 <C2_CLOUD>`. The alias goes away when the Mac rejoins the Wi-Fi or
-restarts; add it again before starting the cloud services. Remove it with
-`sudo ifconfig "$C2_IFACE" -alias "$C2_CLOUD"`.
+On the Pi, a host route to the alias via the Mac, kept by NetworkManager across reconnects and
+reboots, and added now as well:
+```bash
+sudo nmcli con mod AZKABAN +ipv4.routes "172.30.0.100/32 10.0.0.228"
+sudo ip route replace 172.30.0.100/32 via 10.0.0.228 dev wlan0
+ip route get 172.30.0.100                          # 172.30.0.100 via 10.0.0.228 dev wlan0 src 10.0.0.171
+ping -c 3 172.30.0.100
+```
+The alias goes away when the Mac rejoins the network or restarts; add it again before starting the
+cloud services (remove it with `sudo ifconfig "$C2_IFACE" -alias "$C2_CLOUD"`). Before each session
+the collector checks that the Mac is at `C2_MAC` with the alias and that every edge agent's gateway
+routes the alias via the Mac (`scripts/check_c2_network.py`, which you can also run on its own once
+the edge agents run); it stops if not.
+
+**If the Mac moves to Ethernet** (one Wi-Fi hop fewer between the Pi and the Mac): set `C2_IFACE`
+to the Ethernet interface (`route -n get default | grep interface`) and `C2_MAC` to its address,
+copy the config to the Pi (section 4), add the alias on the new interface, change the Pi's route to
+the new `C2_MAC` (`sudo nmcli con mod AZKABAN -ipv4.routes "172.30.0.100/32 10.0.0.228"`, then the
+two commands above with the new address), make the certificate again (section 5), and measure again
+(section 8): `wan_emulation.sh on` refuses a measurement made with other addresses, and the network
+check refuses a Mac that is not at `C2_MAC`.
 
 ## 3. Ollama, on localhost on both machines
 
@@ -171,7 +188,7 @@ From the Mac, in the repo (this copies `configs/c2_network.conf` too; copy it ag
 changes):
 ```bash
 . configs/c2_network.conf
-rsync -a --exclude data --exclude venv --exclude .git --exclude dist ./ "$C2_PI_USER@$C2_PI:a2a/"
+rsync -a --exclude data --exclude venv --exclude 'venv-*' --exclude .git --exclude dist ./ "$C2_PI_USER@$C2_PI:a2a/"
 ```
 On the Pi, install what the edge agent needs, at the Mac's versions (requirements-lock.txt):
 ```bash
@@ -184,7 +201,8 @@ venv/bin/python --version; venv/bin/pip freeze > ~/pi-freeze.txt    # keep both 
 ## 5. TLS certificates
 
 One certificate for the Mac's two TLS services, valid for the cloud alias and the Mac's own
-address; the Pi is only a TLS client and needs only the CA:
+address (made on Nov 11 for 172.30.0.100 and 10.0.0.228); the Pi is only a TLS client and needs
+only the CA:
 ```bash
 . configs/c2_network.conf
 bash scripts/make_tls_certs.sh data/tls_lan "$C2_CLOUD" "$C2_MAC"
@@ -237,51 +255,55 @@ for b in 8100 8200 8300; do
 done                                         # 200s, {"ok":true,...}, and three edge configurations
 ```
 
-## 8. Emulated WAN
+## 8. Emulated WAN and the port lock
 
-On the Mac, measure the round trip to the nearest public cloud region (TCP connect time, 30 tries):
+On the Mac, on a clean commit, with the Pi reachable (it does not need the services):
 ```bash
 venv/bin/python scripts/measure_cloud_rtt.py            # https://ec2.us-west-1.amazonaws.com
 ```
-It writes `data/results/c2_wan_emulation.json` (the paper cites it): the raw times, the median and
-IQR, the round trip the checks expect (`delay_ms`, twice the one-way delay), the Mac emulation
-(`emulation`: half the median each way, no jitter, the interface and addresses, the exact commands)
-and the Pi fallback (`fallback_pi_netem`). Rerun it whenever the network config changes. Check that
-`/etc/pf.conf` evaluates Apple's dummynet anchors, then turn the emulation on:
+It measures the cloud round trip (curl's TCP connect time from the Mac to the region, 30 tries) and
+the base round trip (40 pings from the Mac to the Pi), and writes `data/results/c2_wan_emulation.json`
+(the paper cites it): `target_rtt_ms` (the median cloud round trip, what the Pi should see),
+`base_rtt` (the median Pi ↔ Mac round trip and all pings), `total_delay_ms` (their difference,
+floored at 0) and `delay_ms` (the round trip dummynet applies, in whole milliseconds, split evenly
+each way), with the exact rules and commands and the Pi fallback. Rerun it whenever the network
+config changes. Then:
 ```bash
-grep dummynet-anchor /etc/pf.conf                     # dummynet-anchor "com.apple/*"
+grep -E '^(dummynet-)?anchor "com.apple' /etc/pf.conf # dummynet-anchor and anchor "com.apple/*"
 sudo bash scripts/wan_emulation.sh on                 # prints "main ruleset and NAT unchanged"
 sudo bash scripts/wan_emulation.sh show
 ```
-`on` refuses to run if the config's interface or addresses differ from those the JSON recorded. For
-a 24 ms round trip it runs:
-```bash
-dnctl pipe 1 config delay 12 ; dnctl pipe 2 config delay 12
-printf 'dummynet in quick on en0 proto tcp from <C2_PI> to <C2_CLOUD> pipe 1\ndummynet out quick on en0 proto tcp from <C2_CLOUD> to <C2_PI> pipe 2\n' \
-    | pfctl -a com.apple/c2-wan -f -
-pfctl -E                                              # the token is kept in /var/tmp/c2-wan; off releases it
+`on` refuses to run if the config's interface, addresses or bases differ from those the JSON
+recorded. It configures the two pipes and loads the anchor `com.apple/c2-wan` with four rules, for
+example (12 ms in all, 6 each way):
 ```
-The rules live in their own anchor under `com.apple/`, so the main ruleset and NAT rules are
-untouched; `on` diffs both before and after. `sudo bash scripts/wan_emulation.sh off` flushes the
-anchor, deletes the two pipes and releases the token. Then, with the services of section 7 running:
+dummynet in quick on en0 proto tcp from 10.0.0.171 to 172.30.0.100 pipe 1
+dummynet out quick on en0 proto tcp from 172.30.0.100 to 10.0.0.171 pipe 2
+pass in quick on en0 proto tcp from 10.0.0.171 to { 10.0.0.228 172.30.0.100 } port { 8101 8102 8105 8201 8202 8205 8301 8302 8305 }
+block in quick on en0 proto tcp from any to { 10.0.0.228 172.30.0.100 } port { 8101 8102 8105 8201 8202 8205 8301 8302 8305 }
+```
+then `pfctl -E` (the token is kept in `/var/tmp/c2-wan`). The last two rules are the **port lock**:
+the cloud agents' and ticket service's ports on the Mac's two addresses accept only the Pi. The Mac's
+own connections to them (the collector's checks) go over the loopback interface and are not
+affected. The rules live in their own anchor under `com.apple/`, so the main ruleset and NAT rules
+are untouched; `on` diffs both before and after. `sudo bash scripts/wan_emulation.sh off` flushes the
+anchor (delay and port lock), deletes the two pipes and releases the token. Then, with the services
+of section 7 running:
 ```bash
-venv/bin/python scripts/check_wan_emulation.py --record --json data/raw_c2_pilot/wan_check.json
+venv/bin/python scripts/check_wan_emulation.py --json data/raw_c2_pilot/wan_check.json
 ```
 Each edge agent measures TCP connect times to the internet, to the Mac's own address and to the
 cloud alias, and the probes are captured on `C2_IFACE`:
+- (0) the network check of section 2;
 - (a) the Pi reaches `1.1.1.1:443`;
-- (b) the delay added to the cloud alias, its connect time minus the base Wi-Fi round trip, is
-  within ±20% of the round trip, and so is the SYN → SYN-ACK time seen at the capture;
-- (c) the Mac's own address is not delayed: at the capture its SYN → SYN-ACK is under a fifth of
-  the round trip, and from the Pi its connect time, the **base Wi-Fi round trip Pi ↔ Mac**, is under
-  the round trip (delayed it would be the base plus the round trip; a base that high usually means
-  power saving is still on, section 1). With power saving off, the Pi and the Mac both on the Wi-Fi
-  measured a median of 12.3 ms (IQR 9.4–13.5, 40 pings, Nov 11); with it on, 65–863 ms.
+- (b) end to end: the Pi's round trip to the cloud alias is within ±20% of the measured cloud round
+  trip (`target_rtt_ms`), and the SYN → SYN-ACK time seen at the capture is the dummynet delay
+  (`delay_ms`, ±20%);
+- (c) the Mac's own address is not delayed: from the Pi it is faster than the cloud alias by at
+  least half the delay, and at the capture its SYN → SYN-ACK is near zero.
 
-`--record` writes the base Wi-Fi round trip (median, IQR and all connect times, pooled over the
-three edge agents) into `data/results/c2_wan_emulation.json` as `base_wifi_rtt`. The collector
-repeats (b) at the start of every round with `--wan-target` (the cloud alias minus the Mac's own
-address, 10 tries each) and stops if the emulation is off.
+The collector repeats (b) at the start of every round with `--wan-target` and stops if the
+emulation is off.
 
 **Fallback, only if the Mac emulation cannot run** (for example if (a) fails: turn it off first):
 netem on the Pi's Wi-Fi egress to the cloud alias, delay = median, jitter = half the IQR, with a
@@ -297,7 +319,8 @@ venv/bin/python scripts/check_wan_emulation.py --fallback-pi --json data/raw_c2_
 ```
 With the fallback the capture sits on the cloud side of the delay: the Pi's packets reach the
 capture already delayed, so the round trip shows up after a response rather than between a
-request and its response; record that the fallback was used.
+request and its response; record that the fallback was used. The port lock is part of the Mac
+emulation; with the fallback, stop `serve_cloud.py` whenever no session runs.
 
 ## 9. Capture on the Mac
 
@@ -360,6 +383,12 @@ venv/bin/python scripts/check_session_design.py $P --json data/raw_c2_pilot/desi
 venv/bin/python scripts/check_wan_emulation.py --json data/raw_c2_pilot/wan_check.json
 bash baselines/run_tls_scanners.sh                   # sslyze and testssl.sh on the nine TLS endpoints
 ```
+sslyze runs from its own venv, because it pins an older `cryptography` than `requirements-lock.txt`
+(`python3 -m venv venv-scanners && venv-scanners/bin/pip install sslyze==6.3.1`); testssl.sh comes
+from Homebrew (`brew install testssl`). Both run from the Mac, whose own connections to the C2
+ports are not affected by the port lock.
+```bash
+```
 
 ### Pass criteria
 
@@ -368,7 +397,8 @@ bash baselines/run_tls_scanners.sh                   # sslyze and testssl.sh on 
 | Every call captured, nothing extra | `check_lan_capture.py` PASS: every escalated task shows a request after the TLS handshake and response data on the cloud agent the routing rule names and no request to the other; every task shows exactly one ticket POST; no `alert_triage` task opens a connection to the cloud alias; the edge agent's report agrees with the rule |
 | TLS on | `check_tls_capture.py --expect tls`: every trace carries ClientHellos and application-data records, no cleartext HTTP; the scanners report TLS 1.3 on all nine endpoints |
 | Streams complete | `check_stream_integrity.py`: per escalated task type, share of cut cloud replies ≤ 5% and median largest reply far above the truncation signature of 7–10 packets |
-| WAN emulation | `wan_emulation.sh on`: main ruleset and NAT unchanged. `check_wan_emulation.py`, for all three edge agents: (a) `1.1.1.1:443` reachable; (b) the added delay (cloud minus base) and the SYN → SYN-ACK at the capture within ±20% of the round trip; (c) the Mac's own address undelayed at the capture, base Wi-Fi round trip under the round trip. Base round trip recorded. No round stopped by `--wan-target` |
+| Network | `check_c2_network.py` (and the collector at the start of the session): the Mac at `C2_MAC` with the alias; every edge agent's gateway routes the alias via the Mac |
+| WAN emulation | `wan_emulation.sh on`: main ruleset and NAT unchanged. `check_wan_emulation.py`, for all three edge agents: (a) `1.1.1.1:443` reachable; (b) the Pi's round trip to the cloud alias within ±20% of the measured cloud round trip, and SYN → SYN-ACK at the capture within ±20% of the dummynet delay; (c) the Mac's own address undelayed. No round stopped by `--wan-target` |
 | Collection healthy | `session_meta.json`: `workflows` are the four IoT ones; every task type has traces in every arm; failed attempts ≤ 1% of traces; `throttled_traces` (traces taken while the Pi was throttled) reported; the pace line decides `lan_pad` |
 | No fixed predecessor | `check_session_design.py` [a], as before |
 | Leftover connections | [b]: none may carry data beyond the close |
@@ -407,13 +437,17 @@ done; done
 | Symptom | Likely cause |
 |---|---|
 | A C2 script stops: `C2_PI` (or `C2_CLOUD`) is not set | fill in `configs/c2_network.conf` (section 1) |
+| The network check fails: `mac` | the Mac's address changed (new lease, or the move to Ethernet): fix the reservation, or follow "If the Mac moves to Ethernet" (section 2) |
+| The network check fails: `alias` | the Mac rejoined the network or restarted: add the alias again (section 2) |
+| The network check fails: `route` | the Pi lacks the host route, or it points at an old Mac address: `ip route get 172.30.0.100` on the Pi (section 2) |
+| Another device must reach the cloud or ticket ports (it cannot) | that is the port lock (section 8); `wan_emulation.sh off` removes it |
 | Every trace fails at once | capture access (`/dev/bpf*`, section 9), the wrong interface in `C2_IFACE`, or the edge agents are not running or blocked (`curl http://$C2_PI:8109/health`; `sudo ufw status` on the Pi) |
 | `check_lan_capture.py`: no complete call to the cloud agent | `serve_cloud.py` is down, the alias is gone (section 2), or the certificate lacks `C2_CLOUD` (section 5) |
 | An `alert_triage` task reaches the cloud | the Pi runs an older `agents/edge.py`: rsync the code again (section 4) |
 | Two ticket connections in one trace | a retry inside the edge agent, or a previous task still running: check the Pi's log |
 | `--wan-target` stops the session, or `check_wan_emulation.py` (b) fails | the emulation is off (a Mac restart clears it): `sudo bash scripts/wan_emulation.sh show`, then `on` |
 | `wan_emulation.sh on` refuses: config differs from the measurement | `C2_IFACE`, `C2_PI` or `C2_CLOUD` changed since `measure_cloud_rtt.py`: rerun it |
-| (c) fails from the Pi: the base Wi-Fi round trip is high | Wi-Fi power saving is on (`iw dev wlan0 get power_save`, section 1), or the Pi is far from the access point |
+| (b) fails high from the Pi but passes at the capture | the Wi-Fi round trip has grown since the measurement (power saving back on, `iw dev wlan0 get power_save`, or the Pi moved): measure again (section 8) |
 | `check_wan_emulation.py` (a) fails, or the Pi loses the internet | `sudo bash scripts/wan_emulation.sh off`, check `ping 1.1.1.1` on the Pi, and use the Pi fallback (section 8) |
 | (b) passes in the probes but the capture's SYN → SYN-ACK is near zero | the delay is applied on the Pi (fallback) or before the capture point: check which emulation is on |
 | (c) fails at the capture: the Mac's address is delayed | the anchor's rules match more than the cloud alias: `sudo bash scripts/wan_emulation.sh show` |

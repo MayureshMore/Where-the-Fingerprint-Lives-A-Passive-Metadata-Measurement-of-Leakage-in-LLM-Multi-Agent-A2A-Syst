@@ -10,6 +10,8 @@
 # live in their own anchor, com.apple/c2-wan, which /etc/pf.conf's dummynet-anchor "com.apple/*"
 # evaluates; the main ruleset and NAT rules are not touched (on checks this by diffing them).
 # dummynet has no jitter: the delay is constant (data/results/c2_wan_emulation.json records that).
+# The same anchor holds the port lock: the cloud agents' and ticket service's ports on the Mac's two
+# addresses accept only the Pi; off removes both.
 #
 #   sudo bash scripts/wan_emulation.sh on   [data/results/c2_wan_emulation.json]
 #   sudo bash scripts/wan_emulation.sh off
@@ -20,11 +22,13 @@
 set -euo pipefail
 
 CONF="${C2_CONF:-$(cd "$(dirname "$0")/.." && pwd)/configs/c2_network.conf}"
-_IFACE="${C2_IFACE:-}" _PI="${C2_PI:-}" _CLOUD="${C2_CLOUD:-}"     # environment overrides the file
-[ -f "$CONF" ] && . "$CONF"
+_IFACE="${C2_IFACE:-}" _PI="${C2_PI:-}" _CLOUD="${C2_CLOUD:-}" _MAC="${C2_MAC:-}" _BASES="${C2_BASES:-}"
+[ -f "$CONF" ] && . "$CONF"                     # environment overrides the file
 IFACE="${_IFACE:-${C2_IFACE:-}}"
 PI="${_PI:-${C2_PI:-}}"
 CLOUD="${_CLOUD:-${C2_CLOUD:-}}"
+MAC="${_MAC:-${C2_MAC:-}}"
+BASES="${_BASES:-${C2_BASES:-8100,8200,8300}}"
 ANCHOR="com.apple/c2-wan"
 PIPE_IN=1          # Pi → cloud alias, as it enters the Mac
 PIPE_OUT=2         # cloud alias → Pi, as it leaves the Mac
@@ -41,27 +45,31 @@ case "${1:-show}" in
     on)
         JSON="${2:-data/results/c2_wan_emulation.json}"
         [ -f "$JSON" ] || { echo "no $JSON: run scripts/measure_cloud_rtt.py first" >&2; exit 1; }
-        for v in IFACE PI CLOUD; do
+        for v in IFACE PI CLOUD MAC; do
             [ -n "${!v}" ] || { echo "C2_$v is not set: fill it in $CONF" >&2; exit 1; }
         done
-        ONE_WAY="$(python3 - "$JSON" "$IFACE" "$PI" "$CLOUD" <<'PY'
+        RULES="$STATE/rules.pf"
+        ONE_WAY="$(python3 - "$JSON" "$IFACE" "$PI" "$CLOUD" "$MAC" "$BASES" "$RULES" <<'PY'
 import json, sys
 e = json.load(open(sys.argv[1]))["emulation"]
-have = dict(zip(("iface", "pi", "cloud"), sys.argv[2:5]))
+have = {"iface": sys.argv[2], "pi": sys.argv[3], "cloud": sys.argv[4], "mac": sys.argv[5],
+        "bases": [int(b) for b in sys.argv[6].split(",")]}
 diff = [f"{k}: JSON {e.get(k)}, config {v}" for k, v in have.items() if e.get(k) != v]
 if diff:
     sys.exit("the network config differs from the measurement (" + "; ".join(diff) +
              "): rerun scripts/measure_cloud_rtt.py")
+open(sys.argv[7], "w").write("\n".join(e["rules"]) + "\n")
 print(e["one_way_ms"])
 PY
 )"
         grep -q '^dummynet-anchor "com.apple/\*"' /etc/pf.conf \
             || { echo "/etc/pf.conf has no dummynet-anchor \"com.apple/*\": use the Pi fallback" >&2; exit 1; }
+        grep -q '^anchor "com.apple/\*"' /etc/pf.conf \
+            || { echo "/etc/pf.conf has no anchor \"com.apple/*\": the port lock would not apply" >&2; exit 1; }
         snapshot "$STATE/before.txt"
         dnctl pipe "$PIPE_IN" config delay "$ONE_WAY"
         dnctl pipe "$PIPE_OUT" config delay "$ONE_WAY"
-        printf 'dummynet in quick on %s proto tcp from %s to %s pipe %s\ndummynet out quick on %s proto tcp from %s to %s pipe %s\n' \
-            "$IFACE" "$PI" "$CLOUD" "$PIPE_IN" "$IFACE" "$CLOUD" "$PI" "$PIPE_OUT" | pfctl -a "$ANCHOR" -f -
+        pfctl -a "$ANCHOR" -f "$RULES"
         TOKEN="$(pfctl -E 2>&1 | sed -n 's/.*Token : \([0-9][0-9]*\).*/\1/p')"
         [ -n "$TOKEN" ] && echo "$TOKEN" > "$STATE/token"
         snapshot "$STATE/after.txt"
@@ -71,16 +79,19 @@ PY
             echo "WARNING: the main ruleset or NAT changed:" >&2; diff "$STATE/before.txt" "$STATE/after.txt" >&2 || true
         fi
         echo "WAN emulation on: $ONE_WAY ms each way between $PI and $CLOUD on $IFACE (pf token ${TOKEN:-?})"
+        echo "port lock on: the C2 ports on $MAC and $CLOUD accept only $PI"
+        pfctl -a "$ANCHOR" -s rules 2>/dev/null; pfctl -a "$ANCHOR" -s dummynet 2>/dev/null || true
         ;;
     off)
         pfctl -a "$ANCHOR" -F all 2>/dev/null || true
         dnctl pipe delete "$PIPE_IN" 2>/dev/null || true
         dnctl pipe delete "$PIPE_OUT" 2>/dev/null || true
         if [ -f "$STATE/token" ]; then pfctl -X "$(cat "$STATE/token")" 2>/dev/null || true; rm -f "$STATE/token"; fi
-        echo "WAN emulation off"
+        echo "WAN emulation and port lock off"
         ;;
     show)
         echo "## anchor $ANCHOR"; pfctl -a "$ANCHOR" -s rules 2>/dev/null || true
+        pfctl -a "$ANCHOR" -s dummynet 2>/dev/null || true
         echo "## pipes"; dnctl list 2>/dev/null || true
         echo "## pf"; pfctl -s info 2>/dev/null | head -1
         ;;
