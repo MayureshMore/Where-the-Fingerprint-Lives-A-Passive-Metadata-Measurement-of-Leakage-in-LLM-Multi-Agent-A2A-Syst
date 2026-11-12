@@ -149,3 +149,36 @@ def test_recorder_uses_immediate_mode(tmp_path):
     s = PacketRecorder(output_dir=tmp_path, interface="lo0", agent_ports=[9101]).new_session("x")
     assert s.immediate
     assert not PacketRecorder(output_dir=tmp_path, agent_ports=[9101], immediate=False).new_session("y").immediate
+
+
+def test_network_config_file_and_overrides(tmp_path, monkeypatch):
+    from agents.edge import NETWORK_KEYS, c2_network, require
+    conf = tmp_path / "net.conf"
+    conf.write_text("# comment\nC2_IFACE=en0   # Wi-Fi\nC2_MAC=10.0.0.228\nC2_PI=\nC2_CLOUD='10.0.0.240'\n")
+    for k in NETWORK_KEYS:
+        monkeypatch.delenv(k, raising=False)
+    net = c2_network(conf)
+    assert net == {"C2_IFACE": "en0", "C2_MAC": "10.0.0.228", "C2_PI": "", "C2_CLOUD": "10.0.0.240", "C2_PI_IFACE": ""}
+    monkeypatch.setenv("C2_PI", "10.0.0.50")
+    assert c2_network(conf)["C2_PI"] == "10.0.0.50"                    # the environment overrides the file
+    with pytest.raises(SystemExit, match="configs/c2_network.conf"):
+        require("", "the Pi's address (C2_PI)")
+
+
+def test_capture_command_never_promiscuous_and_pi_only(tmp_path, monkeypatch):
+    import capture.recorder as rec
+    seen = {}
+
+    class FakePopen:
+        def __init__(self, cmd, **kw):
+            seen["cmd"] = cmd
+
+        def poll(self):
+            return None
+
+    monkeypatch.setattr(rec.subprocess, "Popen", FakePopen)
+    rec.PacketRecorder(output_dir=tmp_path, interface="en0", agent_ports=[8101, 8102, 8105],
+                       hosts=["10.0.0.50"]).new_session("t").start()
+    cmd = seen["cmd"]
+    assert "-p" in cmd and "--immediate-mode" in cmd and cmd[cmd.index("-i") + 1] == "en0"
+    assert cmd[-1] == "tcp and (port 8101 or port 8102 or port 8105) and (host 10.0.0.50)"

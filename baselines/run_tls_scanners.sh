@@ -1,23 +1,27 @@
 #!/usr/bin/env bash
 #
 # Standard TLS scanners against C2's TLS endpoints (docs/LAN_SETUP.md): the cloud agents on the
-# cloud alias (diagnostics base+1, knowledge base+2) and the ticket service on the building
-# server (base+5), for the three arm bases: what an operator's usual TLS check reports for the
+# cloud alias (diagnostics base+1, knowledge base+2) and the ticket service on the Mac's own
+# address (base+5), for the three arm bases; addresses from configs/c2_network.conf (C2_CLOUD,
+# C2_MAC) unless CLOUD / TICKET are set: what an operator's usual TLS check reports for the
 # same deployment that a2a-leakcheck audits. Both scanners look at the TLS configuration
 # (versions, cipher suites, certificate, known vulnerabilities); neither looks at what the sizes
 # and timing of the encrypted traffic reveal.
 #
 # Run from the Mac during the pilot, with scripts/serve_cloud.py running:
 #   bash baselines/run_tls_scanners.sh
-#   CLOUD=192.168.2.100 TICKET=192.168.2.1 OUT=data/results/tls_scanners bash baselines/run_tls_scanners.sh
+#   CLOUD=10.0.0.240 TICKET=10.0.0.228 OUT=data/results/tls_scanners bash baselines/run_tls_scanners.sh
 #
 # Needs sslyze (pip install sslyze) and testssl.sh (https://testssl.sh, or brew install testssl)
 # on PATH; set SSLYZE / TESTSSL to override. Writes, per endpoint, sslyze_<host>_<port>.json and
 # testssl_<host>_<port>.json, plus scanners.json (endpoints, scanner versions, start and end).
 set -u
 
-CLOUD="${CLOUD:-192.168.2.100}"
-TICKET="${TICKET:-192.168.2.1}"
+CONF="$(cd "$(dirname "$0")/.." && pwd)/configs/c2_network.conf"
+[ -f "$CONF" ] && . "$CONF"
+CLOUD="${CLOUD:-${C2_CLOUD:-}}"
+TICKET="${TICKET:-${C2_MAC:-}}"
+[ -n "$CLOUD" ] && [ -n "$TICKET" ] || { echo "set C2_CLOUD and C2_MAC in $CONF" >&2; exit 1; }
 OUT="${OUT:-data/results/tls_scanners}"
 SSLYZE="${SSLYZE:-sslyze}"
 TESTSSL="${TESTSSL:-testssl.sh}"

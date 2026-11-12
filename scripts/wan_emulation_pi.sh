@@ -15,6 +15,11 @@
 # cloud alias against the target (±20%).
 set -euo pipefail
 
+CONF="$(cd "$(dirname "$0")/.." && pwd)/configs/c2_network.conf"
+_PI_IFACE="${C2_PI_IFACE:-}"
+[ -f "$CONF" ] && . "$CONF"
+DEV_DEFAULT="${_PI_IFACE:-${C2_PI_IFACE:-wlan0}}"      # the Pi's Wi-Fi interface
+
 CMD="${1:-show}"
 case "$CMD" in
     on)
@@ -27,12 +32,12 @@ for c in json.load(open(sys.argv[1]))["fallback_pi_netem"]["tc_commands"]:
 PY
         ;;
     off)
-        DEV="${2:-eth0}"
+        DEV="${2:-$DEV_DEFAULT}"
         tc qdisc del dev "$DEV" root 2>/dev/null || true
         echo "WAN emulation off on $DEV"
         ;;
     show)
-        DEV="${2:-eth0}"
+        DEV="${2:-$DEV_DEFAULT}"
         tc qdisc show dev "$DEV"
         tc filter show dev "$DEV"
         ;;

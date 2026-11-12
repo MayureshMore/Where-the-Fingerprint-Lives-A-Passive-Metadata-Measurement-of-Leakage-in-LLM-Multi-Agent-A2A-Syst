@@ -32,6 +32,11 @@ _TCPDUMP_BASE = ["tcpdump", "-n", "-s", str(_SNAPLEN), "-w"]
 # or a whole sub-second task). Captures up to C1 and the TLS control ran without it.
 _IMMEDIATE = "--immediate-mode"
 
+# Never promiscuous (-p): the interface keeps only frames addressed to this machine. With the C2
+# capture on the Mac's Wi-Fi interface and a filter on the Pi's address, no other device's
+# traffic is ever written.
+_NO_PROMISC = "-p"
+
 # A pcap file with only the 24-byte global header (no packet records) means the
 # capture started but recorded nothing — i.e. it failed.  Anything > this has at
 # least one packet.
@@ -52,6 +57,7 @@ class CaptureSession:
             _TCPDUMP_BASE
             + [str(self.pcap_path), "-i", self.interface]
             + ([_IMMEDIATE] if self.immediate else [])
+            + [_NO_PROMISC]
             + ([self.filter_expr] if self.filter_expr else [])
         )
         logger.info("tcpdump: %s", " ".join(cmd))

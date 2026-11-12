@@ -31,11 +31,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import platform
 import statistics
 import subprocess
 import time
 import uuid
+from pathlib import Path
 
 from a2a.client import A2AClient
 from a2a.types import Message, MessageSendParams, Part, Role, SendStreamingMessageRequest, TextPart
@@ -56,6 +58,35 @@ PADDED_ENDPOINTS = ["diagnostics", "knowledge"]
 
 TRIAGE_PROMPT = ("You are the edge assistant on a building's IoT gateway. Triage this alert: give a "
                  "priority (P1-P4), the responsible team and the first action, in three short lines.\n\n")
+
+
+NETWORK_CONF = Path(__file__).resolve().parent.parent / "configs" / "c2_network.conf"
+NETWORK_KEYS = ("C2_IFACE", "C2_MAC", "C2_PI", "C2_CLOUD", "C2_PI_IFACE")
+
+
+def c2_network(path: Path | None = None) -> dict[str, str]:
+    """The C2 addresses and interfaces: configs/c2_network.conf (KEY=VALUE, # comments), each
+    overridden by an environment variable of the same name. Unset values are empty strings."""
+    net = dict.fromkeys(NETWORK_KEYS, "")
+    conf = Path(path or NETWORK_CONF)
+    if conf.exists():
+        for line in conf.read_text().splitlines():
+            line = line.split("#", 1)[0].strip()
+            if "=" in line:
+                k, v = (x.strip() for x in line.split("=", 1))
+                net[k] = v.strip("'\"")
+    for k in NETWORK_KEYS:
+        if os.environ.get(k):
+            net[k] = os.environ[k]
+    return net
+
+
+def require(value: str | None, what: str) -> str:
+    """value, or stop with a pointer to the network config."""
+    if not value:
+        raise SystemExit(f"{what} is not set: fill it in configs/c2_network.conf (docs/LAN_SETUP.md), "
+                         "or set it in the environment or on the command line")
+    return value
 
 
 def endpoints(base: int, cloud_host: str, ticket_host: str) -> dict[str, str]:

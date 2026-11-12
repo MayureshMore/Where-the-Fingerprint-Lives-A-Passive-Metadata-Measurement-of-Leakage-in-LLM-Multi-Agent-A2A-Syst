@@ -6,16 +6,17 @@ trip) to a public cloud region endpoint, --tries times. Writes the raw times, th
 emulation settings to data/results/c2_wan_emulation.json:
 
   emulation           primary, on the Mac (scripts/wan_emulation.sh): pf dummynet in the anchor
-                      com.apple/c2-wan on bridge100, half the median each way (Pi → cloud alias as
-                      it enters the Mac, cloud alias → Pi as it leaves), so the capture sits on the
-                      building side of the delay. dummynet has no jitter: the delay is constant
+                      com.apple/c2-wan on the Mac's Wi-Fi interface (C2_IFACE), half the median
+                      each way (Pi → cloud alias as it enters the Mac, cloud alias → Pi as it
+                      leaves), so the capture sits on the building side of the delay. dummynet has no jitter: the delay is constant
                       and the measured spread is not reproduced. delay_ms is the round trip the
                       checks expect.
   fallback_pi_netem   only if the Mac emulation cannot run (scripts/wan_emulation_pi.sh): netem on
                       the Pi's egress to the cloud alias, delay = median, jitter = half the IQR;
                       the capture then sits on the cloud side of the delay.
 
-Usage (Mac, on the network the building would use):
+Addresses and interfaces come from configs/c2_network.conf. Usage (Mac, on the network the
+building would use):
     python scripts/measure_cloud_rtt.py                      # https://ec2.us-west-1.amazonaws.com, 30 tries
     python scripts/measure_cloud_rtt.py --endpoint https://ec2.us-east-2.amazonaws.com
 """
@@ -28,16 +29,17 @@ import platform
 import statistics
 import subprocess
 import time
+import sys
 from pathlib import Path
 
-CLOUD = "192.168.2.100"
-PI = "192.168.2.2"
-DEV = "eth0"           # the Pi's interface (fallback)
-IFACE = "bridge100"    # the Mac's side of the link
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from agents.edge import c2_network, require  # noqa: E402
+
 ANCHOR = "com.apple/c2-wan"
 
 
-def mac_commands(one_way_ms: int, iface: str = IFACE, pi: str = PI, cloud: str = CLOUD) -> list[str]:
+def mac_commands(one_way_ms: int, iface: str, pi: str, cloud: str) -> list[str]:
     """What scripts/wan_emulation.sh on runs (as root): two dummynet pipes and two rules in their
     own anchor, which /etc/pf.conf's dummynet-anchor "com.apple/*" evaluates; pfctl -E returns a
     token that off releases."""
@@ -47,7 +49,7 @@ def mac_commands(one_way_ms: int, iface: str = IFACE, pi: str = PI, cloud: str =
             "pfctl -E"]
 
 
-def tc_commands(delay_ms: int, jitter_ms: int, dev: str = DEV, cloud: str = CLOUD) -> list[str]:
+def tc_commands(delay_ms: int, jitter_ms: int, dev: str, cloud: str) -> list[str]:
     """prio qdisc with a fourth band that the default priomap never uses; netem on that band; a
     u32 filter sends only traffic to the cloud alias there. A pfifo child keeps netem from
     reordering packets when jitter is on (netem's own queue sorts by send time)."""
@@ -66,6 +68,11 @@ def _git() -> dict:
 
 
 def main(a: argparse.Namespace) -> None:
+    net = c2_network()                 # the commands name these addresses and interfaces
+    iface = require(net["C2_IFACE"], "the Mac's Wi-Fi interface (C2_IFACE)")
+    pi = require(net["C2_PI"], "the Pi's address (C2_PI)")
+    cloud = require(net["C2_CLOUD"], "the cloud alias (C2_CLOUD)")
+    mac, dev = net["C2_MAC"], net["C2_PI_IFACE"] or "wlan0"
     times, failures = [], 0
     for _ in range(a.tries):
         r = subprocess.run(["curl", "-s", "-o", "/dev/null", "--connect-timeout", "5", "-w", "%{time_connect}",
@@ -91,18 +98,22 @@ def main(a: argparse.Namespace) -> None:
            "median_ms": med, "q1_ms": q1, "q3_ms": q3, "iqr_ms": q3 - q1, "min_ms": min(times), "max_ms": max(times),
            "delay_ms": 2 * one_way, "jitter_ms": 0,
            "emulation": {
-               "where": f"Mac, pf dummynet in anchor {ANCHOR} on {IFACE}: the capture point is on the building side",
+               "where": f"Mac, pf dummynet in anchor {ANCHOR} on {iface}: the capture point is on the building side",
+               "iface": iface, "pi": pi, "cloud": cloud, "mac": mac,
                "one_way_ms": one_way, "round_trip_ms": 2 * one_way, "jitter_ms": 0,
                "jitter_note": f"dummynet has no jitter: the delay is constant; the measured spread "
                               f"(IQR {q3 - q1:.1f} ms) is not reproduced",
-               "commands": mac_commands(one_way)},
+               "commands": mac_commands(one_way, iface, pi, cloud)},
            "fallback_pi_netem": {
-               "where": f"Pi egress ({DEV}) to {CLOUD} only, the whole round trip on one direction: the capture "
+               "where": f"Pi egress ({dev}) to {cloud} only, the whole round trip on one direction: the capture "
                         "then sits on the cloud side of the delay",
+               "dev": dev, "cloud": cloud,
                "delay_ms": delay, "jitter_ms": jitter, "netem": f"delay {delay}ms {jitter}ms distribution normal",
-               "tc_commands": tc_commands(delay, jitter)},
-           "check": "scripts/check_wan_emulation.py: the Pi's connect time to the cloud alias within ±20% of delay_ms; "
-                    "with --interface, SYN to SYN-ACK at the capture as well; the ticket service not delayed",
+               "tc_commands": tc_commands(delay, jitter, dev, cloud)},
+           "check": "scripts/check_wan_emulation.py: the Pi's connect time to the cloud alias minus the base Wi-Fi "
+                    "round trip (to the Mac's own address, never delayed) within ±20% of delay_ms; SYN to SYN-ACK at "
+                    "the capture as well; the ticket service not delayed; --record adds base_wifi_rtt here",
+           "base_wifi_rtt": None,
            **_git()}
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(out, indent=2))

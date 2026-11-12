@@ -65,13 +65,13 @@ Usage:
     python scripts/collect_session.py --collection-id C1 --n 50 --rounds 5 --seed-offset 2000 \\
         --arm name=a_tls,deployment=a,model=llama3.2:3b,tls=on,out=data/raw_c1
     python scripts/collect_session.py ... --pilot        # one trace per topology into <out>_pilot/
-    # LAN: specialists on a Raspberry Pi at 192.168.2.2, captured at the Mac (docs/LAN_SETUP.md),
-    # with the IoT workflows (an edge AI assistant for building and factory operations)
-    python scripts/collect_session.py --collection-id C2 --n 50 --rounds 5 --seed-offset 20000 --workflows iot \\
-        --interface bridge100 --ollama-url http://192.168.2.1:11434 --tls-dir data/tls_lan \\
-        --arm name=lan,deployment=a,tls=on,host=192.168.2.2,ports=8100,out=data/raw_c2 \\
-        --arm name=lan_pad,deployment=a,tls=on,host=192.168.2.2,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad \\
-        --arm name=lan_padmax,deployment=a,tls=on,host=192.168.2.2,ports=8300,pad=8192/16384,pad_expect=8192,out=data/raw_c2_padmax
+    # C2, edge-cloud on the home Wi-Fi (docs/LAN_SETUP.md); addresses and the capture interface from
+    # configs/c2_network.conf
+    python scripts/collect_session.py --placement edge-cloud --collection-id C2 --n 150 --rounds 5 \\
+        --seed-offset 30000 --workflows iot --tls-dir data/tls_lan --wan-target data/results/c2_wan_emulation.json \\
+        --arm name=lan,ports=8100,out=data/raw_c2 \\
+        --arm name=lan_pad,ports=8200,pad=1024/2048/4096/8192/16384/32768,out=data/raw_c2_pad \\
+        --arm name=lan_padmax,ports=8300,pad=8192/16384,pad_expect=8192,out=data/raw_c2_padmax
 Capture needs read access to /dev/bpf* (or sudo).
 """
 
@@ -104,7 +104,8 @@ from scripts.collect_tls_session import probe_tls  # noqa: E402
 from workflows import WORKFLOW_REGISTRY, WORKFLOW_SETS, WorkflowClass, prompt_seed, workflow_set  # noqa: E402
 from workflows.base import TopologyType  # noqa: E402
 from agents.edge import (  # noqa: E402
-    CLOUD_PORTS, PADDED_ENDPOINTS, ROUTES, TRIGGER_PORT, VANTAGES, endpoints as edge_endpoints,
+    CLOUD_PORTS, PADDED_ENDPOINTS, ROUTES, TRIGGER_PORT, VANTAGES, c2_network, endpoints as edge_endpoints,
+    require,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -360,11 +361,16 @@ def edge_url(arm: Arm, a: argparse.Namespace) -> str:
 
 
 async def wan_probe(arm: Arm, a: argparse.Namespace, target_ms: float) -> dict:
-    """The edge agent's TCP connect times to the cloud address, against the emulated WAN's target."""
+    """The edge agent's TCP connect times to the cloud alias and to the Mac's own address (the
+    ticket service, never delayed: the base Wi-Fi round trip); the added delay, cloud minus base,
+    against the emulated WAN's target."""
     async with httpx.AsyncClient(timeout=120) as c:
         r = await _ready(c, "POST", f"{edge_url(arm, a)}/probe", json={"n": a.wan_probes})
-    dev = (r["median_ms"] - target_ms) / target_ms
-    return {"arm": arm.name, "median_ms": r["median_ms"], "connect_ms": r["connect_ms"], "target_ms": target_ms,
+        base = await _ready(c, "POST", f"{edge_url(arm, a)}/probe", json={"n": a.wan_probes, "target": "ticket"})
+    added = r["median_ms"] - base["median_ms"]
+    dev = (added - target_ms) / target_ms
+    return {"arm": arm.name, "median_ms": r["median_ms"], "connect_ms": r["connect_ms"],
+            "base_median_ms": base["median_ms"], "added_ms": added, "target_ms": target_ms,
             "deviation": dev, "ok": abs(dev) <= a.wan_tolerance}
 
 
@@ -428,6 +434,13 @@ def pace(meta: dict) -> dict:
 
 async def main(a: argparse.Namespace) -> None:
     edge = a.placement == "edge-cloud"
+    if edge:                          # addresses and interface from configs/c2_network.conf unless given
+        net = c2_network()
+        a.edge_host = require(a.edge_host or net["C2_PI"], "the Pi's address (C2_PI)")
+        a.cloud_host = require(a.cloud_host or net["C2_CLOUD"], "the cloud alias (C2_CLOUD)")
+        a.ticket_host = require(a.ticket_host or net["C2_MAC"], "the Mac's address (C2_MAC)")
+        a.interface = a.interface or require(net["C2_IFACE"], "the capture interface (C2_IFACE)")
+    a.interface = a.interface or "lo0"
     arms = [parse_arm(s, k, a.placement) for k, s in enumerate(a.arm)]
     if edge and a.topology:
         raise SystemExit("--topology does not apply to --placement edge-cloud")
@@ -512,12 +525,13 @@ async def main(a: argparse.Namespace) -> None:
                         probe = {"round": rnd, **await wan_probe(arm, a, wan_target)}
                         meta.setdefault("wan_probes", []).append(probe)
                         save()
-                        logger.info("  WAN probe (%s): median %.1f ms, target %.1f ms", arm.name,
-                                    probe["median_ms"], wan_target)
+                        logger.info("  WAN probe (%s): cloud %.1f ms − base %.1f ms = %.1f ms added, target %.1f ms",
+                                    arm.name, probe["median_ms"], probe["base_median_ms"], probe["added_ms"], wan_target)
                         if not probe["ok"]:
-                            raise SystemExit(f"{arm.name}: edge-to-cloud connect time {probe['median_ms']:.1f} ms is "
-                                             f"outside {wan_target} ms ± {a.wan_tolerance:.0%}: is the WAN "
-                                             "emulation on (scripts/wan_emulation.sh show on the Pi)?")
+                            raise SystemExit(f"{arm.name}: the delay to the cloud alias ({probe['added_ms']:.1f} ms over "
+                                             f"the base Wi-Fi round trip) is outside {wan_target} ms ± "
+                                             f"{a.wan_tolerance:.0%}: is the WAN emulation on "
+                                             "(sudo bash scripts/wan_emulation.sh show)?")
                     if arm.name not in meta["tls_params"]:
                         eps = edge_endpoints(arm.ports_base, a.cloud_host, a.ticket_host)
                         meta["tls_params"][arm.name] = {
@@ -609,8 +623,9 @@ def _parse() -> argparse.Namespace:
                         "out=DIR[,ports=BASE][,pad=B1/B2/...[,pad_expect=B]][,host=ADDR]  (repeat for more arms)")
     p.add_argument("--ollama-url", default=OLLAMA, dest="ollama_url",
                    help="Ollama for the model warm-up and the agents this process runs")
-    p.add_argument("--interface", default="lo0",
-                   help="capture interface (lo0 for local agents; the Ethernet port for host=)")
+    p.add_argument("--interface", default=None,
+                   help="capture interface (default lo0; the Ethernet port for host=; for --placement "
+                        "edge-cloud, C2_IFACE from configs/c2_network.conf)")
     p.add_argument("--collection-id", required=True, dest="collection_id")
     p.add_argument("--n", type=int, default=50, help="traces per topology × workflow condition, per arm")
     p.add_argument("--rounds", type=int, default=5)
@@ -621,10 +636,11 @@ def _parse() -> argparse.Namespace:
     p.add_argument("--placement", choices=["local", "edge-cloud"], default="local",
                    help="local: this process runs the orchestrator (and the agents, unless host=); "
                         "edge-cloud: the edge agent on the gateway runs each task (C2)")
-    p.add_argument("--edge-host", default="192.168.2.2", dest="edge_host", help="edge-cloud: the gateway")
-    p.add_argument("--cloud-host", default="192.168.2.100", dest="cloud_host", help="edge-cloud: the cloud alias")
-    p.add_argument("--ticket-host", default="192.168.2.1", dest="ticket_host",
-                   help="edge-cloud: the building server running the ticket service")
+    p.add_argument("--edge-host", default=None, dest="edge_host", help="edge-cloud: the Pi (default C2_PI)")
+    p.add_argument("--cloud-host", default=None, dest="cloud_host",
+                   help="edge-cloud: the cloud alias (default C2_CLOUD)")
+    p.add_argument("--ticket-host", default=None, dest="ticket_host",
+                   help="edge-cloud: the Mac, running the ticket service (default C2_MAC)")
     p.add_argument("--wan-target", default=None, dest="wan_target",
                    help="edge-cloud: data/c2_wan_emulation.json; each round checks the emulated round trip")
     p.add_argument("--wan-tolerance", type=float, default=0.20, dest="wan_tolerance")

@@ -8,7 +8,8 @@
 # output dir (data/tls) is gitignored.
 #
 # Usage:  bash scripts/make_tls_certs.sh [OUT_DIR] [IP ...]
-#         bash scripts/make_tls_certs.sh data/tls_lan 192.168.2.2
+#         . configs/c2_network.conf && bash scripts/make_tls_certs.sh data/tls_lan "$C2_CLOUD" "$C2_MAC"
+#                                       # C2 on the home Wi-Fi: the cloud alias and the Mac (docs/LAN_SETUP.md)
 set -euo pipefail
 
 OUT="${1:-data/tls}"
