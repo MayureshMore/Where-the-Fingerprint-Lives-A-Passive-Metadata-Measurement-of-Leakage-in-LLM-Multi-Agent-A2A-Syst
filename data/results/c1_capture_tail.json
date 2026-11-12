@@ -1,0 +1,1873 @@
+{
+  "paper": "P1",
+  "collection_id": "C1-style tail check (12 traces re-collected Nov 9)",
+  "data_dir": "data/raw_c1_tailcheck",
+  "seed": null,
+  "git_commit": "d6f059c224e6e63e8bb3b46fbec0f71b12e383ba",
+  "git_dirty": false,
+  "task": "sensitivity of the features to the capture tail lost by the recorder without --immediate-mode",
+  "method": "complete capture = the recorded capture plus the ground truth's packets of the trace's own connections after its last recorded packet and up to the stop (recorded packets keep their timestamps); features from features/extractor.py (own connections) and features/roles.py",
+  "traces": [
+    {
+      "run_id": "code_review_chain_421b0d",
+      "topology": "chain",
+      "workflow": "code_review",
+      "packets_recorded": 300,
+      "packets_complete": 302,
+      "packets_lost": 2,
+      "tail_matches_ground_truth": true,
+      "share_lost": 0.006622516556291391,
+      "roles": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "roles_missing_in_recorded": []
+    },
+    {
+      "run_id": "code_review_mesh_af5397",
+      "topology": "mesh",
+      "workflow": "code_review",
+      "packets_recorded": 414,
+      "packets_complete": 419,
+      "packets_lost": 5,
+      "tail_matches_ground_truth": true,
+      "share_lost": 0.011933174224343675,
+      "roles": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "roles_missing_in_recorded": []
+    },
+    {
+      "run_id": "code_review_star_333aa5",
+      "topology": "star",
+      "workflow": "code_review",
+      "packets_recorded": 1196,
+      "packets_complete": 1198,
+      "packets_lost": 2,
+      "tail_matches_ground_truth": true,
+      "share_lost": 0.001669449081803005,
+      "roles": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "roles_missing_in_recorded": []
+    },
+    {
+      "run_id": "data_analysis_chain_a29e46",
+      "topology": "chain",
+      "workflow": "data_analysis",
+      "packets_recorded": 282,
+      "packets_complete": 284,
+      "packets_lost": 2,
+      "tail_matches_ground_truth": true,
+      "share_lost": 0.007042253521126761,
+      "roles": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "roles_missing_in_recorded": []
+    },
+    {
+      "run_id": "data_analysis_mesh_7291fb",
+      "topology": "mesh",
+      "workflow": "data_analysis",
+      "packets_recorded": 430,
+      "packets_complete": 435,
+      "packets_lost": 5,
+      "tail_matches_ground_truth": true,
+      "share_lost": 0.011494252873563218,
+      "roles": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "roles_missing_in_recorded": []
+    },
+    {
+      "run_id": "data_analysis_star_1377e0",
+      "topology": "star",
+      "workflow": "data_analysis",
+      "packets_recorded": 1174,
+      "packets_complete": 1179,
+      "packets_lost": 5,
+      "tail_matches_ground_truth": true,
+      "share_lost": 0.004240882103477523,
+      "roles": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "roles_missing_in_recorded": []
+    },
+    {
+      "run_id": "research_retrieval_chain_1aa559",
+      "topology": "chain",
+      "workflow": "research_retrieval",
+      "packets_recorded": 258,
+      "packets_complete": 260,
+      "packets_lost": 2,
+      "tail_matches_ground_truth": true,
+      "share_lost": 0.007692307692307693,
+      "roles": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "roles_missing_in_recorded": []
+    },
+    {
+      "run_id": "research_retrieval_mesh_537b5e",
+      "topology": "mesh",
+      "workflow": "research_retrieval",
+      "packets_recorded": 446,
+      "packets_complete": 450,
+      "packets_lost": 4,
+      "tail_matches_ground_truth": true,
+      "share_lost": 0.008888888888888889,
+      "roles": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "roles_missing_in_recorded": []
+    },
+    {
+      "run_id": "research_retrieval_star_a683df",
+      "topology": "star",
+      "workflow": "research_retrieval",
+      "packets_recorded": 1182,
+      "packets_complete": 1184,
+      "packets_lost": 2,
+      "tail_matches_ground_truth": true,
+      "share_lost": 0.0016891891891891893,
+      "roles": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "roles_missing_in_recorded": []
+    },
+    {
+      "run_id": "support_triage_chain_775ca5",
+      "topology": "chain",
+      "workflow": "support_triage",
+      "packets_recorded": 270,
+      "packets_complete": 272,
+      "packets_lost": 2,
+      "tail_matches_ground_truth": true,
+      "share_lost": 0.007352941176470588,
+      "roles": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "roles_missing_in_recorded": []
+    },
+    {
+      "run_id": "support_triage_mesh_72c42f",
+      "topology": "mesh",
+      "workflow": "support_triage",
+      "packets_recorded": 512,
+      "packets_complete": 516,
+      "packets_lost": 4,
+      "tail_matches_ground_truth": true,
+      "share_lost": 0.007751937984496124,
+      "roles": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "roles_missing_in_recorded": []
+    },
+    {
+      "run_id": "support_triage_star_13bd80",
+      "topology": "star",
+      "workflow": "support_triage",
+      "packets_recorded": 1376,
+      "packets_complete": 1378,
+      "packets_lost": 2,
+      "tail_matches_ground_truth": true,
+      "share_lost": 0.001451378809869376,
+      "roles": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "roles_missing_in_recorded": []
+    }
+  ],
+  "packets_lost": {
+    "per_trace": [
+      2,
+      5,
+      2,
+      2,
+      5,
+      5,
+      2,
+      4,
+      2,
+      2,
+      4,
+      2
+    ],
+    "median_share": 0.007197597348798674
+  },
+  "per_connection": {
+    "features": 35,
+    "role_samples": 36,
+    "features_changed": [
+      "n_pkts_out",
+      "n_pkts_in",
+      "bytes_out",
+      "bytes_in",
+      "mean_sz_out",
+      "std_sz_out",
+      "p25_sz_out",
+      "p75_sz_out",
+      "mean_sz_in",
+      "std_sz_in",
+      "duration_s",
+      "mean_iat",
+      "std_iat",
+      "n_bursts",
+      "mean_burst_bytes",
+      "std_burst_bytes",
+      "mean_burst_dur",
+      "mean_ibg",
+      "cumul_bytes_q5",
+      "cumul_bytes_q6",
+      "cumul_bytes_q7",
+      "cumul_bytes_q8",
+      "cumul_bytes_q9",
+      "bytes_out_ratio",
+      "pkt_size_asymmetry",
+      "n_small_inbound",
+      "n_response_bursts"
+    ],
+    "per_feature": [
+      {
+        "feature": "n_pkts_out",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.021739130434782608,
+        "median_relative_change_when_changed": 0.015181088700932552
+      },
+      {
+        "feature": "n_pkts_in",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.022727272727272728,
+        "median_relative_change_when_changed": 0.019615384615384618
+      },
+      {
+        "feature": "bytes_out",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.0024515168760670665,
+        "median_relative_change_when_changed": 0.0016683076654449521
+      },
+      {
+        "feature": "bytes_in",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.01193266567227786,
+        "median_relative_change_when_changed": 0.0068009809086846396
+      },
+      {
+        "feature": "mean_sz_out",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.01972348358765173,
+        "median_relative_change_when_changed": 0.013733789698779034
+      },
+      {
+        "feature": "std_sz_out",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.03087117838336129,
+        "median_relative_change_when_changed": 0.024058847307331127
+      },
+      {
+        "feature": "p25_sz_out",
+        "samples": 36,
+        "samples_changed": 10,
+        "max_relative_change": 0.17905405405405406,
+        "median_relative_change_when_changed": 0.05032258064516129
+      },
+      {
+        "feature": "p75_sz_out",
+        "samples": 36,
+        "samples_changed": 3,
+        "max_relative_change": 0.0004073319755600815,
+        "median_relative_change_when_changed": 0.0004073319755600815
+      },
+      {
+        "feature": "mean_sz_in",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.016973876866538094,
+        "median_relative_change_when_changed": 0.009128062900716907
+      },
+      {
+        "feature": "std_sz_in",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.011063595237247112,
+        "median_relative_change_when_changed": 0.009450607103074
+      },
+      {
+        "feature": "p25_sz_in",
+        "samples": 36,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "p75_sz_in",
+        "samples": 36,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "duration_s",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.3336623637520293,
+        "median_relative_change_when_changed": 0.21335248370546595
+      },
+      {
+        "feature": "mean_iat",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.3274115223582269,
+        "median_relative_change_when_changed": 0.19605878601859933
+      },
+      {
+        "feature": "std_iat",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.12171705033266625,
+        "median_relative_change_when_changed": 0.024956666715550142
+      },
+      {
+        "feature": "n_bursts",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.023529411764705882,
+        "median_relative_change_when_changed": 0.019303464088740164
+      },
+      {
+        "feature": "mean_burst_bytes",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.020157415951081576,
+        "median_relative_change_when_changed": 0.01669217039024239
+      },
+      {
+        "feature": "std_burst_bytes",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.008245688725868654,
+        "median_relative_change_when_changed": 0.0020132209987034
+      },
+      {
+        "feature": "mean_burst_dur",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.02409642799781449,
+        "median_relative_change_when_changed": 0.019684275541504717
+      },
+      {
+        "feature": "mean_ibg",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.3276143921724421,
+        "median_relative_change_when_changed": 0.19474288995561762
+      },
+      {
+        "feature": "cumul_bytes_q0",
+        "samples": 36,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "cumul_bytes_q1",
+        "samples": 36,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "cumul_bytes_q2",
+        "samples": 36,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "cumul_bytes_q3",
+        "samples": 36,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "cumul_bytes_q4",
+        "samples": 36,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "cumul_bytes_q5",
+        "samples": 36,
+        "samples_changed": 3,
+        "max_relative_change": 0.7761675698715217,
+        "median_relative_change_when_changed": 0.7061877426979571
+      },
+      {
+        "feature": "cumul_bytes_q6",
+        "samples": 36,
+        "samples_changed": 6,
+        "max_relative_change": 0.9402396267415206,
+        "median_relative_change_when_changed": 0.9277859119211243
+      },
+      {
+        "feature": "cumul_bytes_q7",
+        "samples": 36,
+        "samples_changed": 10,
+        "max_relative_change": 0.9402396267415206,
+        "median_relative_change_when_changed": 0.7414492565413946
+      },
+      {
+        "feature": "cumul_bytes_q8",
+        "samples": 36,
+        "samples_changed": 14,
+        "max_relative_change": 0.7885880281160162,
+        "median_relative_change_when_changed": 0.6855883435376053
+      },
+      {
+        "feature": "cumul_bytes_q9",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.004056060551189657,
+        "median_relative_change_when_changed": 0.0028428502270096247
+      },
+      {
+        "feature": "bytes_out_ratio",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.0016111344876879093,
+        "median_relative_change_when_changed": 0.0011378439138578376
+      },
+      {
+        "feature": "pkt_size_asymmetry",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.0019794933981771537,
+        "median_relative_change_when_changed": 0.001123713768994335
+      },
+      {
+        "feature": "n_small_inbound",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.024691358024691357,
+        "median_relative_change_when_changed": 0.02128623188405797
+      },
+      {
+        "feature": "n_response_bursts",
+        "samples": 36,
+        "samples_changed": 16,
+        "max_relative_change": 0.023809523809523808,
+        "median_relative_change_when_changed": 0.01645408163265306
+      },
+      {
+        "feature": "iqr_size_in",
+        "samples": 36,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      }
+    ]
+  },
+  "per_trace": {
+    "features": 195,
+    "features_changed": 148,
+    "max_relative_change": 1.0,
+    "per_feature": [
+      {
+        "feature": "pf_mean.n_pkts_out",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.009569377990430622,
+        "median_relative_change_when_changed": 0.007197570089857002
+      },
+      {
+        "feature": "pf_mean.n_pkts_in",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.014285714285714285,
+        "median_relative_change_when_changed": 0.007197570089857002
+      },
+      {
+        "feature": "pf_mean.bytes_out",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0010414826249081728,
+        "median_relative_change_when_changed": 0.0007836569368720678
+      },
+      {
+        "feature": "pf_mean.bytes_in",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.004567948229920061,
+        "median_relative_change_when_changed": 0.0030016220242549195
+      },
+      {
+        "feature": "pf_mean.mean_sz_out",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.009547426724912192,
+        "median_relative_change_when_changed": 0.00608200481310423
+      },
+      {
+        "feature": "pf_mean.std_sz_out",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.012584612317009447,
+        "median_relative_change_when_changed": 0.008978662506335448
+      },
+      {
+        "feature": "pf_mean.p25_sz_out",
+        "samples": 12,
+        "samples_changed": 8,
+        "max_relative_change": 0.047776440555262915,
+        "median_relative_change_when_changed": 0.016951028669987194
+      },
+      {
+        "feature": "pf_mean.p75_sz_out",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.00020368672980955292,
+        "median_relative_change_when_changed": 0.00013573860464650715
+      },
+      {
+        "feature": "pf_mean.mean_sz_in",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.010240540305922703,
+        "median_relative_change_when_changed": 0.0025740313312652
+      },
+      {
+        "feature": "pf_mean.std_sz_in",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.006437051191790472,
+        "median_relative_change_when_changed": 0.001684354632193256
+      },
+      {
+        "feature": "pf_mean.p25_sz_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_mean.p75_sz_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_mean.duration_s",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.1795676086042177,
+        "median_relative_change_when_changed": 0.12393548663222834
+      },
+      {
+        "feature": "pf_mean.mean_iat",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.1655489672813652,
+        "median_relative_change_when_changed": 0.09581791806663094
+      },
+      {
+        "feature": "pf_mean.std_iat",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.04408358472400863,
+        "median_relative_change_when_changed": 0.02065288415200693
+      },
+      {
+        "feature": "pf_mean.n_bursts",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.012690355329949238,
+        "median_relative_change_when_changed": 0.007729352732926215
+      },
+      {
+        "feature": "pf_mean.mean_burst_bytes",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.012106458229521149,
+        "median_relative_change_when_changed": 0.005961421645360664
+      },
+      {
+        "feature": "pf_mean.std_burst_bytes",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.004491220880191169,
+        "median_relative_change_when_changed": 0.0005803226548386443
+      },
+      {
+        "feature": "pf_mean.mean_burst_dur",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.023149127338624155,
+        "median_relative_change_when_changed": 0.009356636489850792
+      },
+      {
+        "feature": "pf_mean.mean_ibg",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.1659257513715881,
+        "median_relative_change_when_changed": 0.09532217601907395
+      },
+      {
+        "feature": "pf_mean.cumul_bytes_q0",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_mean.cumul_bytes_q1",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_mean.cumul_bytes_q2",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_mean.cumul_bytes_q3",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_mean.cumul_bytes_q4",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_mean.cumul_bytes_q5",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.1458016402255596,
+        "median_relative_change_when_changed": 0.07287909675395954
+      },
+      {
+        "feature": "pf_mean.cumul_bytes_q6",
+        "samples": 12,
+        "samples_changed": 6,
+        "max_relative_change": 0.43644680578867345,
+        "median_relative_change_when_changed": 0.29259588184632473
+      },
+      {
+        "feature": "pf_mean.cumul_bytes_q7",
+        "samples": 12,
+        "samples_changed": 10,
+        "max_relative_change": 0.43644680578867345,
+        "median_relative_change_when_changed": 0.3404827938630398
+      },
+      {
+        "feature": "pf_mean.cumul_bytes_q8",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.4824001790395989,
+        "median_relative_change_when_changed": 0.26126609644237425
+      },
+      {
+        "feature": "pf_mean.cumul_bytes_q9",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0018914531724186605,
+        "median_relative_change_when_changed": 0.0012140883874957513
+      },
+      {
+        "feature": "pf_mean.bytes_out_ratio",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0011403088745625173,
+        "median_relative_change_when_changed": 0.0004953498636932135
+      },
+      {
+        "feature": "pf_mean.pkt_size_asymmetry",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0008289711170859678,
+        "median_relative_change_when_changed": 0.00039888018419701116
+      },
+      {
+        "feature": "pf_mean.n_small_inbound",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.015463917525773196,
+        "median_relative_change_when_changed": 0.007820107144986908
+      },
+      {
+        "feature": "pf_mean.n_response_bursts",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.010309278350515464,
+        "median_relative_change_when_changed": 0.007820107144986908
+      },
+      {
+        "feature": "pf_mean.iqr_size_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top1.n_pkts_out",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.007434944237918215,
+        "median_relative_change_when_changed": 0.003663003663003663
+      },
+      {
+        "feature": "pf_top1.n_pkts_in",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.011111111111111112,
+        "median_relative_change_when_changed": 0.003663003663003663
+      },
+      {
+        "feature": "pf_top1.bytes_out",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.000831346659331255,
+        "median_relative_change_when_changed": 0.0003424406232419343
+      },
+      {
+        "feature": "pf_top1.bytes_in",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.007344978577145817,
+        "median_relative_change_when_changed": 0.0031229087664510374
+      },
+      {
+        "feature": "pf_top1.mean_sz_out",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.006653093512847426,
+        "median_relative_change_when_changed": 0.003333354022017576
+      },
+      {
+        "feature": "pf_top1.std_sz_out",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.02967614398331449,
+        "median_relative_change_when_changed": 0.028005337915735586
+      },
+      {
+        "feature": "pf_top1.p25_sz_out",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top1.p75_sz_out",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top1.mean_sz_in",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.003808443266444964,
+        "median_relative_change_when_changed": 0.0006687509404310099
+      },
+      {
+        "feature": "pf_top1.std_sz_in",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.00555844807497094,
+        "median_relative_change_when_changed": 0.0018228138050241213
+      },
+      {
+        "feature": "pf_top1.p25_sz_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top1.p75_sz_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top1.duration_s",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.3336623637520293,
+        "median_relative_change_when_changed": 0.2553521547627873
+      },
+      {
+        "feature": "pf_top1.mean_iat",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.3274115223582269,
+        "median_relative_change_when_changed": 0.2526094049859768
+      },
+      {
+        "feature": "pf_top1.std_iat",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.12171705033266625,
+        "median_relative_change_when_changed": 0.09263407698955717
+      },
+      {
+        "feature": "pf_top1.n_bursts",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.009398496240601503,
+        "median_relative_change_when_changed": 0.0037105751391465678
+      },
+      {
+        "feature": "pf_top1.mean_burst_bytes",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.007892849441184855,
+        "median_relative_change_when_changed": 0.0031082034537156626
+      },
+      {
+        "feature": "pf_top1.std_burst_bytes",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.001802056207388819,
+        "median_relative_change_when_changed": 0.00021756083799530303
+      },
+      {
+        "feature": "pf_top1.mean_burst_dur",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.009487669660876625,
+        "median_relative_change_when_changed": 0.003724399443040028
+      },
+      {
+        "feature": "pf_top1.mean_ibg",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.3276143921724421,
+        "median_relative_change_when_changed": 0.25286217986038106
+      },
+      {
+        "feature": "pf_top1.cumul_bytes_q0",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top1.cumul_bytes_q1",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top1.cumul_bytes_q2",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top1.cumul_bytes_q3",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top1.cumul_bytes_q4",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top1.cumul_bytes_q5",
+        "samples": 12,
+        "samples_changed": 2,
+        "max_relative_change": 0.7761675698715217,
+        "median_relative_change_when_changed": 0.6737046628070367
+      },
+      {
+        "feature": "pf_top1.cumul_bytes_q6",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.9402396267415206,
+        "median_relative_change_when_changed": 0.9327231039620302
+      },
+      {
+        "feature": "pf_top1.cumul_bytes_q7",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.9402396267415206,
+        "median_relative_change_when_changed": 0.8551873159335085
+      },
+      {
+        "feature": "pf_top1.cumul_bytes_q8",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.4931368776993232,
+        "median_relative_change_when_changed": 0.43231014758225067
+      },
+      {
+        "feature": "pf_top1.cumul_bytes_q9",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.0015798386616818789,
+        "median_relative_change_when_changed": 0.0006172023101000749
+      },
+      {
+        "feature": "pf_top1.bytes_out_ratio",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.000749664008160913,
+        "median_relative_change_when_changed": 0.0002748801417418525
+      },
+      {
+        "feature": "pf_top1.pkt_size_asymmetry",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.00032378273007539695,
+        "median_relative_change_when_changed": 0.0002748801417418525
+      },
+      {
+        "feature": "pf_top1.n_small_inbound",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.011278195488721804,
+        "median_relative_change_when_changed": 0.0037174721189591076
+      },
+      {
+        "feature": "pf_top1.n_response_bursts",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.007547169811320755,
+        "median_relative_change_when_changed": 0.0037174721189591076
+      },
+      {
+        "feature": "pf_top1.iqr_size_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top2.n_pkts_out",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.08,
+        "median_relative_change_when_changed": 0.019188596491228067
+      },
+      {
+        "feature": "pf_top2.n_pkts_in",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.08,
+        "median_relative_change_when_changed": 0.019188596491228067
+      },
+      {
+        "feature": "pf_top2.bytes_out",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.029976728592277048,
+        "median_relative_change_when_changed": 0.002128595940747778
+      },
+      {
+        "feature": "pf_top2.bytes_in",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.13896766874645491,
+        "median_relative_change_when_changed": 0.008561165271644522
+      },
+      {
+        "feature": "pf_top2.mean_sz_out",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.05437312093846759,
+        "median_relative_change_when_changed": 0.017396203768423203
+      },
+      {
+        "feature": "pf_top2.std_sz_out",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.05453431630926635,
+        "median_relative_change_when_changed": 0.029227403750769924
+      },
+      {
+        "feature": "pf_top2.p25_sz_out",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.38618618618618616,
+        "median_relative_change_when_changed": 0.035479632063074903
+      },
+      {
+        "feature": "pf_top2.p75_sz_out",
+        "samples": 12,
+        "samples_changed": 2,
+        "max_relative_change": 0.0004073319755600815,
+        "median_relative_change_when_changed": 0.0004069180203003659
+      },
+      {
+        "feature": "pf_top2.mean_sz_in",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.23800840632635345,
+        "median_relative_change_when_changed": 0.010842136399842689
+      },
+      {
+        "feature": "pf_top2.std_sz_in",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.7962388986465961,
+        "median_relative_change_when_changed": 0.009291649246788882
+      },
+      {
+        "feature": "pf_top2.p25_sz_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top2.p75_sz_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top2.duration_s",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.4720542170807571,
+        "median_relative_change_when_changed": 0.23011741587626616
+      },
+      {
+        "feature": "pf_top2.mean_iat",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.4256414311158546,
+        "median_relative_change_when_changed": 0.220205895419873
+      },
+      {
+        "feature": "pf_top2.std_iat",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.32472387373082245,
+        "median_relative_change_when_changed": 0.058945239024335704
+      },
+      {
+        "feature": "pf_top2.n_bursts",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.06451612903225806,
+        "median_relative_change_when_changed": 0.02058174944870314
+      },
+      {
+        "feature": "pf_top2.mean_burst_bytes",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.06809337854663819,
+        "median_relative_change_when_changed": 0.01762154657592576
+      },
+      {
+        "feature": "pf_top2.std_burst_bytes",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.22764472225252783,
+        "median_relative_change_when_changed": 0.004753278544343042
+      },
+      {
+        "feature": "pf_top2.mean_burst_dur",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.320527072791973,
+        "median_relative_change_when_changed": 0.021018051905690213
+      },
+      {
+        "feature": "pf_top2.mean_ibg",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.43528585680714077,
+        "median_relative_change_when_changed": 0.21972201653341278
+      },
+      {
+        "feature": "pf_top2.cumul_bytes_q0",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "pf_top2.cumul_bytes_q1",
+        "samples": 12,
+        "samples_changed": 1,
+        "max_relative_change": 0.011788617886178862,
+        "median_relative_change_when_changed": 0.011788617886178862
+      },
+      {
+        "feature": "pf_top2.cumul_bytes_q2",
+        "samples": 12,
+        "samples_changed": 1,
+        "max_relative_change": 0.011788617886178862,
+        "median_relative_change_when_changed": 0.011788617886178862
+      },
+      {
+        "feature": "pf_top2.cumul_bytes_q3",
+        "samples": 12,
+        "samples_changed": 1,
+        "max_relative_change": 0.011788617886178862,
+        "median_relative_change_when_changed": 0.011788617886178862
+      },
+      {
+        "feature": "pf_top2.cumul_bytes_q4",
+        "samples": 12,
+        "samples_changed": 1,
+        "max_relative_change": 0.011788617886178862,
+        "median_relative_change_when_changed": 0.011788617886178862
+      },
+      {
+        "feature": "pf_top2.cumul_bytes_q5",
+        "samples": 12,
+        "samples_changed": 2,
+        "max_relative_change": 0.7061877426979571,
+        "median_relative_change_when_changed": 0.358988180292068
+      },
+      {
+        "feature": "pf_top2.cumul_bytes_q6",
+        "samples": 12,
+        "samples_changed": 2,
+        "max_relative_change": 0.939004407525214,
+        "median_relative_change_when_changed": 0.47539651270569644
+      },
+      {
+        "feature": "pf_top2.cumul_bytes_q7",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.7574470676824947,
+        "median_relative_change_when_changed": 0.7554208974778907
+      },
+      {
+        "feature": "pf_top2.cumul_bytes_q8",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.8026187050359712,
+        "median_relative_change_when_changed": 0.7058349671547259
+      },
+      {
+        "feature": "pf_top2.cumul_bytes_q9",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.0034401204042141475,
+        "median_relative_change_when_changed": 0.002014270362432048
+      },
+      {
+        "feature": "pf_top2.bytes_out_ratio",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.029184668019655705,
+        "median_relative_change_when_changed": 0.001201779113180475
+      },
+      {
+        "feature": "pf_top2.pkt_size_asymmetry",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.029184668019655705,
+        "median_relative_change_when_changed": 0.0012017440939129818
+      },
+      {
+        "feature": "pf_top2.n_small_inbound",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.06521739130434782,
+        "median_relative_change_when_changed": 0.02079759862778731
+      },
+      {
+        "feature": "pf_top2.n_response_bursts",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.06521739130434782,
+        "median_relative_change_when_changed": 0.02079759862778731
+      },
+      {
+        "feature": "pf_top2.iqr_size_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.n_flows",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.n_src_hosts",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.n_dst_hosts",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.n_host_pairs",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.total_bytes",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0018914531724186605,
+        "median_relative_change_when_changed": 0.0012140993452689234
+      },
+      {
+        "feature": "sys.total_packets",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.011933174224343675,
+        "median_relative_change_when_changed": 0.007197597348798674
+      },
+      {
+        "feature": "sys.total_duration_s",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.33362938336016595,
+        "median_relative_change_when_changed": 0.2340774168768653
+      },
+      {
+        "feature": "sys.flow_start_spread",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.flow_end_spread",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.9997597015326937,
+        "median_relative_change_when_changed": 0.9990071013125439
+      },
+      {
+        "feature": "sys.max_concurrent_flows",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.total_bursts",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.012690355329949238,
+        "median_relative_change_when_changed": 0.007729382097079846
+      },
+      {
+        "feature": "sys.mean_burst_rate",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.4941645012929326,
+        "median_relative_change_when_changed": 0.29552559341090345
+      },
+      {
+        "feature": "sys.bytes_out_ratio",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0008515354968497192,
+        "median_relative_change_when_changed": 0.00043100359331774287
+      },
+      {
+        "feature": "sys.heaviest_flow_bytes_frac",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0018950212912556546,
+        "median_relative_change_when_changed": 0.0012155892104196513
+      },
+      {
+        "feature": "sys.flow_bytes_cv",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.04877712589436401,
+        "median_relative_change_when_changed": 0.004662883570810437
+      },
+      {
+        "feature": "sys.n_response_heavy_flows",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.mean_flow_response_ratio",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0037104598849233834,
+        "median_relative_change_when_changed": 0.0017444875033746571
+      },
+      {
+        "feature": "sys.max_flow_bytes_out_ratio",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0016111344876879093,
+        "median_relative_change_when_changed": 0.001201779113180475
+      },
+      {
+        "feature": "sys.min_flow_bytes_out_ratio",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.max_flow_bytes_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_mean_n_pkts_out",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.009569377990430622,
+        "median_relative_change_when_changed": 0.007197570089857002
+      },
+      {
+        "feature": "sys.pf_mean_n_pkts_in",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.014285714285714285,
+        "median_relative_change_when_changed": 0.007197570089857002
+      },
+      {
+        "feature": "sys.pf_mean_bytes_out",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0010414826249081728,
+        "median_relative_change_when_changed": 0.0007836569368720678
+      },
+      {
+        "feature": "sys.pf_mean_bytes_in",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.004567948229920061,
+        "median_relative_change_when_changed": 0.0030016220242549195
+      },
+      {
+        "feature": "sys.pf_mean_mean_sz_out",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.009547426724912192,
+        "median_relative_change_when_changed": 0.00608200481310423
+      },
+      {
+        "feature": "sys.pf_mean_std_sz_out",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.012584612317009447,
+        "median_relative_change_when_changed": 0.008978662506335448
+      },
+      {
+        "feature": "sys.pf_mean_p25_sz_out",
+        "samples": 12,
+        "samples_changed": 8,
+        "max_relative_change": 0.047776440555262915,
+        "median_relative_change_when_changed": 0.016951028669987194
+      },
+      {
+        "feature": "sys.pf_mean_p75_sz_out",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 0.00020368672980955292,
+        "median_relative_change_when_changed": 0.00013573860464650715
+      },
+      {
+        "feature": "sys.pf_mean_mean_sz_in",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.010240540305922703,
+        "median_relative_change_when_changed": 0.0025740313312652
+      },
+      {
+        "feature": "sys.pf_mean_std_sz_in",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.006437051191790472,
+        "median_relative_change_when_changed": 0.001684354632193256
+      },
+      {
+        "feature": "sys.pf_mean_p25_sz_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_mean_p75_sz_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_mean_duration_s",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.1795676086042177,
+        "median_relative_change_when_changed": 0.12393548663222834
+      },
+      {
+        "feature": "sys.pf_mean_mean_iat",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.1655489672813652,
+        "median_relative_change_when_changed": 0.09581791806663094
+      },
+      {
+        "feature": "sys.pf_mean_std_iat",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.04408358472400863,
+        "median_relative_change_when_changed": 0.02065288415200693
+      },
+      {
+        "feature": "sys.pf_mean_n_bursts",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.012690355329949238,
+        "median_relative_change_when_changed": 0.007729352732926215
+      },
+      {
+        "feature": "sys.pf_mean_mean_burst_bytes",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.012106458229521149,
+        "median_relative_change_when_changed": 0.005961421645360664
+      },
+      {
+        "feature": "sys.pf_mean_std_burst_bytes",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.004491220880191169,
+        "median_relative_change_when_changed": 0.0005803226548386443
+      },
+      {
+        "feature": "sys.pf_mean_mean_burst_dur",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.023149127338624155,
+        "median_relative_change_when_changed": 0.009356636489850792
+      },
+      {
+        "feature": "sys.pf_mean_mean_ibg",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.1659257513715881,
+        "median_relative_change_when_changed": 0.09532217601907395
+      },
+      {
+        "feature": "sys.pf_mean_cumul_bytes_q0",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_mean_cumul_bytes_q1",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_mean_cumul_bytes_q2",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_mean_cumul_bytes_q3",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_mean_cumul_bytes_q4",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_mean_cumul_bytes_q5",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.1458016402255596,
+        "median_relative_change_when_changed": 0.07287909675395954
+      },
+      {
+        "feature": "sys.pf_mean_cumul_bytes_q6",
+        "samples": 12,
+        "samples_changed": 6,
+        "max_relative_change": 0.43644680578867345,
+        "median_relative_change_when_changed": 0.29259588184632473
+      },
+      {
+        "feature": "sys.pf_mean_cumul_bytes_q7",
+        "samples": 12,
+        "samples_changed": 10,
+        "max_relative_change": 0.43644680578867345,
+        "median_relative_change_when_changed": 0.3404827938630398
+      },
+      {
+        "feature": "sys.pf_mean_cumul_bytes_q8",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.4824001790395989,
+        "median_relative_change_when_changed": 0.26126609644237425
+      },
+      {
+        "feature": "sys.pf_mean_cumul_bytes_q9",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0018914531724186605,
+        "median_relative_change_when_changed": 0.0012140883874957513
+      },
+      {
+        "feature": "sys.pf_mean_bytes_out_ratio",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0011403088745625173,
+        "median_relative_change_when_changed": 0.0004953498636932135
+      },
+      {
+        "feature": "sys.pf_mean_pkt_size_asymmetry",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0008289711170859678,
+        "median_relative_change_when_changed": 0.00039888018419701116
+      },
+      {
+        "feature": "sys.pf_mean_n_small_inbound",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.015463917525773196,
+        "median_relative_change_when_changed": 0.007820107144986908
+      },
+      {
+        "feature": "sys.pf_mean_n_response_bursts",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.010309278350515464,
+        "median_relative_change_when_changed": 0.007820107144986908
+      },
+      {
+        "feature": "sys.pf_mean_iqr_size_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_std_n_pkts_out",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 1.0,
+        "median_relative_change_when_changed": 0.01889035274675382
+      },
+      {
+        "feature": "sys.pf_std_n_pkts_in",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 1.0,
+        "median_relative_change_when_changed": 0.026398821268913873
+      },
+      {
+        "feature": "sys.pf_std_bytes_out",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.8800000052599265,
+        "median_relative_change_when_changed": 0.001985835262373641
+      },
+      {
+        "feature": "sys.pf_std_bytes_in",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.026895861900691896,
+        "median_relative_change_when_changed": 0.006783692127550025
+      },
+      {
+        "feature": "sys.pf_std_mean_sz_out",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.9866080186942,
+        "median_relative_change_when_changed": 0.2588711515838867
+      },
+      {
+        "feature": "sys.pf_std_std_sz_out",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.994547014260875,
+        "median_relative_change_when_changed": 0.10341721298578843
+      },
+      {
+        "feature": "sys.pf_std_p25_sz_out",
+        "samples": 12,
+        "samples_changed": 8,
+        "max_relative_change": 1.0,
+        "median_relative_change_when_changed": 0.15774277733854994
+      },
+      {
+        "feature": "sys.pf_std_p75_sz_out",
+        "samples": 12,
+        "samples_changed": 4,
+        "max_relative_change": 1.0,
+        "median_relative_change_when_changed": 0.22879710784987795
+      },
+      {
+        "feature": "sys.pf_std_mean_sz_in",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.07228310600825763,
+        "median_relative_change_when_changed": 0.01655774042332921
+      },
+      {
+        "feature": "sys.pf_std_std_sz_in",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.03262172204950124,
+        "median_relative_change_when_changed": 0.004717245519274193
+      },
+      {
+        "feature": "sys.pf_std_p25_sz_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_std_p75_sz_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_std_duration_s",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.9997534149482612,
+        "median_relative_change_when_changed": 0.2532729371149311
+      },
+      {
+        "feature": "sys.pf_std_mean_iat",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.2531163681319192,
+        "median_relative_change_when_changed": 0.14654369635296144
+      },
+      {
+        "feature": "sys.pf_std_std_iat",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.09647721098520472,
+        "median_relative_change_when_changed": 0.026147689154544705
+      },
+      {
+        "feature": "sys.pf_std_n_bursts",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 1.0,
+        "median_relative_change_when_changed": 0.02310349159981508
+      },
+      {
+        "feature": "sys.pf_std_mean_burst_bytes",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.24337586226117885,
+        "median_relative_change_when_changed": 0.16662783557000999
+      },
+      {
+        "feature": "sys.pf_std_std_burst_bytes",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.02805929095240737,
+        "median_relative_change_when_changed": 0.0033084927362037595
+      },
+      {
+        "feature": "sys.pf_std_mean_burst_dur",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.11317211441173207,
+        "median_relative_change_when_changed": 0.040892031093185746
+      },
+      {
+        "feature": "sys.pf_std_mean_ibg",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.25377984427991773,
+        "median_relative_change_when_changed": 0.1442644315612611
+      },
+      {
+        "feature": "sys.pf_std_cumul_bytes_q0",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_std_cumul_bytes_q1",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_std_cumul_bytes_q2",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_std_cumul_bytes_q3",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_std_cumul_bytes_q4",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      },
+      {
+        "feature": "sys.pf_std_cumul_bytes_q5",
+        "samples": 12,
+        "samples_changed": 3,
+        "max_relative_change": 0.13001198634768352,
+        "median_relative_change_when_changed": 0.05853005319513442
+      },
+      {
+        "feature": "sys.pf_std_cumul_bytes_q6",
+        "samples": 12,
+        "samples_changed": 6,
+        "max_relative_change": 0.8071031526712621,
+        "median_relative_change_when_changed": 0.17554184686984675
+      },
+      {
+        "feature": "sys.pf_std_cumul_bytes_q7",
+        "samples": 12,
+        "samples_changed": 10,
+        "max_relative_change": 0.501365856182853,
+        "median_relative_change_when_changed": 0.10015310500677199
+      },
+      {
+        "feature": "sys.pf_std_cumul_bytes_q8",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.3611636548714336,
+        "median_relative_change_when_changed": 0.09687775450441204
+      },
+      {
+        "feature": "sys.pf_std_cumul_bytes_q9",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.0477586361007636,
+        "median_relative_change_when_changed": 0.0030322797252817398
+      },
+      {
+        "feature": "sys.pf_std_bytes_out_ratio",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.034840819949240036,
+        "median_relative_change_when_changed": 0.017038983003740415
+      },
+      {
+        "feature": "sys.pf_std_pkt_size_asymmetry",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 0.02687556759986209,
+        "median_relative_change_when_changed": 0.015155295514303715
+      },
+      {
+        "feature": "sys.pf_std_n_small_inbound",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 1.0,
+        "median_relative_change_when_changed": 0.02888138049478023
+      },
+      {
+        "feature": "sys.pf_std_n_response_bursts",
+        "samples": 12,
+        "samples_changed": 12,
+        "max_relative_change": 1.0,
+        "median_relative_change_when_changed": 0.01975374391429332
+      },
+      {
+        "feature": "sys.pf_std_iqr_size_in",
+        "samples": 12,
+        "samples_changed": 0,
+        "max_relative_change": 0.0,
+        "median_relative_change_when_changed": 0.0
+      }
+    ]
+  }
+}
