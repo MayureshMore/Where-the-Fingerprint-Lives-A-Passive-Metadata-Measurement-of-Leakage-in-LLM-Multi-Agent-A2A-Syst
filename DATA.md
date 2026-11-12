@@ -47,6 +47,39 @@ The record also holds a README and `SHA256SUMS.txt`. Unzip `c1-raw-pcaps-headers
 connections are the default). The v1.0 analysis is `python scripts/evaluate_c1.py
 --legacy-all-connections` on `c1-features.zip`.
 
+## Known limitation: the end of each capture (collections before commit `f38a2828`)
+
+Until commit `f38a2828` (Nov 9, 2026) `capture/recorder.py` ran tcpdump without
+`--immediate-mode`. macOS hands captured packets to tcpdump in batches, and the packets still in
+the kernel when a capture was stopped were never written. Every collection made through the
+recorder before that commit has this loss: C1, the TLS control and the earlier sets collected with
+`collect_session.py`, `collect_tls_session.py`, `collect_deployment.py`, `collect_traces.py` and
+`collect_wan.py`. The released captures are unchanged; this section documents them. Captures made
+by other tools (`frameworks/`, the off-the-shelf systems, `collect_background.py`) are not covered
+by this check.
+
+**Measured** (`scripts/check_capture_tail.py` → `data/results/c1_capture_tail.{json,md}`): 12
+C1-style traces re-collected with the old recorder while a second capture in immediate mode
+recorded the same traffic (`data/raw_c1_tailcheck/`, not part of a release):
+
+- 2 to 5 packets lost per trace (median 0.7% of its packets): the last packets before the stop,
+  which are the connections' closes (FIN and ACK). No application data, except one 24-byte record
+  in one trace (likely a TLS close alert). The SSE streams are complete.
+- Paper 1's 35 per-connection features: the 16 of 36 connections that lost packets change. Counts
+  and sizes change by at most 3% (26 of 35 features stay within 5% everywhere). Time-normalised
+  features change more, because a recorded connection ends at its last written packet rather
+  than at its close: `duration_s`, `mean_iat` and `mean_ibg` by up to 33%, and the cumulative
+  bytes at time quantiles q5 to q8 by up to 94% in a few connections. `p25_sz_in`, `p75_sz_in`,
+  `iqr_size_in` and `cumul_bytes_q0`–`q4` never change.
+- The 195 trace features: 127 stay within 5% in every trace; the largest changes are in features
+  that the connections' ends define (`sys.flow_end_spread`, and the spread across flows of counts
+  and durations).
+
+Every analysis of these collections computes all features the same way from the recorded
+captures, so the features describe each connection up to its last written packet. First-request
+sizes (paper 1's workflow result) and the connection graph (topology) come from the start of a
+trace and are unaffected. Collections from `f38a2828` on (C2) capture in immediate mode.
+
 ## Published archives
 
 | Archive | Contents | Unpacked size | Needed for |
