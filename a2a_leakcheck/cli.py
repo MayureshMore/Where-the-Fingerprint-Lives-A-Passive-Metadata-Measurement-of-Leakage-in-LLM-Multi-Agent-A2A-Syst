@@ -109,7 +109,8 @@ def run(a: argparse.Namespace) -> int:
         peaks["collection"] = {"main_mb": _peak_mb(resource.RUSAGE_SELF)}
         logger.info("collection: %d traces from %d captures", col["summary"]["traces"], col["summary"]["pcaps"])
         t = time.perf_counter()
-        ext = extract(col["traces"], legacy=a.legacy_all_connections, keep_empty=a.vantage is not None)
+        ext = extract(col["traces"], legacy=a.legacy_all_connections, keep_empty=a.vantage is not None,
+                      dedup=not a.keep_retransmissions)
         stages["extraction"] = time.perf_counter() - t
         peaks["extraction"] = {"main_mb": _peak_mb(resource.RUSAGE_SELF)}
         logger.info("extraction: %d traces, %d role samples", ext["summary"]["traces"], ext["summary"]["role_samples"])
@@ -167,7 +168,8 @@ def run(a: argparse.Namespace) -> int:
                        "min_per_class": cfg.min_per_class, "seed": cfg.seed, "model": cfg.model,
                        "null_model": cfg.null_model, "jobs": cfg.jobs,
                        "rules": str(a.rules or "default"), "strip": a.strip,
-                       "legacy_all_connections": a.legacy_all_connections},
+                       "legacy_all_connections": a.legacy_all_connections,
+                       "keep_retransmissions": a.keep_retransmissions},
         "collection": col["summary"],
         "extraction": ext["summary"],
         "attributes": results,
@@ -244,6 +246,8 @@ def parser() -> argparse.ArgumentParser:
     r.add_argument("--legacy-all-connections", action="store_true", dest="legacy_all_connections",
                    help="use every connection on the agent ports, not only those each capture opens "
                         "itself (the earlier measurement)")
+    r.add_argument("--keep-retransmissions", action="store_true", dest="keep_retransmissions",
+                   help="count retransmitted TCP segments again (default: every payload byte once)")
     r.add_argument("--label", default="", help="name for this run in the report")
     r.add_argument("--vantage", default=None,
                    help="observer view from the sidecars' vantages (e.g. v1, v2): keep only the flows of "

@@ -22,7 +22,8 @@ connections opened before the capture (the previous trace's closes) are dropped,
 <out>/extraction_meta.json records how many traces had any. --legacy-all-connections keeps every
 connection on the agent ports, the measurement behind results committed before this rule.
 --end-at-data also ends every connection at its last data packet, so no feature depends on the
-connection closes (features/connections.py; scripts/evaluate_c1_tail_robustness.py).
+connection closes (features/connections.py; scripts/evaluate_c1_tail_robustness.py). --dedup counts
+every payload byte once: TCP retransmissions are dropped (features/kfp.py).
 
 Usage:
     python scripts/extract_features.py --raw data/raw --out data/processed
@@ -62,7 +63,7 @@ def _prompt_group(prompt: str) -> str:
 
 
 def main(raw_dir: Path, out_dir: Path, use_scapy: bool = False, legacy: bool = False,
-         end_at_data: bool = False) -> None:
+         end_at_data: bool = False, dedup: bool = False) -> None:
     from capture.labeler import TraceLabeler
     from features.extractor import FeatureExtractor
     from features.roles import role_vectors
@@ -91,7 +92,7 @@ def main(raw_dir: Path, out_dir: Path, use_scapy: bool = False, legacy: bool = F
     logger.info("Agent ports detected from sidecars: %s", sorted(agent_ports))
 
     extractor = FeatureExtractor(agent_ports=agent_ports, use_scapy=use_scapy, own_connections=not legacy,
-                                 end_at_data=end_at_data)
+                                 end_at_data=end_at_data, dedup=dedup)
     from features.connections import own_packets
     from features.kfp import tcp_packets
     leftover: dict[str, int] = {}
@@ -186,7 +187,7 @@ def main(raw_dir: Path, out_dir: Path, use_scapy: bool = False, legacy: bool = F
     with_left = sum(1 for v in leftover.values() if v)
     (out_dir / "extraction_meta.json").write_text(json.dumps({
         "raw_dir": str(raw_dir), "measurement": "all connections (legacy)" if legacy else "own connections",
-        "end_at_data": end_at_data,
+        "end_at_data": end_at_data, "dedup": dedup,
         "traces": n_ok, "role_samples": n_role, "traces_with_leftover_packets": with_left,
         "leftover_packets": sum(leftover.values()),
         "note": "leftover = packets of connections opened before the capture; dropped unless legacy",
@@ -209,5 +210,8 @@ if __name__ == "__main__":
                         help="keep every connection on the agent ports (the earlier measurement)")
     parser.add_argument("--end-at-data", action="store_true", dest="end_at_data",
                         help="end every connection at its last data packet (closes dropped)")
+    parser.add_argument("--dedup", action="store_true",
+                        help="count every payload byte once: drop TCP retransmissions")
     args = parser.parse_args()
-    main(Path(args.raw), Path(args.out), use_scapy=args.scapy, legacy=args.legacy, end_at_data=args.end_at_data)
+    main(Path(args.raw), Path(args.out), use_scapy=args.scapy, legacy=args.legacy, end_at_data=args.end_at_data,
+         dedup=args.dedup)

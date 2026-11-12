@@ -9,7 +9,7 @@ that is saved to data/processed/ as a .npz file alongside its label JSON.
 from __future__ import annotations
 
 import logging
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -126,6 +126,7 @@ class FeatureExtractor:
         use_scapy: bool = False,
         own_connections: bool = True,
         end_at_data: bool = False,
+        dedup: bool = False,
     ) -> None:
         self.agent_ports = agent_ports or DEFAULT_AGENT_PORTS
         self.segmenter = BurstSegmenter(idle_threshold_s=idle_threshold_s)
@@ -135,6 +136,8 @@ class FeatureExtractor:
         self.own_connections = own_connections
         # True: every connection ends at its last data packet, closes dropped (features/connections.py)
         self.end_at_data = end_at_data
+        # True: every payload byte counted once, TCP retransmissions dropped (features/kfp.py)
+        self.dedup = dedup
 
     def extract(self, pcap_path: Path, run_id: str = "") -> TraceFeatures | None:
         run_id = run_id or pcap_path.stem
@@ -166,40 +169,55 @@ class FeatureExtractor:
         """
         Returns list of (timestamp, size_bytes, flow_key, direction).
         direction: +1 if src_port in agent_ports (outbound), -1 otherwise.
-        With own_connections, only packets of connections whose SYN is in the capture; with
-        end_at_data, each connection cut after its last data packet (features/connections.py).
+        With own_connections, only packets of connections whose SYN is in the capture; with dedup,
+        every payload byte counted once (retransmissions dropped, features/kfp.py); with
+        end_at_data, each connection then cut after its last data packet (features/connections.py).
         """
         packets = self._read_with_scapy(pcap_path) if self.use_scapy else self._read_with_pyshark(pcap_path)
-        if not self.own_connections and not self.end_at_data:
+        if not (self.own_connections or self.end_at_data or self.dedup):
             return packets
         from features.connections import connection_of, data_ends, opened_connections
-        from features.kfp import tcp_packets
+        from features.kfp import dedup_view, duplicate_bytes, is_retransmission, tcp_records
 
         def conn(p):      # flow keys are "client_ip:client_port→agent_ip:agent_port"
             return int(p[2].split("→")[0].rsplit(":", 1)[1]), int(p[2].rsplit(":", 1)[1])
 
-        tcp = tcp_packets(pcap_path)
+        ports = set(self.agent_ports)
+        records = tcp_records(pcap_path)
         if self.own_connections:
-            opened = opened_connections(tcp, set(self.agent_ports))
+            opened = opened_connections([r[:6] for r in records], ports)
             packets = [p for p in packets if conn(p) in opened]
-        if self.end_at_data:
-            ports = set(self.agent_ports)
-            keep = data_ends(tcp, ports)
-            total = Counter(connection_of(sp, dp, ports) for _, sp, dp, *_ in tcp)
-            have = Counter(conn(p) for p in packets)
-            seen: Counter = Counter()
-            cut = []
-            for p in packets:          # both readers keep capture order, so counts line up
-                c = conn(p)
-                seen[c] += 1
-                if seen[c] <= keep[c]:
-                    cut.append(p)
-            differ = [c for c, n in have.items() if n != total[c]]
-            if differ:
-                raise ValueError(f"{pcap_path}: the packet reader and the header parser disagree on the "
-                                 f"packets of connections {differ[:3]}: cannot cut at the last data packet")
-            packets = cut
-        return packets
+        if not (self.end_at_data or self.dedup):
+            return packets
+        # both readers keep capture order, so the k-th packet of a connection here is the k-th
+        # header record of that connection
+        by_conn: dict = defaultdict(list)
+        for i, r in enumerate(records):
+            c = connection_of(r[1], r[2], ports)
+            if c is not None:
+                by_conn[c].append(i)
+        have = Counter(conn(p) for p in packets)
+        differ = [c for c, n in have.items() if n != len(by_conn[c])]
+        if differ:
+            raise ValueError(f"{pcap_path}: the packet reader and the header parser disagree on the "
+                             f"packets of connections {differ[:3]}: cannot apply dedup or end_at_data")
+        dups = duplicate_bytes(records) if self.dedup else [0] * len(records)
+        keep = data_ends(dedup_view(records) if self.dedup else [r[:6] for r in records], ports) \
+            if self.end_at_data else None
+        seen: Counter = Counter()
+        kept: Counter = Counter()
+        out = []
+        for p in packets:
+            c = conn(p)
+            i = by_conn[c][seen[c]]
+            seen[c] += 1
+            if self.dedup and is_retransmission(records[i], dups[i]):
+                continue
+            kept[c] += 1
+            if keep is not None and kept[c] > keep[c]:
+                continue
+            out.append((p[0], p[1] - dups[i], p[2], p[3]) if dups[i] else p)
+        return out
 
     def _read_with_pyshark(
         self, pcap_path: Path

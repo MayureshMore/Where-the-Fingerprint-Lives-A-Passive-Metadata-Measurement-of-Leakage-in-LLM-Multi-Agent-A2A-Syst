@@ -17,7 +17,9 @@ the full collection:
                     per trace, and whether any carries data beyond the close. FAIL on data.
   c. padding        for an arm with pad buckets: the first A2A message's on-wire size minus its
                     bucket is the TLS and HTTP overhead, which is nearly constant if the body
-                    really is padded. FAIL if under 95% of traces sit within ±32 B of the median
+                    really is padded; every request byte is counted once (a TCP retransmission
+                    is not counted again: features/kfp.py, dedup). FAIL if under 95% of traces sit
+                    within ±32 B of the median
                     overhead, or the median is outside 100–1000 B. The message is the request
                     writes on the first request's link (features/first_request.py) up to the
                     first response data, after the TLS handshake, of at least 300 B. The first
@@ -143,7 +145,7 @@ def _bucket_below(n: int, buckets: list[int]) -> int:
 def first_message(pcap: Path, servers: set[int], tls: bool) -> tuple[int, int]:
     """(first_request bytes, bytes of the first A2A message on that link): request writes up to
     the first response data, after the ClientHello and client Finished, of at least MIN_MESSAGE."""
-    pk = own_packets(tcp_packets(pcap), servers)
+    pk = own_packets(tcp_packets(pcap, dedup=True), servers)
     fr = first_request(pk, servers)
     if not fr["link"]:
         return 0, 0
