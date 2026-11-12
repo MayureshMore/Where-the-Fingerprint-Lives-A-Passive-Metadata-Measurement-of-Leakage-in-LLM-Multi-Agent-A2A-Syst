@@ -158,7 +158,7 @@ def test_network_config_file_and_overrides(tmp_path, monkeypatch):
     for k in NETWORK_KEYS:
         monkeypatch.delenv(k, raising=False)
     net = c2_network(conf)
-    assert net == {"C2_IFACE": "en0", "C2_MAC": "10.0.0.228", "C2_PI": "", "C2_CLOUD": "10.0.0.240", "C2_PI_IFACE": ""}
+    assert net == {"C2_IFACE": "en0", "C2_MAC": "10.0.0.228", "C2_PI": "", "C2_CLOUD": "10.0.0.240", "C2_PI_IFACE": "", "C2_PI_USER": ""}
     monkeypatch.setenv("C2_PI", "10.0.0.50")
     assert c2_network(conf)["C2_PI"] == "10.0.0.50"                    # the environment overrides the file
     with pytest.raises(SystemExit, match="configs/c2_network.conf"):

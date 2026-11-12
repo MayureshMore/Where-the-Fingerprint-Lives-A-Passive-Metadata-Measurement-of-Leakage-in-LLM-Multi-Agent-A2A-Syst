@@ -19,6 +19,7 @@ both). In a shell, `. configs/c2_network.conf` sets them for the commands below.
 | `C2_PI` | the Pi's reserved address on the Wi-Fi | set it (section 1) |
 | `C2_CLOUD` | the cloud alias on the Mac: an unused address outside the router's DHCP range | set it (section 1) |
 | `C2_PI_IFACE` | the Pi's Wi-Fi interface (only for the WAN fallback on the Pi) | `wlan0` |
+| `C2_PI_USER` | the Pi's login user, for `ssh`, `scp` and `rsync` from the Mac | `ms` |
 
 The C2 scripts stop with a message while `C2_PI` or `C2_CLOUD` is empty; they never guess an
 address on the home network.
@@ -170,7 +171,7 @@ From the Mac, in the repo (this copies `configs/c2_network.conf` too; copy it ag
 changes):
 ```bash
 . configs/c2_network.conf
-rsync -a --exclude data --exclude venv --exclude .git --exclude dist ./ "pi@$C2_PI:a2a/"
+rsync -a --exclude data --exclude venv --exclude .git --exclude dist ./ "$C2_PI_USER@$C2_PI:a2a/"
 ```
 On the Pi, install what the edge agent needs, at the Mac's versions (requirements-lock.txt):
 ```bash
@@ -187,8 +188,8 @@ address; the Pi is only a TLS client and needs only the CA:
 ```bash
 . configs/c2_network.conf
 bash scripts/make_tls_certs.sh data/tls_lan "$C2_CLOUD" "$C2_MAC"
-ssh "pi@$C2_PI" mkdir -p a2a/data/tls_lan
-scp data/tls_lan/ca.pem "pi@$C2_PI:a2a/data/tls_lan/"
+ssh "$C2_PI_USER@$C2_PI" mkdir -p a2a/data/tls_lan
+scp data/tls_lan/ca.pem "$C2_PI_USER@$C2_PI:a2a/data/tls_lan/"
 ```
 This replaces the earlier `data/tls_lan`, CA included: copy `ca.pem` to the Pi again. Make the
 certificate again whenever `C2_CLOUD` or `C2_MAC` changes. `data/` is gitignored.
@@ -287,8 +288,8 @@ netem on the Pi's Wi-Fi egress to the cloud alias, delay = median, jitter = half
 4-band `prio` qdisc, a `pfifo` child under netem so that jitter does not reorder packets, and a
 `u32` filter on the cloud alias:
 ```bash
-ssh "pi@$C2_PI" mkdir -p a2a/data/results
-scp data/results/c2_wan_emulation.json "pi@$C2_PI:a2a/data/results/"
+ssh "$C2_PI_USER@$C2_PI" mkdir -p a2a/data/results
+scp data/results/c2_wan_emulation.json "$C2_PI_USER@$C2_PI:a2a/data/results/"
 # on the Pi:
 sudo bash scripts/wan_emulation_pi.sh on data/results/c2_wan_emulation.json
 # on the Mac:

@@ -61,7 +61,7 @@ TRIAGE_PROMPT = ("You are the edge assistant on a building's IoT gateway. Triage
 
 
 NETWORK_CONF = Path(__file__).resolve().parent.parent / "configs" / "c2_network.conf"
-NETWORK_KEYS = ("C2_IFACE", "C2_MAC", "C2_PI", "C2_CLOUD", "C2_PI_IFACE")
+NETWORK_KEYS = ("C2_IFACE", "C2_MAC", "C2_PI", "C2_CLOUD", "C2_PI_IFACE", "C2_PI_USER")
 
 
 def c2_network(path: Path | None = None) -> dict[str, str]:
