@@ -9,6 +9,7 @@ that is saved to data/processed/ as a .npz file alongside its label JSON.
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -124,6 +125,7 @@ class FeatureExtractor:
         idle_threshold_s: float = 0.5,
         use_scapy: bool = False,
         own_connections: bool = True,
+        end_at_data: bool = False,
     ) -> None:
         self.agent_ports = agent_ports or DEFAULT_AGENT_PORTS
         self.segmenter = BurstSegmenter(idle_threshold_s=idle_threshold_s)
@@ -131,6 +133,8 @@ class FeatureExtractor:
         # True: only connections the trace opens itself (features/connections.py); False: the
         # earlier behaviour, every connection on the agent ports (--legacy-all-connections)
         self.own_connections = own_connections
+        # True: every connection ends at its last data packet, closes dropped (features/connections.py)
+        self.end_at_data = end_at_data
 
     def extract(self, pcap_path: Path, run_id: str = "") -> TraceFeatures | None:
         run_id = run_id or pcap_path.stem
@@ -162,17 +166,40 @@ class FeatureExtractor:
         """
         Returns list of (timestamp, size_bytes, flow_key, direction).
         direction: +1 if src_port in agent_ports (outbound), -1 otherwise.
-        With own_connections, only packets of connections whose SYN is in the capture.
+        With own_connections, only packets of connections whose SYN is in the capture; with
+        end_at_data, each connection cut after its last data packet (features/connections.py).
         """
         packets = self._read_with_scapy(pcap_path) if self.use_scapy else self._read_with_pyshark(pcap_path)
-        if not self.own_connections:
+        if not self.own_connections and not self.end_at_data:
             return packets
-        from features.connections import opened_connections
+        from features.connections import connection_of, data_ends, opened_connections
         from features.kfp import tcp_packets
-        opened = opened_connections(tcp_packets(pcap_path), set(self.agent_ports))
-        # flow keys are "client_ip:client_port→agent_ip:agent_port"
-        return [p for p in packets
-                if (int(p[2].split("→")[0].rsplit(":", 1)[1]), int(p[2].rsplit(":", 1)[1])) in opened]
+
+        def conn(p):      # flow keys are "client_ip:client_port→agent_ip:agent_port"
+            return int(p[2].split("→")[0].rsplit(":", 1)[1]), int(p[2].rsplit(":", 1)[1])
+
+        tcp = tcp_packets(pcap_path)
+        if self.own_connections:
+            opened = opened_connections(tcp, set(self.agent_ports))
+            packets = [p for p in packets if conn(p) in opened]
+        if self.end_at_data:
+            ports = set(self.agent_ports)
+            keep = data_ends(tcp, ports)
+            total = Counter(connection_of(sp, dp, ports) for _, sp, dp, *_ in tcp)
+            have = Counter(conn(p) for p in packets)
+            seen: Counter = Counter()
+            cut = []
+            for p in packets:          # both readers keep capture order, so counts line up
+                c = conn(p)
+                seen[c] += 1
+                if seen[c] <= keep[c]:
+                    cut.append(p)
+            differ = [c for c, n in have.items() if n != total[c]]
+            if differ:
+                raise ValueError(f"{pcap_path}: the packet reader and the header parser disagree on the "
+                                 f"packets of connections {differ[:3]}: cannot cut at the last data packet")
+            packets = cut
+        return packets
 
     def _read_with_pyshark(
         self, pcap_path: Path
