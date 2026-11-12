@@ -12,6 +12,10 @@ Pi's flows to its two addresses, the same packets a router or access point betwe
 reads (an environment variable of the same name overrides a value; a command-line flag overrides
 both). In a shell, `. configs/c2_network.conf` sets them for the commands below.
 
+**Pasting commands on the Mac:** zsh does not treat `#` as a comment at the prompt, so a command
+with a trailing note below would get the note's words as arguments. Run `setopt interactive_comments`
+once per Terminal window first (or add it to `~/.zshrc`). The Pi's bash needs nothing.
+
 | Name | What | Value |
 |---|---|---|
 | `C2_IFACE` | the Mac's network interface: capture, WAN emulation and port lock (Wi-Fi; the Ethernet port if the Mac is wired, section 2) | `en0` |
@@ -134,9 +138,13 @@ The cloud agents get their own address, outside the home LAN, so the Pi's flows 
 to the building server are told apart by address, as on a real network. On the Mac:
 ```bash
 . configs/c2_network.conf
-sudo ifconfig "$C2_IFACE" alias "$C2_CLOUD" 255.255.255.255
-ifconfig "$C2_IFACE" | grep 'inet '               # 10.0.0.228 and 172.30.0.100
+sudo ifconfig "$C2_IFACE" alias "$C2_CLOUD" netmask 255.255.255.255
+ifconfig "$C2_IFACE" | grep 'inet '
 ```
+The last command should list 10.0.0.228 and `172.30.0.100 netmask 0xffffffff`. The `netmask`
+keyword matters: without it macOS reads the mask as a destination address and gives
+the alias its old class mask (`0xffff0000` for 172.30), so the Mac would treat all of 172.30.0.0/16
+as on the Wi-Fi.
 On the Pi, a host route to the alias via the Mac, kept by NetworkManager across reconnects and
 reboots, and added now as well:
 ```bash
