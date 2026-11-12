@@ -11,8 +11,9 @@ delays) and to the cloud alias:
                 trip, is within ±--tolerance of the round trip in data/results/c2_wan_emulation.json
                 (delay_ms)
   c. ticket     the Mac's own address is not delayed: its connect time, the base Wi-Fi round trip
-                Pi <-> Mac, is under --base-limit × delay_ms (a larger one usually means Wi-Fi power
-                saving is still on, on the Pi)
+                Pi <-> Mac, is under --base-limit × delay_ms (if that path were delayed it would be
+                the base plus delay_ms; a base above delay_ms usually means Wi-Fi power saving is
+                still on, on the Pi). The precise test is at the capture (below).
 
 The probes are also captured on the Mac's Wi-Fi interface (C2_IFACE; tcpdump -p, filtered on the
 Pi's address), and the SYN → SYN-ACK time seen there must match: about the round trip to the cloud
@@ -160,8 +161,8 @@ if __name__ == "__main__":
     p.add_argument("--bases", default="8100,8200,8300")
     p.add_argument("--interface", default=None, help="capture the probes here (default C2_IFACE)")
     p.add_argument("--no-capture", action="store_true", dest="no_capture", help="probes only")
-    p.add_argument("--base-limit", type=float, default=0.5, dest="base_limit",
-                   help="the base Wi-Fi round trip must be under this × the target (power saving off)")
+    p.add_argument("--base-limit", type=float, default=1.0, dest="base_limit",
+                   help="the base Wi-Fi round trip must be under this × the target (not delayed, power saving off)")
     p.add_argument("--record", action="store_true",
                    help="write the base Wi-Fi round trip into --target (base_wifi_rtt)")
     p.add_argument("--n", type=int, default=30)

@@ -273,7 +273,9 @@ cloud alias, and the probes are captured on `C2_IFACE`:
   within ±20% of the round trip, and so is the SYN → SYN-ACK time seen at the capture;
 - (c) the Mac's own address is not delayed: at the capture its SYN → SYN-ACK is under a fifth of
   the round trip, and from the Pi its connect time, the **base Wi-Fi round trip Pi ↔ Mac**, is under
-  half of it (more usually means power saving is still on, section 1).
+  the round trip (delayed it would be the base plus the round trip; a base that high usually means
+  power saving is still on, section 1). With power saving off, the Pi and the Mac both on the Wi-Fi
+  measured a median of 12.3 ms (IQR 9.4–13.5, 40 pings, Nov 11); with it on, 65–863 ms.
 
 `--record` writes the base Wi-Fi round trip (median, IQR and all connect times, pooled over the
 three edge agents) into `data/results/c2_wan_emulation.json` as `base_wifi_rtt`. The collector
@@ -365,7 +367,7 @@ bash baselines/run_tls_scanners.sh                   # sslyze and testssl.sh on 
 | Every call captured, nothing extra | `check_lan_capture.py` PASS: every escalated task shows a request after the TLS handshake and response data on the cloud agent the routing rule names and no request to the other; every task shows exactly one ticket POST; no `alert_triage` task opens a connection to the cloud alias; the edge agent's report agrees with the rule |
 | TLS on | `check_tls_capture.py --expect tls`: every trace carries ClientHellos and application-data records, no cleartext HTTP; the scanners report TLS 1.3 on all nine endpoints |
 | Streams complete | `check_stream_integrity.py`: per escalated task type, share of cut cloud replies ≤ 5% and median largest reply far above the truncation signature of 7–10 packets |
-| WAN emulation | `wan_emulation.sh on`: main ruleset and NAT unchanged. `check_wan_emulation.py`, for all three edge agents: (a) `1.1.1.1:443` reachable; (b) the added delay (cloud minus base) and the SYN → SYN-ACK at the capture within ±20% of the round trip; (c) the Mac's own address undelayed, base Wi-Fi round trip under half the round trip. Base round trip recorded. No round stopped by `--wan-target` |
+| WAN emulation | `wan_emulation.sh on`: main ruleset and NAT unchanged. `check_wan_emulation.py`, for all three edge agents: (a) `1.1.1.1:443` reachable; (b) the added delay (cloud minus base) and the SYN → SYN-ACK at the capture within ±20% of the round trip; (c) the Mac's own address undelayed at the capture, base Wi-Fi round trip under the round trip. Base round trip recorded. No round stopped by `--wan-target` |
 | Collection healthy | `session_meta.json`: `workflows` are the four IoT ones; every task type has traces in every arm; failed attempts ≤ 1% of traces; `throttled_traces` (traces taken while the Pi was throttled) reported; the pace line decides `lan_pad` |
 | No fixed predecessor | `check_session_design.py` [a], as before |
 | Leftover connections | [b]: none may carry data beyond the close |
