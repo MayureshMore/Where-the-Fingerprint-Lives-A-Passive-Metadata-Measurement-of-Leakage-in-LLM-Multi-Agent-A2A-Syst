@@ -10,6 +10,11 @@ server port" (+1) or "from one" (-1); the port number itself is never a feature.
 
     packets_from_pcap(path)          → [(ts, src_port, dst_port, wire_len)]
     tcp_packets(path)                → [(ts, src_port, dst_port, wire_len, tcp_payload_len, tcp_flags)]
+    tcp_packets(path, dedup=True)    → the same with every payload byte counted once: a data segment
+                                       whose bytes an earlier segment of its connection and direction
+                                       already carried (a TCP retransmission) is dropped, and one that
+                                       repeats part of them keeps only its new bytes (TCP sequence
+                                       numbers, so it works on payload-stripped pcaps)
     kfp_features(times, directions)  → 1-D vector, length N_KFP
 """
 
@@ -27,9 +32,59 @@ N_CONC, N_RATE = 70, 20
 N_KFP = 3 + 12 + 12 + 4 + 4 + 4 + 5 + 2 + 2 + N_CONC + N_RATE
 
 
-def tcp_packets(path: Path) -> list[tuple[float, int, int, int, int, int]]:
+_SYN, _FIN, _RST = 0x02, 0x01, 0x04
+
+
+def tcp_packets(path: Path, dedup: bool = False) -> list[tuple[float, int, int, int, int, int]]:
     """TCP packets with their payload length, read from the IP and TCP headers alone (the IP
-    length field, not the captured bytes), so it works on payload-stripped pcaps."""
+    length field, not the captured bytes), so it works on payload-stripped pcaps. dedup: every
+    payload byte counted once (see dedup_view)."""
+    records = tcp_records(path)
+    return dedup_view(records) if dedup else [r[:6] for r in records]
+
+
+def duplicate_bytes(records) -> list[int]:
+    """Per record, how many of its payload bytes an earlier record of the same connection and
+    direction already carried (sequence numbers relative to the first one seen, mod 2^32; a SYN
+    starts the direction afresh, so a reused port pair is a new connection)."""
+    seen: dict[tuple[int, int], list] = {}
+    out = []
+    for _, sp, dp, _, pl, fl, seq in records:
+        key = (sp, dp)
+        if fl & _SYN:
+            seen.pop(key, None)
+        if pl == 0:
+            out.append(0)
+            continue
+        st = seen.setdefault(key, [seq, []])
+        lo = ((seq - st[0] + 2 ** 31) % 2 ** 32) - 2 ** 31
+        hi = lo + pl
+        out.append(sum(max(0, min(hi, y) - max(lo, x)) for x, y in st[1]))
+        merged: list[tuple[int, int]] = []
+        for x, y in sorted(st[1] + [(lo, hi)]):
+            if merged and x <= merged[-1][1]:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], y))
+            else:
+                merged.append((x, y))
+        st[1] = merged
+    return out
+
+
+def is_retransmission(record, dup: int) -> bool:
+    """A record that carries no new byte and no FIN or RST: dropped by dedup_view."""
+    return record[4] > 0 and dup == record[4] and not record[5] & (_FIN | _RST)
+
+
+def dedup_view(records) -> list[tuple[float, int, int, int, int, int]]:
+    """The records with every payload byte counted once: retransmissions dropped, a partial
+    retransmission keeping only its new bytes (on-wire length reduced by the repeated ones)."""
+    dups = duplicate_bytes(records)
+    return [(ts, sp, dp, wl - d, pl - d, fl) for (ts, sp, dp, wl, pl, fl, _), d in zip(records, dups)
+            if not is_retransmission((ts, sp, dp, wl, pl, fl), d)]
+
+
+def tcp_records(path: Path) -> list[tuple[float, int, int, int, int, int, int]]:
+    """tcp_packets with the TCP sequence number as a seventh field."""
     raw = Path(path).read_bytes()
     endian = _MAGICS[raw[:4]]
     scale = 1e-9 if raw[:4] in _NANO else 1e-6
@@ -54,9 +109,9 @@ def tcp_packets(path: Path) -> list[tuple[float, int, int, int, int, int]]:
             continue
         if proto != 6 or len(data) < l4 + 14:
             continue
-        sport, dport = struct.unpack(">HH", data[l4:l4 + 4])
+        sport, dport, seq = struct.unpack(">HHI", data[l4:l4 + 8])
         doff, flags = (data[l4 + 12] >> 4) * 4, data[l4 + 13]
-        out.append((sec + frac * scale, sport, dport, orig, max(ip_payload - doff, 0), flags))
+        out.append((sec + frac * scale, sport, dport, orig, max(ip_payload - doff, 0), flags, seq))
     return out
 
 

@@ -84,6 +84,8 @@ SEED = 42
 N_BOOT = 2000
 TRAIN_ROUNDS, TEST_ROUNDS = (0, 1, 2), (3, 4)
 LEGACY = False            # --legacy-all-connections: every connection on the agent ports
+END_AT_DATA = False       # each connection cut at its last data packet (evaluate_c1_tail_robustness.py)
+DEDUP = False             # every payload byte counted once, retransmissions dropped (features/kfp.py)
 
 TOP_SINGLE = 5
 LENGTH_PAIRS = (("code_review", "data_analysis"), ("research_retrieval", "support_triage"))
@@ -119,7 +121,7 @@ def kfp_matrix(d: dict, raw: Path) -> np.ndarray:
     for base, port, eps in zip(d["base"], d["port"], d["endpoints"]):
         servers = {int(a.rsplit(":", 1)[1]) for a in eps.values()}
         if base not in cache:
-            cache[base] = own_packets(tcp_packets(raw / f"{base}.pcap"), servers, LEGACY)
+            cache[base] = own_packets(tcp_packets(raw / f"{base}.pcap", DEDUP), servers, LEGACY, END_AT_DATA)
         t, dirs = [], []
         for ts, sp, dp, *_ in cache[base]:
             if port is not None and port not in (sp, dp):

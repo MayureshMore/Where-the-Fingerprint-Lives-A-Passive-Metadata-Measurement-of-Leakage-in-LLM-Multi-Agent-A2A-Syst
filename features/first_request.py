@@ -19,13 +19,14 @@ FIRST_REQUEST_DEF = ("TCP payload bytes of the first request message that reache
                      "apart, TLS ClientHello and client Finished excluded; from headers only.")
 
 
-def first_request_bytes(pcap: Path, servers: set[int], legacy: bool = False) -> int:
+def first_request_bytes(pcap: Path, servers: set[int], legacy: bool = False, dedup: bool = False) -> int:
     """TCP payload bytes of the first request message that reaches an agent: on the agent link
     whose first post-handshake request starts earliest, the request-direction payload written in
     one go (writes ≤ REQUEST_GAP_S apart). On a connection opened in the trace, the TLS ClientHello
     and the client Finished (≤ 100 B) are skipped. Headers only, so it works on stripped pcaps.
-    Only links the trace opened count (features/connections.py), unless legacy."""
-    return first_request(tcp_packets(pcap), servers, legacy)["bytes"]
+    Only links the trace opened count (features/connections.py), unless legacy. dedup: each payload
+    byte counted once (a TCP retransmission is not counted again; features/kfp.py)."""
+    return first_request(tcp_packets(pcap, dedup=dedup), servers, legacy)["bytes"]
 
 
 def first_request(packets, servers: set[int], legacy: bool = False) -> dict:

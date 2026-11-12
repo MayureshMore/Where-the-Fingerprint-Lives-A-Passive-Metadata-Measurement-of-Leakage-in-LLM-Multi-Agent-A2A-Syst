@@ -80,6 +80,31 @@ captures, so the features describe each connection up to its last written packet
 sizes (paper 1's workflow result) and the connection graph (topology) come from the start of a
 trace and are unaffected. Collections from `f38a2828` on (C2) capture in immediate mode.
 
+`scripts/evaluate_c1_tail_robustness.py` reruns paper 1's numbers with every connection ending at
+its last data packet, so no feature depends on whether a close was written
+(`data/results/c1_tail_robustness.{json,md}`).
+
+## TCP retransmissions
+
+A retransmitted TCP segment repeats bytes an observer has already seen. C1 (loopback) has 398, all
+24-byte TLS close alerts an agent sent again about 100 ms later while its connection closed, each
+after its connection's last data packet; the released C1 features count them
+(`data/results/c1_dedup_robustness.{json,md}` reruns paper 1's numbers without them). The C2 pilot
+on the home Wi-Fi had 3 to 12 retransmitted segments from the Pi per arm, all spurious (the Mac had
+already acknowledged the first copy). From Nov 11, 2026, `a2a_leakcheck`,
+`scripts/evaluate_leakcheck.py` and the padding check in `scripts/check_session_design.py` count
+every payload byte once (`features/kfp.py`, `dedup`), as an observer that reassembles the TCP
+stream does; `scripts/extract_features.py --dedup` does the same for any collection.
+
+## Collection C2 (paper 2): size set after the pilot
+
+On Nov 11, 2026, after the 1-hour pilot (`data/raw_c2_pilot`, `data/raw_c2_pad_pilot`,
+`data/raw_c2_padmax_pilot`: 173 tasks per arm, not part of C2), C2 was set to 1,000 tasks per arm
+(250 of each task type: alert_triage, sensor_analysis, fault_diagnosis, procedure_lookup) in all
+three arms (`lan`, `lan_pad`, `lan_padmax`), seed offset 30000. The decision rested on the pilot's
+pace alone (7.1 s per trace, so the 3,000 traces take about 6 hours) and was made before any leakage
+result was computed from C2 or from the pilot.
+
 ## Published archives
 
 | Archive | Contents | Unpacked size | Needed for |

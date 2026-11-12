@@ -130,7 +130,7 @@ def load_arm(raw: Path, role_within: list[str] = ()) -> dict:
         kfp_trace, kfp_role = [], []
         for i, tr in enumerate(traces):
             servers = set(tr.port_role)
-            pk = own_packets(tcp_packets(tr.pcap), servers)
+            pk = own_packets(tcp_packets(tr.pcap, dedup=True), servers)   # as extract(): each byte once
             kfp_trace.append(kfp_rows(pk, servers, None))
             port_of = {r: p for p, r in tr.port_role.items()}
             for j in np.flatnonzero(ext["role_trace"] == i):

@@ -10,6 +10,10 @@ Extraction: the repository's header-only features (packet sizes, timestamps, dir
 
 Direction: a packet to an agent port is a request (caller → agent), from one a response.
 
+Every payload byte is counted once (dedup, features/kfp.py): a TCP retransmission is dropped and a
+partial one keeps only its new bytes, as an observer that reassembles the TCP stream would see it.
+Sizes, byte totals, the first-request size, packet counts and timing all use that view.
+
 keep_empty (leakcheck --vantage): a capture with no packets on the endpoints left in view is kept
 as an all-zero trace vector with a first-request size of 0 and no role samples, instead of failing:
 at an upstream vantage point every task answered on the gateway looks like that, and that the
@@ -29,17 +33,18 @@ from features.roles import role_vectors
 logger = logging.getLogger(__name__)
 
 
-def extract(traces: list, legacy: bool = False, keep_empty: bool = False) -> dict:
+def extract(traces: list, legacy: bool = False, keep_empty: bool = False, dedup: bool = True) -> dict:
     """legacy: every connection on the agent ports instead of only those each trace opens itself
     (features/connections.py). keep_empty: a capture with no packets on the agent ports becomes
-    an all-zero trace (see above) rather than a failure."""
+    an all-zero trace (see above) rather than a failure. dedup: each payload byte once (default);
+    False keeps retransmitted segments."""
     extractors: dict[frozenset, FeatureExtractor] = {}
     rows, first, keep, role_rows, role_y, role_trace, failed = [], [], [], [], [], [], []
     visible: list[list[str]] = []                    # per extracted trace: roles with traffic
     for i, tr in enumerate(traces):
         ports = frozenset(tr.port_role)
         ex = extractors.setdefault(ports, FeatureExtractor(agent_ports=set(ports), use_scapy=True,
-                                                           own_connections=not legacy))
+                                                           own_connections=not legacy, dedup=dedup))
         try:
             packets = ex._read_pcap(tr.pcap)
         except Exception as exc:  # noqa: BLE001 — one unreadable capture must not stop the run
@@ -55,7 +60,7 @@ def extract(traces: list, legacy: bool = False, keep_empty: bool = False) -> dic
             failed.append({"pcap": tr.pcap.name, "reason": "no packets on the agent ports"})
             continue
         rows.append(ex._compute_features(tr.run_id, packets).flat_vector())
-        first.append(first_request_bytes(tr.pcap, set(ports), legacy))
+        first.append(first_request_bytes(tr.pcap, set(ports), legacy, dedup))
         keep.append(i)
         seen = []
         for _, (role, vec, _, _) in sorted(role_vectors(ex, packets, {str(p): r for p, r in tr.port_role.items()}).items()):
@@ -81,5 +86,7 @@ def extract(traces: list, legacy: bool = False, keep_empty: bool = False) -> dic
                     "empty_traces": empty, "trace_dims": int(dims), "role_dims": 35,
                     "measurement": "all connections on the agent ports (legacy)" if legacy else
                                    "own connections: only TCP connections whose SYN is in the capture",
+                    "retransmissions": "dropped: every payload byte counted once (TCP sequence numbers)"
+                                       if dedup else "kept",
                     "first_request": FIRST_REQUEST_DEF},
     }
