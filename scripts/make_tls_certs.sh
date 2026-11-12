@@ -5,7 +5,9 @@
 #
 # The certificate is valid for 127.0.0.1 and localhost, plus any IP addresses given after
 # OUT_DIR (the agent host's LAN address in docs/LAN_SETUP.md). Keys stay local: the default
-# output dir (data/tls) is gitignored.
+# output dir (data/tls) is gitignored. Python 3.13 verifies with OpenSSL's strict X.509 checks by
+# default (the Pi's edge agent): the CA needs a key-usage extension and the agent certificate an
+# authority key identifier. The script checks the result the same way.
 #
 # Usage:  bash scripts/make_tls_certs.sh [OUT_DIR] [IP ...]
 #         . configs/c2_network.conf && bash scripts/make_tls_certs.sh data/tls_lan "$C2_CLOUD" "$C2_MAC"
@@ -20,12 +22,15 @@ mkdir -p "$OUT"
 cd "$OUT"
 
 openssl req -x509 -newkey rsa:2048 -nodes -days 365 -subj "/CN=A2A testbed CA" \
-    -keyout ca-key.pem -out ca.pem 2>/dev/null
+    -addext "keyUsage=critical,keyCertSign,cRLSign" -keyout ca-key.pem -out ca.pem 2>/dev/null
 
 openssl req -newkey rsa:2048 -nodes -subj "/CN=localhost" \
     -keyout agent-key.pem -out agent.csr 2>/dev/null
-printf 'subjectAltName=%s\nextendedKeyUsage=serverAuth\n' "$SAN" > agent.ext
+printf 'subjectAltName=%s\nextendedKeyUsage=serverAuth\nkeyUsage=critical,digitalSignature,keyEncipherment\nbasicConstraints=CA:FALSE\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid,issuer\n' \
+    "$SAN" > agent.ext
 openssl x509 -req -in agent.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -days 365 \
     -extfile agent.ext -out agent.pem 2>/dev/null
+openssl verify -x509_strict -CAfile ca.pem agent.pem >/dev/null \
+    || { echo "agent.pem fails strict X.509 verification" >&2; exit 1; }
 
 echo "wrote $OUT/{ca.pem, agent.pem, agent-key.pem} for $SAN"
