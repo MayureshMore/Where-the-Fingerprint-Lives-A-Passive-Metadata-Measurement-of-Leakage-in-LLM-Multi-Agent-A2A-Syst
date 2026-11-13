@@ -23,7 +23,10 @@ Paper 2: how well a2a-leakcheck's verdicts hold up, on collections whose answer 
   2. Baselines      inside the same verdict rule, on the same real and permuted labels:
                     k-FP features (features/kfp.py, direction and timing only) with the tool's RF
                     (--model rf); and the first request's size alone with GBT (for role, the bytes
-                    the agent receives, the tool's single request-size feature).
+                    the agent receives, the tool's single request-size feature). The first request
+                    is measured in TCP sequence space (features/first_request.py,
+                    first_request_seq, since Nov 13): a TLS session ticket arriving mid-request, or
+                    part of a request held back by a loss, no longer ends it early.
   3. Sample size    n = 5/10/20/30/50 samples per class, --subsamples draws each, by whole prompt
                     groups (per class, groups in random order until n samples; the last group's
                     surplus is dropped), on the real labels and on one label permutation per draw.
@@ -75,7 +78,8 @@ SIZES = (5, 10, 20, 30, 50)
 VERDICTS = (LEAK, INCONCLUSIVE, NO_LEAK)
 METHODS = {"leakcheck": "a2a-leakcheck: GBT on the header-only features (195 per trace, 35 per agent)",
            "kfp_rf": f"k-FP features ({N_KFP}, direction and timing only) with the tool's RF",
-           "first_request": "first-request size alone with GBT (role: bytes the agent receives)"}
+           "first_request": "first-request size alone with GBT (in TCP sequence space, "
+                            "features/first_request.py first_request_seq; role: bytes the agent receives)"}
 RESULTS = Path(os.environ.get("A2A_RESULTS_DIR", "data/results"))
 
 

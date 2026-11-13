@@ -83,8 +83,9 @@ def dedup_view(records) -> list[tuple[float, int, int, int, int, int]]:
             if not is_retransmission((ts, sp, dp, wl, pl, fl), d)]
 
 
-def tcp_records(path: Path) -> list[tuple[float, int, int, int, int, int, int]]:
-    """tcp_packets with the TCP sequence number as a seventh field."""
+def tcp_records(path: Path, ack: bool = False) -> list[tuple]:
+    """tcp_packets with the TCP sequence number as a seventh field; ack: the acknowledgment number
+    as an eighth (features/first_request.py, first_request_seq)."""
     raw = Path(path).read_bytes()
     endian = _MAGICS[raw[:4]]
     scale = 1e-9 if raw[:4] in _NANO else 1e-6
@@ -109,9 +110,10 @@ def tcp_records(path: Path) -> list[tuple[float, int, int, int, int, int, int]]:
             continue
         if proto != 6 or len(data) < l4 + 14:
             continue
-        sport, dport, seq = struct.unpack(">HHI", data[l4:l4 + 8])
+        sport, dport, seq, ackn = struct.unpack(">HHII", data[l4:l4 + 12])
         doff, flags = (data[l4 + 12] >> 4) * 4, data[l4 + 13]
-        out.append((sec + frac * scale, sport, dport, orig, max(ip_payload - doff, 0), flags, seq))
+        rec = (sec + frac * scale, sport, dport, orig, max(ip_payload - doff, 0), flags, seq)
+        out.append(rec + (ackn,) if ack else rec)
     return out
 
 
