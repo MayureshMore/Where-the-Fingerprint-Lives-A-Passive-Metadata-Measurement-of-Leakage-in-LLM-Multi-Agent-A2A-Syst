@@ -1,0 +1,1600 @@
+{
+  "paper": "P1",
+  "collection_id": "C1",
+  "variant": "dedup",
+  "data_dir": "data/processed_c1_dedup",
+  "old_data_dir": "data/processed_c1_own",
+  "all_connections_dirs": [
+    "data/processed_c1",
+    "data/processed_c1_dedup_all"
+  ],
+  "raw_dir": "data/raw_c1",
+  "seed": 42,
+  "git_commit": "1878eda239eeaab953a6544aebd9d5a7ec45d409",
+  "git_dirty": false,
+  "task": "robustness of paper 1's results to the capture tail (connection closes the recorder lost before f38a2828) and to TCP retransmissions",
+  "view": "every payload byte counted once: a TCP retransmission is dropped (features/kfp.py, dedup); nothing else changes",
+  "label": "deduplicated",
+  "committed": {
+    "c1_evaluation_own": "da31192ab160c58767221fb2818a70e9cbe69894",
+    "c1_revision": "da31192ab160c58767221fb2818a70e9cbe69894"
+  },
+  "retransmissions": {
+    "segments": 398,
+    "traces_with_any": 275,
+    "payload_sizes": {
+      "24": 398
+    },
+    "on_the_traces_own_connections": 285,
+    "by_role_own": {
+      "retriever": 72,
+      "validator": 111,
+      "executor": 102
+    },
+    "before_their_connections_last_data_packet": 113
+  },
+  "baseline_check": {
+    "dir": "data/processed_c1_own_recheck2",
+    "files": 2400,
+    "max_abs_difference": 0.0,
+    "identical": true
+  },
+  "comparisons": [
+    {
+      "name": "closed world GBT",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9938870062137525,
+        "ci_lo": 0.9898481294695036,
+        "ci_hi": 0.9973756912346238,
+        "accuracy": 0.9938888888888889,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9944434865268527,
+        "ci_lo": 0.9904863237286139,
+        "ci_hi": 0.997821098606563,
+        "accuracy": 0.9944444444444445,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9938870062137525,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0005564803131001828,
+        "ci_lo": 0.0,
+        "ci_hi": 0.001833430824883066,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "closed world RF",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9966657283789232,
+        "ci_lo": 0.9933653020131583,
+        "ci_hi": 0.9994311955981272,
+        "accuracy": 0.9966666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9966657283789232,
+        "ci_lo": 0.9933653020131583,
+        "ci_hi": 0.9994311955981272,
+        "accuracy": 0.9966666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9966657283789232,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "closed world k-FP",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9905489708135043,
+        "ci_lo": 0.9850887091323919,
+        "ci_hi": 0.9952948199295787,
+        "accuracy": 0.9905555555555555,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9905489708135043,
+        "ci_lo": 0.9850887091323919,
+        "ci_hi": 0.9952948199295787,
+        "accuracy": 0.9905555555555555,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9905489708135043,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT on the k-FP features (A5)",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9877656266102063,
+        "ci_lo": 0.982035085574015,
+        "ci_hi": 0.9933431243630036,
+        "accuracy": 0.9877777777777778,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9866503276484352,
+        "ci_lo": 0.9805327638784546,
+        "ci_hi": 0.9924114542504794,
+        "accuracy": 0.9866666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9877656266102063,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.001115298961771094,
+        "ci_lo": -0.0034073804107642657,
+        "ci_hi": 0.001102767104157892,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, sizes only",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9326852628691552,
+        "ci_lo": 0.9200824164733901,
+        "ci_hi": 0.945224611594282,
+        "accuracy": 0.9327777777777778,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9326640898349767,
+        "ci_lo": 0.9196755190670959,
+        "ci_hi": 0.9457969474388835,
+        "accuracy": 0.9327777777777778,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9326852628691552,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -2.1173034178478822e-05,
+        "ci_lo": -0.00420697760792246,
+        "ci_hi": 0.003952636954660894,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, timing only",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9805331145635918,
+        "ci_lo": 0.9725061472244457,
+        "ci_hi": 0.9877214416836638,
+        "accuracy": 0.9805555555555555,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9810988413358359,
+        "ci_lo": 0.9731458957820441,
+        "ci_hi": 0.9883969875349031,
+        "accuracy": 0.9811111111111112,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9805331145635918,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0005657267722440906,
+        "ci_lo": -0.0027380062619752343,
+        "ci_hi": 0.0038347891497129715,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, counts and direction only",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.6956498863996089,
+        "ci_lo": 0.6696532724756856,
+        "ci_hi": 0.7232103197486037,
+        "accuracy": 0.7016666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6983779299922714,
+        "ci_lo": 0.6727011110961133,
+        "ci_hi": 0.7249988487759744,
+        "accuracy": 0.7044444444444444,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6956498863996089,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0027280435926625435,
+        "ci_lo": -0.002119994932152122,
+        "ci_hi": 0.007605235702031643,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "temporal holdout GBT (train rounds 1\u20133, test 4\u20135)",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9930555374709864,
+        "ci_lo": 0.986225099043379,
+        "ci_hi": 0.9984920348416025,
+        "accuracy": 0.9930555555555556,
+        "n": 720,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 159
+      },
+      "new": {
+        "macro_f1": 0.9944444263598752,
+        "ci_lo": 0.9881878603613418,
+        "ci_hi": 0.9986719734817973,
+        "accuracy": 0.9944444444444445,
+        "n": 720,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 159
+      },
+      "committed": 0.9930555374709864,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.001388888888888773,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0044453432348536825,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "n_train": 507
+    },
+    {
+      "name": "GBT, cumul_bytes_q8 alone (best of the cumulative byte profile)",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.8483684029364796,
+        "ci_lo": 0.8296409984177953,
+        "ci_hi": 0.8663989669464728,
+        "accuracy": 0.8494444444444444,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.8479479887163991,
+        "ci_lo": 0.8291653453484916,
+        "ci_hi": 0.8659900474365327,
+        "accuracy": 0.8488888888888889,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.8483684029364796,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.00042041422008054496,
+        "ci_lo": -0.0028400300778626377,
+        "ci_hi": 0.0020247793175870495,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, role leave-one-topology-out",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.4677700278963128,
+        "ci_lo": 0.43729486300103076,
+        "ci_hi": 0.4978418324854329,
+        "accuracy": 0.46166666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.4717474253812474,
+        "ci_lo": 0.4418604231882007,
+        "ci_hi": 0.5014025092335188,
+        "accuracy": 0.4661111111111111,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.4677700278963128,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.003977397484934642,
+        "ci_lo": 0.00014979162575039787,
+        "ci_hi": 0.007980126840273162,
+        "significant": true
+      },
+      "outside_old_ci": false,
+      "per_held_out": {
+        "chain": {
+          "old": {
+            "macro_f1": 0.9074978092669205,
+            "ci_lo": 0.8822914193158512,
+            "ci_hi": 0.931608971634111,
+            "accuracy": 0.9083333333333333,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 145
+          },
+          "new": {
+            "macro_f1": 0.9040442698037987,
+            "ci_lo": 0.8787174061429364,
+            "ci_hi": 0.9274096111278574,
+            "accuracy": 0.905,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 145
+          },
+          "new_minus_old": {
+            "diff": -0.0034535394631217686,
+            "ci_lo": -0.008999634555344999,
+            "ci_hi": 0.0,
+            "significant": false
+          }
+        },
+        "mesh": {
+          "old": {
+            "macro_f1": 0.3856108635862398,
+            "ci_lo": 0.3567346121584186,
+            "ci_hi": 0.41664683031639205,
+            "accuracy": 0.4266666666666667,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 140
+          },
+          "new": {
+            "macro_f1": 0.4037268249160873,
+            "ci_lo": 0.3753331911148808,
+            "ci_hi": 0.43270310863556277,
+            "accuracy": 0.445,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 140
+          },
+          "new_minus_old": {
+            "diff": 0.018115961329847496,
+            "ci_lo": 0.005395112108932778,
+            "ci_hi": 0.03113716340216768,
+            "significant": true
+          }
+        },
+        "star": {
+          "old": {
+            "macro_f1": 0.03303781488494864,
+            "ci_lo": 0.02151634220892917,
+            "ci_hi": 0.04484848352041641,
+            "accuracy": 0.05,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 144
+          },
+          "new": {
+            "macro_f1": 0.03200853465777521,
+            "ci_lo": 0.020753761345901508,
+            "ci_hi": 0.04417448838576631,
+            "accuracy": 0.04833333333333333,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 144
+          },
+          "new_minus_old": {
+            "diff": -0.0010292802271734333,
+            "ci_lo": -0.0032944287164147204,
+            "ci_hi": 0.0,
+            "significant": false
+          }
+        }
+      }
+    },
+    {
+      "name": "GBT, role leave-one-workflow-out",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9922235763973525,
+        "ci_lo": 0.9879637997283364,
+        "ci_hi": 0.9962727524112526,
+        "accuracy": 0.9922222222222222,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9927786898173482,
+        "ci_lo": 0.9888204244175627,
+        "ci_hi": 0.9964418945466942,
+        "accuracy": 0.9927777777777778,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9922235763973525,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0005551134199957009,
+        "ci_lo": -0.0011768280832296558,
+        "ci_hi": 0.0024733313012603743,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "per_held_out": {
+        "code_review": {
+          "old": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 51
+          },
+          "new": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 51
+          },
+          "new_minus_old": {
+            "diff": 0.0,
+            "ci_lo": 0.0,
+            "ci_hi": 0.0,
+            "significant": false
+          }
+        },
+        "data_analysis": {
+          "old": {
+            "macro_f1": 0.9844588658294388,
+            "ci_lo": 0.970549763204741,
+            "ci_hi": 0.9954730107646558,
+            "accuracy": 0.9844444444444445,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 74
+          },
+          "new": {
+            "macro_f1": 0.984436938188202,
+            "ci_lo": 0.9724115253518091,
+            "ci_hi": 0.9937960046410813,
+            "accuracy": 0.9844444444444445,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 74
+          },
+          "new_minus_old": {
+            "diff": -2.192764123676305e-05,
+            "ci_lo": -0.006451976385195993,
+            "ci_hi": 0.006471394667921498,
+            "significant": false
+          }
+        },
+        "research_retrieval": {
+          "old": {
+            "macro_f1": 0.9955555308639231,
+            "ci_lo": 0.9883021451008439,
+            "ci_hi": 1.0,
+            "accuracy": 0.9955555555555555,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 62
+          },
+          "new": {
+            "macro_f1": 0.9955555308639231,
+            "ci_lo": 0.9883021451008439,
+            "ci_hi": 1.0,
+            "accuracy": 0.9955555555555555,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 62
+          },
+          "new_minus_old": {
+            "diff": 0.0,
+            "ci_lo": 0.0,
+            "ci_hi": 0.0,
+            "significant": false
+          }
+        },
+        "support_triage": {
+          "old": {
+            "macro_f1": 0.9888813826326466,
+            "ci_lo": 0.9786457017639787,
+            "ci_hi": 0.9976851572766839,
+            "accuracy": 0.9888888888888889,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 95
+          },
+          "new": {
+            "macro_f1": 0.9910959993283651,
+            "ci_lo": 0.9817006158846986,
+            "ci_hi": 0.997863225912495,
+            "accuracy": 0.9911111111111112,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 95
+          },
+          "new_minus_old": {
+            "diff": 0.002214616695718541,
+            "ci_lo": 0.0,
+            "ci_hi": 0.007298318571351814,
+            "significant": false
+          }
+        }
+      }
+    },
+    {
+      "name": "closed world GBT",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6597522840407621,
+        "ci_lo": 0.6126719640479875,
+        "ci_hi": 0.7026371667919474,
+        "accuracy": 0.66,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6589941205067077,
+        "ci_lo": 0.6089163559857645,
+        "ci_hi": 0.7069417599530963,
+        "accuracy": 0.66,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6597522840407621,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.0007581635340544457,
+        "ci_lo": -0.020299045020444585,
+        "ci_hi": 0.019097257531803986,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "closed world RF",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6237386071289028,
+        "ci_lo": 0.5723371192057096,
+        "ci_hi": 0.6692984757934045,
+        "accuracy": 0.6233333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6323713432539418,
+        "ci_lo": 0.5822782662041374,
+        "ci_hi": 0.6771231112023914,
+        "accuracy": 0.6316666666666667,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6237386071289028,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.008632736125039009,
+        "ci_lo": -0.007055093565804718,
+        "ci_hi": 0.02480765780387882,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "closed world k-FP",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.5148716544162553,
+        "ci_lo": 0.46234338219247334,
+        "ci_hi": 0.5628882015795205,
+        "accuracy": 0.515,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.5102566093481911,
+        "ci_lo": 0.45905641918239043,
+        "ci_hi": 0.5598661477106581,
+        "accuracy": 0.51,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.5148716544162553,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.004615045068064205,
+        "ci_lo": -0.020305962235891643,
+        "ci_hi": 0.010429089796865382,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT on the k-FP features (A5)",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.5112865399184755,
+        "ci_lo": 0.46062881325924476,
+        "ci_hi": 0.556361312296444,
+        "accuracy": 0.5083333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.5144813356958533,
+        "ci_lo": 0.4642849666538065,
+        "ci_hi": 0.5563854926229016,
+        "accuracy": 0.5133333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.5112865399184755,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0031947957773778013,
+        "ci_lo": -0.015753902047393332,
+        "ci_hi": 0.02109987030827611,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, sizes only",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6639232363137525,
+        "ci_lo": 0.6136079917631596,
+        "ci_hi": 0.7083777053408967,
+        "accuracy": 0.665,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6601925592001417,
+        "ci_lo": 0.6077331905950403,
+        "ci_hi": 0.7070660628788915,
+        "accuracy": 0.6616666666666666,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6639232363137525,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.0037306771136107475,
+        "ci_lo": -0.023784450424557076,
+        "ci_hi": 0.016594313360916994,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, timing only",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.46355882249552827,
+        "ci_lo": 0.415407501136307,
+        "ci_hi": 0.5076741456577385,
+        "accuracy": 0.4633333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.4651155727217746,
+        "ci_lo": 0.41643481621012435,
+        "ci_hi": 0.5084220198600229,
+        "accuracy": 0.4633333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.46355882249552827,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0015567502262463506,
+        "ci_lo": -0.026818134477565425,
+        "ci_hi": 0.028451895035455303,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, counts and direction only",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.3034322820037106,
+        "ci_lo": 0.26405951182378967,
+        "ci_hi": 0.339489487475652,
+        "accuracy": 0.30333333333333334,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.28455556485676986,
+        "ci_lo": 0.24736412852301934,
+        "ci_hi": 0.3229257272864997,
+        "accuracy": 0.285,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.3034322820037106,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.018876717146940725,
+        "ci_lo": -0.03690000148779128,
+        "ci_hi": 0.00010352601073154122,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "temporal holdout GBT (train rounds 1\u20133, test 4\u20135)",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.4727370532429452,
+        "ci_lo": 0.399277011921894,
+        "ci_hi": 0.5527041418001442,
+        "accuracy": 0.5,
+        "n": 240,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 159
+      },
+      "new": {
+        "macro_f1": 0.47598900980616,
+        "ci_lo": 0.40172475928866025,
+        "ci_hi": 0.5565865861436173,
+        "accuracy": 0.5041666666666667,
+        "n": 240,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 159
+      },
+      "committed": 0.4727370532429452,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0032519565632148084,
+        "ci_lo": -0.031507214636538966,
+        "ci_hi": 0.03928153683476983,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "n_train": 169
+    },
+    {
+      "name": "size-matched CV GBT (no time gap)",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.5496902969080204,
+        "ci_lo": 0.49656121423904503,
+        "ci_hi": 0.5985595068257235,
+        "accuracy": 0.5516666666666666,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.5452612132873134,
+        "ci_lo": 0.49398455854320533,
+        "ci_hi": 0.5905483633996222,
+        "accuracy": 0.5466666666666666,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.5496902969080204,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.004429083620707042,
+        "ci_lo": -0.025598569432865443,
+        "ci_hi": 0.018593350990109583,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, first-request size alone",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6414460591221728,
+        "ci_lo": 0.5891328679713896,
+        "ci_hi": 0.6872502163286259,
+        "accuracy": 0.65,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6414460591221728,
+        "ci_lo": 0.5891328679713896,
+        "ci_hi": 0.6872502163286259,
+        "accuracy": 0.65,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6414460591221728,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "first_request_identical_in_every_trace": true
+    },
+    {
+      "name": "closed world GBT",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "closed world RF",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "closed world k-FP",
+      "task": "topology",
+      "old": {
+        "macro_f1": 0.9983333229166016,
+        "ci_lo": 0.994520120790627,
+        "ci_hi": 1.0,
+        "accuracy": 0.9983333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9983333229166016,
+        "ci_lo": 0.994520120790627,
+        "ci_hi": 1.0,
+        "accuracy": 0.9983333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9983333229166016,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT on the k-FP features (A5)",
+      "task": "topology",
+      "old": {
+        "macro_f1": 0.9983333229166016,
+        "ci_lo": 0.994520120790627,
+        "ci_hi": 1.0,
+        "accuracy": 0.9983333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9983333229166016,
+        "ci_lo": 0.994520120790627,
+        "ci_hi": 1.0,
+        "accuracy": 0.9983333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9983333229166016,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, sizes only",
+      "task": "topology",
+      "old": {
+        "macro_f1": 0.9983333229166016,
+        "ci_lo": 0.994328569843459,
+        "ci_hi": 1.0,
+        "accuracy": 0.9983333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9983333229166016,
+        "ci_lo": 0.994328569843459,
+        "ci_hi": 1.0,
+        "accuracy": 0.9983333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9983333229166016,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, timing only",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, counts and direction only",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "temporal holdout GBT (train rounds 1\u20133, test 4\u20135)",
+      "task": "topology",
+      "old": {
+        "macro_f1": 0.9791593398720905,
+        "ci_lo": 0.9599201797783787,
+        "ci_hi": 0.995639777173212,
+        "accuracy": 0.9791666666666666,
+        "n": 240,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 159
+      },
+      "new": {
+        "macro_f1": 0.9791593398720905,
+        "ci_lo": 0.9599201797783787,
+        "ci_hi": 0.995639777173212,
+        "accuracy": 0.9791666666666666,
+        "n": 240,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 159
+      },
+      "committed": 0.9791593398720905,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "n_train": 169
+    },
+    {
+      "name": "fixed rule (A6)",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "all connections, GBT",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.993886557494462,
+        "ci_lo": 0.9892061727691401,
+        "ci_hi": 0.9981826006518674,
+        "accuracy": 0.9938888888888889,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9944434865268527,
+        "ci_lo": 0.9896311515326902,
+        "ci_hi": 0.9983553277284938,
+        "accuracy": 0.9944444444444445,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.993886557494462,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.000556929032390685,
+        "ci_lo": -0.0011461911628625671,
+        "ci_hi": 0.002469416281527019,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 4.487192905022752e-07,
+        "ci_lo": -0.002945904083173126,
+        "ci_hi": 0.0032301700864580244,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": 0.0,
+        "ci_lo": -0.00290664035647861,
+        "ci_hi": 0.0032770690706677165,
+        "significant": false
+      }
+    },
+    {
+      "name": "all connections, RF",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9933323873642319,
+        "ci_lo": 0.9890452233288286,
+        "ci_hi": 0.9972591740049245,
+        "accuracy": 0.9933333333333333,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9938879552520427,
+        "ci_lo": 0.9897664645190335,
+        "ci_hi": 0.9975593056926028,
+        "accuracy": 0.9938888888888889,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9933323873642319,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0005555678878107484,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0018117734282086793,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.0033333410146912934,
+        "ci_lo": 0.0010552606413471249,
+        "ci_hi": 0.006252706532560513,
+        "significant": true
+      },
+      "own_minus_all_new": {
+        "diff": 0.002777773126880545,
+        "ci_lo": 0.0005546326589973532,
+        "ci_hi": 0.005323949230933711,
+        "significant": true
+      }
+    },
+    {
+      "name": "all connections, GBT",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6258895647225882,
+        "ci_lo": 0.5719458856740488,
+        "ci_hi": 0.6717143479474361,
+        "accuracy": 0.625,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6171884788504519,
+        "ci_lo": 0.563921335924076,
+        "ci_hi": 0.6641610618453498,
+        "accuracy": 0.6183333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6258895647225882,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.00870108587213625,
+        "ci_lo": -0.030696805550889016,
+        "ci_hi": 0.012984729528629104,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.03386271931817397,
+        "ci_lo": -0.00033811413367904053,
+        "ci_hi": 0.06598015103833829,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": 0.041805641656255776,
+        "ci_lo": 0.009928800715471748,
+        "ci_hi": 0.0717793558702917,
+        "significant": true
+      }
+    },
+    {
+      "name": "all connections, RF",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6060057224446904,
+        "ci_lo": 0.5569608750024189,
+        "ci_hi": 0.6501481108009864,
+        "accuracy": 0.6016666666666667,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6096011061582458,
+        "ci_lo": 0.558783337920156,
+        "ci_hi": 0.6523417805577084,
+        "accuracy": 0.6066666666666667,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6060057224446904,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.003595383713555389,
+        "ci_lo": -0.014462191073317305,
+        "ci_hi": 0.022119026798090878,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.017732884684212413,
+        "ci_lo": -0.014515872897806977,
+        "ci_hi": 0.05094792179535247,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": 0.022770237095696033,
+        "ci_lo": -0.009828776164411423,
+        "ci_hi": 0.05562403464153347,
+        "significant": false
+      }
+    },
+    {
+      "name": "all connections, first request only (GBT)",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6414460591221728,
+        "ci_lo": 0.5891328679713896,
+        "ci_hi": 0.6872502163286259,
+        "accuracy": 0.65,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6414460591221728,
+        "ci_lo": 0.5891328679713896,
+        "ci_hi": 0.6872502163286259,
+        "accuracy": 0.65,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6414460591221728,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      }
+    },
+    {
+      "name": "all connections, GBT",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      }
+    },
+    {
+      "name": "all connections, RF",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      }
+    },
+    {
+      "name": "all connections, first request only (GBT)",
+      "task": "topology",
+      "old": {
+        "macro_f1": 0.30840831352251413,
+        "ci_lo": 0.27263596735741197,
+        "ci_hi": 0.3444673289513859,
+        "accuracy": 0.31,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.30840831352251413,
+        "ci_lo": 0.27263596735741197,
+        "ci_hi": 0.3444673289513859,
+        "accuracy": 0.31,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.30840831352251413,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      }
+    }
+  ],
+  "detail": {
+    "cumulative_byte_profile_single_feature": {
+      "cumul_bytes_q0": {
+        "old": 0.16666666666666666,
+        "new": 0.16666666666666666
+      },
+      "cumul_bytes_q1": {
+        "old": 0.4796728998376479,
+        "new": 0.4796728998376479
+      },
+      "cumul_bytes_q2": {
+        "old": 0.5354309726881868,
+        "new": 0.5354309726881868
+      },
+      "cumul_bytes_q3": {
+        "old": 0.5523044579864617,
+        "new": 0.5523044579864617
+      },
+      "cumul_bytes_q4": {
+        "old": 0.5957205413282497,
+        "new": 0.5957205413282497
+      },
+      "cumul_bytes_q5": {
+        "old": 0.6955042639970337,
+        "new": 0.6949970999786782
+      },
+      "cumul_bytes_q6": {
+        "old": 0.7198141257013718,
+        "new": 0.7218088344206595
+      },
+      "cumul_bytes_q7": {
+        "old": 0.8278774880162932,
+        "new": 0.8268284166945445
+      },
+      "cumul_bytes_q8": {
+        "old": 0.8483684029364796,
+        "new": 0.8479479887163991
+      },
+      "cumul_bytes_q9": {
+        "old": 0.45448556024694303,
+        "new": 0.4526617097656546
+      }
+    },
+    "star_loto_confusion": {
+      "classes": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "old": {
+        "executor": {
+          "executor": 0,
+          "retriever": 0,
+          "validator": 200
+        },
+        "retriever": {
+          "executor": 0,
+          "retriever": 1,
+          "validator": 199
+        },
+        "validator": {
+          "executor": 76,
+          "retriever": 95,
+          "validator": 29
+        }
+      },
+      "new": {
+        "executor": {
+          "executor": 0,
+          "retriever": 0,
+          "validator": 200
+        },
+        "retriever": {
+          "executor": 0,
+          "retriever": 1,
+          "validator": 199
+        },
+        "validator": {
+          "executor": 75,
+          "retriever": 97,
+          "validator": 28
+        }
+      },
+      "old_executor_retriever_as_validator": 399,
+      "old_executor_retriever": 400,
+      "new_executor_retriever_as_validator": 399,
+      "new_executor_retriever": 400
+    }
+  },
+  "flagged": [],
+  "old_reproduces_committed": true,
+  "old_not_matching_committed": []
+}

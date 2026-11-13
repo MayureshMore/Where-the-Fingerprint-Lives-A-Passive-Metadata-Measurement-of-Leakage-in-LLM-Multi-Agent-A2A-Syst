@@ -105,6 +105,196 @@ three arms (`lan`, `lan_pad`, `lan_padmax`), seed offset 30000. The decision res
 pace alone (7.1 s per trace, so the 3,000 traces take about 6 hours) and was made before any leakage
 result was computed from C2 or from the pilot.
 
+## C2's emulated WAN: dnctl does not show pipe 2 (it was never removed)
+
+`scripts/wan_emulation.sh` delays the Pi's packets to the cloud alias in dummynet pipe 1 (as they
+enter the Mac) and the alias's packets to the Pi in pipe 2 (as they leave it), 6 ms each. After the
+pilot, `sudo dnctl pipe show` (Nov 11, 21:53) listed only pipe 1 (66,044 packets, 0 drops), and on
+Nov 12 `dnctl list` again showed only pipe 1 while `dnctl pipe show 2` printed nothing; after
+`wan_emulation.sh off` and `on` (07:48) both were listed. Pipe 2 was there all along; dnctl does not
+print it. In a 64-bit process the kernel copies each flow queue out as a 176-byte
+`struct dn_flow_queue_64` (xnu `bsd/netinet/ip_dummynet.c`, `dn_copy_set_64`), but dnctl steps over
+it as its own 184-byte `struct dn_flow_queue` (`network_cmds` `dnctl.c`, `list_pipes`). Once pipe 1
+has a queue, which its first packet creates, dnctl lands 8 bytes into pipe 2's record, finds no pipe
+marker and stops; with no traffic yet, as right after `on`, it lists both. Compiling xnu's header
+and walking a buffer laid out as the kernel writes it reproduces this. Evidence that pipe 2 delayed
+the alias's packets throughout: all 393 Pi → alias handshakes in the pilot's three arms take 11.6 ms
+or more from SYN to SYN-ACK at the capture (median 13.2 ms: both pipes), and the WAN check at the
+pilot's end (21:36) passed. Between 21:36 and 21:53 nothing configured dummynet; the only commands
+were the alias fix (`ifconfig`), which does not touch dummynet pipes. The pilot's captures also show
+no gap in the sequence numbers of the 62,917 data segments the Mac sent the Pi; the capture sits
+after pipe 2, so pipe 2 dropped none of them.
+
+Read from the kernel on Nov 12 at 21:39 (`scripts/wan_watch.py`, below), with the same request dnctl
+makes: pipe 1 (Pi → alias) and pipe 2 (alias → Pi), each at 6 ms with one queue, 360 packets and 0
+drops, the traffic of the WAN check at 07:54. In the same sample, `dnctl list` printed only `00001:`.
+The kernel returned 1,072 bytes. The two pipe records and their queues end at byte 1,056; the last 16
+bytes are zeros, 8 per queue: the kernel sizes the buffer with its 184-byte queue struct but writes
+176-byte records. The first rows of `data/raw_c2/wan_watch.jsonl` (21:35 to 21:39) carry a reader
+error instead: that version asked Python's `socket.getsockopt` for a 1 MB buffer, which Python refuses
+above 1,024 bytes. The reader now calls libc's `getsockopt`.
+
+From Nov 12, `scripts/wan_watch.py` (run with sudo) reads the pipes from the kernel with the
+kernel's own record sizes, plus the pf anchor, every 30 s (`data/raw_c2/wan_watch.jsonl`,
+`data/raw_c2/wan_status.json`); `scripts/c2_guard.py` checks C2 against it. At the start and every
+50 traces, it checks four things:
+- both pipes at 6 ms, with no bandwidth limit or loss rate;
+- pf is enabled and the anchor's two dummynet rules are loaded;
+- the port lock;
+- in the traces since the last check, the Pi's connect time to the alias, 22.6 ms ±20%.
+
+The capture shows that connect time as SYN to the Pi's ACK, which is 3.3 ms shorter than the Pi's
+own timer reads it. That offset was measured on the 90 probes of the WAN check at 07:54 (Pi 20.22 ms,
+capture 16.91 ms, `data/c2_wan_calibration/wan_check_probe.pcap`; it is kept out of `data/raw_c2`,
+where the collector refuses to start over existing pcaps: the first start, at 21:40, stopped there
+with no traces, and the checks it then ran over the empty folders are in `data/_c2_aborted_2140`).
+The guard also requires the capture's SYN to SYN-ACK to be 12 ms ±20%, with no handshake under
+9.6 ms (a missing pipe halves it). If a check fails, it stops the collection and lists the traces
+since the last good check as suspect (`data/raw_c2/wan_guard.json`, with each pipe's drop counter at
+every check).
+
+## Collection C2 (paper 2): the run
+
+C2 ran from Nov 12, 21:43:54 to Nov 13, 03:28:37 (Pacific time). The collector,
+`scripts/collect_session.py`, ran from commit `64ac8f17` with these settings:
+- placement edge-cloud, `--n 250 --rounds 5 --seed-offset 30000 --workflows iot`;
+- order seed 42;
+- three arms, all over TLS 1.3 (TLS_AES_256_GCM_SHA384, HTTP/1.1):
+  - `lan`: ports 8100–8105, `data/raw_c2`;
+  - `lan_pad`: ports 8200–8205, buckets 1024 to 32768, `data/raw_c2_pad`;
+  - `lan_padmax`: ports 8300–8305, buckets 8192/16384 with `pad_expect=8192`, `data/raw_c2_padmax`.
+
+The edge agent ran on the Pi 5 with llama3.2:1b. The cloud agents ran on the Mac's alias
+172.30.0.100 with llama3.2:3b. Ollama listened on localhost on each machine.
+
+All 3,000 tasks succeeded on the first try: 1,000 per arm, 250 of each task type, five balanced
+rounds, 0 failures. The median time per trace was 7.03 s. The Pi stayed between 51.6 and 69.7 °C and
+never throttled.
+
+Before the collection, four checks passed:
+- the guard's check of the watcher (`scripts/wan_watch.py`);
+- the network check (`data/raw_c2/network_check_start.json`);
+- the WAN check (`data/raw_c2/wan_check_start.json`);
+- the pilot's padding check, with every byte counted once
+  (`data/raw_c2_pilot/design_check_dedup.json`, Nov 12 morning).
+
+**The guard.** `scripts/c2_guard.py` (commit `63aa9d74`, sha256 `b0b5da23…`) ran beside the
+collector. It checked at the start and after every 50 traces, 61 checks in all
+(`data/raw_c2/wan_guard.json`). Every check passed. No trace was marked suspect, and the guard never
+stopped the collection.
+- Both pipes stayed at 6 ms with 0 drops throughout: at the last check, pipe 1 had passed 367,015
+  packets and pipe 2 383,420.
+- At every check, `dnctl list` showed only pipe 1. This is the display fault described above.
+- The pf rules and the port lock were in place at every check.
+- Over 2,250 handshakes, the Pi's connect time to the alias, taken per 50-trace window, had a median
+  of 20.2 ms (19.7–20.6 ms) against 22.6 ms ±20%.
+- SYN to SYN-ACK at the capture was 12.0–13.3 ms per window. No handshake was under 11.2 ms.
+
+**The achieved round trip is about 20.3 ms, against a target of 22.6 ms.** Four sources agree:
+- the guard: 20.2 ms;
+- the collector's probes before each round, per arm: medians 19.5–21.6 ms, with a median of 20.8 ms
+  over the 15;
+- the WAN check before the run: 20.5–20.7 ms;
+- the WAN check after the run: 20.7–21.1 ms.
+
+The target is the Mac's median connect time to EC2 us-west-1, 22.6 ms over 30 tries on Nov 11
+(`data/results/c2_wan_emulation.json`). The dummynet delay was set to that target minus the median
+ping between the Mac and the Pi (9.9 ms), which gives 12.7 ms, rounded down to 12 ms (6 ms each
+way). The round trip falls short of the target for two reasons:
+- the rounding removes 0.7 ms;
+- a TCP connect from the Pi to the Mac's own address takes about 8 ms (7.6–9.1 ms in the WAN checks
+  and the collector's probes), less than the ping median.
+
+The achieved round trip is still within the ±20% that the checks allow. Dummynet adds no jitter, so
+the spread of the real cloud round trip (IQR 5.4 ms) is not reproduced. The Wi-Fi's own spread is
+present.
+
+**After the collection.**
+- The capture check passed, with 750 traces per task type (`data/raw_c2/lan_check.json`).
+- The TLS check found no problems in any arm.
+- Stream integrity: no trace was cut; the median is 163–174 packets per trace.
+- The WAN check after the run passed (`data/raw_c2/wan_check_after.json`).
+- The design check (`data/raw_c2/design_check.json`, Nov 13 03:28):
+  - [a] passed: the largest predecessor share was 32%;
+  - [b] passed: no leftover connections;
+  - [d] passed: `audit_null` was present in 3,000 of 3,000 sidecars;
+  - [c] passed for `lan_pad` but failed for `lan_padmax`. 749 of 750 first messages were in the 8192
+    bucket; one was measured at 1,802 B. That trace is fault_diagnosis_edge_cloud_ed7928. The next
+    section explains the failure, and the rerun passed.
+
+## C2: the first request measured in TCP sequence space (Nov 13, before any leakage result)
+
+This change came from a validity check, the padding check [c] above. It was made before any leakage
+result was computed from C2: `scripts/evaluate_leakcheck.py` had not been run on C2.
+
+**What went wrong in ed7928.** The fault was in the measurement, not in the padding:
+1. The edge agent's request to the diagnostics agent is 8,488 B: the 8,192 B padded body plus 296 B
+   of HTTP and TLS. That is the same as every other trace in the arm.
+2. A Wi-Fi loss held back five of its segments. They were captured 50.6 ms after the segment before
+   them, and the segment after the gap arrived first.
+3. The server's TLS session ticket (510 B) arrived in between.
+4. The measure the padding check used for the edge-cloud placement counts request writes no more
+   than 50 ms apart (`features/first_request.py`, `first_request`). It therefore ended the request
+   after 1,802 B. A measure that ends the request at the first server data would have ended it at
+   the ticket.
+
+The leakcheck's first-request size (`a2a_leakcheck/extract.py`) used the same 50 ms measure.
+Paper 1's `first_request` is unchanged.
+
+**The new measure.** `features/first_request.py`, `first_request_seq`, measures the request in TCP
+sequence space, from the IP and TCP headers alone, counting each byte once. It now drives three
+things:
+- the leakcheck's first-request size;
+- the "first request" baseline in `scripts/evaluate_leakcheck.py`;
+- the padding check [c].
+
+The request starts after the TLS ClientHello and the client Finished. It ends at the acknowledgment
+number of the first server data segment that meets two conditions:
+- it acknowledges every client byte seen so far;
+- the client has received it before sending its next byte, which shows as that next segment
+  acknowledging it.
+
+A server answers only after it holds the whole request, and the client sends nothing more until it
+has the answer. A session ticket fails one of the two conditions:
+- in ed7928, the ticket acknowledged only the Finished;
+- in 58 `lan`, 49 `lan_pad` and 57 `lan_padmax` traces, the ticket acknowledged the HTTP header
+  before the capture had seen any of the body, but the body segments do not acknowledge the ticket.
+
+All but one of those 164 traces are alert_triage requests to the ticket agent on the Mac, where no
+WAN delay separates the capture from the server. The exception is fault_diagnosis_edge_cloud_efceeb,
+which goes to the diagnostics agent. A first version of the measure without the second condition
+split the header from the body in exactly these traces. The comparison below caught the problem
+before the code was committed. The cases are tested in `tests/test_first_request_seq.py`.
+
+**The earlier measure's 80 B offset.** In every C2 trace, the earlier measure also counted the
+client Finished (80 B) in the request. The Pi's ClientHello spans two segments (1,448 + 100 B), and
+the earlier measure took the second segment for the Finished.
+
+**Old against new, per arm** (`scripts/compare_first_request_seq.py`,
+`data/raw_c2/first_request_seq_change.json`):
+
+| Arm | Traces | Changed by exactly −80 B (the Finished) | Other changes |
+|---|---|---|---|
+| `lan` | 1,000 | 999 | procedure_lookup_edge_cloud_f3b4ad: 2,028 → 580 B |
+| `lan_pad` | 1,000 | 1,000 | none |
+| `lan_padmax` | 1,000 | 998 | fault_diagnosis_edge_cloud_ed7928: 1,802 → 8,488 B; sensor_analysis_edge_cloud_274df9 unchanged at 8,568 B |
+
+Each task type in each arm has 250 traces, and every one of them changes by exactly −80 B except the
+three named in the table. The unusual traces:
+- **f3b4ad:** the ClientHello's first segment was lost and arrived after its second, so the earlier
+  measure counted it in the request. The request is 273 + 307 B.
+- **274df9:** the Finished and the HTTP header were lost and resent together as one segment. From
+  headers alone, the Finished's end inside that segment is unknown, so both measures count it.
+
+The padding scope (the edge agent's requests to the cloud agents, 750 traces per arm, with
+alert_triage left out) changes in the same way.
+
+**The rerun of the padding check passed** (`data/raw_c2/design_check_seq.json`;
+`data/raw_c2/design_check.json` is kept):
+- `lan_padmax`: 750 of 750 first messages in the 8192 bucket. The median overhead is 296 B, and 749
+  of 750 are within ±32 B; the remaining one is 274df9, at +80 B.
+- `lan_pad`: all 750 within ±32 B of the 296 B median.
+
 ## Published archives
 
 | Archive | Contents | Unpacked size | Needed for |

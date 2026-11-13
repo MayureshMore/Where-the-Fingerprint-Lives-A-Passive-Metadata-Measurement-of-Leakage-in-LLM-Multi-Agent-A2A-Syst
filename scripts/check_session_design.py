@@ -17,27 +17,26 @@ the full collection:
                     per trace, and whether any carries data beyond the close. FAIL on data.
   c. padding        for an arm with pad buckets: the first A2A message's on-wire size minus its
                     bucket is the TLS and HTTP overhead, which is nearly constant if the body
-                    really is padded; every request byte is counted once (a TCP retransmission
-                    is not counted again: features/kfp.py, dedup). FAIL if under 95% of traces sit
-                    within ±32 B of the median
-                    overhead, or the median is outside 100–1000 B. The message is the request
-                    writes on the first request's link (features/first_request.py) up to the
-                    first response data, after the TLS handshake, of at least 300 B. The first
-                    request as features/first_request.py measures it also takes in a GET of the
-                    agent card when the orchestrator has just started (the first trace of each
-                    condition in each round: 197 B more on loopback, 60 of C1's 600 traces); those
-                    traces are counted, not failed. An arm with pad_expect (C2's lan_padmax: buckets
-                    8192/16384, every first request meant for 8192) also FAILS unless every first
-                    message lands in that one bucket; the share in it is reported. When the sidecar
-                    names padded_endpoints (the edge-cloud placement: only the edge agent's requests
-                    to the cloud agents are padded, not its ticket posts), only those endpoints'
-                    links are measured, and a trace that does not reach them (alert_triage) has no
-                    padded message and is left out of [c]. There the cloud agents' cards are
-                    fetched between captures, so the first request (writes ≤ 50 ms apart,
-                    features/first_request.py) is the A2A message itself; it is measured instead,
-                    so that a TLS 1.3 session ticket from the server arriving between the HTTP
-                    header and the body does not split the message (a card fetch inside a trace
-                    would show as an overhead outlier).
+                    really is padded. FAIL if under 95% of traces sit within ±32 B of the median
+                    overhead, or the median is outside 100–1000 B. The message is the first
+                    request of at least 300 B in TCP sequence space (features/first_request.py,
+                    first_request_seq): each byte once, after the TLS ClientHello and Finished, up
+                    to the acknowledgment number of the first server data that acknowledges every
+                    client byte seen so far and that the client received before sending more, so
+                    neither a TLS session ticket arriving mid-request nor a Wi-Fi loss that holds
+                    part of the request back ends it early (C2, fault_diagnosis_edge_cloud_ed7928,
+                    fault_diagnosis_edge_cloud_efceeb). An agent-card GET before it on the same
+                    link is a request of its own (under 300 B) and is reported, not counted. An
+                    arm with pad_expect (C2's lan_padmax: buckets 8192/16384, every first request
+                    meant for 8192) also FAILS unless every first message lands in that one
+                    bucket; the share in it is reported. When the sidecar names padded_endpoints
+                    (the edge-cloud placement: only the edge agent's requests to the cloud agents
+                    are padded, not its ticket posts), only those endpoints' links are measured,
+                    and a trace that does not reach them (alert_triage) has no padded message and
+                    is left out of [c]. The measure used before Nov 13 (on an arm with
+                    padded_endpoints features/first_request.py's first_request, writes ≤ 50 ms
+                    apart; otherwise the request writes up to the first response data) is still
+                    computed, and the traces where it differs are reported.
   d. audit_null     every sidecar carries prompt_group and audit_null (scripts/collect_session.py),
                     audit_null constant within a prompt group.
 
@@ -52,6 +51,7 @@ import argparse
 import ast
 import json
 import math
+import subprocess
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -61,15 +61,15 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from features.connections import own_packets  # noqa: E402
-from features.first_request import first_request  # noqa: E402
-from features.kfp import tcp_packets  # noqa: E402
+from features.first_request import MIN_REQUEST, first_request, first_request_seq  # noqa: E402
+from features.kfp import tcp_packets, tcp_records  # noqa: E402
 from scripts.audit_dropped_connections import audit_trace  # noqa: E402
 
 MAX_PREDECESSOR = 0.40
 ALPHA = 0.05
 PAD_TOLERANCE = 32
 PAD_OVERHEAD = (100, 1000)
-MIN_MESSAGE = 300             # bytes; the agent-card GET is under it, an A2A request well over
+MIN_MESSAGE = MIN_REQUEST     # bytes; the agent-card GET is under it, an A2A request well over
 
 
 def _sidecars(raw: Path) -> list[tuple[Path, dict]]:
@@ -142,9 +142,17 @@ def _bucket_below(n: int, buckets: list[int]) -> int:
     return below[-1] if below else 0
 
 
-def first_message(pcap: Path, servers: set[int], tls: bool) -> tuple[int, int]:
-    """(first_request bytes, bytes of the first A2A message on that link): request writes up to
-    the first response data, after the ClientHello and client Finished, of at least MIN_MESSAGE."""
+def first_message(pcap: Path, servers: set[int], tls: bool) -> dict:
+    """The first A2A message in TCP sequence space (first_request_seq): {"bytes", "skipped",
+    "acked"}."""
+    fr = first_request_seq(tcp_records(pcap, ack=True), servers, tls=tls)
+    return {"bytes": fr["bytes"], "skipped": fr["skipped"], "acked": fr["acked"]}
+
+
+def earlier_first_message(pcap: Path, servers: set[int], tls: bool) -> tuple[int, int]:
+    """The measure before Nov 13, to report where it differs: (first_request bytes, bytes of the
+    first A2A message on that link: request writes up to the first response data, after the
+    ClientHello and client Finished, of at least MIN_MESSAGE)."""
     pk = own_packets(tcp_packets(pcap, dedup=True), servers)
     fr = first_request(pk, servers)
     if not fr["link"]:
@@ -166,14 +174,16 @@ def first_message(pcap: Path, servers: set[int], tls: bool) -> tuple[int, int]:
     return fr["bytes"], next((m for m in msgs if m >= MIN_MESSAGE), 0)
 
 
-def padding(rows: list[tuple[dict, tuple[int, int]]], buckets: list[int], expect: int | None = None) -> dict:
-    """expect: the one bucket every first message should land in (pad_expect), or None."""
-    msg = [m for _, (_, m) in rows]
+def padding(rows: list[tuple[dict, dict]], buckets: list[int], expect: int | None = None) -> dict:
+    """rows: (sidecar, {"bytes", "skipped", "acked", "earlier"}) per trace with a padded message.
+    expect: the one bucket every first message should land in (pad_expect), or None."""
+    msg = [m["bytes"] for _, m in rows]
     over = np.array([m - _bucket_below(m, buckets) for m in msg], dtype=float)
     med = float(np.median(over))
     within = float((np.abs(over - med) <= PAD_TOLERANCE).mean())
     by = Counter(_bucket_below(m, buckets) for m in msg)
-    extra = [fr - m for _, (fr, m) in rows if fr - m > 0]
+    skipped = [m["skipped"] for _, m in rows if m["skipped"]]
+    diff = [(sc["run_id"], m["earlier"], m["bytes"]) for sc, m in rows if m["earlier"] != m["bytes"]]
     one = None
     if expect is not None:
         n_in = by.get(expect, 0)
@@ -184,8 +194,14 @@ def padding(rows: list[tuple[dict, tuple[int, int]]], buckets: list[int], expect
             "overhead_range": [float(over.min()), float(over.max())], "share_within_tolerance": within,
             "message_bytes_by_bucket": {str(k): v for k, v in sorted(by.items())},
             "distinct_message_sizes": len(set(msg)),
-            "first_request_includes_card_fetch": {"traces": len(extra),
-                                                  "extra_bytes": dict(Counter(extra).most_common(5))},
+            "measure": "first_request_seq (features/first_request.py): TCP sequence space",
+            "short_requests_before": {"traces": len(skipped),
+                                      "bytes": dict(Counter(b for s in skipped for b in s).most_common(5))},
+            "not_acknowledged": sum(1 for _, m in rows if not m["acked"]),
+            "earlier_measure_differs": {
+                "traces": len(diff),
+                "change_bytes": dict(Counter(n - o for _, o, n in diff).most_common(10)),
+                "largest_change": max(diff, key=lambda d: (abs(d[2] - d[1]), d[0]), default=None)},
             "expected_bucket": one,
             "ok": within >= 0.95 and PAD_OVERHEAD[0] <= med <= PAD_OVERHEAD[1] and (one is None or one["ok"])}
 
@@ -201,12 +217,16 @@ def check_arm(raw: Path) -> dict:
         ports, pcap = _ports(sc), side.with_suffix(".pcap")
         a = audit_trace(pcap, ports, bool(sc.get("tls", True)))
         left.append(a)
-        padded = _padded_ports(sc)
+        padded, tls = _padded_ports(sc), bool(sc.get("tls", True))
         if padded is None:
-            rows.append((sc, first_message(pcap, ports, bool(sc.get("tls", True)))))
-        else:                                 # edge-cloud: the first request on the padded links
-            fr = first_message(pcap, padded, bool(sc.get("tls", True)))[0] if padded else 0
-            rows.append((sc, (fr, fr)))
+            m = first_message(pcap, ports, tls)
+            m["earlier"] = earlier_first_message(pcap, ports, tls)[1]
+        elif padded:                          # edge-cloud: the first request on the padded links
+            m = first_message(pcap, padded, tls)
+            m["earlier"] = earlier_first_message(pcap, padded, tls)[0]
+        else:
+            m = {"bytes": 0, "skipped": [], "acked": True, "earlier": 0}
+        rows.append((sc, m))
         groups[sc.get("prompt_group")].add(sc.get("audit_null"))
     n_left = np.array([len(a["connections"]) for a in left])
     res = {"arm": name, "raw_dir": str(raw), "traces": len(rows),
@@ -220,7 +240,7 @@ def check_arm(raw: Path) -> dict:
                           "counts": dict(Counter(sc.get("audit_null") for sc, _ in rows))}}
     pad = (arm or {}).get("pad_buckets") or []
     if pad:
-        res["padding"] = padding([r for r in rows if r[1][1]], pad, (arm or {}).get("pad_expect"))
+        res["padding"] = padding([r for r in rows if r[1]["bytes"]], pad, (arm or {}).get("pad_expect"))
     res["audit_null"]["missing_prompt_group"] = sum(1 for sc, _ in rows if not sc.get("prompt_group"))
     res["ok"] = (not res["leftovers"]["traces_with_application_data"]
                  and res["audit_null"]["present"] == len(rows)
@@ -242,7 +262,10 @@ def main() -> None:
     pred, counts = predecessors(meta)
     top = predecessor_flags(pred, counts, len(meta["workflows"]))
     fails = [(arm, wf) for arm, w in top.items() for wf, v in w.items() if v["fail"]]
-    out = {"predecessors": pred, "most_common_predecessor": top, "max_predecessor_share": MAX_PREDECESSOR,
+    git = {"git_commit": subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip(),
+           "git_dirty": bool(subprocess.run(["git", "status", "--porcelain", "--", ".", ":(exclude)data"],
+                                            capture_output=True, text=True).stdout.strip())}
+    out = {**git, "predecessors": pred, "most_common_predecessor": top, "max_predecessor_share": MAX_PREDECESSOR,
            "alpha": ALPHA, "predecessor_failures": fails, "arms": arms,
            "ok": not fails and all(r["ok"] for r in arms)}
     for arm, w in top.items():
@@ -262,8 +285,11 @@ def main() -> None:
             p = r["padding"]
             print(f"[c] {r['arm']:10s} first A2A message − bucket: median {p['median_overhead']:.0f} B, "
                   f"{p['share_within_tolerance']:.0%} within ±{PAD_TOLERANCE} B; by bucket "
-                  f"{p['message_bytes_by_bucket']}; agent-card GET in the first request: "
-                  f"{p['first_request_includes_card_fetch']['traces']} traces  {'ok' if p['ok'] else 'FAIL'}")
+                  f"{p['message_bytes_by_bucket']}; a shorter request before it: "
+                  f"{p['short_requests_before']['traces']} traces  {'ok' if p['ok'] else 'FAIL'}")
+            d = p["earlier_measure_differs"]
+            print(f"[c] {r['arm']:10s} the measure before Nov 13 differs in {d['traces']} of {p['traces']} "
+                  f"traces (changes {d['change_bytes']}); largest {d['largest_change']}")
             if p.get("expected_bucket"):
                 e = p["expected_bucket"]
                 print(f"[c] {r['arm']:10s} first A2A messages in the {e['bucket']} bucket: {e['share']:.1%} "

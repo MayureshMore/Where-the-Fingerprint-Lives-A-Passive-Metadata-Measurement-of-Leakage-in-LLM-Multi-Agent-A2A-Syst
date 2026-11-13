@@ -1,0 +1,3788 @@
+{
+  "paper": "P1",
+  "collection_id": "C1",
+  "variant": "dataend",
+  "data_dir": "data/processed_c1_dataend_v2",
+  "old_data_dir": "data/processed_c1_own",
+  "all_connections_dirs": [
+    "data/processed_c1",
+    "data/processed_c1_dataend_all"
+  ],
+  "raw_dir": "data/raw_c1",
+  "seed": 42,
+  "git_commit": "1878eda239eeaab953a6544aebd9d5a7ec45d409",
+  "git_dirty": false,
+  "task": "robustness of paper 1's results to the capture tail (connection closes the recorder lost before f38a2828) and to TCP retransmissions",
+  "view": "every own connection ends at its last packet with TCP payload > 0, a 24-byte TLS close_notify alert not counted (features/connections.py, end_at_data); every later packet is dropped",
+  "label": "with the cut",
+  "committed": {
+    "c1_evaluation_own": "da31192ab160c58767221fb2818a70e9cbe69894",
+    "c1_revision": "da31192ab160c58767221fb2818a70e9cbe69894"
+  },
+  "retransmissions": {
+    "segments": 398,
+    "traces_with_any": 275,
+    "payload_sizes": {
+      "24": 398
+    },
+    "on_the_traces_own_connections": 285,
+    "by_role_own": {
+      "retriever": 72,
+      "validator": 111,
+      "executor": 102
+    },
+    "before_their_connections_last_data_packet": 113
+  },
+  "tail_check_dir": "data/raw_c1_tailcheck",
+  "tail_check_losses": {
+    "traces": [
+      {
+        "topology": "chain",
+        "workflow": "code_review",
+        "stop_minus_last_recorded_s": 3.595,
+        "lost": [
+          {
+            "role": "executor",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "executor",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          }
+        ],
+        "lost_data_packets": 0
+      },
+      {
+        "topology": "mesh",
+        "workflow": "code_review",
+        "stop_minus_last_recorded_s": 0.854,
+        "lost": [
+          {
+            "role": "retriever",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "client\u2192agent",
+            "flags": "AR",
+            "payload": 0
+          },
+          {
+            "role": "executor",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "executor",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          }
+        ],
+        "lost_data_packets": 0
+      },
+      {
+        "topology": "star",
+        "workflow": "code_review",
+        "stop_minus_last_recorded_s": 3.09,
+        "lost": [
+          {
+            "role": "retriever",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          }
+        ],
+        "lost_data_packets": 0
+      },
+      {
+        "topology": "chain",
+        "workflow": "data_analysis",
+        "stop_minus_last_recorded_s": 2.73,
+        "lost": [
+          {
+            "role": "executor",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "executor",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          }
+        ],
+        "lost_data_packets": 0
+      },
+      {
+        "topology": "mesh",
+        "workflow": "data_analysis",
+        "stop_minus_last_recorded_s": 2.117,
+        "lost": [
+          {
+            "role": "retriever",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "client\u2192agent",
+            "flags": "AR",
+            "payload": 0
+          },
+          {
+            "role": "executor",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "executor",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          }
+        ],
+        "lost_data_packets": 0
+      },
+      {
+        "topology": "star",
+        "workflow": "data_analysis",
+        "stop_minus_last_recorded_s": 5.773,
+        "lost": [
+          {
+            "role": "retriever",
+            "direction": "agent\u2192client",
+            "flags": "AP",
+            "payload": 24
+          },
+          {
+            "role": "retriever",
+            "direction": "client\u2192agent",
+            "flags": "A",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "client\u2192agent",
+            "flags": "AR",
+            "payload": 0
+          }
+        ],
+        "lost_data_packets": 0
+      },
+      {
+        "topology": "chain",
+        "workflow": "research_retrieval",
+        "stop_minus_last_recorded_s": 2.413,
+        "lost": [
+          {
+            "role": "executor",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "executor",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          }
+        ],
+        "lost_data_packets": 0
+      },
+      {
+        "topology": "mesh",
+        "workflow": "research_retrieval",
+        "stop_minus_last_recorded_s": 1.843,
+        "lost": [
+          {
+            "role": "executor",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "executor",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          }
+        ],
+        "lost_data_packets": 0
+      },
+      {
+        "topology": "star",
+        "workflow": "research_retrieval",
+        "stop_minus_last_recorded_s": 2.917,
+        "lost": [
+          {
+            "role": "retriever",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          }
+        ],
+        "lost_data_packets": 0
+      },
+      {
+        "topology": "chain",
+        "workflow": "support_triage",
+        "stop_minus_last_recorded_s": 2.919,
+        "lost": [
+          {
+            "role": "executor",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "executor",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          }
+        ],
+        "lost_data_packets": 0
+      },
+      {
+        "topology": "mesh",
+        "workflow": "support_triage",
+        "stop_minus_last_recorded_s": 2.556,
+        "lost": [
+          {
+            "role": "executor",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "executor",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          }
+        ],
+        "lost_data_packets": 0
+      },
+      {
+        "topology": "star",
+        "workflow": "support_triage",
+        "stop_minus_last_recorded_s": 3.319,
+        "lost": [
+          {
+            "role": "retriever",
+            "direction": "client\u2192agent",
+            "flags": "AF",
+            "payload": 0
+          },
+          {
+            "role": "retriever",
+            "direction": "agent\u2192client",
+            "flags": "A",
+            "payload": 0
+          }
+        ],
+        "lost_data_packets": 0
+      }
+    ],
+    "share_of_traces_losing_packets_by_topology_and_role": {
+      "chain": {
+        "executor": "4 of 4",
+        "retriever": "0 of 4",
+        "validator": "0 of 4"
+      },
+      "mesh": {
+        "executor": "4 of 4",
+        "retriever": "4 of 4",
+        "validator": "0 of 4"
+      },
+      "star": {
+        "executor": "0 of 4",
+        "retriever": "4 of 4",
+        "validator": "0 of 4"
+      }
+    },
+    "lost_data_packets": 0
+  },
+  "census": {
+    "connections": 2085,
+    "traces": 600,
+    "traces_with_a_connection_without_fin_or_rst": 600,
+    "end_state_by_topology_role": {
+      "chain/executor": {
+        "neither": 200
+      },
+      "chain/retriever": {
+        "neither": 200
+      },
+      "chain/validator": {
+        "neither": 200
+      },
+      "mesh/executor": {
+        "neither": 200
+      },
+      "mesh/retriever": {
+        "neither": 400
+      },
+      "mesh/validator": {
+        "neither": 285
+      },
+      "star/executor": {
+        "rst": 198,
+        "neither": 2
+      },
+      "star/retriever": {
+        "neither": 200
+      },
+      "star/validator": {
+        "rst": 198,
+        "neither": 2
+      }
+    },
+    "end_state_by_workflow_role": {
+      "code_review/executor": {
+        "neither": 100,
+        "rst": 50
+      },
+      "code_review/retriever": {
+        "neither": 200
+      },
+      "code_review/validator": {
+        "neither": 109,
+        "rst": 50
+      },
+      "data_analysis/executor": {
+        "neither": 100,
+        "rst": 50
+      },
+      "data_analysis/retriever": {
+        "neither": 200
+      },
+      "data_analysis/validator": {
+        "neither": 108,
+        "rst": 50
+      },
+      "research_retrieval/executor": {
+        "neither": 101,
+        "rst": 49
+      },
+      "research_retrieval/retriever": {
+        "neither": 200
+      },
+      "research_retrieval/validator": {
+        "neither": 134,
+        "rst": 49
+      },
+      "support_triage/executor": {
+        "neither": 101,
+        "rst": 49
+      },
+      "support_triage/retriever": {
+        "neither": 200
+      },
+      "support_triage/validator": {
+        "neither": 136,
+        "rst": 49
+      }
+    },
+    "packets_after_last_data_by_topology_role": {
+      "chain/executor": {
+        "median": 1.0,
+        "max": 3,
+        "mean": 1.05
+      },
+      "chain/retriever": {
+        "median": 1.0,
+        "max": 3,
+        "mean": 1.05
+      },
+      "chain/validator": {
+        "median": 1.0,
+        "max": 5,
+        "mean": 1.07
+      },
+      "mesh/executor": {
+        "median": 1.0,
+        "max": 3,
+        "mean": 1.035
+      },
+      "mesh/retriever": {
+        "median": 1.0,
+        "max": 5,
+        "mean": 1.8975
+      },
+      "mesh/validator": {
+        "median": 1.0,
+        "max": 5,
+        "mean": 1.0421052631578946
+      },
+      "star/executor": {
+        "median": 8.0,
+        "max": 8,
+        "mean": 6.98
+      },
+      "star/retriever": {
+        "median": 1.0,
+        "max": 5,
+        "mean": 1.22
+      },
+      "star/validator": {
+        "median": 8.0,
+        "max": 8,
+        "mean": 7.025
+      }
+    },
+    "trailing_close_alert_by_topology_role": {
+      "chain/executor": {
+        "none": 195,
+        "trailing_alert": 5
+      },
+      "chain/retriever": {
+        "none": 195,
+        "trailing_alert": 5
+      },
+      "chain/validator": {
+        "none": 195,
+        "trailing_alert": 5
+      },
+      "mesh/executor": {
+        "none": 196,
+        "trailing_alert": 4
+      },
+      "mesh/retriever": {
+        "trailing_alert": 117,
+        "none": 283
+      },
+      "mesh/validator": {
+        "none": 280,
+        "trailing_alert": 5
+      },
+      "star/executor": {
+        "trailing_alert": 199,
+        "none": 1
+      },
+      "star/retriever": {
+        "none": 186,
+        "trailing_alert": 14
+      },
+      "star/validator": {
+        "trailing_alert": 200
+      }
+    },
+    "packets_removed_per_trace": {
+      "median": 6.0,
+      "max": 21,
+      "total": 4942
+    }
+  },
+  "cut_check": {
+    "traces": [
+      {
+        "trace": "code_review_chain_421b0d",
+        "lost": 2,
+        "as_recorded": {
+          "trace_features_changed": [
+            "pf_mean.n_pkts_out",
+            "pf_mean.n_pkts_in",
+            "pf_mean.bytes_out",
+            "pf_mean.bytes_in",
+            "pf_mean.mean_sz_out",
+            "pf_mean.std_sz_out",
+            "pf_mean.p25_sz_out",
+            "pf_mean.mean_sz_in",
+            "pf_mean.std_sz_in",
+            "pf_mean.duration_s",
+            "pf_mean.mean_iat",
+            "pf_mean.std_iat",
+            "pf_mean.n_bursts",
+            "pf_mean.mean_burst_bytes",
+            "pf_mean.std_burst_bytes",
+            "pf_mean.mean_burst_dur",
+            "pf_mean.mean_ibg",
+            "pf_mean.cumul_bytes_q7",
+            "pf_mean.cumul_bytes_q8",
+            "pf_mean.cumul_bytes_q9",
+            "pf_mean.bytes_out_ratio",
+            "pf_mean.pkt_size_asymmetry",
+            "pf_mean.n_small_inbound",
+            "pf_mean.n_response_bursts",
+            "sys.total_bytes",
+            "sys.total_packets",
+            "sys.total_duration_s",
+            "sys.flow_end_spread",
+            "sys.total_bursts",
+            "sys.mean_burst_rate",
+            "sys.bytes_out_ratio",
+            "sys.heaviest_flow_bytes_frac",
+            "sys.flow_bytes_cv",
+            "sys.mean_flow_response_ratio",
+            "sys.max_flow_bytes_out_ratio",
+            "sys.pf_mean_n_pkts_out",
+            "sys.pf_mean_n_pkts_in",
+            "sys.pf_mean_bytes_out",
+            "sys.pf_mean_bytes_in",
+            "sys.pf_mean_mean_sz_out",
+            "sys.pf_mean_std_sz_out",
+            "sys.pf_mean_p25_sz_out",
+            "sys.pf_mean_mean_sz_in",
+            "sys.pf_mean_std_sz_in",
+            "sys.pf_mean_duration_s",
+            "sys.pf_mean_mean_iat",
+            "sys.pf_mean_std_iat",
+            "sys.pf_mean_n_bursts",
+            "sys.pf_mean_mean_burst_bytes",
+            "sys.pf_mean_std_burst_bytes",
+            "sys.pf_mean_mean_burst_dur",
+            "sys.pf_mean_mean_ibg",
+            "sys.pf_mean_cumul_bytes_q7",
+            "sys.pf_mean_cumul_bytes_q8",
+            "sys.pf_mean_cumul_bytes_q9",
+            "sys.pf_mean_bytes_out_ratio",
+            "sys.pf_mean_pkt_size_asymmetry",
+            "sys.pf_mean_n_small_inbound",
+            "sys.pf_mean_n_response_bursts",
+            "sys.pf_std_n_pkts_out",
+            "sys.pf_std_n_pkts_in",
+            "sys.pf_std_bytes_out",
+            "sys.pf_std_bytes_in",
+            "sys.pf_std_mean_sz_out",
+            "sys.pf_std_std_sz_out",
+            "sys.pf_std_p25_sz_out",
+            "sys.pf_std_mean_sz_in",
+            "sys.pf_std_std_sz_in",
+            "sys.pf_std_duration_s",
+            "sys.pf_std_mean_iat",
+            "sys.pf_std_std_iat",
+            "sys.pf_std_n_bursts",
+            "sys.pf_std_mean_burst_bytes",
+            "sys.pf_std_std_burst_bytes",
+            "sys.pf_std_mean_burst_dur",
+            "sys.pf_std_mean_ibg",
+            "sys.pf_std_cumul_bytes_q7",
+            "sys.pf_std_cumul_bytes_q8",
+            "sys.pf_std_cumul_bytes_q9",
+            "sys.pf_std_bytes_out_ratio",
+            "sys.pf_std_pkt_size_asymmetry",
+            "sys.pf_std_n_small_inbound",
+            "sys.pf_std_n_response_bursts"
+          ],
+          "per_connection_features_changed": [
+            "bytes_in",
+            "bytes_out",
+            "bytes_out_ratio",
+            "cumul_bytes_q7",
+            "cumul_bytes_q8",
+            "cumul_bytes_q9",
+            "duration_s",
+            "mean_burst_bytes",
+            "mean_burst_dur",
+            "mean_iat",
+            "mean_ibg",
+            "mean_sz_in",
+            "mean_sz_out",
+            "n_bursts",
+            "n_pkts_in",
+            "n_pkts_out",
+            "n_response_bursts",
+            "n_small_inbound",
+            "p25_sz_out",
+            "pkt_size_asymmetry",
+            "std_burst_bytes",
+            "std_iat",
+            "std_sz_in",
+            "std_sz_out"
+          ]
+        },
+        "cut": {
+          "trace_features_changed": [],
+          "per_connection_features_changed": []
+        }
+      },
+      {
+        "trace": "code_review_mesh_af5397",
+        "lost": 5,
+        "as_recorded": {
+          "trace_features_changed": [
+            "pf_mean.n_pkts_out",
+            "pf_mean.n_pkts_in",
+            "pf_mean.bytes_out",
+            "pf_mean.bytes_in",
+            "pf_mean.mean_sz_out",
+            "pf_mean.std_sz_out",
+            "pf_mean.p25_sz_out",
+            "pf_mean.p75_sz_out",
+            "pf_mean.mean_sz_in",
+            "pf_mean.std_sz_in",
+            "pf_mean.duration_s",
+            "pf_mean.mean_iat",
+            "pf_mean.std_iat",
+            "pf_mean.n_bursts",
+            "pf_mean.mean_burst_bytes",
+            "pf_mean.std_burst_bytes",
+            "pf_mean.mean_burst_dur",
+            "pf_mean.mean_ibg",
+            "pf_mean.cumul_bytes_q6",
+            "pf_mean.cumul_bytes_q8",
+            "pf_mean.cumul_bytes_q9",
+            "pf_mean.bytes_out_ratio",
+            "pf_mean.pkt_size_asymmetry",
+            "pf_mean.n_small_inbound",
+            "pf_mean.n_response_bursts",
+            "sys.total_bytes",
+            "sys.total_packets",
+            "sys.total_duration_s",
+            "sys.flow_end_spread",
+            "sys.total_bursts",
+            "sys.mean_burst_rate",
+            "sys.bytes_out_ratio",
+            "sys.heaviest_flow_bytes_frac",
+            "sys.flow_bytes_cv",
+            "sys.mean_flow_response_ratio",
+            "sys.max_flow_bytes_out_ratio",
+            "sys.pf_mean_n_pkts_out",
+            "sys.pf_mean_n_pkts_in",
+            "sys.pf_mean_bytes_out",
+            "sys.pf_mean_bytes_in",
+            "sys.pf_mean_mean_sz_out",
+            "sys.pf_mean_std_sz_out",
+            "sys.pf_mean_p25_sz_out",
+            "sys.pf_mean_p75_sz_out",
+            "sys.pf_mean_mean_sz_in",
+            "sys.pf_mean_std_sz_in",
+            "sys.pf_mean_duration_s",
+            "sys.pf_mean_mean_iat",
+            "sys.pf_mean_std_iat",
+            "sys.pf_mean_n_bursts",
+            "sys.pf_mean_mean_burst_bytes",
+            "sys.pf_mean_std_burst_bytes",
+            "sys.pf_mean_mean_burst_dur",
+            "sys.pf_mean_mean_ibg",
+            "sys.pf_mean_cumul_bytes_q6",
+            "sys.pf_mean_cumul_bytes_q8",
+            "sys.pf_mean_cumul_bytes_q9",
+            "sys.pf_mean_bytes_out_ratio",
+            "sys.pf_mean_pkt_size_asymmetry",
+            "sys.pf_mean_n_small_inbound",
+            "sys.pf_mean_n_response_bursts",
+            "sys.pf_std_n_pkts_out",
+            "sys.pf_std_n_pkts_in",
+            "sys.pf_std_bytes_out",
+            "sys.pf_std_bytes_in",
+            "sys.pf_std_mean_sz_out",
+            "sys.pf_std_std_sz_out",
+            "sys.pf_std_p25_sz_out",
+            "sys.pf_std_p75_sz_out",
+            "sys.pf_std_mean_sz_in",
+            "sys.pf_std_std_sz_in",
+            "sys.pf_std_duration_s",
+            "sys.pf_std_mean_iat",
+            "sys.pf_std_std_iat",
+            "sys.pf_std_n_bursts",
+            "sys.pf_std_mean_burst_bytes",
+            "sys.pf_std_std_burst_bytes",
+            "sys.pf_std_mean_burst_dur",
+            "sys.pf_std_mean_ibg",
+            "sys.pf_std_cumul_bytes_q6",
+            "sys.pf_std_cumul_bytes_q8",
+            "sys.pf_std_cumul_bytes_q9",
+            "sys.pf_std_bytes_out_ratio",
+            "sys.pf_std_pkt_size_asymmetry",
+            "sys.pf_std_n_small_inbound",
+            "sys.pf_std_n_response_bursts"
+          ],
+          "per_connection_features_changed": [
+            "bytes_in",
+            "bytes_out",
+            "bytes_out_ratio",
+            "cumul_bytes_q6",
+            "cumul_bytes_q8",
+            "cumul_bytes_q9",
+            "duration_s",
+            "mean_burst_bytes",
+            "mean_burst_dur",
+            "mean_iat",
+            "mean_ibg",
+            "mean_sz_in",
+            "mean_sz_out",
+            "n_bursts",
+            "n_pkts_in",
+            "n_pkts_out",
+            "n_response_bursts",
+            "n_small_inbound",
+            "p25_sz_out",
+            "p75_sz_out",
+            "pkt_size_asymmetry",
+            "std_burst_bytes",
+            "std_iat",
+            "std_sz_in",
+            "std_sz_out"
+          ]
+        },
+        "cut": {
+          "trace_features_changed": [],
+          "per_connection_features_changed": []
+        }
+      },
+      {
+        "trace": "code_review_star_333aa5",
+        "lost": 2,
+        "as_recorded": {
+          "trace_features_changed": [
+            "pf_mean.n_pkts_out",
+            "pf_mean.n_pkts_in",
+            "pf_mean.bytes_out",
+            "pf_mean.bytes_in",
+            "pf_mean.mean_sz_out",
+            "pf_mean.std_sz_out",
+            "pf_mean.mean_sz_in",
+            "pf_mean.std_sz_in",
+            "pf_mean.duration_s",
+            "pf_mean.mean_iat",
+            "pf_mean.std_iat",
+            "pf_mean.n_bursts",
+            "pf_mean.mean_burst_bytes",
+            "pf_mean.std_burst_bytes",
+            "pf_mean.mean_burst_dur",
+            "pf_mean.mean_ibg",
+            "pf_mean.cumul_bytes_q5",
+            "pf_mean.cumul_bytes_q6",
+            "pf_mean.cumul_bytes_q7",
+            "pf_mean.cumul_bytes_q8",
+            "pf_mean.cumul_bytes_q9",
+            "pf_mean.bytes_out_ratio",
+            "pf_mean.pkt_size_asymmetry",
+            "pf_mean.n_small_inbound",
+            "pf_mean.n_response_bursts",
+            "pf_top1.n_pkts_out",
+            "pf_top1.n_pkts_in",
+            "pf_top1.bytes_out",
+            "pf_top1.bytes_in",
+            "pf_top1.mean_sz_out",
+            "pf_top1.std_sz_out",
+            "pf_top1.mean_sz_in",
+            "pf_top1.std_sz_in",
+            "pf_top1.duration_s",
+            "pf_top1.mean_iat",
+            "pf_top1.std_iat",
+            "pf_top1.n_bursts",
+            "pf_top1.mean_burst_bytes",
+            "pf_top1.std_burst_bytes",
+            "pf_top1.mean_burst_dur",
+            "pf_top1.mean_ibg",
+            "pf_top1.cumul_bytes_q5",
+            "pf_top1.cumul_bytes_q6",
+            "pf_top1.cumul_bytes_q7",
+            "pf_top1.cumul_bytes_q8",
+            "pf_top1.cumul_bytes_q9",
+            "pf_top1.bytes_out_ratio",
+            "pf_top1.pkt_size_asymmetry",
+            "pf_top1.n_small_inbound",
+            "pf_top1.n_response_bursts",
+            "sys.total_bytes",
+            "sys.total_packets",
+            "sys.total_duration_s",
+            "sys.flow_end_spread",
+            "sys.total_bursts",
+            "sys.mean_burst_rate",
+            "sys.bytes_out_ratio",
+            "sys.heaviest_flow_bytes_frac",
+            "sys.flow_bytes_cv",
+            "sys.mean_flow_response_ratio",
+            "sys.max_flow_bytes_out_ratio",
+            "sys.pf_mean_n_pkts_out",
+            "sys.pf_mean_n_pkts_in",
+            "sys.pf_mean_bytes_out",
+            "sys.pf_mean_bytes_in",
+            "sys.pf_mean_mean_sz_out",
+            "sys.pf_mean_std_sz_out",
+            "sys.pf_mean_mean_sz_in",
+            "sys.pf_mean_std_sz_in",
+            "sys.pf_mean_duration_s",
+            "sys.pf_mean_mean_iat",
+            "sys.pf_mean_std_iat",
+            "sys.pf_mean_n_bursts",
+            "sys.pf_mean_mean_burst_bytes",
+            "sys.pf_mean_std_burst_bytes",
+            "sys.pf_mean_mean_burst_dur",
+            "sys.pf_mean_mean_ibg",
+            "sys.pf_mean_cumul_bytes_q5",
+            "sys.pf_mean_cumul_bytes_q6",
+            "sys.pf_mean_cumul_bytes_q7",
+            "sys.pf_mean_cumul_bytes_q8",
+            "sys.pf_mean_cumul_bytes_q9",
+            "sys.pf_mean_bytes_out_ratio",
+            "sys.pf_mean_pkt_size_asymmetry",
+            "sys.pf_mean_n_small_inbound",
+            "sys.pf_mean_n_response_bursts",
+            "sys.pf_std_n_pkts_out",
+            "sys.pf_std_n_pkts_in",
+            "sys.pf_std_bytes_out",
+            "sys.pf_std_bytes_in",
+            "sys.pf_std_mean_sz_out",
+            "sys.pf_std_std_sz_out",
+            "sys.pf_std_mean_sz_in",
+            "sys.pf_std_std_sz_in",
+            "sys.pf_std_duration_s",
+            "sys.pf_std_mean_iat",
+            "sys.pf_std_std_iat",
+            "sys.pf_std_n_bursts",
+            "sys.pf_std_mean_burst_bytes",
+            "sys.pf_std_std_burst_bytes",
+            "sys.pf_std_mean_burst_dur",
+            "sys.pf_std_mean_ibg",
+            "sys.pf_std_cumul_bytes_q5",
+            "sys.pf_std_cumul_bytes_q6",
+            "sys.pf_std_cumul_bytes_q7",
+            "sys.pf_std_cumul_bytes_q8",
+            "sys.pf_std_cumul_bytes_q9",
+            "sys.pf_std_bytes_out_ratio",
+            "sys.pf_std_pkt_size_asymmetry",
+            "sys.pf_std_n_small_inbound",
+            "sys.pf_std_n_response_bursts"
+          ],
+          "per_connection_features_changed": [
+            "bytes_in",
+            "bytes_out",
+            "bytes_out_ratio",
+            "cumul_bytes_q5",
+            "cumul_bytes_q6",
+            "cumul_bytes_q7",
+            "cumul_bytes_q8",
+            "cumul_bytes_q9",
+            "duration_s",
+            "mean_burst_bytes",
+            "mean_burst_dur",
+            "mean_iat",
+            "mean_ibg",
+            "mean_sz_in",
+            "mean_sz_out",
+            "n_bursts",
+            "n_pkts_in",
+            "n_pkts_out",
+            "n_response_bursts",
+            "n_small_inbound",
+            "pkt_size_asymmetry",
+            "std_burst_bytes",
+            "std_iat",
+            "std_sz_in",
+            "std_sz_out"
+          ]
+        },
+        "cut": {
+          "trace_features_changed": [],
+          "per_connection_features_changed": []
+        }
+      },
+      {
+        "trace": "data_analysis_chain_a29e46",
+        "lost": 2,
+        "as_recorded": {
+          "trace_features_changed": [
+            "pf_mean.n_pkts_out",
+            "pf_mean.n_pkts_in",
+            "pf_mean.bytes_out",
+            "pf_mean.bytes_in",
+            "pf_mean.mean_sz_out",
+            "pf_mean.std_sz_out",
+            "pf_mean.p25_sz_out",
+            "pf_mean.p75_sz_out",
+            "pf_mean.mean_sz_in",
+            "pf_mean.std_sz_in",
+            "pf_mean.duration_s",
+            "pf_mean.mean_iat",
+            "pf_mean.std_iat",
+            "pf_mean.n_bursts",
+            "pf_mean.mean_burst_bytes",
+            "pf_mean.std_burst_bytes",
+            "pf_mean.mean_burst_dur",
+            "pf_mean.mean_ibg",
+            "pf_mean.cumul_bytes_q7",
+            "pf_mean.cumul_bytes_q8",
+            "pf_mean.cumul_bytes_q9",
+            "pf_mean.bytes_out_ratio",
+            "pf_mean.pkt_size_asymmetry",
+            "pf_mean.n_small_inbound",
+            "pf_mean.n_response_bursts",
+            "pf_top2.n_pkts_out",
+            "pf_top2.n_pkts_in",
+            "pf_top2.bytes_out",
+            "pf_top2.bytes_in",
+            "pf_top2.mean_sz_out",
+            "pf_top2.std_sz_out",
+            "pf_top2.p25_sz_out",
+            "pf_top2.p75_sz_out",
+            "pf_top2.mean_sz_in",
+            "pf_top2.std_sz_in",
+            "pf_top2.duration_s",
+            "pf_top2.mean_iat",
+            "pf_top2.std_iat",
+            "pf_top2.n_bursts",
+            "pf_top2.mean_burst_bytes",
+            "pf_top2.std_burst_bytes",
+            "pf_top2.mean_burst_dur",
+            "pf_top2.mean_ibg",
+            "pf_top2.cumul_bytes_q1",
+            "pf_top2.cumul_bytes_q2",
+            "pf_top2.cumul_bytes_q3",
+            "pf_top2.cumul_bytes_q4",
+            "pf_top2.cumul_bytes_q5",
+            "pf_top2.cumul_bytes_q6",
+            "pf_top2.cumul_bytes_q7",
+            "pf_top2.cumul_bytes_q8",
+            "pf_top2.cumul_bytes_q9",
+            "pf_top2.bytes_out_ratio",
+            "pf_top2.pkt_size_asymmetry",
+            "pf_top2.n_small_inbound",
+            "pf_top2.n_response_bursts",
+            "sys.total_bytes",
+            "sys.total_packets",
+            "sys.total_duration_s",
+            "sys.flow_end_spread",
+            "sys.total_bursts",
+            "sys.mean_burst_rate",
+            "sys.bytes_out_ratio",
+            "sys.heaviest_flow_bytes_frac",
+            "sys.flow_bytes_cv",
+            "sys.mean_flow_response_ratio",
+            "sys.max_flow_bytes_out_ratio",
+            "sys.pf_mean_n_pkts_out",
+            "sys.pf_mean_n_pkts_in",
+            "sys.pf_mean_bytes_out",
+            "sys.pf_mean_bytes_in",
+            "sys.pf_mean_mean_sz_out",
+            "sys.pf_mean_std_sz_out",
+            "sys.pf_mean_p25_sz_out",
+            "sys.pf_mean_p75_sz_out",
+            "sys.pf_mean_mean_sz_in",
+            "sys.pf_mean_std_sz_in",
+            "sys.pf_mean_duration_s",
+            "sys.pf_mean_mean_iat",
+            "sys.pf_mean_std_iat",
+            "sys.pf_mean_n_bursts",
+            "sys.pf_mean_mean_burst_bytes",
+            "sys.pf_mean_std_burst_bytes",
+            "sys.pf_mean_mean_burst_dur",
+            "sys.pf_mean_mean_ibg",
+            "sys.pf_mean_cumul_bytes_q7",
+            "sys.pf_mean_cumul_bytes_q8",
+            "sys.pf_mean_cumul_bytes_q9",
+            "sys.pf_mean_bytes_out_ratio",
+            "sys.pf_mean_pkt_size_asymmetry",
+            "sys.pf_mean_n_small_inbound",
+            "sys.pf_mean_n_response_bursts",
+            "sys.pf_std_n_pkts_out",
+            "sys.pf_std_n_pkts_in",
+            "sys.pf_std_bytes_out",
+            "sys.pf_std_bytes_in",
+            "sys.pf_std_mean_sz_out",
+            "sys.pf_std_std_sz_out",
+            "sys.pf_std_p25_sz_out",
+            "sys.pf_std_p75_sz_out",
+            "sys.pf_std_mean_sz_in",
+            "sys.pf_std_std_sz_in",
+            "sys.pf_std_duration_s",
+            "sys.pf_std_mean_iat",
+            "sys.pf_std_std_iat",
+            "sys.pf_std_n_bursts",
+            "sys.pf_std_mean_burst_bytes",
+            "sys.pf_std_std_burst_bytes",
+            "sys.pf_std_mean_burst_dur",
+            "sys.pf_std_mean_ibg",
+            "sys.pf_std_cumul_bytes_q7",
+            "sys.pf_std_cumul_bytes_q8",
+            "sys.pf_std_cumul_bytes_q9",
+            "sys.pf_std_bytes_out_ratio",
+            "sys.pf_std_pkt_size_asymmetry",
+            "sys.pf_std_n_small_inbound",
+            "sys.pf_std_n_response_bursts"
+          ],
+          "per_connection_features_changed": [
+            "bytes_in",
+            "bytes_out",
+            "bytes_out_ratio",
+            "cumul_bytes_q7",
+            "cumul_bytes_q8",
+            "cumul_bytes_q9",
+            "duration_s",
+            "mean_burst_bytes",
+            "mean_burst_dur",
+            "mean_iat",
+            "mean_ibg",
+            "mean_sz_in",
+            "mean_sz_out",
+            "n_bursts",
+            "n_pkts_in",
+            "n_pkts_out",
+            "n_response_bursts",
+            "n_small_inbound",
+            "p25_sz_out",
+            "p75_sz_out",
+            "pkt_size_asymmetry",
+            "std_burst_bytes",
+            "std_iat",
+            "std_sz_in",
+            "std_sz_out"
+          ]
+        },
+        "cut": {
+          "trace_features_changed": [],
+          "per_connection_features_changed": []
+        }
+      },
+      {
+        "trace": "data_analysis_mesh_7291fb",
+        "lost": 5,
+        "as_recorded": {
+          "trace_features_changed": [
+            "pf_mean.n_pkts_out",
+            "pf_mean.n_pkts_in",
+            "pf_mean.bytes_out",
+            "pf_mean.bytes_in",
+            "pf_mean.mean_sz_out",
+            "pf_mean.std_sz_out",
+            "pf_mean.p25_sz_out",
+            "pf_mean.mean_sz_in",
+            "pf_mean.std_sz_in",
+            "pf_mean.duration_s",
+            "pf_mean.mean_iat",
+            "pf_mean.std_iat",
+            "pf_mean.n_bursts",
+            "pf_mean.mean_burst_bytes",
+            "pf_mean.std_burst_bytes",
+            "pf_mean.mean_burst_dur",
+            "pf_mean.mean_ibg",
+            "pf_mean.cumul_bytes_q6",
+            "pf_mean.cumul_bytes_q7",
+            "pf_mean.cumul_bytes_q8",
+            "pf_mean.cumul_bytes_q9",
+            "pf_mean.bytes_out_ratio",
+            "pf_mean.pkt_size_asymmetry",
+            "pf_mean.n_small_inbound",
+            "pf_mean.n_response_bursts",
+            "pf_top2.n_pkts_out",
+            "pf_top2.n_pkts_in",
+            "pf_top2.bytes_out",
+            "pf_top2.bytes_in",
+            "pf_top2.mean_sz_out",
+            "pf_top2.std_sz_out",
+            "pf_top2.p25_sz_out",
+            "pf_top2.mean_sz_in",
+            "pf_top2.std_sz_in",
+            "pf_top2.duration_s",
+            "pf_top2.mean_iat",
+            "pf_top2.std_iat",
+            "pf_top2.n_bursts",
+            "pf_top2.mean_burst_bytes",
+            "pf_top2.std_burst_bytes",
+            "pf_top2.mean_burst_dur",
+            "pf_top2.mean_ibg",
+            "pf_top2.cumul_bytes_q7",
+            "pf_top2.cumul_bytes_q8",
+            "pf_top2.cumul_bytes_q9",
+            "pf_top2.bytes_out_ratio",
+            "pf_top2.pkt_size_asymmetry",
+            "pf_top2.n_small_inbound",
+            "pf_top2.n_response_bursts",
+            "sys.total_bytes",
+            "sys.total_packets",
+            "sys.total_duration_s",
+            "sys.flow_end_spread",
+            "sys.total_bursts",
+            "sys.mean_burst_rate",
+            "sys.bytes_out_ratio",
+            "sys.heaviest_flow_bytes_frac",
+            "sys.flow_bytes_cv",
+            "sys.mean_flow_response_ratio",
+            "sys.max_flow_bytes_out_ratio",
+            "sys.pf_mean_n_pkts_out",
+            "sys.pf_mean_n_pkts_in",
+            "sys.pf_mean_bytes_out",
+            "sys.pf_mean_bytes_in",
+            "sys.pf_mean_mean_sz_out",
+            "sys.pf_mean_std_sz_out",
+            "sys.pf_mean_p25_sz_out",
+            "sys.pf_mean_mean_sz_in",
+            "sys.pf_mean_std_sz_in",
+            "sys.pf_mean_duration_s",
+            "sys.pf_mean_mean_iat",
+            "sys.pf_mean_std_iat",
+            "sys.pf_mean_n_bursts",
+            "sys.pf_mean_mean_burst_bytes",
+            "sys.pf_mean_std_burst_bytes",
+            "sys.pf_mean_mean_burst_dur",
+            "sys.pf_mean_mean_ibg",
+            "sys.pf_mean_cumul_bytes_q6",
+            "sys.pf_mean_cumul_bytes_q7",
+            "sys.pf_mean_cumul_bytes_q8",
+            "sys.pf_mean_cumul_bytes_q9",
+            "sys.pf_mean_bytes_out_ratio",
+            "sys.pf_mean_pkt_size_asymmetry",
+            "sys.pf_mean_n_small_inbound",
+            "sys.pf_mean_n_response_bursts",
+            "sys.pf_std_n_pkts_out",
+            "sys.pf_std_n_pkts_in",
+            "sys.pf_std_bytes_out",
+            "sys.pf_std_bytes_in",
+            "sys.pf_std_mean_sz_out",
+            "sys.pf_std_std_sz_out",
+            "sys.pf_std_p25_sz_out",
+            "sys.pf_std_mean_sz_in",
+            "sys.pf_std_std_sz_in",
+            "sys.pf_std_duration_s",
+            "sys.pf_std_mean_iat",
+            "sys.pf_std_std_iat",
+            "sys.pf_std_n_bursts",
+            "sys.pf_std_mean_burst_bytes",
+            "sys.pf_std_std_burst_bytes",
+            "sys.pf_std_mean_burst_dur",
+            "sys.pf_std_mean_ibg",
+            "sys.pf_std_cumul_bytes_q6",
+            "sys.pf_std_cumul_bytes_q7",
+            "sys.pf_std_cumul_bytes_q8",
+            "sys.pf_std_cumul_bytes_q9",
+            "sys.pf_std_bytes_out_ratio",
+            "sys.pf_std_pkt_size_asymmetry",
+            "sys.pf_std_n_small_inbound",
+            "sys.pf_std_n_response_bursts"
+          ],
+          "per_connection_features_changed": [
+            "bytes_in",
+            "bytes_out",
+            "bytes_out_ratio",
+            "cumul_bytes_q6",
+            "cumul_bytes_q7",
+            "cumul_bytes_q8",
+            "cumul_bytes_q9",
+            "duration_s",
+            "mean_burst_bytes",
+            "mean_burst_dur",
+            "mean_iat",
+            "mean_ibg",
+            "mean_sz_in",
+            "mean_sz_out",
+            "n_bursts",
+            "n_pkts_in",
+            "n_pkts_out",
+            "n_response_bursts",
+            "n_small_inbound",
+            "p25_sz_out",
+            "pkt_size_asymmetry",
+            "std_burst_bytes",
+            "std_iat",
+            "std_sz_in",
+            "std_sz_out"
+          ]
+        },
+        "cut": {
+          "trace_features_changed": [],
+          "per_connection_features_changed": []
+        }
+      },
+      {
+        "trace": "data_analysis_star_1377e0",
+        "lost": 5,
+        "as_recorded": {
+          "trace_features_changed": [
+            "pf_mean.n_pkts_out",
+            "pf_mean.n_pkts_in",
+            "pf_mean.bytes_out",
+            "pf_mean.bytes_in",
+            "pf_mean.mean_sz_out",
+            "pf_mean.std_sz_out",
+            "pf_mean.mean_sz_in",
+            "pf_mean.std_sz_in",
+            "pf_mean.duration_s",
+            "pf_mean.mean_iat",
+            "pf_mean.std_iat",
+            "pf_mean.n_bursts",
+            "pf_mean.mean_burst_bytes",
+            "pf_mean.std_burst_bytes",
+            "pf_mean.mean_burst_dur",
+            "pf_mean.mean_ibg",
+            "pf_mean.cumul_bytes_q5",
+            "pf_mean.cumul_bytes_q6",
+            "pf_mean.cumul_bytes_q7",
+            "pf_mean.cumul_bytes_q8",
+            "pf_mean.cumul_bytes_q9",
+            "pf_mean.bytes_out_ratio",
+            "pf_mean.pkt_size_asymmetry",
+            "pf_mean.n_small_inbound",
+            "pf_mean.n_response_bursts",
+            "pf_top1.n_pkts_out",
+            "pf_top1.n_pkts_in",
+            "pf_top1.bytes_out",
+            "pf_top1.bytes_in",
+            "pf_top1.mean_sz_out",
+            "pf_top1.std_sz_out",
+            "pf_top1.mean_sz_in",
+            "pf_top1.std_sz_in",
+            "pf_top1.duration_s",
+            "pf_top1.mean_iat",
+            "pf_top1.std_iat",
+            "pf_top1.n_bursts",
+            "pf_top1.mean_burst_bytes",
+            "pf_top1.std_burst_bytes",
+            "pf_top1.mean_burst_dur",
+            "pf_top1.mean_ibg",
+            "pf_top1.cumul_bytes_q5",
+            "pf_top1.cumul_bytes_q6",
+            "pf_top1.cumul_bytes_q7",
+            "pf_top1.cumul_bytes_q8",
+            "pf_top1.cumul_bytes_q9",
+            "pf_top1.bytes_out_ratio",
+            "pf_top1.pkt_size_asymmetry",
+            "pf_top1.n_small_inbound",
+            "pf_top1.n_response_bursts",
+            "sys.total_bytes",
+            "sys.total_packets",
+            "sys.total_duration_s",
+            "sys.flow_end_spread",
+            "sys.total_bursts",
+            "sys.mean_burst_rate",
+            "sys.bytes_out_ratio",
+            "sys.heaviest_flow_bytes_frac",
+            "sys.flow_bytes_cv",
+            "sys.mean_flow_response_ratio",
+            "sys.max_flow_bytes_out_ratio",
+            "sys.pf_mean_n_pkts_out",
+            "sys.pf_mean_n_pkts_in",
+            "sys.pf_mean_bytes_out",
+            "sys.pf_mean_bytes_in",
+            "sys.pf_mean_mean_sz_out",
+            "sys.pf_mean_std_sz_out",
+            "sys.pf_mean_mean_sz_in",
+            "sys.pf_mean_std_sz_in",
+            "sys.pf_mean_duration_s",
+            "sys.pf_mean_mean_iat",
+            "sys.pf_mean_std_iat",
+            "sys.pf_mean_n_bursts",
+            "sys.pf_mean_mean_burst_bytes",
+            "sys.pf_mean_std_burst_bytes",
+            "sys.pf_mean_mean_burst_dur",
+            "sys.pf_mean_mean_ibg",
+            "sys.pf_mean_cumul_bytes_q5",
+            "sys.pf_mean_cumul_bytes_q6",
+            "sys.pf_mean_cumul_bytes_q7",
+            "sys.pf_mean_cumul_bytes_q8",
+            "sys.pf_mean_cumul_bytes_q9",
+            "sys.pf_mean_bytes_out_ratio",
+            "sys.pf_mean_pkt_size_asymmetry",
+            "sys.pf_mean_n_small_inbound",
+            "sys.pf_mean_n_response_bursts",
+            "sys.pf_std_n_pkts_out",
+            "sys.pf_std_n_pkts_in",
+            "sys.pf_std_bytes_out",
+            "sys.pf_std_bytes_in",
+            "sys.pf_std_mean_sz_out",
+            "sys.pf_std_std_sz_out",
+            "sys.pf_std_mean_sz_in",
+            "sys.pf_std_std_sz_in",
+            "sys.pf_std_duration_s",
+            "sys.pf_std_mean_iat",
+            "sys.pf_std_std_iat",
+            "sys.pf_std_n_bursts",
+            "sys.pf_std_mean_burst_bytes",
+            "sys.pf_std_std_burst_bytes",
+            "sys.pf_std_mean_burst_dur",
+            "sys.pf_std_mean_ibg",
+            "sys.pf_std_cumul_bytes_q5",
+            "sys.pf_std_cumul_bytes_q6",
+            "sys.pf_std_cumul_bytes_q7",
+            "sys.pf_std_cumul_bytes_q8",
+            "sys.pf_std_cumul_bytes_q9",
+            "sys.pf_std_bytes_out_ratio",
+            "sys.pf_std_pkt_size_asymmetry",
+            "sys.pf_std_n_small_inbound",
+            "sys.pf_std_n_response_bursts"
+          ],
+          "per_connection_features_changed": [
+            "bytes_in",
+            "bytes_out",
+            "bytes_out_ratio",
+            "cumul_bytes_q5",
+            "cumul_bytes_q6",
+            "cumul_bytes_q7",
+            "cumul_bytes_q8",
+            "cumul_bytes_q9",
+            "duration_s",
+            "mean_burst_bytes",
+            "mean_burst_dur",
+            "mean_iat",
+            "mean_ibg",
+            "mean_sz_in",
+            "mean_sz_out",
+            "n_bursts",
+            "n_pkts_in",
+            "n_pkts_out",
+            "n_response_bursts",
+            "n_small_inbound",
+            "pkt_size_asymmetry",
+            "std_burst_bytes",
+            "std_iat",
+            "std_sz_in",
+            "std_sz_out"
+          ]
+        },
+        "cut": {
+          "trace_features_changed": [],
+          "per_connection_features_changed": []
+        }
+      },
+      {
+        "trace": "research_retrieval_chain_1aa559",
+        "lost": 2,
+        "as_recorded": {
+          "trace_features_changed": [
+            "pf_mean.n_pkts_out",
+            "pf_mean.n_pkts_in",
+            "pf_mean.bytes_out",
+            "pf_mean.bytes_in",
+            "pf_mean.mean_sz_out",
+            "pf_mean.std_sz_out",
+            "pf_mean.p25_sz_out",
+            "pf_mean.mean_sz_in",
+            "pf_mean.std_sz_in",
+            "pf_mean.duration_s",
+            "pf_mean.mean_iat",
+            "pf_mean.std_iat",
+            "pf_mean.n_bursts",
+            "pf_mean.mean_burst_bytes",
+            "pf_mean.std_burst_bytes",
+            "pf_mean.mean_burst_dur",
+            "pf_mean.mean_ibg",
+            "pf_mean.cumul_bytes_q7",
+            "pf_mean.cumul_bytes_q8",
+            "pf_mean.cumul_bytes_q9",
+            "pf_mean.bytes_out_ratio",
+            "pf_mean.pkt_size_asymmetry",
+            "pf_mean.n_small_inbound",
+            "pf_mean.n_response_bursts",
+            "sys.total_bytes",
+            "sys.total_packets",
+            "sys.total_duration_s",
+            "sys.flow_end_spread",
+            "sys.total_bursts",
+            "sys.mean_burst_rate",
+            "sys.bytes_out_ratio",
+            "sys.heaviest_flow_bytes_frac",
+            "sys.flow_bytes_cv",
+            "sys.mean_flow_response_ratio",
+            "sys.max_flow_bytes_out_ratio",
+            "sys.pf_mean_n_pkts_out",
+            "sys.pf_mean_n_pkts_in",
+            "sys.pf_mean_bytes_out",
+            "sys.pf_mean_bytes_in",
+            "sys.pf_mean_mean_sz_out",
+            "sys.pf_mean_std_sz_out",
+            "sys.pf_mean_p25_sz_out",
+            "sys.pf_mean_mean_sz_in",
+            "sys.pf_mean_std_sz_in",
+            "sys.pf_mean_duration_s",
+            "sys.pf_mean_mean_iat",
+            "sys.pf_mean_std_iat",
+            "sys.pf_mean_n_bursts",
+            "sys.pf_mean_mean_burst_bytes",
+            "sys.pf_mean_std_burst_bytes",
+            "sys.pf_mean_mean_burst_dur",
+            "sys.pf_mean_mean_ibg",
+            "sys.pf_mean_cumul_bytes_q7",
+            "sys.pf_mean_cumul_bytes_q8",
+            "sys.pf_mean_cumul_bytes_q9",
+            "sys.pf_mean_bytes_out_ratio",
+            "sys.pf_mean_pkt_size_asymmetry",
+            "sys.pf_mean_n_small_inbound",
+            "sys.pf_mean_n_response_bursts",
+            "sys.pf_std_n_pkts_out",
+            "sys.pf_std_n_pkts_in",
+            "sys.pf_std_bytes_out",
+            "sys.pf_std_bytes_in",
+            "sys.pf_std_mean_sz_out",
+            "sys.pf_std_std_sz_out",
+            "sys.pf_std_p25_sz_out",
+            "sys.pf_std_mean_sz_in",
+            "sys.pf_std_std_sz_in",
+            "sys.pf_std_duration_s",
+            "sys.pf_std_mean_iat",
+            "sys.pf_std_std_iat",
+            "sys.pf_std_n_bursts",
+            "sys.pf_std_mean_burst_bytes",
+            "sys.pf_std_std_burst_bytes",
+            "sys.pf_std_mean_burst_dur",
+            "sys.pf_std_mean_ibg",
+            "sys.pf_std_cumul_bytes_q7",
+            "sys.pf_std_cumul_bytes_q8",
+            "sys.pf_std_cumul_bytes_q9",
+            "sys.pf_std_bytes_out_ratio",
+            "sys.pf_std_pkt_size_asymmetry",
+            "sys.pf_std_n_small_inbound",
+            "sys.pf_std_n_response_bursts"
+          ],
+          "per_connection_features_changed": [
+            "bytes_in",
+            "bytes_out",
+            "bytes_out_ratio",
+            "cumul_bytes_q7",
+            "cumul_bytes_q8",
+            "cumul_bytes_q9",
+            "duration_s",
+            "mean_burst_bytes",
+            "mean_burst_dur",
+            "mean_iat",
+            "mean_ibg",
+            "mean_sz_in",
+            "mean_sz_out",
+            "n_bursts",
+            "n_pkts_in",
+            "n_pkts_out",
+            "n_response_bursts",
+            "n_small_inbound",
+            "p25_sz_out",
+            "pkt_size_asymmetry",
+            "std_burst_bytes",
+            "std_iat",
+            "std_sz_in",
+            "std_sz_out"
+          ]
+        },
+        "cut": {
+          "trace_features_changed": [],
+          "per_connection_features_changed": []
+        }
+      },
+      {
+        "trace": "research_retrieval_mesh_537b5e",
+        "lost": 4,
+        "as_recorded": {
+          "trace_features_changed": [
+            "pf_mean.n_pkts_out",
+            "pf_mean.n_pkts_in",
+            "pf_mean.bytes_out",
+            "pf_mean.bytes_in",
+            "pf_mean.mean_sz_out",
+            "pf_mean.std_sz_out",
+            "pf_mean.p25_sz_out",
+            "pf_mean.p75_sz_out",
+            "pf_mean.mean_sz_in",
+            "pf_mean.std_sz_in",
+            "pf_mean.duration_s",
+            "pf_mean.mean_iat",
+            "pf_mean.std_iat",
+            "pf_mean.n_bursts",
+            "pf_mean.mean_burst_bytes",
+            "pf_mean.std_burst_bytes",
+            "pf_mean.mean_burst_dur",
+            "pf_mean.mean_ibg",
+            "pf_mean.cumul_bytes_q7",
+            "pf_mean.cumul_bytes_q8",
+            "pf_mean.cumul_bytes_q9",
+            "pf_mean.bytes_out_ratio",
+            "pf_mean.pkt_size_asymmetry",
+            "pf_mean.n_small_inbound",
+            "pf_mean.n_response_bursts",
+            "sys.total_bytes",
+            "sys.total_packets",
+            "sys.total_duration_s",
+            "sys.flow_end_spread",
+            "sys.total_bursts",
+            "sys.mean_burst_rate",
+            "sys.bytes_out_ratio",
+            "sys.heaviest_flow_bytes_frac",
+            "sys.flow_bytes_cv",
+            "sys.mean_flow_response_ratio",
+            "sys.max_flow_bytes_out_ratio",
+            "sys.pf_mean_n_pkts_out",
+            "sys.pf_mean_n_pkts_in",
+            "sys.pf_mean_bytes_out",
+            "sys.pf_mean_bytes_in",
+            "sys.pf_mean_mean_sz_out",
+            "sys.pf_mean_std_sz_out",
+            "sys.pf_mean_p25_sz_out",
+            "sys.pf_mean_p75_sz_out",
+            "sys.pf_mean_mean_sz_in",
+            "sys.pf_mean_std_sz_in",
+            "sys.pf_mean_duration_s",
+            "sys.pf_mean_mean_iat",
+            "sys.pf_mean_std_iat",
+            "sys.pf_mean_n_bursts",
+            "sys.pf_mean_mean_burst_bytes",
+            "sys.pf_mean_std_burst_bytes",
+            "sys.pf_mean_mean_burst_dur",
+            "sys.pf_mean_mean_ibg",
+            "sys.pf_mean_cumul_bytes_q7",
+            "sys.pf_mean_cumul_bytes_q8",
+            "sys.pf_mean_cumul_bytes_q9",
+            "sys.pf_mean_bytes_out_ratio",
+            "sys.pf_mean_pkt_size_asymmetry",
+            "sys.pf_mean_n_small_inbound",
+            "sys.pf_mean_n_response_bursts",
+            "sys.pf_std_n_pkts_out",
+            "sys.pf_std_n_pkts_in",
+            "sys.pf_std_bytes_out",
+            "sys.pf_std_bytes_in",
+            "sys.pf_std_mean_sz_out",
+            "sys.pf_std_std_sz_out",
+            "sys.pf_std_p25_sz_out",
+            "sys.pf_std_p75_sz_out",
+            "sys.pf_std_mean_sz_in",
+            "sys.pf_std_std_sz_in",
+            "sys.pf_std_duration_s",
+            "sys.pf_std_mean_iat",
+            "sys.pf_std_std_iat",
+            "sys.pf_std_n_bursts",
+            "sys.pf_std_mean_burst_bytes",
+            "sys.pf_std_std_burst_bytes",
+            "sys.pf_std_mean_burst_dur",
+            "sys.pf_std_mean_ibg",
+            "sys.pf_std_cumul_bytes_q7",
+            "sys.pf_std_cumul_bytes_q8",
+            "sys.pf_std_cumul_bytes_q9",
+            "sys.pf_std_bytes_out_ratio",
+            "sys.pf_std_pkt_size_asymmetry",
+            "sys.pf_std_n_small_inbound",
+            "sys.pf_std_n_response_bursts"
+          ],
+          "per_connection_features_changed": [
+            "bytes_in",
+            "bytes_out",
+            "bytes_out_ratio",
+            "cumul_bytes_q7",
+            "cumul_bytes_q8",
+            "cumul_bytes_q9",
+            "duration_s",
+            "mean_burst_bytes",
+            "mean_burst_dur",
+            "mean_iat",
+            "mean_ibg",
+            "mean_sz_in",
+            "mean_sz_out",
+            "n_bursts",
+            "n_pkts_in",
+            "n_pkts_out",
+            "n_response_bursts",
+            "n_small_inbound",
+            "p25_sz_out",
+            "pkt_size_asymmetry",
+            "std_burst_bytes",
+            "std_iat",
+            "std_sz_in",
+            "std_sz_out"
+          ]
+        },
+        "cut": {
+          "trace_features_changed": [],
+          "per_connection_features_changed": []
+        }
+      },
+      {
+        "trace": "research_retrieval_star_a683df",
+        "lost": 2,
+        "as_recorded": {
+          "trace_features_changed": [
+            "pf_mean.n_pkts_out",
+            "pf_mean.n_pkts_in",
+            "pf_mean.bytes_out",
+            "pf_mean.bytes_in",
+            "pf_mean.mean_sz_out",
+            "pf_mean.std_sz_out",
+            "pf_mean.p75_sz_out",
+            "pf_mean.mean_sz_in",
+            "pf_mean.std_sz_in",
+            "pf_mean.duration_s",
+            "pf_mean.mean_iat",
+            "pf_mean.std_iat",
+            "pf_mean.n_bursts",
+            "pf_mean.mean_burst_bytes",
+            "pf_mean.std_burst_bytes",
+            "pf_mean.mean_burst_dur",
+            "pf_mean.mean_ibg",
+            "pf_mean.cumul_bytes_q5",
+            "pf_mean.cumul_bytes_q6",
+            "pf_mean.cumul_bytes_q7",
+            "pf_mean.cumul_bytes_q8",
+            "pf_mean.cumul_bytes_q9",
+            "pf_mean.bytes_out_ratio",
+            "pf_mean.pkt_size_asymmetry",
+            "pf_mean.n_small_inbound",
+            "pf_mean.n_response_bursts",
+            "pf_top2.n_pkts_out",
+            "pf_top2.n_pkts_in",
+            "pf_top2.bytes_out",
+            "pf_top2.bytes_in",
+            "pf_top2.mean_sz_out",
+            "pf_top2.std_sz_out",
+            "pf_top2.p75_sz_out",
+            "pf_top2.mean_sz_in",
+            "pf_top2.std_sz_in",
+            "pf_top2.duration_s",
+            "pf_top2.mean_iat",
+            "pf_top2.std_iat",
+            "pf_top2.n_bursts",
+            "pf_top2.mean_burst_bytes",
+            "pf_top2.std_burst_bytes",
+            "pf_top2.mean_burst_dur",
+            "pf_top2.mean_ibg",
+            "pf_top2.cumul_bytes_q5",
+            "pf_top2.cumul_bytes_q6",
+            "pf_top2.cumul_bytes_q7",
+            "pf_top2.cumul_bytes_q8",
+            "pf_top2.cumul_bytes_q9",
+            "pf_top2.bytes_out_ratio",
+            "pf_top2.pkt_size_asymmetry",
+            "pf_top2.n_small_inbound",
+            "pf_top2.n_response_bursts",
+            "sys.total_bytes",
+            "sys.total_packets",
+            "sys.total_duration_s",
+            "sys.flow_end_spread",
+            "sys.total_bursts",
+            "sys.mean_burst_rate",
+            "sys.bytes_out_ratio",
+            "sys.heaviest_flow_bytes_frac",
+            "sys.flow_bytes_cv",
+            "sys.mean_flow_response_ratio",
+            "sys.max_flow_bytes_out_ratio",
+            "sys.pf_mean_n_pkts_out",
+            "sys.pf_mean_n_pkts_in",
+            "sys.pf_mean_bytes_out",
+            "sys.pf_mean_bytes_in",
+            "sys.pf_mean_mean_sz_out",
+            "sys.pf_mean_std_sz_out",
+            "sys.pf_mean_p75_sz_out",
+            "sys.pf_mean_mean_sz_in",
+            "sys.pf_mean_std_sz_in",
+            "sys.pf_mean_duration_s",
+            "sys.pf_mean_mean_iat",
+            "sys.pf_mean_std_iat",
+            "sys.pf_mean_n_bursts",
+            "sys.pf_mean_mean_burst_bytes",
+            "sys.pf_mean_std_burst_bytes",
+            "sys.pf_mean_mean_burst_dur",
+            "sys.pf_mean_mean_ibg",
+            "sys.pf_mean_cumul_bytes_q5",
+            "sys.pf_mean_cumul_bytes_q6",
+            "sys.pf_mean_cumul_bytes_q7",
+            "sys.pf_mean_cumul_bytes_q8",
+            "sys.pf_mean_cumul_bytes_q9",
+            "sys.pf_mean_bytes_out_ratio",
+            "sys.pf_mean_pkt_size_asymmetry",
+            "sys.pf_mean_n_small_inbound",
+            "sys.pf_mean_n_response_bursts",
+            "sys.pf_std_n_pkts_out",
+            "sys.pf_std_n_pkts_in",
+            "sys.pf_std_bytes_out",
+            "sys.pf_std_bytes_in",
+            "sys.pf_std_mean_sz_out",
+            "sys.pf_std_std_sz_out",
+            "sys.pf_std_p75_sz_out",
+            "sys.pf_std_mean_sz_in",
+            "sys.pf_std_std_sz_in",
+            "sys.pf_std_duration_s",
+            "sys.pf_std_mean_iat",
+            "sys.pf_std_std_iat",
+            "sys.pf_std_n_bursts",
+            "sys.pf_std_mean_burst_bytes",
+            "sys.pf_std_std_burst_bytes",
+            "sys.pf_std_mean_burst_dur",
+            "sys.pf_std_mean_ibg",
+            "sys.pf_std_cumul_bytes_q5",
+            "sys.pf_std_cumul_bytes_q6",
+            "sys.pf_std_cumul_bytes_q7",
+            "sys.pf_std_cumul_bytes_q8",
+            "sys.pf_std_cumul_bytes_q9",
+            "sys.pf_std_bytes_out_ratio",
+            "sys.pf_std_pkt_size_asymmetry",
+            "sys.pf_std_n_small_inbound",
+            "sys.pf_std_n_response_bursts"
+          ],
+          "per_connection_features_changed": [
+            "bytes_in",
+            "bytes_out",
+            "bytes_out_ratio",
+            "cumul_bytes_q5",
+            "cumul_bytes_q6",
+            "cumul_bytes_q7",
+            "cumul_bytes_q8",
+            "cumul_bytes_q9",
+            "duration_s",
+            "mean_burst_bytes",
+            "mean_burst_dur",
+            "mean_iat",
+            "mean_ibg",
+            "mean_sz_in",
+            "mean_sz_out",
+            "n_bursts",
+            "n_pkts_in",
+            "n_pkts_out",
+            "n_response_bursts",
+            "n_small_inbound",
+            "p75_sz_out",
+            "pkt_size_asymmetry",
+            "std_burst_bytes",
+            "std_iat",
+            "std_sz_in",
+            "std_sz_out"
+          ]
+        },
+        "cut": {
+          "trace_features_changed": [],
+          "per_connection_features_changed": []
+        }
+      },
+      {
+        "trace": "support_triage_chain_775ca5",
+        "lost": 2,
+        "as_recorded": {
+          "trace_features_changed": [
+            "pf_mean.n_pkts_out",
+            "pf_mean.n_pkts_in",
+            "pf_mean.bytes_out",
+            "pf_mean.bytes_in",
+            "pf_mean.mean_sz_out",
+            "pf_mean.std_sz_out",
+            "pf_mean.p25_sz_out",
+            "pf_mean.mean_sz_in",
+            "pf_mean.std_sz_in",
+            "pf_mean.duration_s",
+            "pf_mean.mean_iat",
+            "pf_mean.std_iat",
+            "pf_mean.n_bursts",
+            "pf_mean.mean_burst_bytes",
+            "pf_mean.std_burst_bytes",
+            "pf_mean.mean_burst_dur",
+            "pf_mean.mean_ibg",
+            "pf_mean.cumul_bytes_q7",
+            "pf_mean.cumul_bytes_q8",
+            "pf_mean.cumul_bytes_q9",
+            "pf_mean.bytes_out_ratio",
+            "pf_mean.pkt_size_asymmetry",
+            "pf_mean.n_small_inbound",
+            "pf_mean.n_response_bursts",
+            "sys.total_bytes",
+            "sys.total_packets",
+            "sys.total_duration_s",
+            "sys.flow_end_spread",
+            "sys.total_bursts",
+            "sys.mean_burst_rate",
+            "sys.bytes_out_ratio",
+            "sys.heaviest_flow_bytes_frac",
+            "sys.flow_bytes_cv",
+            "sys.mean_flow_response_ratio",
+            "sys.max_flow_bytes_out_ratio",
+            "sys.pf_mean_n_pkts_out",
+            "sys.pf_mean_n_pkts_in",
+            "sys.pf_mean_bytes_out",
+            "sys.pf_mean_bytes_in",
+            "sys.pf_mean_mean_sz_out",
+            "sys.pf_mean_std_sz_out",
+            "sys.pf_mean_p25_sz_out",
+            "sys.pf_mean_mean_sz_in",
+            "sys.pf_mean_std_sz_in",
+            "sys.pf_mean_duration_s",
+            "sys.pf_mean_mean_iat",
+            "sys.pf_mean_std_iat",
+            "sys.pf_mean_n_bursts",
+            "sys.pf_mean_mean_burst_bytes",
+            "sys.pf_mean_std_burst_bytes",
+            "sys.pf_mean_mean_burst_dur",
+            "sys.pf_mean_mean_ibg",
+            "sys.pf_mean_cumul_bytes_q7",
+            "sys.pf_mean_cumul_bytes_q8",
+            "sys.pf_mean_cumul_bytes_q9",
+            "sys.pf_mean_bytes_out_ratio",
+            "sys.pf_mean_pkt_size_asymmetry",
+            "sys.pf_mean_n_small_inbound",
+            "sys.pf_mean_n_response_bursts",
+            "sys.pf_std_n_pkts_out",
+            "sys.pf_std_n_pkts_in",
+            "sys.pf_std_bytes_out",
+            "sys.pf_std_bytes_in",
+            "sys.pf_std_mean_sz_out",
+            "sys.pf_std_std_sz_out",
+            "sys.pf_std_p25_sz_out",
+            "sys.pf_std_mean_sz_in",
+            "sys.pf_std_std_sz_in",
+            "sys.pf_std_duration_s",
+            "sys.pf_std_mean_iat",
+            "sys.pf_std_std_iat",
+            "sys.pf_std_n_bursts",
+            "sys.pf_std_mean_burst_bytes",
+            "sys.pf_std_std_burst_bytes",
+            "sys.pf_std_mean_burst_dur",
+            "sys.pf_std_mean_ibg",
+            "sys.pf_std_cumul_bytes_q7",
+            "sys.pf_std_cumul_bytes_q8",
+            "sys.pf_std_cumul_bytes_q9",
+            "sys.pf_std_bytes_out_ratio",
+            "sys.pf_std_pkt_size_asymmetry",
+            "sys.pf_std_n_small_inbound",
+            "sys.pf_std_n_response_bursts"
+          ],
+          "per_connection_features_changed": [
+            "bytes_in",
+            "bytes_out",
+            "bytes_out_ratio",
+            "cumul_bytes_q7",
+            "cumul_bytes_q8",
+            "cumul_bytes_q9",
+            "duration_s",
+            "mean_burst_bytes",
+            "mean_burst_dur",
+            "mean_iat",
+            "mean_ibg",
+            "mean_sz_in",
+            "mean_sz_out",
+            "n_bursts",
+            "n_pkts_in",
+            "n_pkts_out",
+            "n_response_bursts",
+            "n_small_inbound",
+            "p25_sz_out",
+            "pkt_size_asymmetry",
+            "std_burst_bytes",
+            "std_iat",
+            "std_sz_in",
+            "std_sz_out"
+          ]
+        },
+        "cut": {
+          "trace_features_changed": [],
+          "per_connection_features_changed": []
+        }
+      },
+      {
+        "trace": "support_triage_mesh_72c42f",
+        "lost": 4,
+        "as_recorded": {
+          "trace_features_changed": [
+            "pf_mean.n_pkts_out",
+            "pf_mean.n_pkts_in",
+            "pf_mean.bytes_out",
+            "pf_mean.bytes_in",
+            "pf_mean.mean_sz_out",
+            "pf_mean.std_sz_out",
+            "pf_mean.p25_sz_out",
+            "pf_mean.mean_sz_in",
+            "pf_mean.std_sz_in",
+            "pf_mean.duration_s",
+            "pf_mean.mean_iat",
+            "pf_mean.std_iat",
+            "pf_mean.n_bursts",
+            "pf_mean.mean_burst_bytes",
+            "pf_mean.std_burst_bytes",
+            "pf_mean.mean_burst_dur",
+            "pf_mean.mean_ibg",
+            "pf_mean.cumul_bytes_q8",
+            "pf_mean.cumul_bytes_q9",
+            "pf_mean.bytes_out_ratio",
+            "pf_mean.pkt_size_asymmetry",
+            "pf_mean.n_small_inbound",
+            "pf_mean.n_response_bursts",
+            "pf_top2.n_pkts_out",
+            "pf_top2.n_pkts_in",
+            "pf_top2.bytes_out",
+            "pf_top2.bytes_in",
+            "pf_top2.mean_sz_out",
+            "pf_top2.std_sz_out",
+            "pf_top2.p25_sz_out",
+            "pf_top2.mean_sz_in",
+            "pf_top2.std_sz_in",
+            "pf_top2.duration_s",
+            "pf_top2.mean_iat",
+            "pf_top2.std_iat",
+            "pf_top2.n_bursts",
+            "pf_top2.mean_burst_bytes",
+            "pf_top2.std_burst_bytes",
+            "pf_top2.mean_burst_dur",
+            "pf_top2.mean_ibg",
+            "pf_top2.cumul_bytes_q8",
+            "pf_top2.cumul_bytes_q9",
+            "pf_top2.bytes_out_ratio",
+            "pf_top2.pkt_size_asymmetry",
+            "pf_top2.n_small_inbound",
+            "pf_top2.n_response_bursts",
+            "sys.total_bytes",
+            "sys.total_packets",
+            "sys.total_duration_s",
+            "sys.flow_end_spread",
+            "sys.total_bursts",
+            "sys.mean_burst_rate",
+            "sys.bytes_out_ratio",
+            "sys.heaviest_flow_bytes_frac",
+            "sys.flow_bytes_cv",
+            "sys.mean_flow_response_ratio",
+            "sys.max_flow_bytes_out_ratio",
+            "sys.pf_mean_n_pkts_out",
+            "sys.pf_mean_n_pkts_in",
+            "sys.pf_mean_bytes_out",
+            "sys.pf_mean_bytes_in",
+            "sys.pf_mean_mean_sz_out",
+            "sys.pf_mean_std_sz_out",
+            "sys.pf_mean_p25_sz_out",
+            "sys.pf_mean_mean_sz_in",
+            "sys.pf_mean_std_sz_in",
+            "sys.pf_mean_duration_s",
+            "sys.pf_mean_mean_iat",
+            "sys.pf_mean_std_iat",
+            "sys.pf_mean_n_bursts",
+            "sys.pf_mean_mean_burst_bytes",
+            "sys.pf_mean_std_burst_bytes",
+            "sys.pf_mean_mean_burst_dur",
+            "sys.pf_mean_mean_ibg",
+            "sys.pf_mean_cumul_bytes_q8",
+            "sys.pf_mean_cumul_bytes_q9",
+            "sys.pf_mean_bytes_out_ratio",
+            "sys.pf_mean_pkt_size_asymmetry",
+            "sys.pf_mean_n_small_inbound",
+            "sys.pf_mean_n_response_bursts",
+            "sys.pf_std_n_pkts_out",
+            "sys.pf_std_n_pkts_in",
+            "sys.pf_std_bytes_out",
+            "sys.pf_std_bytes_in",
+            "sys.pf_std_mean_sz_out",
+            "sys.pf_std_std_sz_out",
+            "sys.pf_std_p25_sz_out",
+            "sys.pf_std_mean_sz_in",
+            "sys.pf_std_std_sz_in",
+            "sys.pf_std_duration_s",
+            "sys.pf_std_mean_iat",
+            "sys.pf_std_std_iat",
+            "sys.pf_std_n_bursts",
+            "sys.pf_std_mean_burst_bytes",
+            "sys.pf_std_std_burst_bytes",
+            "sys.pf_std_mean_burst_dur",
+            "sys.pf_std_mean_ibg",
+            "sys.pf_std_cumul_bytes_q8",
+            "sys.pf_std_cumul_bytes_q9",
+            "sys.pf_std_bytes_out_ratio",
+            "sys.pf_std_pkt_size_asymmetry",
+            "sys.pf_std_n_small_inbound",
+            "sys.pf_std_n_response_bursts"
+          ],
+          "per_connection_features_changed": [
+            "bytes_in",
+            "bytes_out",
+            "bytes_out_ratio",
+            "cumul_bytes_q8",
+            "cumul_bytes_q9",
+            "duration_s",
+            "mean_burst_bytes",
+            "mean_burst_dur",
+            "mean_iat",
+            "mean_ibg",
+            "mean_sz_in",
+            "mean_sz_out",
+            "n_bursts",
+            "n_pkts_in",
+            "n_pkts_out",
+            "n_response_bursts",
+            "n_small_inbound",
+            "p25_sz_out",
+            "pkt_size_asymmetry",
+            "std_burst_bytes",
+            "std_iat",
+            "std_sz_in",
+            "std_sz_out"
+          ]
+        },
+        "cut": {
+          "trace_features_changed": [],
+          "per_connection_features_changed": []
+        }
+      },
+      {
+        "trace": "support_triage_star_13bd80",
+        "lost": 2,
+        "as_recorded": {
+          "trace_features_changed": [
+            "pf_mean.n_pkts_out",
+            "pf_mean.n_pkts_in",
+            "pf_mean.bytes_out",
+            "pf_mean.bytes_in",
+            "pf_mean.mean_sz_out",
+            "pf_mean.std_sz_out",
+            "pf_mean.mean_sz_in",
+            "pf_mean.std_sz_in",
+            "pf_mean.duration_s",
+            "pf_mean.mean_iat",
+            "pf_mean.std_iat",
+            "pf_mean.n_bursts",
+            "pf_mean.mean_burst_bytes",
+            "pf_mean.std_burst_bytes",
+            "pf_mean.mean_burst_dur",
+            "pf_mean.mean_ibg",
+            "pf_mean.cumul_bytes_q6",
+            "pf_mean.cumul_bytes_q7",
+            "pf_mean.cumul_bytes_q8",
+            "pf_mean.cumul_bytes_q9",
+            "pf_mean.bytes_out_ratio",
+            "pf_mean.pkt_size_asymmetry",
+            "pf_mean.n_small_inbound",
+            "pf_mean.n_response_bursts",
+            "pf_top1.n_pkts_out",
+            "pf_top1.n_pkts_in",
+            "pf_top1.bytes_out",
+            "pf_top1.bytes_in",
+            "pf_top1.mean_sz_out",
+            "pf_top1.std_sz_out",
+            "pf_top1.mean_sz_in",
+            "pf_top1.std_sz_in",
+            "pf_top1.duration_s",
+            "pf_top1.mean_iat",
+            "pf_top1.std_iat",
+            "pf_top1.n_bursts",
+            "pf_top1.mean_burst_bytes",
+            "pf_top1.std_burst_bytes",
+            "pf_top1.mean_burst_dur",
+            "pf_top1.mean_ibg",
+            "pf_top1.cumul_bytes_q6",
+            "pf_top1.cumul_bytes_q7",
+            "pf_top1.cumul_bytes_q8",
+            "pf_top1.cumul_bytes_q9",
+            "pf_top1.bytes_out_ratio",
+            "pf_top1.pkt_size_asymmetry",
+            "pf_top1.n_small_inbound",
+            "pf_top1.n_response_bursts",
+            "sys.total_bytes",
+            "sys.total_packets",
+            "sys.total_duration_s",
+            "sys.flow_end_spread",
+            "sys.total_bursts",
+            "sys.mean_burst_rate",
+            "sys.bytes_out_ratio",
+            "sys.heaviest_flow_bytes_frac",
+            "sys.flow_bytes_cv",
+            "sys.mean_flow_response_ratio",
+            "sys.max_flow_bytes_out_ratio",
+            "sys.pf_mean_n_pkts_out",
+            "sys.pf_mean_n_pkts_in",
+            "sys.pf_mean_bytes_out",
+            "sys.pf_mean_bytes_in",
+            "sys.pf_mean_mean_sz_out",
+            "sys.pf_mean_std_sz_out",
+            "sys.pf_mean_mean_sz_in",
+            "sys.pf_mean_std_sz_in",
+            "sys.pf_mean_duration_s",
+            "sys.pf_mean_mean_iat",
+            "sys.pf_mean_std_iat",
+            "sys.pf_mean_n_bursts",
+            "sys.pf_mean_mean_burst_bytes",
+            "sys.pf_mean_std_burst_bytes",
+            "sys.pf_mean_mean_burst_dur",
+            "sys.pf_mean_mean_ibg",
+            "sys.pf_mean_cumul_bytes_q6",
+            "sys.pf_mean_cumul_bytes_q7",
+            "sys.pf_mean_cumul_bytes_q8",
+            "sys.pf_mean_cumul_bytes_q9",
+            "sys.pf_mean_bytes_out_ratio",
+            "sys.pf_mean_pkt_size_asymmetry",
+            "sys.pf_mean_n_small_inbound",
+            "sys.pf_mean_n_response_bursts",
+            "sys.pf_std_n_pkts_out",
+            "sys.pf_std_n_pkts_in",
+            "sys.pf_std_bytes_out",
+            "sys.pf_std_bytes_in",
+            "sys.pf_std_mean_sz_out",
+            "sys.pf_std_std_sz_out",
+            "sys.pf_std_mean_sz_in",
+            "sys.pf_std_std_sz_in",
+            "sys.pf_std_duration_s",
+            "sys.pf_std_mean_iat",
+            "sys.pf_std_std_iat",
+            "sys.pf_std_n_bursts",
+            "sys.pf_std_mean_burst_bytes",
+            "sys.pf_std_std_burst_bytes",
+            "sys.pf_std_mean_burst_dur",
+            "sys.pf_std_mean_ibg",
+            "sys.pf_std_cumul_bytes_q6",
+            "sys.pf_std_cumul_bytes_q7",
+            "sys.pf_std_cumul_bytes_q8",
+            "sys.pf_std_cumul_bytes_q9",
+            "sys.pf_std_bytes_out_ratio",
+            "sys.pf_std_pkt_size_asymmetry",
+            "sys.pf_std_n_small_inbound",
+            "sys.pf_std_n_response_bursts"
+          ],
+          "per_connection_features_changed": [
+            "bytes_in",
+            "bytes_out",
+            "bytes_out_ratio",
+            "cumul_bytes_q6",
+            "cumul_bytes_q7",
+            "cumul_bytes_q8",
+            "cumul_bytes_q9",
+            "duration_s",
+            "mean_burst_bytes",
+            "mean_burst_dur",
+            "mean_iat",
+            "mean_ibg",
+            "mean_sz_in",
+            "mean_sz_out",
+            "n_bursts",
+            "n_pkts_in",
+            "n_pkts_out",
+            "n_response_bursts",
+            "n_small_inbound",
+            "pkt_size_asymmetry",
+            "std_burst_bytes",
+            "std_iat",
+            "std_sz_in",
+            "std_sz_out"
+          ]
+        },
+        "cut": {
+          "trace_features_changed": [],
+          "per_connection_features_changed": []
+        }
+      }
+    ],
+    "as_recorded": {
+      "traces_with_a_changed_trace_feature": 12,
+      "traces_with_a_changed_per_connection_feature": 12
+    },
+    "cut": {
+      "traces_with_a_changed_trace_feature": 0,
+      "traces_with_a_changed_per_connection_feature": 0
+    },
+    "identical_with_cut": true
+  },
+  "baseline_check": {
+    "dir": "data/processed_c1_own_recheck2",
+    "files": 2400,
+    "max_abs_difference": 0.0,
+    "identical": true
+  },
+  "comparisons": [
+    {
+      "name": "closed world GBT",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9938870062137525,
+        "ci_lo": 0.9898481294695036,
+        "ci_hi": 0.9973756912346238,
+        "accuracy": 0.9938888888888889,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.991663847275914,
+        "ci_lo": 0.9867197674314874,
+        "ci_hi": 0.9961876058810445,
+        "accuracy": 0.9916666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9938870062137525,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.002223158937838532,
+        "ci_lo": -0.0057759239872352455,
+        "ci_hi": 0.0011337846399259804,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "closed world RF",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9966657283789232,
+        "ci_lo": 0.9933653020131583,
+        "ci_hi": 0.9994311955981272,
+        "accuracy": 0.9966666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9922202263413448,
+        "ci_lo": 0.9874788335356062,
+        "ci_hi": 0.9962832348888859,
+        "accuracy": 0.9922222222222222,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9966657283789232,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.00444550203757843,
+        "ci_lo": -0.00826198203661892,
+        "ci_hi": -0.001531981144299303,
+        "significant": true
+      },
+      "outside_old_ci": true
+    },
+    {
+      "name": "closed world k-FP",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9905489708135043,
+        "ci_lo": 0.9850887091323919,
+        "ci_hi": 0.9952948199295787,
+        "accuracy": 0.9905555555555555,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9883220004872756,
+        "ci_lo": 0.9816582459178465,
+        "ci_hi": 0.9942846148389773,
+        "accuracy": 0.9883333333333333,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9905489708135043,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.002226970326228761,
+        "ci_lo": -0.0050258743686893235,
+        "ci_hi": 0.0004963722592884295,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT on the k-FP features (A5)",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9877656266102063,
+        "ci_lo": 0.982035085574015,
+        "ci_hi": 0.9933431243630036,
+        "accuracy": 0.9877777777777778,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9877674903464931,
+        "ci_lo": 0.9817092066814749,
+        "ci_hi": 0.9931483670129827,
+        "accuracy": 0.9877777777777778,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9877656266102063,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 1.863736286855655e-06,
+        "ci_lo": -0.003456181086951016,
+        "ci_hi": 0.0033347359439452042,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, sizes only",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9326852628691552,
+        "ci_lo": 0.9200824164733901,
+        "ci_hi": 0.945224611594282,
+        "accuracy": 0.9327777777777778,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.8764481037818225,
+        "ci_lo": 0.8623669338669576,
+        "ci_hi": 0.8913215279748489,
+        "accuracy": 0.8761111111111111,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9326852628691552,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.05623715908733273,
+        "ci_lo": -0.06894840300426922,
+        "ci_hi": -0.04455274226081646,
+        "significant": true
+      },
+      "outside_old_ci": true
+    },
+    {
+      "name": "GBT, timing only",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9805331145635918,
+        "ci_lo": 0.9725061472244457,
+        "ci_hi": 0.9877214416836638,
+        "accuracy": 0.9805555555555555,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9861086672418525,
+        "ci_lo": 0.9794515450415947,
+        "ci_hi": 0.9921129393152677,
+        "accuracy": 0.9861111111111112,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9805331145635918,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.005575552678260709,
+        "ci_lo": 7.65463498295649e-06,
+        "ci_hi": 0.011344569227111564,
+        "significant": true
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, counts and direction only",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.6956498863996089,
+        "ci_lo": 0.6696532724756856,
+        "ci_hi": 0.7232103197486037,
+        "accuracy": 0.7016666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.5144086837838109,
+        "ci_lo": 0.49513032456376965,
+        "ci_hi": 0.533106512652911,
+        "accuracy": 0.5166666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6956498863996089,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.181241202615798,
+        "ci_lo": -0.20412174946248254,
+        "ci_hi": -0.15883689629037517,
+        "significant": true
+      },
+      "outside_old_ci": true
+    },
+    {
+      "name": "temporal holdout GBT (train rounds 1\u20133, test 4\u20135)",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9930555374709864,
+        "ci_lo": 0.986225099043379,
+        "ci_hi": 0.9984920348416025,
+        "accuracy": 0.9930555555555556,
+        "n": 720,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 159
+      },
+      "new": {
+        "macro_f1": 0.9902861331388814,
+        "ci_lo": 0.9824290970127882,
+        "ci_hi": 0.9961688238823977,
+        "accuracy": 0.9902777777777778,
+        "n": 720,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 159
+      },
+      "committed": 0.9930555374709864,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.002769404332105041,
+        "ci_lo": -0.010648879368015026,
+        "ci_hi": 0.004420392904387071,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "n_train": 507
+    },
+    {
+      "name": "GBT, cumul_bytes_q8 alone (best of the cumulative byte profile)",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.8483684029364796,
+        "ci_lo": 0.8296409984177953,
+        "ci_hi": 0.8663989669464728,
+        "accuracy": 0.8494444444444444,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.7938900071910449,
+        "ci_lo": 0.77499889152439,
+        "ci_hi": 0.8129510793181146,
+        "accuracy": 0.7938888888888889,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.8483684029364796,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.05447839574543478,
+        "ci_lo": -0.0734537302053239,
+        "ci_hi": -0.035753797962893664,
+        "significant": true
+      },
+      "outside_old_ci": true
+    },
+    {
+      "name": "GBT, role leave-one-topology-out",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.4677700278963128,
+        "ci_lo": 0.43729486300103076,
+        "ci_hi": 0.4978418324854329,
+        "accuracy": 0.46166666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.4736196780094357,
+        "ci_lo": 0.4449629040253583,
+        "ci_hi": 0.502650721765871,
+        "accuracy": 0.4861111111111111,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.4677700278963128,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0058496501131229395,
+        "ci_lo": -0.018677854902250858,
+        "ci_hi": 0.0304293694142041,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "per_held_out": {
+        "chain": {
+          "old": {
+            "macro_f1": 0.9074978092669205,
+            "ci_lo": 0.8822914193158512,
+            "ci_hi": 0.931608971634111,
+            "accuracy": 0.9083333333333333,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 145
+          },
+          "new": {
+            "macro_f1": 0.6071575504525842,
+            "ci_lo": 0.5606940180365193,
+            "ci_hi": 0.6523820043899679,
+            "accuracy": 0.65,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 145
+          },
+          "new_minus_old": {
+            "diff": -0.30034025881433624,
+            "ci_lo": -0.33918539886690546,
+            "ci_hi": -0.26024865236401495,
+            "significant": true
+          }
+        },
+        "mesh": {
+          "old": {
+            "macro_f1": 0.3856108635862398,
+            "ci_lo": 0.3567346121584186,
+            "ci_hi": 0.41664683031639205,
+            "accuracy": 0.4266666666666667,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 140
+          },
+          "new": {
+            "macro_f1": 0.6261396463045164,
+            "ci_lo": 0.6009331903409865,
+            "ci_hi": 0.6498328896642992,
+            "accuracy": 0.6416666666666667,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 140
+          },
+          "new_minus_old": {
+            "diff": 0.24052878271827655,
+            "ci_lo": 0.19998463007729253,
+            "ci_hi": 0.27636028087644077,
+            "significant": true
+          }
+        },
+        "star": {
+          "old": {
+            "macro_f1": 0.03303781488494864,
+            "ci_lo": 0.02151634220892917,
+            "ci_hi": 0.04484848352041641,
+            "accuracy": 0.05,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 144
+          },
+          "new": {
+            "macro_f1": 0.09735699437368071,
+            "ci_lo": 0.08283259538222328,
+            "ci_hi": 0.11278377741962578,
+            "accuracy": 0.16666666666666666,
+            "n": 600,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 144
+          },
+          "new_minus_old": {
+            "diff": 0.06431917948873207,
+            "ci_lo": 0.05211588013926189,
+            "ci_hi": 0.07701758252317886,
+            "significant": true
+          }
+        }
+      }
+    },
+    {
+      "name": "GBT, role leave-one-workflow-out",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9922235763973525,
+        "ci_lo": 0.9879637997283364,
+        "ci_hi": 0.9962727524112526,
+        "accuracy": 0.9922222222222222,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9900022258973863,
+        "ci_lo": 0.9844150305646954,
+        "ci_hi": 0.9950817648334781,
+        "accuracy": 0.99,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9922235763973525,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.0022213504999661904,
+        "ci_lo": -0.006850234041907627,
+        "ci_hi": 0.002245658667734268,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "per_held_out": {
+        "code_review": {
+          "old": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 51
+          },
+          "new": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 51
+          },
+          "new_minus_old": {
+            "diff": 0.0,
+            "ci_lo": 0.0,
+            "ci_hi": 0.0,
+            "significant": false
+          }
+        },
+        "data_analysis": {
+          "old": {
+            "macro_f1": 0.9844588658294388,
+            "ci_lo": 0.970549763204741,
+            "ci_hi": 0.9954730107646558,
+            "accuracy": 0.9844444444444445,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 74
+          },
+          "new": {
+            "macro_f1": 0.9933333333333333,
+            "ci_lo": 0.9818592667967415,
+            "ci_hi": 1.0,
+            "accuracy": 0.9933333333333333,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 74
+          },
+          "new_minus_old": {
+            "diff": 0.008874467503894534,
+            "ci_lo": -0.0022221981478806442,
+            "ci_hi": 0.02214720592634096,
+            "significant": false
+          }
+        },
+        "research_retrieval": {
+          "old": {
+            "macro_f1": 0.9955555308639231,
+            "ci_lo": 0.9883021451008439,
+            "ci_hi": 1.0,
+            "accuracy": 0.9955555555555555,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 62
+          },
+          "new": {
+            "macro_f1": 0.9933331357936895,
+            "ci_lo": 0.9801182287457121,
+            "ci_hi": 1.0,
+            "accuracy": 0.9933333333333333,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 62
+          },
+          "new_minus_old": {
+            "diff": -0.002222395070233585,
+            "ci_lo": -0.008339712860966306,
+            "ci_hi": 0.0,
+            "significant": false
+          }
+        },
+        "support_triage": {
+          "old": {
+            "macro_f1": 0.9888813826326466,
+            "ci_lo": 0.9786457017639787,
+            "ci_hi": 0.9976851572766839,
+            "accuracy": 0.9888888888888889,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 95
+          },
+          "new": {
+            "macro_f1": 0.9733391915654496,
+            "ci_lo": 0.9551990828152578,
+            "ci_hi": 0.9883449491437907,
+            "accuracy": 0.9733333333333334,
+            "n": 450,
+            "ci_method": "group_bootstrap",
+            "ci_n_clusters": 95
+          },
+          "new_minus_old": {
+            "diff": -0.015542191067197009,
+            "ci_lo": -0.028698186989973347,
+            "ci_hi": -0.0041343192412920575,
+            "significant": true
+          }
+        }
+      }
+    },
+    {
+      "name": "closed world GBT",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6597522840407621,
+        "ci_lo": 0.6126719640479875,
+        "ci_hi": 0.7026371667919474,
+        "accuracy": 0.66,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6422270890206977,
+        "ci_lo": 0.595997338361483,
+        "ci_hi": 0.6848260227609205,
+        "accuracy": 0.6416666666666667,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6597522840407621,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.017525195020064444,
+        "ci_lo": -0.043518894253226297,
+        "ci_hi": 0.0058203895992447515,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "closed world RF",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6237386071289028,
+        "ci_lo": 0.5723371192057096,
+        "ci_hi": 0.6692984757934045,
+        "accuracy": 0.6233333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6320918487484309,
+        "ci_lo": 0.5817890692366139,
+        "ci_hi": 0.6781895430057112,
+        "accuracy": 0.6316666666666667,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6237386071289028,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.008353241619528107,
+        "ci_lo": -0.014313257303769526,
+        "ci_hi": 0.03146462899755752,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "closed world k-FP",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.5148716544162553,
+        "ci_lo": 0.46234338219247334,
+        "ci_hi": 0.5628882015795205,
+        "accuracy": 0.515,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.5134675803003069,
+        "ci_lo": 0.46312362790353234,
+        "ci_hi": 0.5601418970558713,
+        "accuracy": 0.5133333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.5148716544162553,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.0014040741159483394,
+        "ci_lo": -0.021789737232079404,
+        "ci_hi": 0.017404091281804864,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT on the k-FP features (A5)",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.5112865399184755,
+        "ci_lo": 0.46062881325924476,
+        "ci_hi": 0.556361312296444,
+        "accuracy": 0.5083333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.5320539174573939,
+        "ci_lo": 0.48653120038749886,
+        "ci_hi": 0.573271268657438,
+        "accuracy": 0.5316666666666666,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.5112865399184755,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.02076737753891844,
+        "ci_lo": -0.00805752930303225,
+        "ci_hi": 0.05187678562669878,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, sizes only",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6639232363137525,
+        "ci_lo": 0.6136079917631596,
+        "ci_hi": 0.7083777053408967,
+        "accuracy": 0.665,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6373296976258673,
+        "ci_lo": 0.5919694509747021,
+        "ci_hi": 0.6818185201911479,
+        "accuracy": 0.6366666666666667,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6639232363137525,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.026593538687885165,
+        "ci_lo": -0.051927923882354746,
+        "ci_hi": 0.0003070592210918638,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, timing only",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.46355882249552827,
+        "ci_lo": 0.415407501136307,
+        "ci_hi": 0.5076741456577385,
+        "accuracy": 0.4633333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.4820050124465963,
+        "ci_lo": 0.43452307568474663,
+        "ci_hi": 0.5260267054534165,
+        "accuracy": 0.48,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.46355882249552827,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.01844618995106806,
+        "ci_lo": -0.014447766796075028,
+        "ci_hi": 0.05286246387782937,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, counts and direction only",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.3034322820037106,
+        "ci_lo": 0.26405951182378967,
+        "ci_hi": 0.339489487475652,
+        "accuracy": 0.30333333333333334,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.27525494656227234,
+        "ci_lo": 0.23673988184872832,
+        "ci_hi": 0.31187942512207256,
+        "accuracy": 0.275,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.3034322820037106,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.028177335441438245,
+        "ci_lo": -0.06026117716046907,
+        "ci_hi": 0.0043752392329224395,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "temporal holdout GBT (train rounds 1\u20133, test 4\u20135)",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.4727370532429452,
+        "ci_lo": 0.399277011921894,
+        "ci_hi": 0.5527041418001442,
+        "accuracy": 0.5,
+        "n": 240,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 159
+      },
+      "new": {
+        "macro_f1": 0.47293537352635756,
+        "ci_lo": 0.3986313322870338,
+        "ci_hi": 0.5587503560050188,
+        "accuracy": 0.5,
+        "n": 240,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 159
+      },
+      "committed": 0.4727370532429452,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.00019832028341237873,
+        "ci_lo": -0.03808554550717847,
+        "ci_hi": 0.04122244711213667,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "n_train": 169
+    },
+    {
+      "name": "size-matched CV GBT (no time gap)",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.5496902969080204,
+        "ci_lo": 0.49656121423904503,
+        "ci_hi": 0.5985595068257235,
+        "accuracy": 0.5516666666666666,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.5588538811684634,
+        "ci_lo": 0.49896288149467305,
+        "ci_hi": 0.6129101123288929,
+        "accuracy": 0.56,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.5496902969080204,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.009163584260442947,
+        "ci_lo": -0.024670532175417433,
+        "ci_hi": 0.04020145271180114,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, first-request size alone",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6414460591221728,
+        "ci_lo": 0.5891328679713896,
+        "ci_hi": 0.6872502163286259,
+        "accuracy": 0.65,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6414460591221728,
+        "ci_lo": 0.5891328679713896,
+        "ci_hi": 0.6872502163286259,
+        "accuracy": 0.65,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6414460591221728,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "first_request_identical_in_every_trace": true
+    },
+    {
+      "name": "closed world GBT",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "closed world RF",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9983333229166016,
+        "ci_lo": 0.9947176553619151,
+        "ci_hi": 1.0,
+        "accuracy": 0.9983333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.0016666770833984046,
+        "ci_lo": -0.005282344638084876,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": true
+    },
+    {
+      "name": "closed world k-FP",
+      "task": "topology",
+      "old": {
+        "macro_f1": 0.9983333229166016,
+        "ci_lo": 0.994520120790627,
+        "ci_hi": 1.0,
+        "accuracy": 0.9983333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9983333229166016,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0016666770833984046,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0054798792093729435,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT on the k-FP features (A5)",
+      "task": "topology",
+      "old": {
+        "macro_f1": 0.9983333229166016,
+        "ci_lo": 0.994520120790627,
+        "ci_hi": 1.0,
+        "accuracy": 0.9983333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9983333229166016,
+        "ci_lo": 0.994520120790627,
+        "ci_hi": 1.0,
+        "accuracy": 0.9983333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9983333229166016,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, sizes only",
+      "task": "topology",
+      "old": {
+        "macro_f1": 0.9983333229166016,
+        "ci_lo": 0.994328569843459,
+        "ci_hi": 1.0,
+        "accuracy": 0.9983333333333333,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9983333229166016,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0016666770833984046,
+        "ci_lo": 0.0,
+        "ci_hi": 0.005671430156541065,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, timing only",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "GBT, counts and direction only",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "temporal holdout GBT (train rounds 1\u20133, test 4\u20135)",
+      "task": "topology",
+      "old": {
+        "macro_f1": 0.9791593398720905,
+        "ci_lo": 0.9599201797783787,
+        "ci_hi": 0.995639777173212,
+        "accuracy": 0.9791666666666666,
+        "n": 240,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 159
+      },
+      "new": {
+        "macro_f1": 0.991665364379851,
+        "ci_lo": 0.9777525709749674,
+        "ci_hi": 1.0,
+        "accuracy": 0.9916666666666667,
+        "n": 240,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 159
+      },
+      "committed": 0.9791593398720905,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.012506024507760505,
+        "ci_lo": -0.008402170291576024,
+        "ci_hi": 0.03528124016668777,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "n_train": 169
+    },
+    {
+      "name": "fixed rule (A6)",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false
+    },
+    {
+      "name": "all connections, GBT",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.993886557494462,
+        "ci_lo": 0.9892061727691401,
+        "ci_hi": 0.9981826006518674,
+        "accuracy": 0.9938888888888889,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.99166477203152,
+        "ci_lo": 0.9864542269343203,
+        "ci_hi": 0.9964533898075126,
+        "accuracy": 0.9916666666666667,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.993886557494462,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.0022217854629419387,
+        "ci_lo": -0.005690266750648218,
+        "ci_hi": 0.001110177978060541,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 4.487192905022752e-07,
+        "ci_lo": -0.002945904083173126,
+        "ci_hi": 0.0032301700864580244,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": -9.247556060909545e-07,
+        "ci_lo": -0.004636300050792966,
+        "ci_hi": 0.004204447888622334,
+        "significant": false
+      }
+    },
+    {
+      "name": "all connections, RF",
+      "task": "role",
+      "old": {
+        "macro_f1": 0.9933323873642319,
+        "ci_lo": 0.9890452233288286,
+        "ci_hi": 0.9972591740049245,
+        "accuracy": 0.9933333333333333,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.9933305196968408,
+        "ci_lo": 0.9889504155507624,
+        "ci_hi": 0.9971699622839378,
+        "accuracy": 0.9933333333333333,
+        "n": 1800,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.9933323873642319,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -1.8676673910755781e-06,
+        "ci_lo": -0.003666750464549029,
+        "ci_hi": 0.003361482207531088,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.0033333410146912934,
+        "ci_lo": 0.0010552606413471249,
+        "ci_hi": 0.006252706532560513,
+        "significant": true
+      },
+      "own_minus_all_new": {
+        "diff": -0.0011102933554960615,
+        "ci_lo": -0.0035088125434075716,
+        "ci_hi": 0.0010513961446715328,
+        "significant": false
+      }
+    },
+    {
+      "name": "all connections, GBT",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6258895647225882,
+        "ci_lo": 0.5719458856740488,
+        "ci_hi": 0.6717143479474361,
+        "accuracy": 0.625,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6055516167476971,
+        "ci_lo": 0.5546868870632657,
+        "ci_hi": 0.6517282863106048,
+        "accuracy": 0.6066666666666667,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6258895647225882,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.02033794797489108,
+        "ci_lo": -0.053273269611385676,
+        "ci_hi": 0.014239900724442736,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.03386271931817397,
+        "ci_lo": -0.00033811413367904053,
+        "ci_hi": 0.06598015103833829,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": 0.03667547227300061,
+        "ci_lo": 0.005539340667629333,
+        "ci_hi": 0.0664185622698481,
+        "significant": true
+      }
+    },
+    {
+      "name": "all connections, RF",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6060057224446904,
+        "ci_lo": 0.5569608750024189,
+        "ci_hi": 0.6501481108009864,
+        "accuracy": 0.6016666666666667,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.5932655749601325,
+        "ci_lo": 0.5369311580980637,
+        "ci_hi": 0.642124782803823,
+        "accuracy": 0.59,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6060057224446904,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": -0.012740147484557873,
+        "ci_lo": -0.04594414934724481,
+        "ci_hi": 0.021893465337291043,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.017732884684212413,
+        "ci_lo": -0.014515872897806977,
+        "ci_hi": 0.05094792179535247,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": 0.03882627378829839,
+        "ci_lo": 0.01242657726653988,
+        "ci_hi": 0.06391097265862819,
+        "significant": true
+      }
+    },
+    {
+      "name": "all connections, first request only (GBT)",
+      "task": "workflow",
+      "old": {
+        "macro_f1": 0.6414460591221728,
+        "ci_lo": 0.5891328679713896,
+        "ci_hi": 0.6872502163286259,
+        "accuracy": 0.65,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.6414460591221728,
+        "ci_lo": 0.5891328679713896,
+        "ci_hi": 0.6872502163286259,
+        "accuracy": 0.65,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.6414460591221728,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      }
+    },
+    {
+      "name": "all connections, GBT",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      }
+    },
+    {
+      "name": "all connections, RF",
+      "task": "topology",
+      "old": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 1.0,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": -0.0016666770833984046,
+        "ci_lo": -0.005282344638084876,
+        "ci_hi": 0.0,
+        "significant": false
+      }
+    },
+    {
+      "name": "all connections, first request only (GBT)",
+      "task": "topology",
+      "old": {
+        "macro_f1": 0.30840831352251413,
+        "ci_lo": 0.27263596735741197,
+        "ci_hi": 0.3444673289513859,
+        "accuracy": 0.31,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "new": {
+        "macro_f1": 0.30840831352251413,
+        "ci_lo": 0.27263596735741197,
+        "ci_hi": 0.3444673289513859,
+        "accuracy": 0.31,
+        "n": 600,
+        "ci_method": "group_bootstrap",
+        "ci_n_clusters": 282
+      },
+      "committed": 0.30840831352251413,
+      "old_matches_committed": true,
+      "new_minus_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "outside_old_ci": false,
+      "own_minus_all_old": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      },
+      "own_minus_all_new": {
+        "diff": 0.0,
+        "ci_lo": 0.0,
+        "ci_hi": 0.0,
+        "significant": false
+      }
+    }
+  ],
+  "detail": {
+    "cumulative_byte_profile_single_feature": {
+      "cumul_bytes_q0": {
+        "old": 0.16666666666666666,
+        "new": 0.16666666666666666
+      },
+      "cumul_bytes_q1": {
+        "old": 0.4796728998376479,
+        "new": 0.43048255621483794
+      },
+      "cumul_bytes_q2": {
+        "old": 0.5354309726881868,
+        "new": 0.45539424421030983
+      },
+      "cumul_bytes_q3": {
+        "old": 0.5523044579864617,
+        "new": 0.5089042585358289
+      },
+      "cumul_bytes_q4": {
+        "old": 0.5957205413282497,
+        "new": 0.5268321662616738
+      },
+      "cumul_bytes_q5": {
+        "old": 0.6955042639970337,
+        "new": 0.5822291755242958
+      },
+      "cumul_bytes_q6": {
+        "old": 0.7198141257013718,
+        "new": 0.6228516012049379
+      },
+      "cumul_bytes_q7": {
+        "old": 0.8278774880162932,
+        "new": 0.7028710376924664
+      },
+      "cumul_bytes_q8": {
+        "old": 0.8483684029364796,
+        "new": 0.7938900071910449
+      },
+      "cumul_bytes_q9": {
+        "old": 0.45448556024694303,
+        "new": 0.4741387236280479
+      }
+    },
+    "star_loto_confusion": {
+      "classes": [
+        "executor",
+        "retriever",
+        "validator"
+      ],
+      "old": {
+        "executor": {
+          "executor": 0,
+          "retriever": 0,
+          "validator": 200
+        },
+        "retriever": {
+          "executor": 0,
+          "retriever": 1,
+          "validator": 199
+        },
+        "validator": {
+          "executor": 76,
+          "retriever": 95,
+          "validator": 29
+        }
+      },
+      "new": {
+        "executor": {
+          "executor": 0,
+          "retriever": 0,
+          "validator": 200
+        },
+        "retriever": {
+          "executor": 0,
+          "retriever": 1,
+          "validator": 199
+        },
+        "validator": {
+          "executor": 64,
+          "retriever": 37,
+          "validator": 99
+        }
+      },
+      "old_executor_retriever_as_validator": 399,
+      "old_executor_retriever": 400,
+      "new_executor_retriever_as_validator": 399,
+      "new_executor_retriever": 400
+    }
+  },
+  "flagged": [
+    "role: closed world RF",
+    "role: GBT, sizes only",
+    "role: GBT, counts and direction only",
+    "role: GBT, cumul_bytes_q8 alone (best of the cumulative byte profile)",
+    "topology: closed world RF"
+  ],
+  "old_reproduces_committed": true,
+  "old_not_matching_committed": []
+}
