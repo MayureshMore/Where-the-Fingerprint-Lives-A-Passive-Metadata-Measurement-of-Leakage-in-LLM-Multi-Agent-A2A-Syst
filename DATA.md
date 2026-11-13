@@ -105,6 +105,42 @@ three arms (`lan`, `lan_pad`, `lan_padmax`), seed offset 30000. The decision res
 pace alone (7.1 s per trace, so the 3,000 traces take about 6 hours) and was made before any leakage
 result was computed from C2 or from the pilot.
 
+## C2's emulated WAN: dnctl does not show pipe 2 (it was never removed)
+
+`scripts/wan_emulation.sh` delays the Pi's packets to the cloud alias in dummynet pipe 1 (as they
+enter the Mac) and the alias's packets to the Pi in pipe 2 (as they leave it), 6 ms each. After the
+pilot, `sudo dnctl pipe show` (Nov 11, 21:53) listed only pipe 1 (66,044 packets, 0 drops), and on
+Nov 12 `dnctl list` again showed only pipe 1 while `dnctl pipe show 2` printed nothing; after
+`wan_emulation.sh off` and `on` (07:48) both were listed. Pipe 2 was there all along; dnctl does not
+print it. In a 64-bit process the kernel copies each flow queue out as a 176-byte
+`struct dn_flow_queue_64` (xnu `bsd/netinet/ip_dummynet.c`, `dn_copy_set_64`), but dnctl steps over
+it as its own 184-byte `struct dn_flow_queue` (`network_cmds` `dnctl.c`, `list_pipes`). Once pipe 1
+has a queue, which its first packet creates, dnctl lands 8 bytes into pipe 2's record, finds no pipe
+marker and stops; with no traffic yet, as right after `on`, it lists both. Compiling xnu's header
+and walking a buffer laid out as the kernel writes it reproduces this. Evidence that pipe 2 delayed
+the alias's packets throughout: all 393 Pi → alias handshakes in the pilot's three arms take 11.6 ms
+or more from SYN to SYN-ACK at the capture (median 13.2 ms: both pipes), and the WAN check at the
+pilot's end (21:36) passed. Between 21:36 and 21:53 nothing configured dummynet; the only commands
+were the alias fix (`ifconfig`), which does not touch dummynet pipes. The pilot's captures also show
+no gap in the sequence numbers of the 62,917 data segments the Mac sent the Pi; the capture sits
+after pipe 2, so pipe 2 dropped none of them.
+
+From Nov 12, `scripts/wan_watch.py` (run with sudo) reads the pipes from the kernel with the
+kernel's own record sizes, plus the pf anchor, every 30 s (`data/raw_c2/wan_watch.jsonl`,
+`data/raw_c2/wan_status.json`); `scripts/c2_guard.py` checks C2 against it. At the start and every
+50 traces, it checks four things:
+- both pipes at 6 ms, with no bandwidth limit or loss rate;
+- pf is enabled and the anchor's two dummynet rules are loaded;
+- the port lock;
+- in the traces since the last check, the Pi's connect time to the alias, 22.6 ms ±20%.
+
+The capture shows that connect time as SYN to the Pi's ACK, which is 3.3 ms shorter than the Pi's
+own timer reads it. That offset was measured on the 90 probes of the WAN check at 07:54 (Pi 20.22 ms,
+capture 16.91 ms, `data/raw_c2/wan_check_probe.pcap`). The guard also requires the capture's SYN to
+SYN-ACK to be 12 ms ±20%, with no handshake under 9.6 ms (a missing pipe halves it). If a check
+fails, it stops the collection and lists the traces since the last good check as suspect
+(`data/raw_c2/wan_guard.json`, with each pipe's drop counter at every check).
+
 ## Published archives
 
 | Archive | Contents | Unpacked size | Needed for |
