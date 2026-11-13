@@ -125,6 +125,15 @@ were the alias fix (`ifconfig`), which does not touch dummynet pipes. The pilot'
 no gap in the sequence numbers of the 62,917 data segments the Mac sent the Pi; the capture sits
 after pipe 2, so pipe 2 dropped none of them.
 
+Read from the kernel on Nov 12 at 21:39 (`scripts/wan_watch.py`, below), with the same request dnctl
+makes: pipe 1 (Pi → alias) and pipe 2 (alias → Pi), each at 6 ms with one queue, 360 packets and 0
+drops, the traffic of the WAN check at 07:54. In the same sample, `dnctl list` printed only `00001:`.
+The kernel returned 1,072 bytes. The two pipe records and their queues end at byte 1,056; the last 16
+bytes are zeros, 8 per queue: the kernel sizes the buffer with its 184-byte queue struct but writes
+176-byte records. The first rows of `data/raw_c2/wan_watch.jsonl` (21:35 to 21:39) carry a reader
+error instead: that version asked Python's `socket.getsockopt` for a 1 MB buffer, which Python refuses
+above 1,024 bytes. The reader now calls libc's `getsockopt`.
+
 From Nov 12, `scripts/wan_watch.py` (run with sudo) reads the pipes from the kernel with the
 kernel's own record sizes, plus the pf anchor, every 30 s (`data/raw_c2/wan_watch.jsonl`,
 `data/raw_c2/wan_status.json`); `scripts/c2_guard.py` checks C2 against it. At the start and every
@@ -136,10 +145,13 @@ kernel's own record sizes, plus the pf anchor, every 30 s (`data/raw_c2/wan_watc
 
 The capture shows that connect time as SYN to the Pi's ACK, which is 3.3 ms shorter than the Pi's
 own timer reads it. That offset was measured on the 90 probes of the WAN check at 07:54 (Pi 20.22 ms,
-capture 16.91 ms, `data/raw_c2/wan_check_probe.pcap`). The guard also requires the capture's SYN to
-SYN-ACK to be 12 ms ±20%, with no handshake under 9.6 ms (a missing pipe halves it). If a check
-fails, it stops the collection and lists the traces since the last good check as suspect
-(`data/raw_c2/wan_guard.json`, with each pipe's drop counter at every check).
+capture 16.91 ms, `data/c2_wan_calibration/wan_check_probe.pcap`; it is kept out of `data/raw_c2`,
+where the collector refuses to start over existing pcaps: the first start, at 21:40, stopped there
+with no traces, and the checks it then ran over the empty folders are in `data/_c2_aborted_2140`).
+The guard also requires the capture's SYN to SYN-ACK to be 12 ms ±20%, with no handshake under
+9.6 ms (a missing pipe halves it). If a check fails, it stops the collection and lists the traces
+since the last good check as suspect (`data/raw_c2/wan_guard.json`, with each pipe's drop counter at
+every check).
 
 ## Published archives
 
