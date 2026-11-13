@@ -432,12 +432,28 @@ caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cl
 600 tasks per arm. Between nights leave the services and the WAN emulation running, or restart them
 (sections 2, 7 and 8) and rerun the checks of sections 7 and 8. The WAN rules and pipes do not
 survive a restart of the Mac, and the alias goes when the Mac rejoins the Wi-Fi. Run the section 10
-checks on the C2 folders afterwards. The audit, per arm and view:
+checks on the C2 folders afterwards. The audit, per arm and view, one at a time with nothing
+else running (its runtime and memory are the laptop's cost):
 ```bash
-for arm in c2 c2_pad c2_padmax; do for v in v1 v2; do
-  venv/bin/python -m a2a_leakcheck run data/raw_$arm --strip --vantage $v \
-      --attributes task_type,escalated,cloud_role,audit_null --out data/results/leakcheck/${arm}_$v --html
+for pair in lan=data/raw_c2 lan_pad=data/raw_c2_pad lan_padmax=data/raw_c2_padmax; do for v in v1 v2; do
+  venv/bin/python -m a2a_leakcheck run "${pair#*=}" --strip --vantage $v --label "C2 ${pair%%=*}, view $v" \
+      --attributes task_type,escalated,cloud_role,audit_null --out "data/results/leakcheck/c2_${pair%%=*}_$v" --html
 done; done
+```
+Then the tool evaluation on C2 (`scripts/evaluate_leakcheck.py`, hours): one process per arm with
+both views, reading the audits' reports instead of rerunning the tool, then the three parts merged
+(the verdicts do not depend on the split):
+```bash
+mkdir -p logs
+for pair in lan=data/raw_c2 lan_pad=data/raw_c2_pad lan_padmax=data/raw_c2_padmax; do
+  A2A_RESULTS_DIR=data/c2_tool_eval_parts venv/bin/python scripts/evaluate_leakcheck.py --collection-id C2 \
+      --attributes task_type,escalated,cloud_role,audit_null --vantage v1,v2 --reference full-attack \
+      --tool-reports 'data/results/leakcheck/c2_{cell}' --jobs 5 --arm "$pair" --name "c2_part_${pair%%=*}" \
+      > "logs/c2_part_${pair%%=*}.log" 2>&1 &
+done; wait
+venv/bin/python scripts/evaluate_leakcheck.py --name paper2_tool_eval_c2 --merge \
+    data/c2_tool_eval_parts/c2_part_lan.json data/c2_tool_eval_parts/c2_part_lan_pad.json \
+    data/c2_tool_eval_parts/c2_part_lan_padmax.json
 ```
 
 ### If a check fails

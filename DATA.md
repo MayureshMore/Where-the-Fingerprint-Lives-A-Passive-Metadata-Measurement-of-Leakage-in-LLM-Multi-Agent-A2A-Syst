@@ -295,6 +295,23 @@ alert_triage left out) changes in the same way.
   of 750 are within ±32 B; the remaining one is 274df9, at +80 B.
 - `lan_pad`: all 750 within ±32 B of the 296 B median.
 
+Both files were first written from uncommitted code (Nov 13, 07:17). They were written again from
+the clean merge commit `eb8fbbfb` (Nov 13, 11:10), before any leakage result. Apart from the commit
+fields, both are identical to the first versions.
+
+**Input sizes.** The task input is the prompt the collector sends, in UTF-8 bytes (`prompt_bytes`
+in the sidecars). The three arms ran the same tasks with the same prompts, so the sizes are the same in
+all three (quartiles by Python's `statistics.quantiles`):
+
+| Task type | Traces per arm | Median (B) | IQR (B) | Range (B) |
+|---|---|---|---|---|
+| alert_triage | 250 | 154 | 145–162 | 124–187 |
+| fault_diagnosis | 250 | 3,590 | 2,996–4,183 | 1,987–5,490 |
+| procedure_lookup | 250 | 81 | 70–95 | 48–124 |
+| sensor_analysis | 250 | 2,799 | 1,818–3,756 | 573–5,238 |
+
+The median over all 1,000 tasks is 380 B. The largest input, 5,490 B, fits in the 8192 bucket.
+
 ## Published archives
 
 | Archive | Contents | Unpacked size | Needed for |

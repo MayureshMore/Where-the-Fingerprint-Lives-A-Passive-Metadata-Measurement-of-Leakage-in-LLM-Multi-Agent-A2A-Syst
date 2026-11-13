@@ -11,8 +11,10 @@
 #                      → paper2_tool_eval.{json,md}, figures/paper2_tool_eval.png             hours
 #   4. C2              once released: leakcheck on the three edge-cloud arms (data/raw_c2,
 #                      data/raw_c2_pad, data/raw_c2_padmax) at both observer views (--vantage v1,
-#                      v2) → leakcheck/c2_{lan,lan_pad,lan_padmax}_{v1,v2}. The tool evaluation on
-#                      C2 per view follows once C2 is collected.
+#                      v2) → leakcheck/c2_{lan,lan_pad,lan_padmax}_{v1,v2}; then the tool
+#                      evaluation on all six cells, in one process (the committed one ran split
+#                      by arm and merged; the verdicts do not depend on the split)
+#                      → paper2_tool_eval_c2.{json,md}                                         a day
 #
 # A stage whose inputs are absent is skipped. Each result is compared with the committed one:
 # verdicts, macro-F1 with its interval, and p-values must match; runtime, memory, dates and
@@ -138,6 +140,13 @@ if [ "$QUICK" -eq 0 ]; then
                 --attributes task_type,escalated,cloud_role,audit_null
         done
     done
+    if [ -d data/raw_c2 ] && [ -d data/raw_c2_pad ] && [ -d data/raw_c2_padmax ]; then
+        run_eval paper2_tool_eval_c2 "$CANON/paper2_tool_eval_c2.json" --collection-id C2 \
+            --attributes task_type,escalated,cloud_role,audit_null --vantage v1,v2 --reference full-attack \
+            --arm lan=data/raw_c2 --arm lan_pad=data/raw_c2_pad --arm lan_padmax=data/raw_c2_padmax
+    else
+        echo "[skip] C2 tool evaluation: captures absent"
+    fi
 fi
 
 if [ "$FAIL" -eq 0 ]; then echo "PASS: every rebuilt number matches the committed one"; else echo "FAIL: see above and $LOG"; fi
