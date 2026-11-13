@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leak check: C2 lan_pad, view v1</title><style>
+:root { --bg:#ffffff; --fg:#1d2433; --muted:#5b6475; --line:#d9dee7; --leak:#b42318; --ok:#067647; --inc:#8a6100; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171c; --fg:#e7eaf0; --muted:#a3abb9; --line:#2c323c; --leak:#ff8a7a; --ok:#6ce9a6; --inc:#f5c451; }
+}
+body { background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; margin:0 auto; max-width:1100px; padding:24px 16px; }
+h1 { font-size:22px; margin:0 0 4px; } p.meta { color:var(--muted); margin:0 0 20px; }
+.wrap { overflow-x:auto; } table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
+th, td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+th { color:var(--muted); font-weight:600; font-size:13px; }
+.LEAK { color:var(--leak); font-weight:700; } .NO { color:var(--ok); font-weight:700; } .INCONCLUSIVE { color:var(--inc); font-weight:700; }
+ul { margin:4px 0 0; padding-left:18px; } li { margin:2px 0; }
+</style></head><body>
+<h1>Leak check: C2 lan_pad, view v1</h1>
+<p class="meta">1000 traces from 1000 captures · a2a-leakcheck 0.1.0 ·
+2026-11-13T11:20:58-0800 · 211.0 s · peak memory 302 MB</p>
+<div class="wrap"><table><thead><tr><th>Attribute</th><th>Verdict</th><th>Severity</th><th>macro-F1 [95% CI]</th>
+<th>Chance + margin</th><th>Permutation p</th><th>False positives (permuted)</th><th>Carried by</th><th>Why, and what to do</th></tr></thead>
+<tbody><tr><td>task_type</td><td class='LEAK'>LEAK</td><td>high</td><td>0.951 [0.937, 0.963]</td><td>0.300</td><td>0.010</td><td>0.00</td><td>sizes (alone matches all)</td><td>CI lower bound 0.937 &gt; chance + margin 0.300<ul><li><b>pad-messages</b>: Message sizes carry the leak, beyond any single request. Pad streamed response events to fixed cells (defense=pad) as well as request bodies to buckets.</li></ul></td></tr><tr><td>escalated</td><td class='LEAK'>LEAK</td><td>high</td><td>0.999 [0.996, 1.000]</td><td>0.550</td><td>0.010</td><td>0.00</td><td>first_request_bytes alone</td><td>CI lower bound 0.996 &gt; chance + margin 0.550<ul><li><b>pad-task-inputs</b>: One request-size feature alone matches all features: the size of the task input gives the attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this testbed the session collector&#x27;s arm option pad=B1/B2/...), with buckets wide enough that the inputs of different classes share one. Padding task inputs may not remove the leak: other size and timing features can still carry it. Re-run the audit on the padded deployment.</li></ul></td></tr><tr><td>cloud_role</td><td class='LEAK'>LEAK</td><td>high</td><td>0.998 [0.995, 1.000]</td><td>0.550</td><td>0.010</td><td>0.00</td><td>timing (alone matches all)</td><td>CI lower bound 0.995 &gt; chance + margin 0.550<ul><li><b>shape-timing</b>: Timing carries the leak. Add jitter and reordering to delegations (defense=rate), or batch responses so their timing no longer follows the work done.</li></ul></td></tr><tr><td>audit_null</td><td class='INCONCLUSIVE'>INCONCLUSIVE</td><td>none</td><td>0.249 [0.221, 0.277]</td><td>0.300</td><td>0.030</td><td>0.00</td><td>—</td><td>CI upper bound 0.277 &lt;= chance + margin 0.300, but the permutation test finds a signal (p = 0.030 &lt;= 0.05): the two models disagree<ul><li><b>inconclusive</b>: The interval straddles chance + margin: more traces will narrow it. Re-run before treating this attribute as safe.</li></ul></td></tr></tbody></table></div>
+<h2 style='font-size:16px'>Visible agents per topology</h2><div class='wrap'><table><thead><tr><th>Topology</th><th>Traces</th><th>diagnostics</th><th>knowledge</th><th>ticket</th></tr></thead><tbody><tr><td>edge_cloud</td><td>1000</td><td>500</td><td>250</td><td>1000</td></tr></tbody></table></div><p class='meta'>Traces in which each listed agent carries traffic; an agent never seen gives no role samples.</p>
+<p class="meta">Full numbers: report.json and report.md next to this file.</p>
+</body></html>
