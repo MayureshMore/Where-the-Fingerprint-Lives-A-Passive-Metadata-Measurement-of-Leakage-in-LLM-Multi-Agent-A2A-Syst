@@ -21,6 +21,7 @@ JSON, for the record.
 from __future__ import annotations
 
 import argparse
+import ctypes
 import json
 import os
 import socket
@@ -73,10 +74,30 @@ def parse_pipes(buf: bytes) -> dict:
     return {"ok": ok, "pipes": pipes, "flow_sets": sets, "bytes": len(buf), "parsed": off}
 
 
+_libc = ctypes.CDLL(None, use_errno=True)
+_libc.getsockopt.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32)]
+_libc.getsockopt.restype = ctypes.c_int
+
+
+def getsockopt_bytes(fd: int, level: int, opt: int, size: int = 1 << 20, limit: int = 1 << 26) -> bytes:
+    """getsockopt(2) into a buffer of `size` bytes, doubled while the kernel fills it (it truncates
+    to the buffer). Python's socket.getsockopt refuses buffers over 1024 bytes."""
+    while True:
+        buf, n = ctypes.create_string_buffer(size), ctypes.c_uint32(size)
+        if _libc.getsockopt(fd, level, opt, buf, ctypes.byref(n)) != 0:
+            e = ctypes.get_errno()
+            raise OSError(e, os.strerror(e))
+        if n.value < size:
+            return buf.raw[:n.value]
+        if size >= limit:
+            raise OSError(f"getsockopt: more than {limit} bytes")
+        size *= 2
+
+
 def read_pipes() -> dict:
     s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
     try:
-        return parse_pipes(s.getsockopt(socket.IPPROTO_IP, IP_DUMMYNET_GET, 1 << 20))
+        return parse_pipes(getsockopt_bytes(s.fileno(), socket.IPPROTO_IP, IP_DUMMYNET_GET))
     finally:
         s.close()
 
@@ -110,7 +131,8 @@ def main(a: argparse.Namespace) -> int:
     if a.once:
         s = sample()
         d = s["dummynet"]
-        print(f"reader ok: {d.get('ok')}  ({d.get('parsed')} of {d.get('bytes')} bytes)")
+        print(f"reader ok: {d.get('ok')}  " + (f"error: {d['error']}" if "error" in d
+                                                 else f"({d.get('parsed')} of {d.get('bytes')} bytes)"))
         for p in d.get("pipes", []):
             print(f"  pipe {p['pipe']}: {p['delay_ms']} ms, bandwidth {p['bandwidth']}, plr {p['plr']}, "
                   f"{p['queues']} queue(s), {p['pkts']} packets, {p['drops']} drops")

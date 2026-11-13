@@ -15,8 +15,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
+import pytest  # noqa: E402
+
 import c2_guard  # noqa: E402
-from wan_watch import DN_IS_PIPE, PIPE, QUEUE, parse_pipes  # noqa: E402
+from wan_watch import DN_IS_PIPE, PIPE, QUEUE, getsockopt_bytes, parse_pipes  # noqa: E402
 
 DNCTL_QUEUE = 184           # dnctl's sizeof(struct dn_flow_queue)
 
@@ -58,6 +60,19 @@ def test_reader_finds_pipe_2_where_dnctl_stops():
     assert d["pipes"][0]["flows"][0]["src"] == "10.0.0.171/42212"
     assert parse_pipes(_pipe(1, 6, []) + _pipe(2, 6, []))["pipes"][1]["pipe"] == 2
     assert not parse_pipes(buf[:-8] + b"\x01" * 8)["ok"]           # something after the last record
+
+
+def test_getsockopt_takes_a_large_buffer():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        with pytest.raises(OSError, match="buflen out of range"):
+            s.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE, 1 << 20)                # why the reader uses libc
+        assert struct.unpack("<i", getsockopt_bytes(s.fileno(), socket.SOL_SOCKET, socket.SO_TYPE)) == (s.type,)
+        assert struct.unpack("<i", getsockopt_bytes(s.fileno(), socket.SOL_SOCKET, socket.SO_TYPE, size=4)) == (s.type,)
+        with pytest.raises(OSError):
+            getsockopt_bytes(-1, socket.SOL_SOCKET, socket.SO_TYPE)                 # errno surfaces
+    finally:
+        s.close()
 
 
 def _guard(tmp_path: Path, status: dict) -> c2_guard.Guard:
