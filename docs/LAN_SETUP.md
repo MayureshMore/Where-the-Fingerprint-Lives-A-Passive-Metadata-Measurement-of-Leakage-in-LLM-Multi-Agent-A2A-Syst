@@ -442,12 +442,18 @@ done; done
 ```
 Then the tool evaluation on C2 (`scripts/evaluate_leakcheck.py`, hours): one process per arm with
 both views, reading the audits' reports instead of rerunning the tool, then the three parts merged
-(the verdicts do not depend on the split):
+(the verdicts do not depend on the split). The known leaks leave a2a-leakcheck out: `escalated` and
+`cloud_role` by construction, plus the cells where k-FP or the first-request rule reads LEAK on the
+full data. The summary adds coverage (subsamples against the tool's own full-data verdicts), the
+cells beyond the baselines, the family that carries each LEAK, `sensor_analysis` vs
+`fault_diagnosis` on all features and on timing alone, and the input-size estimator's error:
 ```bash
 mkdir -p logs
 for pair in lan=data/raw_c2 lan_pad=data/raw_c2_pad lan_padmax=data/raw_c2_padmax; do
   A2A_RESULTS_DIR=data/c2_tool_eval_parts venv/bin/python scripts/evaluate_leakcheck.py --collection-id C2 \
-      --attributes task_type,escalated,cloud_role,audit_null --vantage v1,v2 --reference full-attack \
+      --attributes task_type,escalated,cloud_role,audit_null --vantage v1,v2 \
+      --reference baselines --by-construction escalated,cloud_role \
+      --pair task_type:sensor_analysis,fault_diagnosis --input-size escalated=yes \
       --tool-reports 'data/results/leakcheck/c2_{cell}' --jobs 5 --arm "$pair" --name "c2_part_${pair%%=*}" \
       > "logs/c2_part_${pair%%=*}.log" 2>&1 &
 done; wait

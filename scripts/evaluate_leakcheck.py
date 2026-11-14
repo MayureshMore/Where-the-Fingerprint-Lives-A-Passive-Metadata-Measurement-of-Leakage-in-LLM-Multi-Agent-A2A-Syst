@@ -7,11 +7,14 @@ Paper 2: how well a2a-leakcheck's verdicts hold up, on collections whose answer 
                     and with --role-within TOPOLOGY role scored on that topology's traces only
                     (role_within_<topology>). --not-known ARM:ATTR leaves a cell out of the known
                     leaks; it is still reported.
-                    --reference full-attack (C2): no attribute of a padded arm is known to leak
-                    beforehand, so the reference is the full-data attack: a cell (arm, view,
-                    attribute) is a known leak when an attack on all of its data finds one, that
-                    is, when any of the three methods below reads LEAK on the full data. A cell in
-                    which none does is neither a known leak nor a known non-leak.
+                    --reference baselines (C2): not every attribute of a padded arm is known to
+                    leak beforehand, and a2a-leakcheck must not be its own reference. Known leaks:
+                    the attributes named by --by-construction, in every cell (C2: escalated and
+                    cloud_role at both views: an escalated task opens a connection to a cloud
+                    agent and no other task does, and the two cloud agents are separate
+                    endpoints), and the cells (arm, view, attribute) in which k-FP or the
+                    first-request rule (2. below) reads LEAK on the full data. A cell in neither
+                    set is not scored; it is still reported.
   known non-leaks   permuted labels: --label-perms random permutations of each attribute's labels
                     over its samples (labels independent of the traffic), and audit_null, a
                     sidecar label drawn from the prompt group alone (C2 sidecars,
@@ -49,10 +52,40 @@ Paper 2: how well a2a-leakcheck's verdicts hold up, on collections whose answer 
                     groups (per class, groups in random order until n samples; the last group's
                     surplus is dropped), on the real labels and on one label permutation per draw.
                     Share of LEAK / INCONCLUSIVE / NO LEAK, and agreement with the full-data verdict.
+  4. With --reference baselines the summary also holds:
+                    coverage: per sample size, the share of draws whose verdict is a2a-leakcheck's
+                    own full-data verdict on that cell (every cell and attribute, real labels;
+                    also split by that verdict), reported apart from recall;
+                    beyond the baselines: the cells in which a2a-leakcheck reads LEAK on the full
+                    data and neither k-FP nor the first-request rule does;
+                    carried by: for every cell in which any method reads LEAK, the feature family
+                    the tool's attribution names (its report: each family's features alone, and
+                    whether the top family alone matches all features), beside the baselines.
+  5. --pair ATTR:A,B
+                    ATTR on its classes A and B only (C2: task_type, sensor_analysis vs
+                    fault_diagnosis, both routed to the diagnostics agent), through the verdict
+                    rule with the tool's GBT, on all 195 trace features and on the timing family
+                    alone (features/families.py): binary macro-F1 with its CI, per cell.
+  6. --input-size KEY=VALUE
+                    the first-request size estimator of the input size (paper 1's B1,
+                    scripts/evaluate_c1_review2.py), on the traces whose sidecar has KEY=VALUE
+                    (C2: escalated=yes; only an escalated task sends its prompt over a captured
+                    link, to a cloud agent, while an alert_triage task's first request at v1 is
+                    its ticket post, which carries the answer). The input size is the prompt as
+                    JSON-encoded in the request; the first request is the one the leakcheck
+                    measures (first_request_seq at the cell's view), and the agent it went to is
+                    recorded. 5-fold StratifiedGroupKFold by prompt group over the first
+                    attribute's classes (C2: task_type), seed 42; on the training folds: one
+                    overhead c = median(first request − input) (constant), a least-squares line
+                    (linear), the median input with no traffic (no_traffic), and, for reference
+                    only, c per class applied with the true class (per_class_constant). Errors
+                    overall and per class.
 
 Rates (Wilson 95% intervals): recall = LEAK on known leaks; false-negative rate = 1 − recall,
 split into INCONCLUSIVE and NO LEAK (a wrong all-clear); false-positive rate = LEAK on known
-non-leaks; precision = LEAK on known leaks / all LEAK verdicts in the set.
+non-leaks; precision = LEAK on known leaks / all LEAK verdicts in the set. Sample-size rates and
+coverage pool the draws of all cells; draws of one cell are not independent, so those intervals
+are narrower than they should be.
 
 Writes data/results/paper2_tool_eval.{json,md} (A2A_RESULTS_DIR overrides data/results) and
 data/results/figures/paper2_tool_eval.png.
@@ -65,7 +98,9 @@ parameters and the reference; the summary is computed over all their cells, as o
 Usage:
     python scripts/evaluate_leakcheck.py                                  # TLS control, both arms
     python scripts/evaluate_leakcheck.py --collection-id C2 --name paper2_tool_eval_c2 \\
-        --attributes task_type,escalated,cloud_role,audit_null --vantage v1,v2 --reference full-attack \\
+        --attributes task_type,escalated,cloud_role,audit_null --vantage v1,v2 \\
+        --reference baselines --by-construction escalated,cloud_role \\
+        --pair task_type:sensor_analysis,fault_diagnosis --input-size escalated=yes \\
         --arm lan=data/raw_c2 --arm lan_pad=data/raw_c2_pad --arm lan_padmax=data/raw_c2_padmax
     # the same, split by arm: one process per arm (A2A_RESULTS_DIR=data/c2_tool_eval_parts,
     # --name c2_part_<arm>, --tool-reports data/results/leakcheck/c2_{cell}), then
@@ -87,6 +122,8 @@ import time
 from pathlib import Path
 
 import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import StratifiedGroupKFold
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -95,7 +132,9 @@ from a2a_leakcheck.collect import collect  # noqa: E402
 from a2a_leakcheck.extract import extract  # noqa: E402
 from a2a_leakcheck.rules import load_rules  # noqa: E402
 from features.connections import own_packets  # noqa: E402
-from features.kfp import N_KFP, kfp_features, tcp_packets  # noqa: E402
+from features.families import FAMILIES, family_columns  # noqa: E402
+from features.first_request import first_request_seq  # noqa: E402
+from features.kfp import N_KFP, kfp_features, tcp_packets, tcp_records  # noqa: E402
 from features.per_flow import PerFlowFeatures  # noqa: E402
 
 SEED = 42
@@ -105,7 +144,10 @@ ROLE_WITHIN = "role_within_"
 # each attribute's random streams (label permutations, subsamples); fixed so that adding an
 # attribute leaves the others' draws unchanged (role_within_* use 10 + their position)
 STREAMS = {"role": 0, "workflow": 1, "topology": 2, NULL_ATTR: 3, "task_type": 4, "escalated": 5, "cloud_role": 6}
-REFERENCES = ("labels", "full-attack")
+REFERENCES = ("labels", "baselines")
+BASELINES = ("kfp_rf", "first_request")
+ESTIMATORS = ("constant", "linear", "no_traffic", "per_class_constant")
+WITHIN = (100, 200, 300)
 # what python -m a2a_leakcheck run reads: a report made at another commit stands for this one only
 # if none of these changed in between (--tool-reports)
 TOOL_CODE = ("a2a_leakcheck", "features", "models", "evaluation", "scripts/strip_payload.py")
@@ -165,15 +207,26 @@ def trace_attributes(attributes) -> list[str]:
     return list(dict.fromkeys([*(x for x in attributes if x != "role"), NULL_ATTR]))
 
 
-def load_arm(raw: Path, role_within: list[str] = (), attributes=ATTRS, vantage: str | None = None) -> dict:
+def prompt_json_bytes(prompt: str) -> int:
+    """The prompt as JSON-encoded in the request, without its quotes (paper 1's B1)."""
+    return len(json.dumps(prompt, ensure_ascii=False).encode()) - 2
+
+
+def load_arm(raw: Path, role_within: list[str] = (), attributes=ATTRS, vantage: str | None = None,
+             input_size: str | None = None) -> dict:
     """Collect and extract once per cell, as the tool does, plus k-FP vectors per trace and per
     agent. Samples per attribute: (X per method, labels, groups). role_within: topologies whose
     role samples also form an attribute of their own (role_within_<topology>). vantage: an observer
     view from the sidecars (only the flows of the endpoints in view; a trace with none in view is
-    kept with all-zero features, as python -m a2a_leakcheck run --vantage does)."""
+    kept with all-zero features, as python -m a2a_leakcheck run --vantage does). input_size
+    (KEY=VALUE): for the traces whose sidecar has KEY=VALUE, the first request's size (as the
+    leakcheck measures it), the agent it went to, and the prompt's JSON-encoded size."""
     want_role = "role" in attributes
     if role_within and not want_role:
         raise SystemExit("--role-within needs role in --attributes")
+    key, value = input_size.split("=", 1) if input_size else (None, None)
+    cls_attr = trace_attributes(attributes)[0]
+    size = {"fr": [], "input": [], "cls": [], "g": [], "link": []}
     with tempfile.TemporaryDirectory(prefix="leakeval_") as tmp:
         col = collect(raw, trace_attributes(attributes), strip_dir=Path(tmp), vantage=vantage)
         ext = extract(col["traces"], keep_empty=vantage is not None)
@@ -186,8 +239,30 @@ def load_arm(raw: Path, role_within: list[str] = (), attributes=ATTRS, vantage: 
             port_of = {r: p for p, r in tr.port_role.items()}
             for j in np.flatnonzero(ext["role_trace"] == i) if want_role else ():
                 kfp_role.append(kfp_rows(pk, servers, port_of[ext["role_y"][j]]))
+            if key is None:
+                continue
+            sc = json.loads((Path(raw) / Path(tr.pcap).with_suffix(".json").name).read_text())
+            if str(sc.get(key)) != value:
+                continue
+            fr = first_request_seq(tcp_records(tr.pcap, ack=True), servers)   # as extract()
+            if fr["bytes"] != ext["first_request"][i]:
+                raise SystemExit(f"{tr.run_id}: first request {fr['bytes']} B here, {ext['first_request'][i]} B "
+                                 "in extract()")
+            size["fr"].append(fr["bytes"])
+            size["input"].append(prompt_json_bytes(sc["input_prompt"]))
+            size["cls"].append(tr.labels.get(cls_attr))
+            size["g"].append(tr.group)
+            size["link"].append(tr.port_role.get(fr["link"][1]) if fr["link"] else "none")
     groups = np.array([tr.group for tr in traces])
     out = {"traces": len(traces), "empty_traces": ext["summary"]["empty_traces"], "samples": {}}
+    if key is not None:
+        if not size["fr"]:
+            raise SystemExit(f"--input-size {input_size}: no trace in {raw} has {key}={value}")
+        if None in size["cls"]:
+            raise SystemExit(f"--input-size: a trace in {raw} with {key}={value} has no {cls_attr}")
+        out["input_size"] = {"traces": input_size, "class_attribute": cls_attr,
+                             **{k: np.array(v, dtype=float) if k in ("fr", "input") else np.array(v)
+                                for k, v in size.items()}}
     if want_role:
         bytes_in = PerFlowFeatures.FEATURE_NAMES().index("bytes_in")
         role = {"X": {"leakcheck": ext["role_X"], "kfp_rf": np.stack(kfp_role),
@@ -283,6 +358,22 @@ def tool_report(path: Path, raw: Path, attrs: list[str], a: argparse.Namespace, 
     return {**tool_summary(rep), "report": str(path / "report.json")}
 
 
+def attribution(r: dict) -> dict | None:
+    """The tool's leak attribution for one attribute: each feature family's features alone
+    (macro-F1 with CI) and whether it alone matches all features (the CI of all − it reaches 0);
+    the top family is the one that scores highest alone."""
+    at = r.get("attribution")
+    if not at:
+        return None
+    s = at.get("single_request_size")
+    return {"top_family": at.get("top_family"), "top_family_matches_all": at.get("top_family_matches_all"),
+            "families": {f: {"macro_f1": v["macro_f1"], "ci": [v["ci_lo"], v["ci_hi"]], "dims": v["dims"],
+                              "matches_all": bool(v["all_minus_this"]["ci_lo"] <= 0)}
+                          for f, v in (at.get("families") or {}).items()},
+            "single_request_size": None if s is None else
+            {"macro_f1": s["macro_f1"], "ci": [s["ci_lo"], s["ci_hi"]], "matches_all": s["matches_all"]}}
+
+
 def tool_summary(rep: dict) -> dict:
     return {"attributes": {k: {"verdict": r["verdict"], "reason": r["reason"],
                                "macro_f1": (r["analysis"] or {}).get("macro_f1"),
@@ -291,17 +382,87 @@ def tool_summary(rep: dict) -> dict:
                                "false_positive_rate_on_permutations":
                                    (r["validation"].get("permutation") or {}).get("false_positive_rate"),
                                "carried_by": (r.get("attribution") or {}).get("top_family"),
+                               "attribution": attribution(r),
                                "n": r["n"], "groups": r["n_groups"]}
                            for k, r in rep["attributes"].items()},
             "runtime": rep["runtime"], "git_commit": rep.get("git_commit"), "git_dirty": rep.get("git_dirty"),
             "visible_agents": rep["collection"].get("visible_agents")}
 
 
+def parse_pair(spec: str) -> tuple[str, list[str]]:
+    attr, _, classes = spec.partition(":")
+    cl = [c.strip() for c in classes.split(",") if c.strip()]
+    if not attr or len(cl) != 2 or cl[0] == cl[1]:
+        raise SystemExit(f"--pair {spec!r}: expected ATTR:A,B with two different classes")
+    return attr, cl
+
+
+def pair_verdicts(data: dict, spec: str, a: argparse.Namespace, sev: dict) -> dict:
+    """--pair: the attribute on two of its classes, with the tool's GBT on all trace features and on
+    the timing family alone (verdict rule as everywhere else)."""
+    attr, classes = parse_pair(spec)
+    s = data["samples"].get(attr)
+    if s is None:
+        raise SystemExit(f"--pair {spec}: no {attr} samples")
+    keep = np.isin(s["y"], classes)
+    y, g, X = s["y"][keep], s["g"][keep], s["X"]["leakcheck"][keep]
+    if missing := [c for c in classes if c not in set(y.tolist())]:
+        raise SystemExit(f"--pair {spec}: no {attr} = {missing}")
+    timing = family_columns("timing", role=False)
+    out = {"attribute": attr, "classes": {c: int((y == c).sum()) for c in classes},
+           "groups": int(len(np.unique(g))), "dims": {"all": int(X.shape[1]), "timing": int(len(timing))}}
+    for k, cols in (("all", slice(None)), ("timing", timing)):
+        out[k] = verdict(X[:, cols], y, g, a, "leakcheck", sev)
+    return out
+
+
+def size_errors(pred: np.ndarray, true: np.ndarray) -> dict:
+    """As paper 1's B1 (scripts/evaluate_c1_review2.py errors)."""
+    ae = np.abs(pred - true)
+    return {"n": int(len(true)), "median_abs_error": float(np.median(ae)), "mae": float(ae.mean()),
+            "p90_abs_error": float(np.percentile(ae, 90)),
+            **{f"within_{b}B": float((ae <= b).mean()) for b in WITHIN},
+            "median_relative_error": float(np.median(ae / true)),
+            "median_signed_error": float(np.median(pred - true))}
+
+
+def input_size(d: dict) -> dict:
+    """--input-size: out-of-fold estimates of the input's size from the first request's size."""
+    fr, true, cls, g = d["fr"], d["input"], d["cls"], d["g"]
+    classes = sorted(set(cls.tolist()))
+    splits = list(StratifiedGroupKFold(5, shuffle=True, random_state=SEED).split(np.zeros(len(cls)), cls, g))
+    pred = {e: np.empty(len(fr)) for e in ESTIMATORS}
+    learned = []
+    for tr, te in splits:
+        c = float(np.median(fr[tr] - true[tr]))
+        lr = LinearRegression().fit(fr[tr, None], true[tr])
+        cw = {k: float(np.median(fr[tr][cls[tr] == k] - true[tr][cls[tr] == k])) for k in classes}
+        pred["constant"][te] = fr[te] - c
+        pred["linear"][te] = lr.predict(fr[te, None])
+        pred["no_traffic"][te] = float(np.median(true[tr]))
+        pred["per_class_constant"][te] = fr[te] - np.array([cw[k] for k in cls[te]])
+        learned.append({"constant_c": c, "linear": {"slope": float(lr.coef_[0]), "intercept": float(lr.intercept_)},
+                        "per_class_c": cw})
+    med = lambda x, m: float(np.median(x[m]))  # noqa: E731
+    links = d["link"].tolist()
+    return {"traces": d["traces"], "n": int(len(fr)), "class_attribute": d["class_attribute"],
+            "folds": len(splits), "first_request_link": {r: links.count(r) for r in sorted(set(links))},
+            "input_bytes": {"median": float(np.median(true)), "range": [float(true.min()), float(true.max())],
+                            "per_class_median": {k: med(true, cls == k) for k in classes}},
+            "first_request_bytes": {"median": float(np.median(fr)), "range": [float(fr.min()), float(fr.max())],
+                                    "distinct": int(len(np.unique(fr))),
+                                    "per_class_median": {k: med(fr, cls == k) for k in classes}},
+            "learned_per_fold": learned,
+            "estimators": {e: {"overall": size_errors(pred[e], true),
+                               "per_class": {k: size_errors(pred[e][cls == k], true[cls == k]) for k in classes}}
+                           for e in ESTIMATORS}}
+
+
 def evaluate_arm(name: str, raw: Path, a: argparse.Namespace, sev: dict, tmp: Path,
                  arm: str | None = None, vantage: str | None = None) -> dict:
     """One cell: an arm (name, or arm at a view)."""
     t = time.perf_counter()
-    data = load_arm(raw, a.role_within, a.attributes, vantage)
+    data = load_arm(raw, a.role_within, a.attributes, vantage, a.input_size)
     order = ("role", *(ROLE_WITHIN + t for t in a.role_within), *trace_attributes(a.attributes))
     attrs = [x for x in dict.fromkeys(order) if x in data["samples"]]
     print(f"[{name}] {data['traces']} traces ({data['empty_traces']} with nothing in view); attributes {attrs} "
@@ -312,6 +473,18 @@ def evaluate_arm(name: str, raw: Path, a: argparse.Namespace, sev: dict, tmp: Pa
     res = {"data_dir": str(raw), "traces": data["traces"], "tool": tool, "attributes": {}}
     if vantage is not None:
         res.update({"arm": arm, "vantage": vantage, "empty_traces": data["empty_traces"]})
+    if a.pair:
+        t = time.perf_counter()
+        res["pair"] = pair_verdicts(data, a.pair, a, sev)
+        print(f"[{name}] pair {a.pair}: " + ", ".join(
+            f"{k} {res['pair'][k]['verdict']} {res['pair'][k]['macro_f1']:.3f}" for k in ("all", "timing"))
+            + f" ({time.perf_counter() - t:.0f} s)", flush=True)
+    if a.input_size:
+        res["input_size"] = input_size(data["input_size"])
+        e = res["input_size"]["estimators"]
+        print(f"[{name}] input size ({res['input_size']['n']} traces, first request to "
+              f"{res['input_size']['first_request_link']}): median abs error "
+              + ", ".join(f"{k} {e[k]['overall']['median_abs_error']:.0f} B" for k in ESTIMATORS), flush=True)
     for attr in attrs:
         ai = attr_index(attr, a.role_within)
         s = data["samples"][attr]
@@ -361,13 +534,20 @@ def rates(leak_verdicts: list[str], null_verdicts: list[str]) -> dict:
 
 
 REF_STATUS = {"leak": "", "null": " (known non-leak)", "not known": " (not a known leak)",
-              "no attack": " (no full-data attack finds a leak)"}
+              "no baseline": " (not scored: neither by construction nor a baseline's LEAK)"}
 
 
-def reference(arms: dict, not_known: set[tuple[str, str]], ref: str = "labels") -> dict:
+def leak_basis(attr: str, r: dict, by_construction=()) -> list[str]:
+    """--reference baselines: why a cell is a known leak (by construction, and/or the baselines that
+    read LEAK on its full data); empty if it is not one. a2a-leakcheck is never part of it."""
+    return (["by construction"] if attr in by_construction else []) + \
+        [m for m in BASELINES if r["full"][m]["verdict"] == LEAK]
+
+
+def reference(arms: dict, not_known: set[tuple[str, str]], ref: str = "labels", by_construction=()) -> dict:
     """(cell, attribute) → "leak" (a known leak), "null" (a known non-leak: audit_null), "not known"
-    (--not-known, by cell or by arm) or "no attack" (--reference full-attack: no method reads LEAK on
-    the full data)."""
+    (--not-known, by cell or by arm) or "no baseline" (--reference baselines: neither by
+    construction nor a baseline's LEAK on the full data)."""
     out = {}
     for an, arm in arms.items():
         for attr, r in arm["attributes"].items():
@@ -375,15 +555,56 @@ def reference(arms: dict, not_known: set[tuple[str, str]], ref: str = "labels") 
                 out[an, attr] = "null"
             elif (an, attr) in not_known or (arm.get("arm"), attr) in not_known:
                 out[an, attr] = "not known"
-            elif ref == "labels" or any(r["full"][m]["verdict"] == LEAK for m in METHODS):
+            elif ref == "labels" or leak_basis(attr, r, by_construction):
                 out[an, attr] = "leak"
             else:
-                out[an, attr] = "no attack"
+                out[an, attr] = "no baseline"
     return out
 
 
-def summarize(arms: dict, not_known: set[tuple[str, str]], sizes: list[int], ref: str = "labels") -> dict:
-    status = reference(arms, not_known, ref)
+def baseline_summary(arms: dict, sizes: list[int], by_construction=()) -> dict:
+    """--reference baselines: coverage, the cells beyond the baselines, and what carries each LEAK."""
+    coverage = {}
+    for n in sizes:
+        k = {"all": [0, 0], "leak": [0, 0], "other": [0, 0]}
+        for arm in arms.values():
+            for r in arm["attributes"].values():
+                full_v, s = r["full"]["leakcheck"]["verdict"], r["sample_size"][str(n)]["real"]
+                for part in ("all", "leak" if full_v == LEAK else "other"):
+                    k[part][0] += s[full_v]
+                    k[part][1] += sum(s.values())
+        coverage[str(n)] = {part: {"agree": a, "draws": d, "share": a / d if d else None, "ci": wilson(a, d)}
+                            for part, (a, d) in k.items()}
+    beyond, carried = [], []
+    for an, arm in arms.items():
+        for attr, r in arm["attributes"].items():
+            v = {m: r["full"][m]["verdict"] for m in METHODS}
+            if v["leakcheck"] == LEAK and all(v[m] != LEAK for m in BASELINES):
+                beyond.append({"cell": an, "attribute": attr, "by_construction": attr in by_construction})
+            if LEAK in v.values():
+                carried.append({"cell": an, "attribute": attr, "verdicts": v,
+                                "carried_by": r["full"]["leakcheck"].get("carried_by"),
+                                "attribution": r["full"]["leakcheck"].get("attribution")})
+    return {"coverage": coverage, "beyond_baselines": beyond, "carried_by": carried}
+
+
+def extras_summary(arms: dict) -> dict:
+    """--pair and --input-size, per cell (the full detail stays in the cell)."""
+    out = {}
+    if any("pair" in arm for arm in arms.values()):
+        out["pair"] = {an: {k: arm["pair"][k] for k in ("attribute", "classes", "all", "timing")}
+                       for an, arm in arms.items() if "pair" in arm}
+    if any("input_size" in arm for arm in arms.values()):
+        out["input_size"] = {an: {"n": arm["input_size"]["n"], "first_request_link": arm["input_size"]["first_request_link"],
+                                  "first_request_distinct": arm["input_size"]["first_request_bytes"]["distinct"],
+                                  **{e: arm["input_size"]["estimators"][e]["overall"] for e in ESTIMATORS}}
+                             for an, arm in arms.items() if "input_size" in arm}
+    return out
+
+
+def summarize(arms: dict, not_known: set[tuple[str, str]], sizes: list[int], ref: str = "labels",
+              by_construction=()) -> dict:
+    status = reference(arms, not_known, ref, by_construction)
     out = {"full_data": {}, "sample_size": {}}
     for m in METHODS:
         leaks, nulls = [], []
@@ -427,10 +648,101 @@ def _cell(k: str, v: dict) -> str:
             f"{v['empty_traces']} with nothing in view)")
 
 
+def _v(f: dict) -> str:
+    """A verdict with its macro-F1 and CI."""
+    return f"{f['verdict']} {_r(f['macro_f1'], f['ci'] if f['ci'][0] is not None else None)}"
+
+
+def md_extras(out: dict) -> list[str]:
+    """Sections for --reference baselines, --pair and --input-size."""
+    s, L = out["summary"], []
+    if "coverage" in s:
+        L += ["", "## Coverage (a2a-leakcheck's subsamples against its own full-data verdicts)", "",
+              "Share of n-sample draws (real labels) whose verdict is the one a2a-leakcheck reaches on all of "
+              "that cell's data, over every cell and attribute, and split by that full-data verdict. This is "
+              "agreement with the tool itself, not recall.", "",
+              "| Samples per class | All cells [95% CI] | Its LEAK cells [95% CI] | Its other cells [95% CI] | Draws |",
+              "|---|---|---|---|---|"]
+        for n, c in s["coverage"].items():
+            L.append(f"| {n} | " + " | ".join(_r(c[k]['share'], c[k]['ci']) for k in ("all", "leak", "other"))
+                     + f" | {c['all']['draws']} |")
+        L += ["", "## Beyond the baselines", "",
+              "Cells in which a2a-leakcheck reads LEAK on the full data and neither k-FP nor the first-request "
+              "rule does:", ""]
+        L += [f"- {b['cell']}: {b['attribute']}" + (" (a known leak by construction)" if b["by_construction"]
+                                                    else " (not in the reference: not scored)")
+              for b in s["beyond_baselines"]] or ["- none"]
+        fams = list(FAMILIES)
+        L += ["", "## Carried by (a2a-leakcheck's attribution, every cell with a LEAK)", "",
+              "Each feature family's features alone (macro-F1 [95% CI]); the top family scores highest alone, and "
+              "\"matches all\" means its gap to all features has a CI that reaches 0. Single request size: the "
+              "first request's size alone.", "",
+              "| Cell | Attribute | a2a-leakcheck | k-FP | first request | Carried by | "
+              + " | ".join(fams) + " | single request size |", "|---|---|---|---|---|---|" + "---|" * (len(fams) + 1)]
+        for c in s["carried_by"]:
+            at = c["attribution"] or {}
+            fam = at.get("families") or {}
+            top = c["carried_by"] or "—"
+            if at.get("top_family"):
+                top += " (matches all)" if at.get("top_family_matches_all") else " (short of all)"
+            srs = at.get("single_request_size")
+            L.append(f"| {c['cell']} | {c['attribute']} | " + " | ".join(c["verdicts"][m] for m in METHODS)
+                     + f" | {top} | " + " | ".join(_r(fam[f]['macro_f1'], fam[f]['ci']) if f in fam else "—" for f in fams)
+                     + f" | {_r(srs['macro_f1'], srs['ci']) if srs else '—'} |")
+    if "pair" in s:
+        first = next(iter(s["pair"].values()))
+        a_, b_ = first["classes"]
+        cell = next(iter(out["arms"].values()))["pair"]
+        L += ["", f"## {first['attribute']}: {a_} vs {b_}", "",
+              f"Binary macro-F1 [95% CI] through the same verdict rule, with the tool's GBT on all "
+              f"{cell['dims']['all']} trace features and on the {cell['dims']['timing']} timing features alone "
+              "(features/families.py); p from the permutation test.", "",
+              f"| Cell | {a_} / {b_} | All features | p | Timing alone | p |", "|---|---|---|---|---|---|"]
+        for an, x in s["pair"].items():
+            L.append(f"| {an} | {x['classes'][a_]} / {x['classes'][b_]} | {_v(x['all'])} | {_r(x['all']['p'])} | "
+                     f"{_v(x['timing'])} | {_r(x['timing']['p'])} |")
+    if "input_size" in s:
+        cell = next(iter(out["arms"].values()))["input_size"]
+        L += ["", "## Input size from the first request", "",
+              f"Traces with {cell['traces']}; input = the prompt as JSON-encoded in the request. Out-of-fold "
+              "estimates (5-fold StratifiedGroupKFold by prompt group over "
+              f"{cell['class_attribute']}): constant overhead, linear fit, no traffic (the training folds' median "
+              "input), and per-class overhead (reference only: it knows the class). Median absolute error in bytes "
+              "(share within 200 B).", "",
+              "| Cell | Traces | First request to | Distinct first-request sizes | "
+              + " | ".join(ESTIMATORS) + " |", "|---|---|---|---|" + "---|" * len(ESTIMATORS)]
+        for an, x in s["input_size"].items():
+            links = ", ".join(f"{k} {v}" for k, v in x["first_request_link"].items())
+            L.append(f"| {an} | {x['n']} | {links} | {x['first_request_distinct']} | " + " | ".join(
+                f"{x[e]['median_abs_error']:.0f} ({x[e]['within_200B']:.2f})" for e in ESTIMATORS) + " |")
+        by_arm: dict[str, list] = {}
+        for an, arm in out["arms"].items():
+            if "input_size" in arm:
+                by_arm.setdefault(arm.get("arm", an), []).append(arm["input_size"]["estimators"])
+        same = [k for k, v in by_arm.items() if len(v) > 1 and all(x == v[0] for x in v)]
+        if same:
+            L += ["", f"The views give identical estimates on {', '.join(same)}: the first request of every such "
+                      "trace is the same at each view."]
+        L += ["", "Per class, median absolute error in bytes:", "",
+              "| Cell | Class | Input median | First request median | " + " | ".join(ESTIMATORS) + " |",
+              "|---|---|---|---|" + "---|" * len(ESTIMATORS)]
+        for an, arm in out["arms"].items():
+            if "input_size" not in arm:
+                continue
+            x = arm["input_size"]
+            for k in x["input_bytes"]["per_class_median"]:
+                L.append(f"| {an} | {k} | {x['input_bytes']['per_class_median'][k]:.0f} | "
+                         f"{x['first_request_bytes']['per_class_median'][k]:.0f} | " + " | ".join(
+                             f"{x['estimators'][e]['per_class'][k]['median_abs_error']:.0f}" for e in ESTIMATORS) + " |")
+    return L
+
+
 def write_md(out: dict, path: Path) -> None:
     p = out["parameters"]
     ref = out.get("reference")
-    status = reference(out["arms"], {tuple(x) for x in p["not_known"]}, p.get("reference", "labels"))
+    bc = p.get("by_construction") or []
+    baselines = p.get("reference") == "baselines"
+    status = reference(out["arms"], {tuple(x) for x in p["not_known"]}, p.get("reference", "labels"), bc)
     L = [f"# a2a-leakcheck on known answers ({out['collection_id']})", "",
          f"Commit `{out['git_commit'][:8]}` (dirty: {out['git_dirty']}), seed {out['seed']}. "
          f"{'Cells' if p.get('vantage') else 'Arms'}: " + ", ".join(_cell(k, v) for k, v in out["arms"].items()) + ".",
@@ -453,16 +765,21 @@ def write_md(out: dict, path: Path) -> None:
             perm = [f"{r['permuted'][m].count(LEAK)}/{r['permuted'][m].count(INCONCLUSIVE)}/"
                     f"{r['permuted'][m].count(NO_LEAK)}" for m in METHODS]
             known = REF_STATUS[status[an, attr]]
+            if baselines and status[an, attr] == "leak":
+                known = f" (known leak: {', '.join(leak_basis(attr, r, bc))})"
             L.append(f"| {an} | {attr}{known} | {len(r['classes'])} | " + " | ".join(cells) + " | " + " | ".join(perm) + " |")
     L += ["", "## Sample size (a2a-leakcheck)", "",
           f"{p['subsamples']} draws per size, attribute and arm, by whole prompt groups; each draw also "
-          "scored with its labels permuted.", "",
-          "| Samples per class | Recall [95% CI] | INCONCLUSIVE on leaks | NO LEAK on leaks | Agreement with full data | "
-          "False-positive rate [95% CI] |", "|---|---|---|---|---|---|"]
+          "scored with its labels permuted." + (" Recall against the same known leaks as above; agreement with "
+                                                "a2a-leakcheck's own full-data verdicts is under Coverage."
+                                                if baselines else ""), "",
+          "| Samples per class | Recall [95% CI] | INCONCLUSIVE on leaks | NO LEAK on leaks | "
+          + ("" if baselines else "Agreement with full data | ") + "False-positive rate [95% CI] |",
+          "|---|---|---|---|---|" + ("" if baselines else "---|")]
     for n, r in out["summary"]["sample_size"].items():
         L.append(f"| {n} | {_r(r['recall'], r['recall_ci'])} | {r['inconclusive_on_leaks']} of {r['known_leaks']} | "
-                 f"{r['no_leak_on_leaks']} | {_r(r['agreement_with_full_mean'])} | "
-                 f"{_r(r['false_positive_rate'], r['false_positive_rate_ci'])} |")
+                 f"{r['no_leak_on_leaks']} | " + ("" if baselines else f"{_r(r['agreement_with_full_mean'])} | ")
+                 + f"{_r(r['false_positive_rate'], r['false_positive_rate_ci'])} |")
     L += ["", "| Arm | Attribute | " + " | ".join(f"n={n} L/I/N (agree)" for n in p["sizes"]) + " |",
           "|---|---|" + "---|" * len(p["sizes"])]
     for an, arm in out["arms"].items():
@@ -470,6 +787,7 @@ def write_md(out: dict, path: Path) -> None:
             L.append(f"| {an} | {attr} | " + " | ".join(
                 f"{s['real'][LEAK]}/{s['real'][INCONCLUSIVE]}/{s['real'][NO_LEAK]} ({s['agreement_with_full']:.2f})"
                 for s in r["sample_size"].values()) + " |")
+    L += md_extras(out)
     L += ["", "## Runtime and memory (a2a-leakcheck run, full data)", "",
           "| Arm | Stage | Time (s) | Peak so far, main (MB) | Peak so far, one worker (MB) |", "|---|---|---|---|---|"]
     for an, arm in out["arms"].items():
@@ -531,22 +849,33 @@ def make_figure(out: dict, path: Path) -> None:
     plt.close(fig)
 
 
-REFERENCE_DEF = {
-    "labels": "Known leaks: the real labels of every attribute but audit_null (and the cells named by "
-              "--not-known). Known non-leaks: audit_null and the permuted labels.",
-    "full-attack": "Known leaks: the cells (arm, view, attribute) in which the full-data attack finds a leak, that "
-                   "is, in which a2a-leakcheck, k-FP or the first request's size reads LEAK on all of the cell's "
-                   "data; recall is measured against them. A cell in which none does is neither a known leak nor "
-                   "a known non-leak. Known non-leaks: audit_null and the permuted labels."}
+def reference_def(ref: str, by_construction=()) -> str:
+    if ref == "labels":
+        return ("Known leaks: the real labels of every attribute but audit_null (and the cells named by "
+                "--not-known). Known non-leaks: audit_null and the permuted labels.")
+    return (f"Known leaks: {' and '.join(by_construction) or 'no attribute'} by construction, in every cell, and the "
+            "cells (arm, view, attribute) in which k-FP or the first-request rule reads LEAK on the full data; "
+            "a2a-leakcheck is not part of the reference, and recall is measured against these cells. Known "
+            "non-leaks: audit_null and the permuted labels. A cell in neither set is not scored. Agreement with "
+            "a2a-leakcheck's own full-data verdicts is reported apart, as coverage, and the cells only "
+            "a2a-leakcheck flags are listed as beyond the baselines.")
 
 
 def finish(out: dict, a: argparse.Namespace) -> None:
     p = out["parameters"]
     not_known = {tuple(x) for x in p["not_known"]}
     ref = p.get("reference", "labels")
-    out["summary"] = summarize(out["arms"], not_known, p["sizes"], ref)
-    status = reference(out["arms"], not_known, ref)
-    out["reference"] = {"definition": REFERENCE_DEF[ref], "cells": [[an, attr, s] for (an, attr), s in status.items()]}
+    bc = p.get("by_construction") or []
+    out["summary"] = summarize(out["arms"], not_known, p["sizes"], ref, bc)
+    status = reference(out["arms"], not_known, ref, bc)
+    if ref == "baselines":
+        for row in out["summary"]["sample_size"].values():
+            row.pop("agreement_with_full_mean")              # reported as coverage instead
+        out["summary"].update(baseline_summary(out["arms"], p["sizes"], bc))
+    out["summary"].update(extras_summary(out["arms"]))
+    cells = [[an, attr, s] + ([leak_basis(attr, out["arms"][an]["attributes"][attr], bc)] if ref == "baselines" else [])
+             for (an, attr), s in status.items()]
+    out["reference"] = {"definition": reference_def(ref, bc), "cells": cells}
     RESULTS.mkdir(parents=True, exist_ok=True)
     (RESULTS / f"{a.name}.json").write_text(json.dumps(out, indent=2, default=float))
     write_md(out, RESULTS / f"{a.name}.md")
@@ -590,6 +919,14 @@ def main(a: argparse.Namespace) -> None:
         {"tls": "data/raw_tlspair_tls", "cleartext": "data/raw_tlspair_clear"}
     cells = {(n if v is None else f"{n}_{v}"): (n, raw, v) for n, raw in arms.items() for v in (a.vantage or [None])}
     not_known = {tuple(x.split(":", 1)) for x in a.not_known}
+    if a.by_construction and a.reference != "baselines":
+        raise SystemExit("--by-construction goes with --reference baselines")
+    if bad := [x for x in a.by_construction if x not in a.attributes or x == NULL_ATTR]:
+        raise SystemExit(f"--by-construction {bad}: not among --attributes, or audit_null")
+    if a.pair and parse_pair(a.pair)[0] not in a.attributes:
+        raise SystemExit(f"--pair {a.pair}: its attribute is not among --attributes")
+    if a.input_size and "=" not in a.input_size:
+        raise SystemExit(f"--input-size {a.input_size!r}: expected KEY=VALUE")
     sev = load_rules(None)["severity"]
     unit = "arm and view" if a.vantage else "arm"
     out = {"paper": "P2", "collection_id": a.collection_id, "data_dir": arms, "seed": SEED, **_git(),
@@ -607,7 +944,8 @@ def main(a: argparse.Namespace) -> None:
                           "min_per_class": a.min_per_class, "folds": 5, "null_model": "rf-light", "alpha": 0.05,
                           "jobs": a.jobs, "not_known": sorted([list(x) for x in not_known]),
                           "role_within": a.role_within, "attributes": a.attributes, "vantage": a.vantage,
-                          "reference": a.reference, "tool_reports": a.tool_reports},
+                          "reference": a.reference, "by_construction": a.by_construction, "pair": a.pair,
+                          "input_size": a.input_size, "tool_reports": a.tool_reports},
            "methods": METHODS, "arms": {}}
     with tempfile.TemporaryDirectory(prefix="leakeval_reports_") as tmp:
         for name, (arm, raw, v) in cells.items():
@@ -627,8 +965,15 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--vantage", type=lst, default=[], metavar="VIEWS",
                    help="comma-separated observer views (the sidecars' vantages): each arm is scored at each")
     p.add_argument("--reference", choices=REFERENCES, default="labels",
-                   help="known leaks: the real labels (labels), or the cells in which the full-data attack finds a "
-                        "leak (full-attack)")
+                   help="known leaks: the real labels (labels), or the --by-construction attributes and the cells in "
+                        "which k-FP or the first-request rule reads LEAK on the full data (baselines)")
+    p.add_argument("--by-construction", type=lst, default=[], dest="by_construction", metavar="ATTRS",
+                   help="with --reference baselines: comma-separated attributes that leak in every cell by "
+                        "construction (C2: escalated,cloud_role)")
+    p.add_argument("--pair", default=None, metavar="ATTR:A,B",
+                   help="also score ATTR on classes A and B only, on all trace features and on the timing family alone")
+    p.add_argument("--input-size", default=None, dest="input_size", metavar="KEY=VALUE",
+                   help="the first-request size estimator of the input size, on the traces whose sidecar has KEY=VALUE")
     p.add_argument("--not-known", action="append", default=[], dest="not_known",
                    help="ARM:ATTRIBUTE (ARM: an arm or an ARM_VIEW cell) whose real labels are not a known leak (repeat)")
     p.add_argument("--role-within", default="", dest="role_within", metavar="TOPOLOGIES", type=lst,

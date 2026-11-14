@@ -142,7 +142,9 @@ if [ "$QUICK" -eq 0 ]; then
     done
     if [ -d data/raw_c2 ] && [ -d data/raw_c2_pad ] && [ -d data/raw_c2_padmax ]; then
         run_eval paper2_tool_eval_c2 "$CANON/paper2_tool_eval_c2.json" --collection-id C2 \
-            --attributes task_type,escalated,cloud_role,audit_null --vantage v1,v2 --reference full-attack \
+            --attributes task_type,escalated,cloud_role,audit_null --vantage v1,v2 \
+            --reference baselines --by-construction escalated,cloud_role \
+            --pair task_type:sensor_analysis,fault_diagnosis --input-size escalated=yes \
             --arm lan=data/raw_c2 --arm lan_pad=data/raw_c2_pad --arm lan_padmax=data/raw_c2_padmax
     else
         echo "[skip] C2 tool evaluation: captures absent"
