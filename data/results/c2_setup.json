@@ -1,0 +1,382 @@
+{
+  "paper": "P2",
+  "collection_id": "C2",
+  "data_dir": "data",
+  "git_commit": "8dd4b74e55acd70205b9e2fa5eeff35383b249da",
+  "git_dirty": false,
+  "source": "data/raw_c2*/ sidecars, session_meta.json, wan_guard.json, wan_check_{start,after}.json",
+  "session": {
+    "started": "2026-11-12T21:43:54-0800",
+    "finished": "2026-11-13T03:28:37-0800",
+    "length": "5 h 45 min",
+    "traces": {
+      "lan": 1000,
+      "lan_pad": 1000,
+      "lan_padmax": 1000
+    },
+    "per_task_type": {
+      "lan": {
+        "alert_triage": 250,
+        "fault_diagnosis": 250,
+        "procedure_lookup": 250,
+        "sensor_analysis": 250
+      },
+      "lan_pad": {
+        "alert_triage": 250,
+        "fault_diagnosis": 250,
+        "procedure_lookup": 250,
+        "sensor_analysis": 250
+      },
+      "lan_padmax": {
+        "alert_triage": 250,
+        "fault_diagnosis": 250,
+        "procedure_lookup": 250,
+        "sensor_analysis": 250
+      }
+    },
+    "failed": 0,
+    "scheduled": 3000,
+    "succeeded_first_try": 3000,
+    "retried": 0,
+    "median_s_per_trace": 7.0285868644714355
+  },
+  "pi": {
+    "temperature_c": [
+      51.6,
+      69.7
+    ],
+    "traces_with_temperature": 3000,
+    "throttled_traces": 0
+  },
+  "answers": {
+    "unit": "characters of the answer the edge agent filed (sidecar edge_report.answer_chars); no file records token counts",
+    "per_arm": {
+      "lan": {
+        "alert_triage": {
+          "n": 250,
+          "median": 216.5,
+          "q1": 155.75,
+          "q3": 309.75,
+          "min": 33,
+          "max": 616
+        },
+        "fault_diagnosis": {
+          "n": 250,
+          "median": 1178.5,
+          "q1": 1088.5,
+          "q3": 1228.25,
+          "min": 634,
+          "max": 1435
+        },
+        "procedure_lookup": {
+          "n": 250,
+          "median": 1204.0,
+          "q1": 1125.0,
+          "q3": 1267.25,
+          "min": 84,
+          "max": 1462
+        },
+        "sensor_analysis": {
+          "n": 250,
+          "median": 1140.5,
+          "q1": 1004.0,
+          "q3": 1259.25,
+          "min": 605,
+          "max": 1493
+        }
+      },
+      "lan_pad": {
+        "alert_triage": {
+          "n": 250,
+          "median": 205.0,
+          "q1": 143.75,
+          "q3": 283.0,
+          "min": 33,
+          "max": 666
+        },
+        "fault_diagnosis": {
+          "n": 250,
+          "median": 1167.0,
+          "q1": 1078.75,
+          "q3": 1238.0,
+          "min": 704,
+          "max": 1403
+        },
+        "procedure_lookup": {
+          "n": 250,
+          "median": 1206.5,
+          "q1": 1148.0,
+          "q3": 1278.5,
+          "min": 29,
+          "max": 1467
+        },
+        "sensor_analysis": {
+          "n": 250,
+          "median": 1165.5,
+          "q1": 1044.25,
+          "q3": 1251.0,
+          "min": 603,
+          "max": 1436
+        }
+      },
+      "lan_padmax": {
+        "alert_triage": {
+          "n": 250,
+          "median": 209.5,
+          "q1": 142.0,
+          "q3": 292.0,
+          "min": 42,
+          "max": 676
+        },
+        "fault_diagnosis": {
+          "n": 250,
+          "median": 1170.0,
+          "q1": 1088.0,
+          "q3": 1247.25,
+          "min": 686,
+          "max": 1353
+        },
+        "procedure_lookup": {
+          "n": 250,
+          "median": 1224.5,
+          "q1": 1151.5,
+          "q3": 1277.75,
+          "min": 141,
+          "max": 1497
+        },
+        "sensor_analysis": {
+          "n": 250,
+          "median": 1175.5,
+          "q1": 1015.5,
+          "q3": 1274.25,
+          "min": 675,
+          "max": 1468
+        }
+      }
+    }
+  },
+  "on_wire": {
+    "unit": "IP bytes and packets per trace, to or from the agent endpoints each view sees (all 1,000 tasks of the arm; a task the view does not see counts as 0)",
+    "per_arm": {
+      "lan": {
+        "v1": {
+          "bytes_mean": 131417.236,
+          "packets_mean": 268.758,
+          "bytes_ratio_to_lan": 1.0,
+          "packets_ratio_to_lan": 1.0
+        },
+        "v2": {
+          "bytes_mean": 125154.982,
+          "packets_mean": 245.839,
+          "bytes_ratio_to_lan": 1.0,
+          "packets_ratio_to_lan": 1.0
+        }
+      },
+      "lan_pad": {
+        "v1": {
+          "bytes_mean": 133733.566,
+          "packets_mean": 271.827,
+          "bytes_ratio_to_lan": 1.0176257701843614,
+          "packets_ratio_to_lan": 1.0114191949634987
+        },
+        "v2": {
+          "bytes_mean": 127464.185,
+          "packets_mean": 248.949,
+          "bytes_ratio_to_lan": 1.0184507477297227,
+          "packets_ratio_to_lan": 1.012650555851594
+        }
+      },
+      "lan_padmax": {
+        "v1": {
+          "bytes_mean": 136940.2,
+          "packets_mean": 275.033,
+          "bytes_ratio_to_lan": 1.0420261768403043,
+          "packets_ratio_to_lan": 1.0233481421948372
+        },
+        "v2": {
+          "bytes_mean": 130669.668,
+          "packets_mean": 252.119,
+          "bytes_ratio_to_lan": 1.0440628564031116,
+          "packets_ratio_to_lan": 1.0255451738739583
+        }
+      }
+    }
+  },
+  "padding_check": {
+    "source": "data/raw_c2/design_check_seq.json",
+    "per_arm": {
+      "lan_pad": {
+        "buckets": [
+          1024,
+          2048,
+          4096,
+          8192,
+          16384,
+          32768
+        ],
+        "first_requests": 750,
+        "by_bucket": {
+          "1024": 262,
+          "2048": 45,
+          "4096": 277,
+          "8192": 166
+        },
+        "median_overhead_bytes": 296.0
+      },
+      "lan_padmax": {
+        "buckets": [
+          8192,
+          16384
+        ],
+        "first_requests": 750,
+        "by_bucket": {
+          "8192": 750
+        },
+        "median_overhead_bytes": 296.0
+      }
+    }
+  },
+  "models": {
+    "edge": {
+      "model": "llama3.2:1b",
+      "num_predict": 128
+    },
+    "cloud": {
+      "model": [
+        "llama3.2:3b"
+      ],
+      "num_predict": 256
+    },
+    "pad_buckets": {
+      "lan": [],
+      "lan_pad": [
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768
+      ],
+      "lan_padmax": [
+        8192,
+        16384
+      ]
+    },
+    "pad_expect": {
+      "lan": null,
+      "lan_pad": null,
+      "lan_padmax": 8192
+    }
+  },
+  "inputs": {
+    "unit": "UTF-8 bytes of the prompt (sidecar prompt_bytes)",
+    "per_task_type": {
+      "alert_triage": {
+        "n": 250,
+        "median": 154.0,
+        "q1": 145.0,
+        "q3": 162.0,
+        "min": 124,
+        "max": 187
+      },
+      "fault_diagnosis": {
+        "n": 250,
+        "median": 3589.5,
+        "q1": 2996.25,
+        "q3": 4183.25,
+        "min": 1987,
+        "max": 5490
+      },
+      "procedure_lookup": {
+        "n": 250,
+        "median": 81.0,
+        "q1": 69.75,
+        "q3": 95.0,
+        "min": 48,
+        "max": 124
+      },
+      "sensor_analysis": {
+        "n": 250,
+        "median": 2798.5,
+        "q1": 1818.25,
+        "q3": 3755.5,
+        "min": 573,
+        "max": 5238
+      }
+    },
+    "median_all": 380.0,
+    "max_all": 5490,
+    "same_in_all_arms": true
+  },
+  "wan": {
+    "target_rtt_ms": 22.588499999999996,
+    "dummynet_ms": 12.0,
+    "one_way_ms": 6.0,
+    "guard": {
+      "checks": 61,
+      "all_ok": true,
+      "suspect": 0,
+      "stopped": false,
+      "traces_checked": 3000,
+      "windows": 60,
+      "handshakes": 2250,
+      "pi_connect_median_ms": 20.219241676330565,
+      "pi_connect_window_medians_ms": [
+        19.660984573364257,
+        20.629917678833007
+      ],
+      "syn_synack_window_medians_ms": [
+        12.02702522277832,
+        13.280510902404785
+      ],
+      "min_syn_synack_ms": 11.236906051635742,
+      "ticket_connect_window_medians_ms": [
+        0.38051605224609375,
+        0.5830526351928711
+      ]
+    },
+    "wan_checks": {
+      "wan_check_start": {
+        "pass": true,
+        "cloud_end_to_end_ms": [
+          20.492937001108658,
+          20.695789498859085
+        ],
+        "mac_address_base_ms": [
+          8.0404489999637,
+          8.531670995580498
+        ],
+        "cloud_syn_synack_at_capture_ms": 12.478470802307129,
+        "mac_syn_synack_at_capture_ms": 0.7121562957763672,
+        "base_rtt_median_ms": 8.350902498932555
+      },
+      "wan_check_after": {
+        "pass": true,
+        "cloud_end_to_end_ms": [
+          20.724531495943666,
+          21.10028099559713
+        ],
+        "mac_address_base_ms": [
+          7.70237049437128,
+          9.105637509492226
+        ],
+        "cloud_syn_synack_at_capture_ms": 13.219594955444336,
+        "mac_syn_synack_at_capture_ms": 0.6124973297119141,
+        "base_rtt_median_ms": 8.289110504847486
+      }
+    },
+    "collector_probes": {
+      "n": 15,
+      "medians_ms": [
+        19.489764999889303,
+        21.628661001159344
+      ],
+      "median_of_medians_ms": 20.775650496943854,
+      "base_medians_ms": [
+        7.643099997949321,
+        9.130452497629449
+      ],
+      "all_ok": true
+    }
+  }
+}

@@ -80,8 +80,10 @@ view, a case next to `test_upstream_view_keeps_tasks_it_cannot_see` in `tests/te
 
 Rules live in `a2a_leakcheck/rules.yaml`; pass another file with `--rules`. Each rule has an
 `id`, a `when` mapping and a `hint`. Every rule whose `when` matches an attribute's facts adds
-its hint, in file order. A `when` value must equal the fact, or be a list containing it; dotted
-keys reach nested facts.
+its hint, in file order; a matching rule with `final: true` ends the list for that attribute (use
+it when the other hints would mislead, as padding advice would for whether a call happened at
+all). A `when` value must equal the fact, or be a list containing it; dotted keys reach nested
+facts.
 
 ```yaml
 rules:
@@ -93,10 +95,29 @@ rules:
     hint: ...
 ```
 
+C2's rules key on the attribute, the observer view and the deployment's padding:
+
+```yaml
+  - id: hide-escalation
+    when: {verdict: LEAK, attribute: escalated}
+    final: true
+    hint: Whether the edge called the cloud is visible ... cover traffic, or send every task to the cloud.
+  - id: padding-not-enough-timing
+    when: {verdict: LEAK, padded: true, top_family: timing}
+    hint: The requests are padded, yet ... timing carries it: padding is not enough. Shape the response timing ...
+```
+
 Facts: `attribute`, `verdict`, `severity`, `top_family`, `top_family_matches_all`,
 `request_size_single_matches_all`, `family_matches_all.<sizes|timing|counts_direction>`,
-`too_few_samples`. A new fact goes in `facts()` in `a2a_leakcheck/rules.py`. Add a test next to
-`test_rules_file_is_configurable`.
+`too_few_samples`, and three about the audit as a whole:
+- `vantage`: the view audited;
+- `padded`: every trace's sidecar has `pad_buckets`;
+- `unpadded_in_view`: padded, and the view also sees endpoints missing from `padded_endpoints`.
+
+These three come from the sidecars, and the report does not store them. A fact about an attribute
+goes in `facts()` in `a2a_leakcheck/rules.py`; one about the audit as a whole goes in `context()`
+there, which the `run` command fills from the traces. Add a test next to
+`test_rules_file_is_configurable` or `test_c2_rules_timing_after_padding_and_local_posts`.
 
 ## A new attribute
 

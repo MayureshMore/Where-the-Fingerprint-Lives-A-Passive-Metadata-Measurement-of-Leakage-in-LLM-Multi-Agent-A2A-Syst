@@ -30,7 +30,17 @@ done
 mkdir -p "$OUT"
 T0=$(date +%s)
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
-run() { echo "\$ $*"; "$@"; }
+run() {      # show the command as one would type it (python, quoted arguments, $OUT), then run it
+    local shown="" x
+    for x in "$@"; do
+        [ "$x" = "$PY" ] && x=python
+        x="${x/#$OUT/\$OUT}"
+        case "$x" in *" "*|*","*) x="'$x'" ;; esac
+        shown="$shown $x"
+    done
+    echo "\$${shown}"
+    "$@"
+}
 
 say "1. Audit both arms, as the upstream observer (V2) sees them"
 run "$PY" -m a2a_leakcheck run examples/c2_lan_padmax $ATTR --html --label "C2 example, padded to 8 KB, V2" \

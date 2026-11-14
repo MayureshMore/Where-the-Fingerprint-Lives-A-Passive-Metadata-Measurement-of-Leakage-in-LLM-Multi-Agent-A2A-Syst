@@ -22,6 +22,10 @@
 #                      and on all six C2 cells, in one process (the committed one ran split by
 #                      arm and merged; the verdicts do not depend on the split)
 #                      → paper2_tool_eval_c2.{json,md}                                       a day
+#                      then the permuted-label draws behind its false LEAKs, re-run
+#                      (scripts/rerun_false_leak_draws.py → paper2_false_leak_draws) and the
+#                      false-LEAK summary (scripts/permuted_false_leaks.py
+#                      → paper2_permuted_false_leaks)                                        ~15 min
 #   6. CSV             scripts/export_paper2_csv.py on the rebuilt results → paper2_csv/ (the
 #                      numbers behind the paper's pgfplots figures), compared file by file
 #
@@ -86,7 +90,8 @@ def pick_eval(r):
                                 "sample_size": a["sample_size"]}
     return out
 
-SKIP = {"created", "git_commit", "git_dirty", "runtime", "runtime_s", "data_dir", "source", "clear_dir", "tls_dir"}
+SKIP = {"created", "git_commit", "git_dirty", "runtime", "runtime_s", "data_dir", "source", "clear_dir", "tls_dir",
+        "evaluation_commit", "evaluation_dirty"}
 
 def pick_generic(r):
     return {k: v for k, v in r.items() if k not in SKIP}
@@ -198,6 +203,14 @@ if [ "$QUICK" -eq 0 ]; then
             --reference baselines --by-construction escalated,cloud_role \
             --pair task_type:sensor_analysis,fault_diagnosis --input-size escalated=yes \
             --arm lan=data/raw_c2 --arm lan_pad=data/raw_c2_pad --arm lan_padmax=data/raw_c2_padmax
+        if [ -f "$SANDBOX/paper2_tool_eval_c2.json" ]; then
+            run_json paper2_false_leak_draws "$CANON/paper2_false_leak_draws.json" \
+                "$PY" scripts/rerun_false_leak_draws.py --eval "$SANDBOX/paper2_tool_eval_c2.json" \
+                --out "$SANDBOX/paper2_false_leak_draws" --allow-dirty
+            run_json paper2_permuted_false_leaks "$CANON/paper2_permuted_false_leaks.json" \
+                "$PY" scripts/permuted_false_leaks.py --eval "$SANDBOX/paper2_tool_eval_c2.json" \
+                --draws "$SANDBOX/paper2_false_leak_draws.json" --out "$SANDBOX/paper2_permuted_false_leaks"
+        fi
     else
         echo "[skip] C2 tool evaluation: captures absent"
     fi

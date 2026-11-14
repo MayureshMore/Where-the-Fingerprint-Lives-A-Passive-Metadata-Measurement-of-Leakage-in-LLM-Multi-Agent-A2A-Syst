@@ -17,7 +17,17 @@ def load_rules(path: Path | None = None) -> dict:
     return {"severity": data.get("severity", {}), "rules": data.get("rules", [])}
 
 
-def facts(attribute: str, result: dict) -> dict:
+def context(traces: list, vantage: str | None) -> dict:
+    """Facts about the audit as a whole, for the rules: the observer view, whether the deployment pads its
+    requests (every trace's sidecar has pad_buckets), and whether the view also sees endpoints that are not
+    padded (sidecar padded_endpoints), such as posts to a local service."""
+    padded = bool(traces) and all(t.padded for t in traces)
+    return {"vantage": vantage, "padded": padded,
+            "unpadded_in_view": padded and any(t.unpadded_in_view for t in traces)}
+
+
+def facts(attribute: str, result: dict, ctx: dict | None = None) -> dict:
+    ctx = ctx or {}
     attr = result.get("attribution") or {}
     fams = attr.get("families", {})
     single = attr.get("single_request_size") or {}
@@ -30,6 +40,9 @@ def facts(attribute: str, result: dict) -> dict:
         "request_size_single_matches_all": single.get("matches_all", False),
         "family_matches_all": {f: bool(v["all_minus_this"]["ci_lo"] <= 0) for f, v in fams.items()},
         "too_few_samples": not result["validation"]["min_samples"]["ok"],
+        "vantage": ctx.get("vantage"),
+        "padded": bool(ctx.get("padded", False)),
+        "unpadded_in_view": bool(ctx.get("unpadded_in_view", False)),
     }
 
 
@@ -53,5 +66,11 @@ def _matches(when: dict, f: dict) -> bool:
 
 
 def hints(f: dict, rules: dict) -> list[dict]:
-    return [{"id": r["id"], "hint": " ".join(str(r["hint"]).split())}
-            for r in rules["rules"] if _matches(r["when"], f)]
+    """Every matching rule's hint, in file order; a matching rule with `final: true` ends the list."""
+    out = []
+    for r in rules["rules"]:
+        if _matches(r["when"], f):
+            out.append({"id": r["id"], "hint": " ".join(str(r["hint"]).split())})
+            if r.get("final"):
+                break
+    return out

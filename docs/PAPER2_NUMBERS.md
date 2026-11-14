@@ -50,6 +50,9 @@ The paths use these placeholders:
 | Recall, false-negative rate, false-positive rate, precision (with CIs) | `paper2_tool_eval.json`, `paper2_tool_eval_c2.json` | `summary.full_data.<method>` |
 | Known leaks and non-leaks per cell, and why (D2: by construction, k-FP, first-request rule) | `paper2_tool_eval_c2.json` | `reference.cells` |
 | Permuted-label verdicts per cell | both evaluations | `arms.<cell>.attributes.<attr>.permuted.<method>` |
+| False LEAKs on permuted labels per sample size, pooled over all cells, attributes and views (Wilson 95% CI; the draws are not fully independent) | `paper2_permuted_false_leaks.json` | `pooled.per_size`, `pooled.per_size_by_classes`, `independence` |
+| The permutation test behind each draw (99 permutations, smallest p 0.01) | `paper2_permuted_false_leaks.json` | `test` |
+| Each false LEAK: arm, view, attribute, size, draw, p, macro-F1 [CI], prompt groups | `paper2_false_leak_draws.json` | `false_leaks`; `all_counts_reproduced` |
 | `audit_null` (the injected random attribute) | `paper2_tool_eval_c2.json`; the C2 reports | `arms.<cell>.attributes.audit_null.full`; `attributes.audit_null` |
 | Cells only leakcheck flags ("beyond the baselines") | `paper2_tool_eval_c2.json` | `summary.beyond_baselines` |
 
@@ -61,7 +64,8 @@ The paths use these placeholders:
 | D1 cleartext: first request 0.069 below all features | `leakcheck/tls_control_clear_own/report.json` | `attributes.workflow.attribution.single_request_size` (against `analysis.macro_f1`) |
 | Role carried by timing (0.974 vs 0.991) | `leakcheck/tls_control_tls_own/report.json` | `attributes.role.attribution.families.timing` |
 | D2: the family carrying each LEAK | `paper2_tool_eval_c2.json` | `summary.carried_by` (each family's F1 alone and whether it matches all) |
-| The hint per finding | the reports | `attributes.<attr>.mitigations` |
+| The hint per finding | the reports | `attributes.<attr>.mitigations` (rules: `a2a_leakcheck/rules.yaml`) |
+| The C2 audits with the C2 rules: every verdict and score unchanged, only the hints | `leakcheck/c2_rerun_compare.json` | `<audit>.same_apart_from_hints`, `.hints_changed`; the reports the evaluation read: `superseded/c2_audits_eb8fbbfb/` |
 
 ### Does it see what a mitigation fixes and misses?
 

@@ -319,13 +319,14 @@ The median over all 1,000 tasks is 380 B. The largest input, 5,490 B, fits in th
 
 | File | Contents | SHA-256 |
 |---|---|---|
-| `c2-raw-pcaps-headers-only.zip` | `data/raw_c2`, `raw_c2_pad`, `raw_c2_padmax`: 1,000 captures per arm with their sidecars, and the run's check files | `<from SHA256SUMS.txt>` |
-| `c2-features.zip` | `data/features_c2/<arm>_<view>.npz`: the 195 trace features and the first-request size a2a-leakcheck computes at each view, with the labels (README inside) | `<from SHA256SUMS.txt>` |
-| `tlscontrol-raw-pcaps-headers-only.zip` | `data/raw_tlspair_tls`, `raw_tlspair_clear`: 432 captures per arm (loopback) with sidecars | `<from SHA256SUMS.txt>` |
-| `tlscontrol-features-own.zip` | `data/processed_tlspair_{tls,clear}_own` | `<from SHA256SUMS.txt>` |
-| `manifest.json` | what `scripts/package_paper2_data.py` checked, cut and left out, and its commit | `<from SHA256SUMS.txt>` |
+| `c2-raw-pcaps-headers-only.zip` | `data/raw_c2`, `raw_c2_pad`, `raw_c2_padmax`: 1,000 captures per arm with their sidecars, and the run's check files | `58f4952f3cd2d2cf825c1f3e3382aa3c39a5b3a41bfb3f67ee5af8254ce61a08` |
+| `c2-features.zip` | `data/features_c2/<arm>_<view>.npz`: the 195 trace features and the first-request size a2a-leakcheck computes at each view, with the labels (README inside) | `5607f9261591b09e2d9daa5557b48cd110113eeaa4e1158ed10bd3c1a3785fc8` |
+| `tlscontrol-raw-pcaps-headers-only.zip` | `data/raw_tlspair_tls`, `raw_tlspair_clear`: 432 captures per arm (loopback) with sidecars | `8fecd637cd50cba7eccec010998013a2b099dd8c84b582ed11f3d884d0f4dc30` |
+| `tlscontrol-features-own.zip` | `data/processed_tlspair_{tls,clear}_own` | `cfb966f955a8647a7b6470cb568fd3c58c8b4ef20b2dd136926882a3fa92dd6d` |
+| `manifest.json` | what `scripts/package_paper2_data.py` checked, cut and left out, and its commit | `c54aa22858841aa2a1f2a58c57ad791940eb610546784ccacbead9174d1a7cc6` |
 
-The record also holds `SHA256SUMS.txt`. Unzip the archives into the repository root, then
+Built by `scripts/package_paper2_data.py` at commit `8dd4b74e` (clean; `manifest.json`). The record also
+holds `SHA256SUMS.txt`. Unzip the archives into the repository root, then
 `bash scripts/reproduce_paper2.sh` rebuilds every paper 2 number and compares it with the
 committed one (docs/PAPER2_NUMBERS.md maps each number to its file).
 

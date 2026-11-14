@@ -31,7 +31,7 @@ from a2a_leakcheck.analyze import LEAK, Config, analyze  # noqa: E402
 from a2a_leakcheck.collect import collect  # noqa: E402
 from a2a_leakcheck.extract import extract  # noqa: E402
 from a2a_leakcheck.report import diff, write_html, write_json, write_markdown  # noqa: E402
-from a2a_leakcheck.rules import facts, hints, load_rules  # noqa: E402
+from a2a_leakcheck.rules import context, facts, hints, load_rules  # noqa: E402
 from features.families import FAMILIES, family_columns  # noqa: E402
 from features.per_flow import PerFlowFeatures  # noqa: E402
 
@@ -47,13 +47,14 @@ def _peak_mb(who: int) -> float:
 
 def _git() -> dict:
     """Commit of the tool's checkout, and whether its code had uncommitted changes (changes under
-    data/, such as reports from earlier runs, do not count)."""
+    data/ and examples/expected/, reports from earlier runs, do not count)."""
     def run(*args):
         return subprocess.run(["git", *args], capture_output=True, text=True,
                               cwd=Path(__file__).resolve().parent, timeout=5).stdout.strip()
     try:
         root = run("rev-parse", "--show-toplevel")
-        dirty = subprocess.run(["git", "status", "--porcelain", "--", ".", ":(exclude)data"], capture_output=True,
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", ".", ":(exclude)data",
+                                ":(exclude)examples/expected"], capture_output=True,
                                text=True, cwd=root or None, timeout=5).stdout.strip()
         return {"git_commit": run("rev-parse", "HEAD") or None, "git_dirty": bool(dirty)}
     except Exception:  # noqa: BLE001
@@ -117,6 +118,7 @@ def run(a: argparse.Namespace) -> int:
 
     traces = [col["traces"][i] for i in ext["trace_index"]]
     col["summary"]["visible_agents"] = visible_agents(traces, ext["visible_roles"])
+    ctx = context(traces, a.vantage)                 # for the rules only; not written to the report
     groups = np.array([tr.group for tr in traces])
     within = [x.strip() for x in a.role_within.split(",") if x.strip()]
     tops = np.array([tr.topology for tr in traces], dtype=object)
@@ -149,7 +151,7 @@ def run(a: argparse.Namespace) -> int:
         r = analyze(X, y, g, fams, single, cfg, rules["severity"])
         if attr.startswith(ROLE_WITHIN):
             r["within_topology"] = attr[len(ROLE_WITHIN):]
-        r["mitigations"] = hints(facts(ROLE if attr.startswith(ROLE_WITHIN) else attr, r), rules)
+        r["mitigations"] = hints(facts(ROLE if attr.startswith(ROLE_WITHIN) else attr, r, ctx), rules)
         results[attr] = r
         by_attr[attr] = time.perf_counter() - ta
         _stop_workers()
