@@ -1,0 +1,196 @@
+{
+  "same": false,
+  "differences": [
+    {
+      "field": "attributes.audit_null.validation.permutation.null_max",
+      "a": 0.2813969921032863,
+      "b": 0.2795081409719983
+    },
+    {
+      "field": "attributes.audit_null.validation.permutation.null_mean",
+      "a": 0.24952622893649845,
+      "b": 0.2501328505564607
+    },
+    {
+      "field": "attributes.audit_null.validation.permutation.null_verdicts.INCONCLUSIVE",
+      "a": 7,
+      "b": 5
+    },
+    {
+      "field": "attributes.audit_null.validation.permutation.null_verdicts.NO LEAK",
+      "a": 92,
+      "b": 94
+    },
+    {
+      "field": "attributes.audit_null.validation.permutation.observed_macro_f1",
+      "a": 0.2616061323930031,
+      "b": 0.27035555297972863
+    },
+    {
+      "field": "attributes.audit_null.validation.permutation.p_value",
+      "a": 0.22,
+      "b": 0.07
+    },
+    {
+      "field": "attributes.cloud_role.validation.permutation.null_max",
+      "a": 0.546588426089271,
+      "b": 0.5455382089138622
+    },
+    {
+      "field": "attributes.cloud_role.validation.permutation.null_mean",
+      "a": 0.4942569625042006,
+      "b": 0.49409470714296244
+    },
+    {
+      "field": "attributes.cloud_role.validation.permutation.null_verdicts.INCONCLUSIVE",
+      "a": 18,
+      "b": 17
+    },
+    {
+      "field": "attributes.cloud_role.validation.permutation.null_verdicts.NO LEAK",
+      "a": 81,
+      "b": 82
+    },
+    {
+      "field": "attributes.escalated.validation.permutation.null_max",
+      "a": 0.5478506363175191,
+      "b": 0.5540983606557377
+    },
+    {
+      "field": "attributes.escalated.validation.permutation.null_mean",
+      "a": 0.5013622956329995,
+      "b": 0.5014458822318654
+    },
+    {
+      "field": "attributes.escalated.validation.permutation.null_verdicts.INCONCLUSIVE",
+      "a": 14,
+      "b": 15
+    },
+    {
+      "field": "attributes.escalated.validation.permutation.null_verdicts.NO LEAK",
+      "a": 85,
+      "b": 84
+    },
+    {
+      "field": "attributes.task_type.validation.permutation.null_max",
+      "a": 0.2946386509735905,
+      "b": 0.2832093802107258
+    },
+    {
+      "field": "attributes.task_type.validation.permutation.null_mean",
+      "a": 0.2511437399571941,
+      "b": 0.25068741253515503
+    },
+    {
+      "field": "attributes.task_type.validation.permutation.null_verdicts.INCONCLUSIVE",
+      "a": 7,
+      "b": 10
+    },
+    {
+      "field": "attributes.task_type.validation.permutation.null_verdicts.NO LEAK",
+      "a": 92,
+      "b": 89
+    }
+  ],
+  "hints_changed": {},
+  "attributes": [
+    {
+      "attribute": "task_type",
+      "verdict": [
+        "LEAK",
+        "LEAK"
+      ],
+      "macro_f1": [
+        0.9670276532937275,
+        0.9670276532937275
+      ],
+      "p": [
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "attribute": "escalated",
+      "verdict": [
+        "LEAK",
+        "LEAK"
+      ],
+      "macro_f1": [
+        1.0,
+        1.0
+      ],
+      "p": [
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "attribute": "cloud_role",
+      "verdict": [
+        "LEAK",
+        "LEAK"
+      ],
+      "macro_f1": [
+        0.9984984954924835,
+        0.9984984954924835
+      ],
+      "p": [
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "attribute": "audit_null",
+      "verdict": [
+        "NO LEAK",
+        "NO LEAK"
+      ],
+      "macro_f1": [
+        0.2500289360542252,
+        0.2500289360542252
+      ],
+      "p": [
+        0.22,
+        0.07
+      ]
+    }
+  ],
+  "runtime": {
+    "a": {
+      "commit": null,
+      "dirty": false,
+      "created": "2026-11-14T13:52:24-0800",
+      "total_s": 1596.6526392969827,
+      "stages_s": {
+        "collection": 1.0443009459995665,
+        "extraction": 64.46798889199272,
+        "analysis": 1531.0910301720141
+      },
+      "peak_rss_mb": 212.0,
+      "peak_rss_children_mb": 212.0,
+      "workers": 4,
+      "python": "3.13.5",
+      "platform": "Linux-6.18.50+rpt-rpi-2712-aarch64-with-glibc2.41"
+    },
+    "b": {
+      "commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "dirty": false,
+      "created": "2026-11-14T12:12:46-0800",
+      "total_s": 219.98820595798315,
+      "stages_s": {
+        "collection": 0.8858971250010654,
+        "extraction": 23.66815049998695,
+        "analysis": 195.339925459004
+      },
+      "peak_rss_mb": 309.515625,
+      "peak_rss_children_mb": 330.84375,
+      "workers": 14,
+      "python": "3.12.1",
+      "platform": "macOS-27.0.1-arm64-arm-64bit"
+    }
+  },
+  "files": {
+    "a": "data/results/leakcheck_pi/c2_lan_v1/report.json",
+    "b": "data/results/leakcheck/c2_lan_v1/report.json"
+  }
+}

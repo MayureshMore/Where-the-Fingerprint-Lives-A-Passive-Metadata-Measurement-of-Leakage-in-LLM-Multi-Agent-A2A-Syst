@@ -1,0 +1,32 @@
+a: data/results/leakcheck_pi/c2_lan_v1/report.json
+b: data/results/leakcheck/c2_lan_v1/report.json
+
+| attribute | verdict a | verdict b | macro-F1 a | macro-F1 b | p a | p b |
+|---|---|---|---|---|---|---|
+| task_type | LEAK | LEAK | 0.9670 | 0.9670 | 0.0100 | 0.0100 |
+| escalated | LEAK | LEAK | 1.0000 | 1.0000 | 0.0100 | 0.0100 |
+| cloud_role | LEAK | LEAK | 0.9985 | 0.9985 | 0.0100 | 0.0100 |
+| audit_null | NO LEAK | NO LEAK | 0.2500 | 0.2500 | 0.2200 | 0.0700 |
+
+18 fields differ:
+  attributes.audit_null.validation.permutation.null_max: 0.2813969921032863  vs  0.2795081409719983
+  attributes.audit_null.validation.permutation.null_mean: 0.24952622893649845  vs  0.2501328505564607
+  attributes.audit_null.validation.permutation.null_verdicts.INCONCLUSIVE: 7  vs  5
+  attributes.audit_null.validation.permutation.null_verdicts.NO LEAK: 92  vs  94
+  attributes.audit_null.validation.permutation.observed_macro_f1: 0.2616061323930031  vs  0.27035555297972863
+  attributes.audit_null.validation.permutation.p_value: 0.22  vs  0.07
+  attributes.cloud_role.validation.permutation.null_max: 0.546588426089271  vs  0.5455382089138622
+  attributes.cloud_role.validation.permutation.null_mean: 0.4942569625042006  vs  0.49409470714296244
+  attributes.cloud_role.validation.permutation.null_verdicts.INCONCLUSIVE: 18  vs  17
+  attributes.cloud_role.validation.permutation.null_verdicts.NO LEAK: 81  vs  82
+  attributes.escalated.validation.permutation.null_max: 0.5478506363175191  vs  0.5540983606557377
+  attributes.escalated.validation.permutation.null_mean: 0.5013622956329995  vs  0.5014458822318654
+  attributes.escalated.validation.permutation.null_verdicts.INCONCLUSIVE: 14  vs  15
+  attributes.escalated.validation.permutation.null_verdicts.NO LEAK: 85  vs  84
+  attributes.task_type.validation.permutation.null_max: 0.2946386509735905  vs  0.2832093802107258
+  attributes.task_type.validation.permutation.null_mean: 0.2511437399571941  vs  0.25068741253515503
+  attributes.task_type.validation.permutation.null_verdicts.INCONCLUSIVE: 7  vs  10
+  attributes.task_type.validation.permutation.null_verdicts.NO LEAK: 92  vs  89
+
+runtime a: 1596.6526 s (collection 1.0 s, extraction 64.5 s, analysis 1531.1 s); peak memory main 212.0000 MB, workers 212.0000 MB; 4 workers; Python 3.13.5; Linux-6.18.50+rpt-rpi-2712-aarch64-with-glibc2.41; commit None
+runtime b: 219.9882 s (collection 0.9 s, extraction 23.7 s, analysis 195.3 s); peak memory main 309.5156 MB, workers 330.8438 MB; 14 workers; Python 3.12.1; macOS-27.0.1-arm64-arm-64bit; commit 2c1f3ef1

@@ -1,0 +1,105 @@
+{
+  "same": true,
+  "differences": [],
+  "hints_changed": {},
+  "attributes": [
+    {
+      "attribute": "task_type",
+      "verdict": [
+        "LEAK",
+        "LEAK"
+      ],
+      "macro_f1": [
+        0.9670276532937275,
+        0.9670276532937275
+      ],
+      "p": [
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "attribute": "escalated",
+      "verdict": [
+        "LEAK",
+        "LEAK"
+      ],
+      "macro_f1": [
+        1.0,
+        1.0
+      ],
+      "p": [
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "attribute": "cloud_role",
+      "verdict": [
+        "LEAK",
+        "LEAK"
+      ],
+      "macro_f1": [
+        0.9984984954924835,
+        0.9984984954924835
+      ],
+      "p": [
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "attribute": "audit_null",
+      "verdict": [
+        "NO LEAK",
+        "NO LEAK"
+      ],
+      "macro_f1": [
+        0.2500289360542252,
+        0.2500289360542252
+      ],
+      "p": [
+        0.07,
+        0.07
+      ]
+    }
+  ],
+  "runtime": {
+    "a": {
+      "commit": "56849f020219ad42802c136bf554d7314783db3e",
+      "dirty": false,
+      "created": "2026-11-14T14:08:38-0800",
+      "total_s": 461.2396941249608,
+      "stages_s": {
+        "collection": 0.6205634999787435,
+        "extraction": 24.30208287498681,
+        "analysis": 436.2060753329424
+      },
+      "peak_rss_mb": 293.578125,
+      "peak_rss_children_mb": 300.578125,
+      "workers": 4,
+      "python": "3.12.1",
+      "platform": "macOS-27.0.1-arm64-arm-64bit"
+    },
+    "b": {
+      "commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "dirty": false,
+      "created": "2026-11-14T12:12:46-0800",
+      "total_s": 219.98820595798315,
+      "stages_s": {
+        "collection": 0.8858971250010654,
+        "extraction": 23.66815049998695,
+        "analysis": 195.339925459004
+      },
+      "peak_rss_mb": 309.515625,
+      "peak_rss_children_mb": 330.84375,
+      "workers": 14,
+      "python": "3.12.1",
+      "platform": "macOS-27.0.1-arm64-arm-64bit"
+    }
+  },
+  "files": {
+    "a": "data/results/leakcheck_pi/mac_4_workers_c2_lan_v1/report.json",
+    "b": "data/results/leakcheck/c2_lan_v1/report.json"
+  }
+}

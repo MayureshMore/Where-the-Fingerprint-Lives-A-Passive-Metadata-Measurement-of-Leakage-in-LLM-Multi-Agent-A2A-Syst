@@ -1,0 +1,14 @@
+a: data/results/leakcheck_pi/mac_4_workers_c2_lan_v1/report.json
+b: data/results/leakcheck/c2_lan_v1/report.json
+
+| attribute | verdict a | verdict b | macro-F1 a | macro-F1 b | p a | p b |
+|---|---|---|---|---|---|---|
+| task_type | LEAK | LEAK | 0.9670 | 0.9670 | 0.0100 | 0.0100 |
+| escalated | LEAK | LEAK | 1.0000 | 1.0000 | 0.0100 | 0.0100 |
+| cloud_role | LEAK | LEAK | 0.9985 | 0.9985 | 0.0100 | 0.0100 |
+| audit_null | NO LEAK | NO LEAK | 0.2500 | 0.2500 | 0.0700 | 0.0700 |
+
+every compared field matches
+
+runtime a: 461.2397 s (collection 0.6 s, extraction 24.3 s, analysis 436.2 s); peak memory main 293.5781 MB, workers 300.5781 MB; 4 workers; Python 3.12.1; macOS-27.0.1-arm64-arm-64bit; commit 56849f02
+runtime b: 219.9882 s (collection 0.9 s, extraction 23.7 s, analysis 195.3 s); peak memory main 309.5156 MB, workers 330.8438 MB; 14 workers; Python 3.12.1; macOS-27.0.1-arm64-arm-64bit; commit 2c1f3ef1

@@ -1,0 +1,23 @@
+	Command being timed: "venv-leakcheck/bin/python -m a2a_leakcheck run data/raw_c2 --strip --vantage v1 --attributes task_type,escalated,cloud_role,audit_null --jobs 4 --out data/results/leakcheck_pi/c2_lan_v1"
+	User time (seconds): 5497.88
+	System time (seconds): 48.61
+	Percent of CPU this job got: 346%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 26:38.45
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 217088
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 6
+	Minor (reclaiming a frame) page faults: 6117665
+	Voluntary context switches: 133110
+	Involuntary context switches: 271397
+	Swaps: 0
+	File system inputs: 9112
+	File system outputs: 6592
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 16384
+	Exit status: 0
