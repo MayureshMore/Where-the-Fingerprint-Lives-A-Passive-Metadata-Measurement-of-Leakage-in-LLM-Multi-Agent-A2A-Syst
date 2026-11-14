@@ -165,7 +165,7 @@ def _git() -> dict:
     def run(*a):
         return subprocess.run(["git", *a], capture_output=True, text=True).stdout.strip()
     return {"git_commit": run("rev-parse", "HEAD"),
-            "git_dirty": bool(run("status", "--porcelain", "--", ".", ":(exclude)data"))}
+            "git_dirty": bool(run("status", "--porcelain", "--", ".", ":(exclude)data", ":(exclude)examples/expected"))}
 
 
 def wilson(k: int, n: int) -> list[float] | None:

@@ -43,7 +43,7 @@ exec > >(tee -a "$LOG") 2>&1
 
 if [ "$N" = 36 ]; then SFX=""; else SFX="_n$N"; fi
 RAW_C="data/raw_tlspair_clear$SFX";  RAW_T="data/raw_tlspair_tls$SFX"
-PRO_C="data/processed_tlspair_clear$SFX"; PRO_T="data/processed_tlspair_tls$SFX"
+PRO_C="data/processed_tlspair_clear${SFX}_own_dedup"; PRO_T="data/processed_tlspair_tls${SFX}_own_dedup"
 RESULTS="${A2A_RESULTS_DIR:-data/results}"
 [ -n "$SFX" ] && RESULTS="${A2A_RESULTS_DIR:-data/results_demo}"
 
@@ -109,8 +109,8 @@ step "3. record check on the full raw captures"
 restore_bpf
 
 step "4. extract features"
-"$PY" scripts/extract_features.py --raw "$RAW_C" --out "$PRO_C" --scapy
-"$PY" scripts/extract_features.py --raw "$RAW_T" --out "$PRO_T" --scapy
+"$PY" scripts/extract_features.py --raw "$RAW_C" --out "$PRO_C" --scapy --dedup   # each payload byte once
+"$PY" scripts/extract_features.py --raw "$RAW_T" --out "$PRO_T" --scapy --dedup
 
 step "5. evaluate"
 A2A_RESULTS_DIR="$RESULTS" "$PY" scripts/evaluate_tls_control.py \
