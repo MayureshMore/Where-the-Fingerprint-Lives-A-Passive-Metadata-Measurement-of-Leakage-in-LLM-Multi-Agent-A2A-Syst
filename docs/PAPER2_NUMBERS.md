@@ -12,6 +12,11 @@ The paths use these placeholders:
 - `<audit>`: a leakcheck report folder (`leakcheck/<audit>/report.json`): `tls_control_clear_own`,
   `tls_control_tls_own`, or `c2_<arm>_<view>`.
 
+D1 (the TLS control) is measured as a2a-leakcheck measures, every payload byte counted once (TCP
+retransmissions dropped), since Nov 14. The earlier D1 results, with retransmitted segments counted
+again, are in `superseded/d1_before_dedup/`; `d1_dedup_comparison.{json,md}` sets every D1 number
+below old against new.
+
 ## Data and setup
 
 | Number | File | Field |

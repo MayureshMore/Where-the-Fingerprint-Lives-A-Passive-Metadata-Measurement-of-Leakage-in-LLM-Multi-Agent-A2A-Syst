@@ -10,7 +10,7 @@
 #   2. TLS control     leakcheck on both arms, own connections (data/raw_tlspair_{tls,clear})
 #                      → leakcheck/tls_control_{tls,clear}_own; scripts/evaluate_tls_control.py:
 #                      the paired TLS − cleartext difference, cleartext → TLS transfer and on-wire
-#                      cost (data/processed_tlspair_{clear,tls}_own) → tls_control_own         ~10 min
+#                      cost (data/processed_tlspair_{clear,tls}_own_dedup) → tls_control_own   ~10 min
 #   3. C2 setup        scripts/c2_setup_numbers.py on the released C2 folders → c2_setup (session,
 #                      Pi temperature, input sizes per task type, emulated WAN);
 #                      baselines/summarize_tls_scanners.py on the committed scanner output
@@ -37,7 +37,7 @@
 # (data/results/leakcheck_pi). docs/PAPER2_NUMBERS.md maps every number in the paper to its file.
 #
 # Inputs: the paper 2 data release (DATA.md): the TLS control's captures and features
-# (data/raw_tlspair_{tls,clear}, data/processed_tlspair_{tls,clear}_own) and C2's captures
+# (data/raw_tlspair_{tls,clear}, data/processed_tlspair_{tls,clear}_own_dedup) and C2's captures
 # (data/raw_c2, data/raw_c2_pad, data/raw_c2_padmax).
 #
 # Usage:
@@ -167,10 +167,10 @@ done
 echo "== 2. TLS control"
 run_report tls_control_tls_own data/raw_tlspair_tls "$CANON/leakcheck/tls_control_tls_own" --strip
 run_report tls_control_clear_own data/raw_tlspair_clear "$CANON/leakcheck/tls_control_clear_own" --strip
-if [ -d data/processed_tlspair_clear_own ] && [ -d data/processed_tlspair_tls_own ]; then
+if [ -d data/processed_tlspair_clear_own_dedup ] && [ -d data/processed_tlspair_tls_own_dedup ]; then
     run_json tls_control_own "$CANON/tls_control_own.json" "$PY" scripts/evaluate_tls_control.py
 else
-    echo "[skip] tls_control_own: data/processed_tlspair_{clear,tls}_own absent"
+    echo "[skip] tls_control_own: data/processed_tlspair_{clear,tls}_own_dedup absent"
 fi
 
 echo "== 3. C2 setup and the TLS scanners"

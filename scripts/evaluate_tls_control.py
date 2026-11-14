@@ -36,15 +36,19 @@ its chain and mesh traces were collected while every specialist stream was cut
 after its first event (sse-starlette drain bug, fixed in agents/base.py), so it
 is not the same traffic.
 
-Measurement: own connections by default (features/connections.py): the processed sets are
-data/processed_tlspair_{clear,tls}_own and the on-wire volume counts only the connections each
-trace opens itself; writes tls_control_own.{json,md}. --legacy-all-connections reads the
+Measurement: own connections by default (features/connections.py), and every payload byte counted once
+(TCP retransmissions dropped, features/kfp.py dedup_view), as a2a-leakcheck measures: the processed sets
+are data/processed_tlspair_{clear,tls}_own_dedup (scripts/extract_features.py --dedup) and the on-wire
+volume counts only the connections each trace opens itself, each byte once; writes tls_control_own.{json,md}.
+--keep-retransmissions reads data/processed_tlspair_{clear,tls}_own and counts retransmitted segments again,
+as the results before Nov 14 did (data/results/superseded/d1_before_dedup). --legacy-all-connections reads the
 all-connections sets and writes tls_control.{json,md}, as committed before the rule; it also
 keeps that run's within-arm scores (GBTClassifier.cross_validate, unshuffled folds, macro-F1
 averaged over folds) so tls_control.json reproduces.
 
 Usage:
-    python scripts/evaluate_tls_control.py
+    python scripts/evaluate_tls_control.py                          # own connections, each byte once
+    python scripts/evaluate_tls_control.py --keep-retransmissions   # own connections, as before Nov 14
     python scripts/evaluate_tls_control.py --legacy-all-connections
     python scripts/evaluate_tls_control.py --clear data/processed_tlspair_clear \\
         --tls data/processed_tlspair_tls
@@ -148,7 +152,7 @@ def _git() -> dict:
     def run(*a):
         return subprocess.run(["git", *a], capture_output=True, text=True).stdout.strip()
     return {"git_commit": run("rev-parse", "HEAD"),
-            "git_dirty": bool(run("status", "--porcelain", "--", ".", ":(exclude)data"))}
+            "git_dirty": bool(run("status", "--porcelain", "--", ".", ":(exclude)data", ":(exclude)examples/expected"))}
 
 
 def _agent_ports(pcap: Path) -> set[int]:
@@ -158,15 +162,16 @@ def _agent_ports(pcap: Path) -> set[int]:
     return {int(str(v).rsplit(":", 1)[1]) for v in eps.values()}
 
 
-def trace_volume(raw_dir: Path, legacy: bool = False) -> dict:
+def trace_volume(raw_dir: Path, legacy: bool = False, dedup: bool = True) -> dict:
     """Per-trace on-wire bytes, packets and TCP connections, from packet headers only
     (so it works on payload-stripped captures). Own connections (default): only the agent-port
-    connections each trace opens itself; legacy: every packet in the capture."""
+    connections each trace opens itself; legacy: every packet in the capture. dedup (own connections
+    only): a retransmitted segment is dropped and a partial one keeps only its new bytes."""
     rows, by_port = [], Counter()
     for f in sorted(raw_dir.glob("*.pcap")):
         if not legacy:
             ports = _agent_ports(f)
-            pk = own_packets([p for p in tcp_packets(f) if p[1] in ports or p[2] in ports], ports)
+            pk = own_packets([p for p in tcp_packets(f, dedup=dedup) if p[1] in ports or p[2] in ports], ports)
             syn = [p for p in pk if p[5] & 0x02 and not p[5] & 0x10]
             by_port.update(p[2] for p in syn)
             rows.append((sum(p[3] for p in pk), len(pk), len(syn)))
@@ -199,12 +204,15 @@ def _read_json(path: Path) -> dict | None:
 
 def main(a: argparse.Namespace) -> None:
     legacy = a.legacy_all_connections
-    clear = Path(a.clear or ("data/processed_tlspair_clear" if legacy else "data/processed_tlspair_clear_own"))
-    tls = Path(a.tls or ("data/processed_tlspair_tls" if legacy else "data/processed_tlspair_tls_own"))
+    dedup = not (legacy or a.keep_retransmissions)
+    suffix = "" if legacy else "_own_dedup" if dedup else "_own"
+    clear = Path(a.clear or f"data/processed_tlspair_clear{suffix}")
+    tls = Path(a.tls or f"data/processed_tlspair_tls{suffix}")
     out = {
-        "paper": "P1", "collection_id": "TLS control", "seed": SEED, **_git(),
+        "paper": "P2", "collection_id": "TLS control", "seed": SEED, **_git(),
         "measurement": "all connections on the agent ports (legacy)" if legacy else
                        "own connections: only TCP connections whose SYN is in the trace (features/connections.py)",
+        "retransmissions": "dropped: every payload byte counted once (TCP sequence numbers)" if dedup else "kept",
         "task": "TLS control — fingerprinting with TLS on every agent link (same-session, paired)",
         "method": "Deployment A collected in one session with cleartext and TLS traces alternating "
                   "(same prompt per pair, arm order counterbalanced). GBT; "
@@ -236,7 +244,7 @@ def main(a: argparse.Namespace) -> None:
                     res["clear_to_tls"]["macro_f1"], d["diff"], d["ci_lo"], d["ci_hi"], res["chance"])
 
     if a.clear_raw and a.tls_raw:
-        vc, vt = trace_volume(Path(a.clear_raw), legacy), trace_volume(Path(a.tls_raw), legacy)
+        vc, vt = trace_volume(Path(a.clear_raw), legacy, dedup), trace_volume(Path(a.tls_raw), legacy, dedup)
         if vc and vt:
             out["overhead"] = {
                 "cleartext": vc, "tls": vt,
@@ -255,7 +263,7 @@ def main(a: argparse.Namespace) -> None:
 
     out_dir = Path(os.environ.get("A2A_RESULTS_DIR", "data/results"))
     (out_dir / "figures").mkdir(parents=True, exist_ok=True)
-    stem = "tls_control" if legacy else "tls_control_own"
+    stem = "tls_control" if legacy else "tls_control_own" if dedup else "tls_control_own_keep_retransmissions"
     (out_dir / f"{stem}.json").write_text(json.dumps(out, indent=2))
     make_figure(out, out_dir / "figures" / f"{stem}.png")
     write_report(out, out_dir / f"{stem}.md")
@@ -379,4 +387,7 @@ if __name__ == "__main__":
     p.add_argument("--tls-raw", default="data/raw_tlspair_tls")
     p.add_argument("--legacy-all-connections", action="store_true",
                    help="every connection on the agent ports (the earlier measurement); writes tls_control.*")
+    p.add_argument("--keep-retransmissions", action="store_true", dest="keep_retransmissions",
+                   help="count retransmitted segments again (the measure before Nov 14); reads the _own sets and "
+                        "writes tls_control_own_keep_retransmissions.*")
     main(p.parse_args())

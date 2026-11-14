@@ -12,7 +12,8 @@ Build the paper 2 data release (a new version of the Zenodo record, DATA.md) fro
                                           labels; extracted from the released captures
     tlscontrol-raw-pcaps-headers-only.zip data/raw_tlspair_tls, raw_tlspair_clear (loopback, headers
                                           only): the TLS control behind paper 2's D1 numbers
-    tlscontrol-features-own.zip           data/processed_tlspair_{tls,clear}_own
+    tlscontrol-features-own-dedup.zip     data/processed_tlspair_{tls,clear}_own_dedup (own connections, each
+                                          payload byte once: scripts/extract_features.py --dedup)
     SHA256SUMS.txt, manifest.json         checksums; what was checked, cut and left out
 
 Changes from data/ (recorded in manifest.json and DATA.md):
@@ -70,7 +71,8 @@ C2_VIEWS = ("v1", "v2")
 C2_PER_ARM = 1000
 C2_LABELS = ("task_type", "escalated", "cloud_role", "audit_null", "prompt_group")
 TLS_RAW = ("raw_tlspair_tls", "raw_tlspair_clear")
-TLS_FEATURES = ("processed_tlspair_tls_own", "processed_tlspair_clear_own")
+TLS_FEATURES = ("processed_tlspair_tls_own_dedup", "processed_tlspair_clear_own_dedup")
+ZIP_TIME = (1980, 1, 1, 0, 0, 0)          # fixed, so a rebuild of the same files gives the same checksum
 LEFT_OUT = {"raw_c2": {"wan_status.json": "the WAN watcher's last state, written after the collection"}}
 CUT = {"raw_c2": "wan_watch.jsonl"}
 SNAPLEN = 96
@@ -89,7 +91,7 @@ def git_state() -> dict:
     def run(*cmd: str) -> str:
         return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True).stdout.strip()
     return {"git_commit": run("git", "rev-parse", "HEAD"),
-            "git_dirty": bool(run("git", "status", "--porcelain", "--", ".", ":(exclude)data"))}
+            "git_dirty": bool(run("git", "status", "--porcelain", "--", ".", ":(exclude)data", ":(exclude)examples/expected"))}
 
 
 def window(meta: Path) -> tuple[float, float, str, str]:
@@ -210,6 +212,8 @@ def features(folder: Path, view: str) -> dict:
 
 
 def zip_dirs(zpath: Path, root: Path, rels: list[str]) -> None:
+    """Deterministic: entries in sorted order, a fixed timestamp and permissions, so the same files give
+    the same archive (and checksum) on every build."""
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
         for rel in rels:
             base = root / rel
@@ -217,7 +221,10 @@ def zip_dirs(zpath: Path, root: Path, rels: list[str]) -> None:
                 raise SystemExit(f"missing {base}")
             for f in sorted(base.rglob("*")):
                 if f.is_file() and f.name != ".DS_Store":
-                    z.write(f, f.relative_to(root).as_posix())
+                    info = zipfile.ZipInfo(f.relative_to(root).as_posix(), date_time=ZIP_TIME)
+                    info.external_attr = 0o644 << 16
+                    info.compress_type = zipfile.ZIP_DEFLATED
+                    z.writestr(info, f.read_bytes())
 
 
 def main(a: argparse.Namespace) -> int:
@@ -323,7 +330,7 @@ def main(a: argparse.Namespace) -> int:
                 raise SystemExit(f"missing {data / s}")
             shutil.copytree(data / s, stage / "data" / s, ignore=shutil.ignore_patterns(".DS_Store"))
         zips["tlscontrol-raw-pcaps-headers-only.zip"] = [f"data/{s}" for s in TLS_RAW]
-        zips["tlscontrol-features-own.zip"] = [f"data/{s}" for s in TLS_FEATURES]
+        zips["tlscontrol-features-own-dedup.zip"] = [f"data/{s}" for s in TLS_FEATURES]
     man["archives"] = {}
     for z, rels in zips.items():
         zip_dirs(out / z, stage, rels)
