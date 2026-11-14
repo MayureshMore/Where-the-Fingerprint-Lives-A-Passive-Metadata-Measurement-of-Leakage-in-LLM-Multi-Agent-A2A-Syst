@@ -9,6 +9,8 @@ Sidecar fields read (anything else is ignored):
     <any other key>   a trace-level attribute, if asked for with --attributes
     prompt_group      grouping key; else sha1(input_prompt)[:8]; else the run id
     success           false → the trace is skipped
+    pad_buckets, padded_endpoints   requests padded to these sizes, on these agents (session collector):
+                      only for the mitigation rules (facts padded, unpadded_in_view); not in the report
     vantages          {"v1": ["diagnostics", "knowledge", "ticket"], "v2": [...]}: the agent endpoints
                       each observer view sees (scripts/collect_session.py --placement edge-cloud).
                       With --vantage NAME only those endpoints' flows are kept, before feature
@@ -43,6 +45,8 @@ class Trace:
     group: str = ""
     group_source: str = ""                        # prompt_group | input_prompt | run_id
     topology: str | None = None                   # sidecar topology, for the visibility summary
+    padded: bool = False                          # sidecar pad_buckets non-empty (rules only)
+    unpadded_in_view: tuple = ()                  # padded deployment: endpoints in view not in padded_endpoints
 
 
 def _label(sidecar: dict, attribute: str) -> str | None:
@@ -87,8 +91,11 @@ def read_trace(pcap: Path, trace_attributes: list[str], vantage: str | None = No
     else:
         group, source = pcap.stem, "run_id"
     labels = {a: v for a in trace_attributes if (v := _label(sc, a)) is not None}
+    padded = bool(sc.get("pad_buckets"))
+    unpadded = tuple(sorted(set(port_role.values()) - set(sc.get("padded_endpoints") or []))) if padded else ()
     return Trace(run_id=sc.get("run_id", pcap.stem), pcap=pcap, port_role=port_role,
-                 labels=labels, group=group, group_source=source, topology=_label(sc, "topology")), ""
+                 labels=labels, group=group, group_source=source, topology=_label(sc, "topology"),
+                 padded=padded, unpadded_in_view=unpadded), ""
 
 
 def collect(folder: Path, trace_attributes: list[str], strip_dir: Path | None = None,

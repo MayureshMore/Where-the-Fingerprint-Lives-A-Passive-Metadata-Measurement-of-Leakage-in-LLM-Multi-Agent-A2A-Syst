@@ -225,36 +225,65 @@ a JSON sidecar naming the agent ports and the labels. Full description:
 [docs/LEAKCHECK.md](docs/LEAKCHECK.md); other frameworks, protocols and capture sources:
 [docs/EXTENDING.md](docs/EXTENDING.md).
 
-```bash
-python -m a2a_leakcheck run examples/leaky --out /tmp/leaky --html     # 40 traces, about a minute
-python -m a2a_leakcheck run data/raw_tlspair_tls --strip --out /tmp/tls --html
-python -m a2a_leakcheck run NEW_CAPTURES --out NEW --baseline OLD/report.json   # CI: exit 3 on a new LEAK
-```
+### Setup and usage on a laptop
 
-[examples/](examples/README.md) holds two 40-trace sets from the TLS control, one with real
-labels (leaks) and one with permuted labels (none), each with its expected report.
-
-**On a Raspberry Pi.** The audit needs only `requirements-leakcheck.txt` (numpy, SciPy,
-scikit-learn, joblib, threadpoolctl, PyYAML, scapy at the locked versions; no PyTorch), Python
-3.11+, and the captures:
+Python 3.11 or newer; the audit needs only `requirements-leakcheck.txt` (numpy, SciPy,
+scikit-learn, joblib, threadpoolctl, PyYAML and scapy at the locked versions; no PyTorch).
 
 ```bash
-python3 -m venv venv && venv/bin/pip install -r requirements-leakcheck.txt
-venv/bin/python -m a2a_leakcheck run CAPTURES --strip --jobs 4 --out REPORT
+python3 -m venv venv-leakcheck && venv-leakcheck/bin/pip install -r requirements-leakcheck.txt
+venv-leakcheck/bin/python -m a2a_leakcheck run examples/c2_lan --vantage v2 --attributes task_type --html --out /tmp/c2_lan
+PYTHON=venv-leakcheck/bin/python bash scripts/demo_paper2.sh   # C2 examples: both arms, HTML, CI gate
 ```
 
-`--jobs 4` runs one cross-validation per core; the report's runtime section gives the time and
-peak memory per stage. In the C2 setup ([docs/LAN_SETUP.md](docs/LAN_SETUP.md)) the Pi serves
-the specialist agents; the audit runs after collection, not alongside it.
+On your own deployment: one header-only pcap per task with a JSON sidecar naming the agent
+endpoints and the labels ([docs/LEAKCHECK.md](docs/LEAKCHECK.md#input)), then
 
-**Paper 2.** `bash scripts/reproduce_paper2.sh` rebuilds every paper 2 number from the released
-captures into a sandbox and compares it with the committed one (`--quick`: the examples and the
-TLS-control reports, minutes; without it also the tool evaluation, hours).
-`scripts/evaluate_leakcheck.py` measures the tool on known answers: recall on real labels,
-false positives on permuted labels (and on `audit_null` in C2), the effect of sample size, and
-two baselines in the same verdict rule (k-FP with a random forest; the first request's size
-alone). `baselines/run_tls_scanners.sh` runs sslyze and testssl.sh against the same deployment
-for comparison.
+```bash
+python -m a2a_leakcheck run CAPTURES --out REPORT --html                       # role, workflow, topology
+python -m a2a_leakcheck run CAPTURES --strip --attributes task_type,escalated  # payload cut on the fly
+python -m a2a_leakcheck run CAPTURES --vantage v2 --out REPORT                 # one observer's view
+python -m a2a_leakcheck run CAPTURES --out NEW --baseline OLD/report.json      # CI: exit 3 on a new LEAK
+```
+
+Each report (`report.json`, `report.md`, `report.html`) gives per attribute the verdict, macro-F1
+with its 95% interval, the permutation test, severity, which feature family carries the leak and a
+mitigation hint from [`a2a_leakcheck/rules.yaml`](a2a_leakcheck/rules.yaml). A full audit of C2's
+1,000 traces per arm and view takes three to four minutes with 14 workers; the report's runtime section gives
+time and peak memory per stage.
+
+### Setup and usage on a Raspberry Pi 5
+
+64-bit Raspberry Pi OS with Python 3.11 or newer; the same requirements file.
+
+```bash
+python3 -m venv venv-leakcheck && venv-leakcheck/bin/pip install -r requirements-leakcheck.txt
+venv-leakcheck/bin/python -m a2a_leakcheck run data/raw_c2 --strip --vantage v1 \
+    --attributes task_type,escalated,cloud_role,audit_null --jobs 4 --out REPORT
+python scripts/compare_reports.py REPORT/report.json data/results/leakcheck/c2_lan_v1/report.json
+```
+
+`--jobs 4` runs one cross-validation per core. Stop other heavy work first (in C2 the Pi also serves
+the edge agent and its model; the audit runs after collection, not alongside it), and keep it
+cool: `vcgencmd get_throttled` should read `0x0`. `scripts/compare_reports.py` checks that the
+Pi's verdicts and scores equal the laptop's and lists both runtimes and peak memory.
+
+### What else is here
+
+- [examples/](examples/README.md): small header-only inputs with expected reports. The TLS
+  control's `leaky` and `permuted` sets (40 traces each), and C2's `c2_lan` and `c2_lan_padmax`
+  (the same 40 tasks without and with padding).
+- [baselines/](baselines/README.md): the TLS scanners (sslyze, testssl.sh) on the same endpoints, and
+  k-FP and the first-request rule in the tool's verdict rule (`baselines/run_detectors.py`).
+- `scripts/evaluate_leakcheck.py` measures the tool on known answers: recall on known leaks, false
+  positives on permuted labels and on `audit_null`, the effect of sample size, and the baselines.
+- **Paper 2.** `bash scripts/reproduce_paper2.sh` rebuilds every paper 2 number from the released
+  data into a sandbox and compares it with the committed one (`--quick`: examples and audits,
+  minutes; without it also the tool evaluations, hours). [docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md)
+  maps each number in the paper to its JSON; `scripts/export_paper2_csv.py` writes the plotted
+  ones as CSV for pgfplots.
+- [docs/EXTENDING.md](docs/EXTENDING.md): adding a framework, a protocol, a capture source or vantage
+  point, a rule or an attribute.
 
 ---
 

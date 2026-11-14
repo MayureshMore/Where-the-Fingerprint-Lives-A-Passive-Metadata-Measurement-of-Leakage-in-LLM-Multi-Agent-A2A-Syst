@@ -230,3 +230,49 @@ def test_rules_file_is_configurable(tmp_path, leak_report):
     assert wf["attribution"]["top_family"] == "sizes"
     assert [h["id"] for h in hints(facts("workflow", wf), r)] == ["any-leak"]
     assert r["severity"]["high"] == 0.99
+
+
+def _result(verdict="LEAK", top="sizes", single=False, matches=("sizes",)):
+    fams = {f: {"all_minus_this": {"ci_lo": -0.01 if f in matches else 0.02}} for f in ("sizes", "timing", "counts_direction")}
+    return {"verdict": verdict, "prioritization": {"severity": "high"}, "validation": {"min_samples": {"ok": True}},
+            "attribution": {"top_family": top, "top_family_matches_all": True, "families": fams,
+                            "single_request_size": {"matches_all": single}}}
+
+
+def _ids(attribute, result, ctx=None):
+    return [h["id"] for h in hints(facts(attribute, result, ctx), load_rules())]
+
+
+def test_c2_rules_escalation_and_cloud_role_are_final():
+    assert _ids("escalated", _result(single=True)) == ["hide-escalation"]            # not pad-task-inputs
+    assert _ids("cloud_role", _result(top="timing", single=True)) == ["one-cloud-front-end"]
+    assert _ids("escalated", _result(verdict="NO LEAK")) == []
+
+
+def test_c2_rules_timing_after_padding_and_local_posts():
+    padded = {"vantage": "v2", "padded": True, "unpadded_in_view": False}
+    v1 = {"vantage": "v1", "padded": True, "unpadded_in_view": True}
+    timing = _result(top="timing", matches=("timing",))
+    assert _ids("task_type", timing, padded) == ["padding-not-enough-timing"]         # not the generic shape-timing
+    assert _ids("task_type", timing, v1) == ["padding-not-enough-timing", "pad-local-posts"]
+    assert _ids("task_type", timing) == ["shape-timing"]                               # unpadded: unchanged
+    assert _ids("task_type", _result(), v1) == ["pad-messages", "pad-local-posts"]
+    assert _ids("task_type", _result(), {"vantage": "v1", "padded": False, "unpadded_in_view": False}) == ["pad-messages"]
+
+
+def test_padding_context_from_sidecars(tmp_path):
+    from a2a_leakcheck.collect import read_trace
+    from a2a_leakcheck.rules import context
+    eps = {"diagnostics": "172.30.0.100:8101", "ticket": "10.0.0.228:8105"}
+    views = {"v1": ["diagnostics", "ticket"], "v2": ["diagnostics"]}
+    for name, pad in (("p", [8192]), ("u", [])):
+        (tmp_path / f"{name}.pcap").write_bytes(b"")
+        (tmp_path / f"{name}.json").write_text(json.dumps({"agent_endpoints": eps, "vantages": views, "pad_buckets": pad,
+                                                          "padded_endpoints": ["diagnostics"] if pad else []}))
+    p1, _ = read_trace(tmp_path / "p.pcap", [], "v1")
+    p2, _ = read_trace(tmp_path / "p.pcap", [], "v2")
+    u1, _ = read_trace(tmp_path / "u.pcap", [], "v1")
+    assert (p1.padded, p1.unpadded_in_view, p2.unpadded_in_view, u1.padded) == (True, ("ticket",), (), False)
+    assert context([p1], "v1") == {"vantage": "v1", "padded": True, "unpadded_in_view": True}
+    assert context([p2], "v2")["unpadded_in_view"] is False
+    assert context([p1, u1], "v1")["padded"] is False                                 # every trace must be padded

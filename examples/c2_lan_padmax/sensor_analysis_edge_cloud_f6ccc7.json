@@ -1,0 +1,38 @@
+{
+  "run_id": "sensor_analysis_edge_cloud_f6ccc7",
+  "agent_endpoints": {
+    "diagnostics": "172.30.0.100:8301",
+    "knowledge": "172.30.0.100:8302",
+    "ticket": "10.0.0.228:8305"
+  },
+  "vantages": {
+    "v1": [
+      "diagnostics",
+      "knowledge",
+      "ticket"
+    ],
+    "v2": [
+      "diagnostics",
+      "knowledge"
+    ]
+  },
+  "topology": "edge_cloud",
+  "prompt_group": "aa1225dd",
+  "task_type": "sensor_analysis",
+  "escalated": "yes",
+  "cloud_role": "diagnostics",
+  "audit_null": "a",
+  "arm": "lan_padmax",
+  "edge_host": "10.0.0.171",
+  "defense": "none",
+  "pad_buckets": [
+    8192,
+    16384
+  ],
+  "pad_expect": 8192,
+  "padded_endpoints": [
+    "diagnostics",
+    "knowledge"
+  ],
+  "success": true
+}
