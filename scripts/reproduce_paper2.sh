@@ -166,7 +166,7 @@ done
 
 echo "== 2. TLS control"
 run_report tls_control_tls_own data/raw_tlspair_tls "$CANON/leakcheck/tls_control_tls_own" --strip
-run_report tls_control_clear_own data/raw_tlspair_clear "$CANON/leakcheck/tls_control_clear_own" --strip
+run_report tls_control_clear_own data/raw_tlspair_clear "$CANON/leakcheck/tls_control_clear_own" --strip --cleartext
 if [ -d data/processed_tlspair_clear_own_dedup ] && [ -d data/processed_tlspair_tls_own_dedup ]; then
     run_json tls_control_own "$CANON/tls_control_own.json" "$PY" scripts/evaluate_tls_control.py
 else

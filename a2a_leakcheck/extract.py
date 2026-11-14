@@ -65,7 +65,7 @@ def extract(traces: list, legacy: bool = False, keep_empty: bool = False, dedup:
             failed.append({"pcap": tr.pcap.name, "reason": "no packets on the agent ports"})
             continue
         rows.append(ex._compute_features(tr.run_id, packets).flat_vector())
-        first.append(first_request_seq_bytes(tr.pcap, set(ports), legacy))
+        first.append(first_request_seq_bytes(tr.pcap, set(ports), legacy, tls=getattr(tr, "tls", True)))
         keep.append(i)
         seen = []
         for _, (role, vec, _, _) in sorted(role_vectors(ex, packets, {str(p): r for p, r in tr.port_role.items()}).items()):
@@ -93,5 +93,8 @@ def extract(traces: list, legacy: bool = False, keep_empty: bool = False, dedup:
                                    "own connections: only TCP connections whose SYN is in the capture",
                     "retransmissions": "dropped: every payload byte counted once (TCP sequence numbers)"
                                        if dedup else "kept",
-                    "first_request": FIRST_REQUEST_SEQ_DEF},
+                    "first_request": FIRST_REQUEST_SEQ_DEF,
+                    **({"first_request_cleartext": f"{n} traces without TLS: no handshake skipped, the request starts "
+                                                   "at the first client byte"}
+                       if (n := sum(not getattr(t, "tls", True) for t in traces)) else {})},
     }

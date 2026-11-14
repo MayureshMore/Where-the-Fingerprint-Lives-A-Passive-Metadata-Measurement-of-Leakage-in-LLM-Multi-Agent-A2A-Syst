@@ -9,6 +9,8 @@ Sidecar fields read (anything else is ignored):
     <any other key>   a trace-level attribute, if asked for with --attributes
     prompt_group      grouping key; else sha1(input_prompt)[:8]; else the run id
     success           false → the trace is skipped
+    tls               false → a cleartext capture: the first request is measured from the first client byte
+                      (there is no TLS handshake to skip); also for every trace with --cleartext
     pad_buckets, padded_endpoints   requests padded to these sizes, on these agents (session collector):
                       only for the mitigation rules (facts padded, unpadded_in_view); not in the report
     vantages          {"v1": ["diagnostics", "knowledge", "ticket"], "v2": [...]}: the agent endpoints
@@ -47,6 +49,7 @@ class Trace:
     topology: str | None = None                   # sidecar topology, for the visibility summary
     padded: bool = False                          # sidecar pad_buckets non-empty (rules only)
     unpadded_in_view: tuple = ()                  # padded deployment: endpoints in view not in padded_endpoints
+    tls: bool = True                              # False: cleartext, no handshake for the first request to skip
 
 
 def _label(sidecar: dict, attribute: str) -> str | None:
@@ -56,8 +59,10 @@ def _label(sidecar: dict, attribute: str) -> str | None:
     return None
 
 
-def read_trace(pcap: Path, trace_attributes: list[str], vantage: str | None = None) -> tuple[Trace | None, str]:
-    """(trace, "") or (None, reason it was skipped). vantage: keep only the endpoints that view sees."""
+def read_trace(pcap: Path, trace_attributes: list[str], vantage: str | None = None,
+               cleartext: bool = False) -> tuple[Trace | None, str]:
+    """(trace, "") or (None, reason it was skipped). vantage: keep only the endpoints that view sees.
+    cleartext: the capture has no TLS (as a sidecar "tls": false says for itself)."""
     side = pcap.with_suffix(".json")
     if not side.exists():
         return None, "no sidecar"
@@ -95,11 +100,12 @@ def read_trace(pcap: Path, trace_attributes: list[str], vantage: str | None = No
     unpadded = tuple(sorted(set(port_role.values()) - set(sc.get("padded_endpoints") or []))) if padded else ()
     return Trace(run_id=sc.get("run_id", pcap.stem), pcap=pcap, port_role=port_role,
                  labels=labels, group=group, group_source=source, topology=_label(sc, "topology"),
-                 padded=padded, unpadded_in_view=unpadded), ""
+                 padded=padded, unpadded_in_view=unpadded,
+                 tls=not cleartext and sc.get("tls", True) is not False), ""
 
 
 def collect(folder: Path, trace_attributes: list[str], strip_dir: Path | None = None,
-            vantage: str | None = None) -> dict:
+            vantage: str | None = None, cleartext: bool = False) -> dict:
     """Read every pcap + sidecar in folder. Captures must be header-only; with strip_dir, a
     header-only copy of each capture that still holds payload bytes is written there and used.
     vantage: an observer view from the sidecars' vantages (only its endpoints' flows are kept).
@@ -108,7 +114,7 @@ def collect(folder: Path, trace_attributes: list[str], strip_dir: Path | None = 
     pcaps = sorted(folder.glob("*.pcap"))
     traces, skipped, with_payload, stripped = [], [], [], 0
     for pcap in pcaps:
-        tr, why = read_trace(pcap, trace_attributes, vantage)
+        tr, why = read_trace(pcap, trace_attributes, vantage, cleartext)
         if tr is None:
             skipped.append({"pcap": pcap.name, "reason": why})
             continue
@@ -129,5 +135,6 @@ def collect(folder: Path, trace_attributes: list[str], strip_dir: Path | None = 
     groups = [t.group_source for t in traces]
     return {"traces": traces, "skipped": skipped,
             "summary": {"folder": str(folder), "vantage": vantage, "pcaps": len(pcaps), "traces": len(traces),
+                        **({"cleartext_traces": n} if (n := sum(not t.tls for t in traces)) else {}),
                         "skipped": skipped, "stripped_copies": stripped,
                         "group_source": {s: groups.count(s) for s in sorted(set(groups))}}}

@@ -35,9 +35,11 @@ The features read packet sizes, times and direction from TCP headers. What to ch
   in which the server answers only once it has the whole request. A protocol that streams the
   request while the server already answers (bidirectional gRPC streams, WebSocket) needs its own
   end-of-request rule there.
-- **Without TLS on TCP**: `first_request_seq(..., tls=False)` starts at the first client byte
-  instead of skipping a handshake; pass it through in `a2a_leakcheck/extract.py` for cleartext
-  captures.
+- **Without TLS on TCP**: run with `--cleartext`, or put `"tls": false` in the sidecars. The first
+  request is then measured from the first client byte (`first_request_seq(..., tls=False)`); with
+  TLS assumed on a cleartext capture, the request itself would be skipped as the handshake and
+  the first request would read 0 B. `scripts/evaluate_leakcheck.py` takes `--cleartext-arms`
+  (the TLS control's cleartext arm by default).
 - **QUIC or other UDP transports**: extend the packet readers to UDP
   (`FeatureExtractor._read_with_scapy` in `features/extractor.py` and `tcp_packets` in
   `features/kfp.py`), and give `first_request.py` a QUIC-aware handshake skip.

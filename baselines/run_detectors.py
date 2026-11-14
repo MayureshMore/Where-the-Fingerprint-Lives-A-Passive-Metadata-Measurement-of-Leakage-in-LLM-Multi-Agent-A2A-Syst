@@ -44,7 +44,7 @@ def run(a: argparse.Namespace) -> dict:
     if bad := [m for m in methods if m not in METHODS]:
         raise SystemExit(f"unknown method {bad}; choose from {', '.join(METHODS)}")
     t0 = time.perf_counter()
-    data = load_arm(Path(a.captures), attributes=attrs, vantage=a.vantage)
+    data = load_arm(Path(a.captures), attributes=attrs, vantage=a.vantage, cleartext=a.cleartext)
     sev = load_rules()["severity"]
     out = {"captures": str(a.captures), "vantage": a.vantage, "traces": data["traces"],
            "parameters": {"permutations": a.permutations, "n_boot": a.n_boot, "margin": a.margin,
@@ -75,6 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("captures", help="folder of pcaps with label sidecars (payload is stripped on the fly)")
     p.add_argument("--attributes", default="role,workflow,topology")
     p.add_argument("--vantage", default=None, help="observer view from the sidecars (e.g. v1, v2)")
+    p.add_argument("--cleartext", action="store_true", help="captures without TLS (first request from the first byte)")
     p.add_argument("--methods", default="kfp_rf,first_request", help=f"comma-separated: {', '.join(METHODS)}")
     p.add_argument("--permutations", type=int, default=99)
     p.add_argument("--n-boot", type=int, default=1000, dest="n_boot")

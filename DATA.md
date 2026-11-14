@@ -319,16 +319,24 @@ The median over all 1,000 tasks is 380 B. The largest input, 5,490 B, fits in th
 
 | File | Contents | SHA-256 |
 |---|---|---|
-| `c2-raw-pcaps-headers-only.zip` | `data/raw_c2`, `raw_c2_pad`, `raw_c2_padmax`: 1,000 captures per arm with their sidecars, and the run's check files | `58f4952f3cd2d2cf825c1f3e3382aa3c39a5b3a41bfb3f67ee5af8254ce61a08` |
-| `c2-features.zip` | `data/features_c2/<arm>_<view>.npz`: the 195 trace features and the first-request size a2a-leakcheck computes at each view, with the labels (README inside) | `5607f9261591b09e2d9daa5557b48cd110113eeaa4e1158ed10bd3c1a3785fc8` |
-| `tlscontrol-raw-pcaps-headers-only.zip` | `data/raw_tlspair_tls`, `raw_tlspair_clear`: 432 captures per arm (loopback) with sidecars | `8fecd637cd50cba7eccec010998013a2b099dd8c84b582ed11f3d884d0f4dc30` |
-| `tlscontrol-features-own.zip` | `data/processed_tlspair_{tls,clear}_own` | `cfb966f955a8647a7b6470cb568fd3c58c8b4ef20b2dd136926882a3fa92dd6d` |
-| `manifest.json` | what `scripts/package_paper2_data.py` checked, cut and left out, and its commit | `c54aa22858841aa2a1f2a58c57ad791940eb610546784ccacbead9174d1a7cc6` |
+| `c2-raw-pcaps-headers-only.zip` | `data/raw_c2`, `raw_c2_pad`, `raw_c2_padmax`: 1,000 captures per arm with their sidecars, and the run's check files | `8900420e0022678cf07ed9ab7c38ad47033eceff246368d42013a38a419d930f` |
+| `c2-features.zip` | `data/features_c2/<arm>_<view>.npz`: the 195 trace features and the first-request size a2a-leakcheck computes at each view, with the labels (README inside) | `7c98ae9011a716be7d796660e34944035bfd650e0aa36bc5696a8c8641fa47ff` |
+| `tlscontrol-raw-pcaps-headers-only.zip` | `data/raw_tlspair_tls`, `raw_tlspair_clear`: 432 captures per arm (loopback) with sidecars | `18c7134ca709c9cb57a5b17ad881e818e7b9d9e1aee28c45fbc9f057ec0a7f41` |
+| `tlscontrol-features-own-dedup.zip` | `data/processed_tlspair_{tls,clear}_own_dedup`: own connections, every payload byte counted once (`scripts/extract_features.py --dedup`) | `f125f9fd50d771644a69a5917e2fcd26b64a1731982f1b06b475f61c353dbaf4` |
+| `manifest.json` | what `scripts/package_paper2_data.py` checked, cut and left out, and its commit | `5f0336b224463fba5ae37d1d90c675de723a7f39f70e46407e1f8088f97710f5` |
 
-Built by `scripts/package_paper2_data.py` at commit `8dd4b74e` (clean; `manifest.json`). The record also
+Built by `scripts/package_paper2_data.py` at commit `56849f02` (clean; `manifest.json`), with deterministic
+zips (fixed timestamps and order): rebuilding the same files gives the same checksums. The C2 and
+TLS-control capture archives hold the same files as the first build at `8dd4b74e`. The record also
 holds `SHA256SUMS.txt`. Unzip the archives into the repository root, then
 `bash scripts/reproduce_paper2.sh` rebuilds every paper 2 number and compares it with the
 committed one (docs/PAPER2_NUMBERS.md maps each number to its file).
+
+**D1 measured with every payload byte counted once (Nov 14).** The TLS-control features in this
+release drop TCP retransmissions, as a2a-leakcheck does; the earlier `processed_tlspair_*_own` sets
+(and every D1 result computed from them) counted retransmitted segments again. The earlier results
+are in `data/results/superseded/d1_before_dedup/`; `data/results/d1_dedup_comparison.md` sets every
+D1 number of paper 2 old against new.
 
 **How the release differs from the captures in `data/`.** `scripts/package_paper2_data.py` builds
 it, and `manifest.json` records each change:

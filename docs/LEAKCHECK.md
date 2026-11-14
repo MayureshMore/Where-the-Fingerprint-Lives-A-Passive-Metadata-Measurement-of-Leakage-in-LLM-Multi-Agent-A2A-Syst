@@ -41,6 +41,7 @@ One `NAME.pcap` and one `NAME.json` per trace. The sidecar fields read:
 | any other key | a label, if named in `--attributes` |
 | `prompt_group`, else `input_prompt` | grouping key (the prompt's hash); without either, every trace is its own group, and the report says so under `collection.group_source` |
 | `success: false` | the trace is skipped |
+| `tls: false` | a capture without TLS: the first request is measured from the first client byte (or `--cleartext` for every trace) |
 
 Captures are classic pcap (not pcapng) with link type BSD loopback, Ethernet, raw IP or Linux
 cooked. A packet *to* an agent port is a request, one *from* it a response; ports are never

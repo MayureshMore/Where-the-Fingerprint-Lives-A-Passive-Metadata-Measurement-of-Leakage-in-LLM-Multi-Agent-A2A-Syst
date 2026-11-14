@@ -3,6 +3,7 @@
 numpy==2.4.6
 scipy==1.17.1
 scikit-learn==1.9.0
+narwhals==2.22.1          # required by scikit-learn 1.9; pinned so a fresh install matches the lock
 joblib==1.5.3
 threadpoolctl==3.6.0
 PyYAML==6.0.3

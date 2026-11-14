@@ -213,7 +213,7 @@ def prompt_json_bytes(prompt: str) -> int:
 
 
 def load_arm(raw: Path, role_within: list[str] = (), attributes=ATTRS, vantage: str | None = None,
-             input_size: str | None = None) -> dict:
+             input_size: str | None = None, cleartext: bool = False) -> dict:
     """Collect and extract once per cell, as the tool does, plus k-FP vectors per trace and per
     agent. Samples per attribute: (X per method, labels, groups). role_within: topologies whose
     role samples also form an attribute of their own (role_within_<topology>). vantage: an observer
@@ -228,7 +228,7 @@ def load_arm(raw: Path, role_within: list[str] = (), attributes=ATTRS, vantage: 
     cls_attr = trace_attributes(attributes)[0]
     size = {"fr": [], "input": [], "cls": [], "g": [], "link": []}
     with tempfile.TemporaryDirectory(prefix="leakeval_") as tmp:
-        col = collect(raw, trace_attributes(attributes), strip_dir=Path(tmp), vantage=vantage)
+        col = collect(raw, trace_attributes(attributes), strip_dir=Path(tmp), vantage=vantage, cleartext=cleartext)
         ext = extract(col["traces"], keep_empty=vantage is not None)
         traces = [col["traces"][i] for i in ext["trace_index"]]
         kfp_trace, kfp_role = [], []
@@ -244,7 +244,7 @@ def load_arm(raw: Path, role_within: list[str] = (), attributes=ATTRS, vantage: 
             sc = json.loads((Path(raw) / Path(tr.pcap).with_suffix(".json").name).read_text())
             if str(sc.get(key)) != value:
                 continue
-            fr = first_request_seq(tcp_records(tr.pcap, ack=True), servers)   # as extract()
+            fr = first_request_seq(tcp_records(tr.pcap, ack=True), servers, tls=tr.tls)   # as extract()
             if fr["bytes"] != ext["first_request"][i]:
                 raise SystemExit(f"{tr.run_id}: first request {fr['bytes']} B here, {ext['first_request'][i]} B "
                                  "in extract()")
@@ -318,7 +318,8 @@ def verdict(X, y, g, a, method: str, sev: dict) -> dict:
             "sample_check_ok": r["validation"]["min_samples"]["ok"]}
 
 
-def run_tool(raw: Path, attrs: list[str], a: argparse.Namespace, out: Path, vantage: str | None = None) -> dict:
+def run_tool(raw: Path, attrs: list[str], a: argparse.Namespace, out: Path, vantage: str | None = None,
+             cleartext: bool = False) -> dict:
     """The tool as shipped, in a fresh process: full-data verdicts, runtime and memory."""
     cmd = [sys.executable, "-m", "a2a_leakcheck", "run", str(raw), "--out", str(out), "--strip",
            "--attributes", ",".join(x for x in attrs if not x.startswith(ROLE_WITHIN)),
@@ -328,11 +329,14 @@ def run_tool(raw: Path, attrs: list[str], a: argparse.Namespace, out: Path, vant
         cmd += ["--role-within", ",".join(a.role_within)]
     if vantage:
         cmd += ["--vantage", vantage]
+    if cleartext:
+        cmd += ["--cleartext"]
     subprocess.run(cmd, check=True, capture_output=True, text=True)
     return tool_summary(json.loads((out / "report.json").read_text()))
 
 
-def tool_report(path: Path, raw: Path, attrs: list[str], a: argparse.Namespace, vantage: str | None) -> dict:
+def tool_report(path: Path, raw: Path, attrs: list[str], a: argparse.Namespace, vantage: str | None,
+                cleartext: bool = False) -> dict:
     """A report of python -m a2a_leakcheck run made beforehand (--tool-reports), if it stands for
     the run this evaluation would make: same folder, view, attributes and verdict parameters, a
     clean checkout, and the tool's code unchanged between its commit and this one."""
@@ -347,6 +351,8 @@ def tool_report(path: Path, raw: Path, attrs: list[str], a: argparse.Namespace, 
         bad["folder"] = [rep["input"]["folder"], str(raw)]
     if rep["input"].get("vantage") != vantage:
         bad["vantage"] = [rep["input"].get("vantage"), vantage]
+    if bool(p.get("cleartext", False)) != cleartext:
+        bad["cleartext"] = [p.get("cleartext", False), cleartext]
     if rep.get("git_dirty") is not False or not rep.get("git_commit"):
         bad["git"] = [rep.get("git_commit"), rep.get("git_dirty")]
     if bad:
@@ -462,13 +468,14 @@ def evaluate_arm(name: str, raw: Path, a: argparse.Namespace, sev: dict, tmp: Pa
                  arm: str | None = None, vantage: str | None = None) -> dict:
     """One cell: an arm (name, or arm at a view)."""
     t = time.perf_counter()
-    data = load_arm(raw, a.role_within, a.attributes, vantage, a.input_size)
+    cleartext = (arm or name) in a.cleartext_arms
+    data = load_arm(raw, a.role_within, a.attributes, vantage, a.input_size, cleartext)
     order = ("role", *(ROLE_WITHIN + t for t in a.role_within), *trace_attributes(a.attributes))
     attrs = [x for x in dict.fromkeys(order) if x in data["samples"]]
     print(f"[{name}] {data['traces']} traces ({data['empty_traces']} with nothing in view); attributes {attrs} "
           f"({time.perf_counter() - t:.0f} s)", flush=True)
-    tool = (tool_report(Path(a.tool_reports.format(cell=name)), raw, attrs, a, vantage) if a.tool_reports
-            else run_tool(raw, attrs, a, tmp / name, vantage))
+    tool = (tool_report(Path(a.tool_reports.format(cell=name)), raw, attrs, a, vantage, cleartext) if a.tool_reports
+            else run_tool(raw, attrs, a, tmp / name, vantage, cleartext))
     print(f"[{name}] tool: " + ", ".join(f"{k} {v['verdict']}" for k, v in tool["attributes"].items()), flush=True)
     res = {"data_dir": str(raw), "traces": data["traces"], "tool": tool, "attributes": {}}
     if vantage is not None:
@@ -917,6 +924,10 @@ def main(a: argparse.Namespace) -> None:
     t0 = time.perf_counter()
     arms = dict(x.split("=", 1) for x in a.arm) if a.arm else \
         {"tls": "data/raw_tlspair_tls", "cleartext": "data/raw_tlspair_clear"}
+    if a.cleartext_arms is None:                     # the TLS control's cleartext arm, unless arms are given
+        a.cleartext_arms = [] if a.arm else ["cleartext"]
+    if bad := [x for x in a.cleartext_arms if x not in arms]:
+        raise SystemExit(f"--cleartext-arms {bad}: not among the arms {sorted(arms)}")
     cells = {(n if v is None else f"{n}_{v}"): (n, raw, v) for n, raw in arms.items() for v in (a.vantage or [None])}
     not_known = {tuple(x.split(":", 1)) for x in a.not_known}
     if a.by_construction and a.reference != "baselines":
@@ -945,7 +956,8 @@ def main(a: argparse.Namespace) -> None:
                           "jobs": a.jobs, "not_known": sorted([list(x) for x in not_known]),
                           "role_within": a.role_within, "attributes": a.attributes, "vantage": a.vantage,
                           "reference": a.reference, "by_construction": a.by_construction, "pair": a.pair,
-                          "input_size": a.input_size, "tool_reports": a.tool_reports},
+                          "input_size": a.input_size, "tool_reports": a.tool_reports,
+                          **({"cleartext_arms": a.cleartext_arms} if a.cleartext_arms else {})},
            "methods": METHODS, "arms": {}}
     with tempfile.TemporaryDirectory(prefix="leakeval_reports_") as tmp:
         for name, (arm, raw, v) in cells.items():
@@ -958,6 +970,9 @@ def parser() -> argparse.ArgumentParser:
     lst = lambda v: [x.strip() for x in v.split(",") if x.strip()]  # noqa: E731
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--arm", action="append", default=[], help="NAME=CAPTURE_DIR (repeat); default: the TLS control")
+    p.add_argument("--cleartext-arms", type=lst, default=None, dest="cleartext_arms", metavar="ARMS",
+                   help="arms whose captures have no TLS (the first request starts at the first client byte); "
+                        "default: the TLS control's cleartext arm when --arm is not given, else none")
     p.add_argument("--collection-id", default="TLS control", dest="collection_id")
     p.add_argument("--attributes", type=lst, default=list(ATTRS),
                    help="comma-separated: role (from agent_endpoints) and sidecar keys; audit_null is added where "

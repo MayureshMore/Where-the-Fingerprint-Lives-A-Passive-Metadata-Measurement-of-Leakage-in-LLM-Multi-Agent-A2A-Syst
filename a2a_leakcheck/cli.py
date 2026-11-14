@@ -102,7 +102,7 @@ def run(a: argparse.Namespace) -> int:
     with tempfile.TemporaryDirectory(prefix="leakcheck_") as tmp:
         t = time.perf_counter()
         col = collect(Path(a.captures), [x for x in attributes if x != ROLE],
-                      strip_dir=Path(tmp) if a.strip else None, vantage=a.vantage)
+                      strip_dir=Path(tmp) if a.strip else None, vantage=a.vantage, cleartext=a.cleartext)
         stages["collection"] = time.perf_counter() - t
         if not col["traces"]:
             reasons = sorted({x["reason"] for x in col["summary"]["skipped"]})
@@ -171,7 +171,8 @@ def run(a: argparse.Namespace) -> int:
                        "null_model": cfg.null_model, "jobs": cfg.jobs,
                        "rules": str(a.rules or "default"), "strip": a.strip,
                        "legacy_all_connections": a.legacy_all_connections,
-                       "keep_retransmissions": a.keep_retransmissions},
+                       "keep_retransmissions": a.keep_retransmissions,
+                       **({"cleartext": True} if a.cleartext else {})},
         "collection": col["summary"],
         "extraction": ext["summary"],
         "attributes": results,
@@ -250,6 +251,9 @@ def parser() -> argparse.ArgumentParser:
                         "itself (the earlier measurement)")
     r.add_argument("--keep-retransmissions", action="store_true", dest="keep_retransmissions",
                    help="count retransmitted TCP segments again (default: every payload byte once)")
+    r.add_argument("--cleartext", action="store_true",
+                   help="the captures have no TLS: measure the first request from the first client byte instead of "
+                        "after a TLS handshake (a sidecar can say so itself with \"tls\": false)")
     r.add_argument("--label", default="", help="name for this run in the report")
     r.add_argument("--vantage", default=None,
                    help="observer view from the sidecars' vantages (e.g. v1, v2): keep only the flows of "
