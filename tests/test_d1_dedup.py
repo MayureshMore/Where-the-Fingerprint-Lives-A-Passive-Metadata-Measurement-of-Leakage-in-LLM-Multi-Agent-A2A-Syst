@@ -42,3 +42,37 @@ def test_paired_difference_significance():
     p = paired_numbers(t)
     assert p["workflow: TLS − cleartext interval contains 0 (not significant)"] is False
     assert p["tls_control_own: retransmissions"].startswith("kept")
+
+
+def _conn_pcap(path, segs):
+    """DLT_NULL pcap of one connection: (t, sport, dport, seq, flags, payload)."""
+    out = struct.pack("<IHHiIII", 0xA1B2C3D4, 2, 4, 0, 0, 96, 0)
+    for t, sp, dp, seq, flags, n in segs:
+        tcp = struct.pack(">HHIIBBHHH", sp, dp, seq, 0, 5 << 4, flags, 0, 0, 0)
+        ip = struct.pack(">BBHHHBBH4s4s", 0x45, 0, 40 + n, 0, 0, 64, 6, 0, bytes([127, 0, 0, 1]), bytes([127, 0, 0, 1]))
+        pkt = struct.pack("<I", 2) + ip + tcp
+        out += struct.pack("<IIII", t, 0, len(pkt), len(pkt) + n) + pkt
+    path.write_bytes(out)
+
+
+def test_retransmission_after_the_last_data_packet(tmp_path):
+    from scripts.compare_d1_dedup import trace_retransmissions
+    c, s = 50000, 8041
+    _conn_pcap(tmp_path / "t.pcap", [(0, c, s, 0, 0x02, 0), (1, c, s, 1, 0x18, 300), (2, s, c, 1, 0x18, 500),
+                                      (3, s, c, 501, 0x18, 24), (4, s, c, 501, 0x18, 24),      # the 24 B record resent
+                                      (5, c, s, 301, 0x18, 300), (6, c, s, 401, 0x18, 300)])    # 200 B of it again
+    r = trace_retransmissions(tmp_path / "t.pcap", {s})
+    assert (r["segments"], r["sizes"], r["requests"], r["partial"]) == (1, [24], 0, 1)
+    assert r["after_last_data"] == 0                     # new client bytes came later on the same connection
+    _conn_pcap(tmp_path / "u.pcap", [(0, c, s, 0, 0x02, 0), (1, c, s, 1, 0x18, 300), (2, s, c, 1, 0x18, 500),
+                                      (3, s, c, 501, 0x18, 24), (4, s, c, 501, 0x18, 24)])
+    assert trace_retransmissions(tmp_path / "u.pcap", {s})["after_last_data"] == 1
+
+
+def test_retransmissions_by_class_tests():
+    from scripts.compare_d1_dedup import by_class
+    rows = [{"workflow": w, "segments": n} for w, ns in (("a", [0, 0, 1, 2] * 5), ("b", [0, 1, 0, 1] * 5)) for n in ns]
+    d = by_class(rows, "workflow")
+    assert d["classes"]["a"] == {"traces": 20, "traces_with_retransmissions": 10, "segments": 15, "per_trace_mean": 0.75}
+    assert 0 <= d["chi_square_traces_with_any"]["p"] <= 1 and d["kruskal_per_trace"]["p"] > 0.05
+    assert by_class([{"workflow": "a", "segments": 0}, {"workflow": "b", "segments": 0}], "workflow")["kruskal_per_trace"] is None
