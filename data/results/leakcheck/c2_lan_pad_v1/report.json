@@ -1,8 +1,8 @@
 {
   "tool": "a2a-leakcheck",
   "version": "0.1.0",
-  "created": "2026-11-13T11:20:58-0800",
-  "git_commit": "eb8fbbfb3045eaab24228338771dbec89ecba1df",
+  "created": "2026-11-14T12:19:27-0800",
+  "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
   "git_dirty": false,
   "input": {
     "folder": "data/raw_c2_pad",
@@ -189,6 +189,10 @@
         {
           "id": "pad-messages",
           "hint": "Message sizes carry the leak, beyond any single request. Pad streamed response events to fixed cells (defense=pad) as well as request bodies to buckets."
+        },
+        {
+          "id": "pad-local-posts",
+          "hint": "This view also sees requests that are not padded, such as posts to a local service (in C2, the ticket service on the building network). Pad posts to local services too, then re-run the audit; the audit of a view without them shows what they add."
         }
       ]
     },
@@ -307,8 +311,8 @@
       },
       "mitigations": [
         {
-          "id": "pad-task-inputs",
-          "hint": "One request-size feature alone matches all features: the size of the task input gives the attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that the inputs of different classes share one. Padding task inputs may not remove the leak: other size and timing features can still carry it. Re-run the audit on the padded deployment."
+          "id": "hide-escalation",
+          "hint": "Whether the edge called the cloud is visible from the connections themselves, and padding cannot hide a call that did or did not happen. Make every task look alike upstream: dummy cloud calls at a fixed rate (cover traffic), or send every task to the cloud. Then re-run the audit."
         }
       ]
     },
@@ -427,8 +431,8 @@
       },
       "mitigations": [
         {
-          "id": "shape-timing",
-          "hint": "Timing carries the leak. Add jitter and reordering to delegations (defense=rate), or batch responses so their timing no longer follows the work done."
+          "id": "one-cloud-front-end",
+          "hint": "Each cloud agent has its own address and TLS server name, which tell an observer which agent served the task whatever the traffic's shape (this audit scores the shape alone). Put the cloud agents behind one front end, one address and server name, then re-run the audit to see whether the shape still gives the agent away."
         }
       ]
     },
@@ -571,44 +575,44 @@
     ]
   },
   "runtime": {
-    "total_s": 210.96672633301932,
+    "total_s": 214.62062537495513,
     "stages_s": {
-      "collection": 0.5799904580344446,
-      "extraction": 23.316570541996043,
-      "analysis": 186.9789862500038
+      "collection": 0.9128034580498934,
+      "extraction": 24.49242545804009,
+      "analysis": 189.11233145801816
     },
     "analysis_by_attribute_s": {
-      "task_type": 50.24835808301577,
-      "escalated": 38.921918332984205,
-      "cloud_role": 35.99204295797972,
-      "audit_null": 60.869520457985345
+      "task_type": 50.46287112496793,
+      "escalated": 40.27316537499428,
+      "cloud_role": 35.70091470802436,
+      "audit_null": 61.52342837501783
     },
     "peak_rss_by_stage_mb": {
       "collection": {
-        "main_mb": 170.859375
+        "main_mb": 169.546875
       },
       "extraction": {
-        "main_mb": 245.90625
+        "main_mb": 247.0
       },
       "analysis:task_type": {
-        "main_mb": 290.921875,
-        "worker_mb": 293.078125
+        "main_mb": 294.5625,
+        "worker_mb": 299.921875
       },
       "analysis:escalated": {
-        "main_mb": 299.28125,
-        "worker_mb": 293.078125
+        "main_mb": 300.453125,
+        "worker_mb": 299.921875
       },
       "analysis:cloud_role": {
-        "main_mb": 300.890625,
-        "worker_mb": 293.078125
+        "main_mb": 307.0625,
+        "worker_mb": 299.921875
       },
       "analysis:audit_null": {
-        "main_mb": 302.359375,
-        "worker_mb": 328.578125
+        "main_mb": 308.203125,
+        "worker_mb": 328.828125
       }
     },
-    "peak_rss_mb": 302.359375,
-    "peak_rss_children_mb": 328.578125,
+    "peak_rss_mb": 308.203125,
+    "peak_rss_children_mb": 328.828125,
     "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"

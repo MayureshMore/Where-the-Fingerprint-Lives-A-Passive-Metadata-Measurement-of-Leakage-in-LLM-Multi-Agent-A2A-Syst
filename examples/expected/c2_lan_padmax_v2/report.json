@@ -1,0 +1,223 @@
+{
+  "tool": "a2a-leakcheck",
+  "version": "0.1.0",
+  "created": "2026-11-14T12:30:04-0800",
+  "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+  "git_dirty": false,
+  "input": {
+    "folder": "examples/c2_lan_padmax",
+    "label": "example: c2_lan_padmax, view v2",
+    "vantage": "v2"
+  },
+  "parameters": {
+    "attributes": [
+      "task_type"
+    ],
+    "role_within": [],
+    "margin": 0.05,
+    "folds": 5,
+    "n_boot": 1000,
+    "permutations": 99,
+    "alpha": 0.05,
+    "min_per_class": 20,
+    "seed": 42,
+    "model": "gbt",
+    "null_model": "rf-light",
+    "jobs": -1,
+    "rules": "default",
+    "strip": false,
+    "legacy_all_connections": false,
+    "keep_retransmissions": false
+  },
+  "collection": {
+    "folder": "examples/c2_lan_padmax",
+    "vantage": "v2",
+    "pcaps": 40,
+    "traces": 40,
+    "skipped": [],
+    "stripped_copies": 0,
+    "group_source": {
+      "prompt_group": 40
+    },
+    "visible_agents": {
+      "edge_cloud": {
+        "traces": 40,
+        "roles": {
+          "diagnostics": 40,
+          "knowledge": 0
+        },
+        "never_seen": [
+          "knowledge"
+        ]
+      }
+    }
+  },
+  "extraction": {
+    "traces": 40,
+    "failed": [],
+    "role_samples": 40,
+    "empty_traces": 0,
+    "trace_dims": 195,
+    "role_dims": 35,
+    "measurement": "own connections: only TCP connections whose SYN is in the capture",
+    "retransmissions": "dropped: every payload byte counted once (TCP sequence numbers)",
+    "first_request": "Bytes of the first request message that reaches an agent, in TCP sequence space (each byte once; IP and TCP headers only): on each agent link the trace opened, after the TLS handshake (the client's bytes before the server's first data are the ClientHello, its next segment of at most 100 B the Finished), a request runs from the end of the previous one to the acknowledgment number of the first server data segment that acknowledges every client byte seen so far and that the client has received before it sends its next byte (its next data segment acknowledges it). A server answers only once it holds the whole request, and the client sends nothing more until it has the answer; a record the server sends mid-request (a TLS session ticket) acknowledges less than the client has sent, or the client goes on with the request without having received it. Per link the first request of at least 300 B; of those, the one that starts earliest."
+  },
+  "attributes": {
+    "task_type": {
+      "classes": [
+        "fault_diagnosis",
+        "sensor_analysis"
+      ],
+      "n": 40,
+      "n_groups": 40,
+      "chance": 0.5,
+      "margin": 0.05,
+      "threshold": 0.55,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "fault_diagnosis": 20,
+            "sensor_analysis": 20
+          },
+          "groups_per_class": {
+            "fault_diagnosis": 20,
+            "sensor_analysis": 20
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "observed_macro_f1": 0.7737272155876807,
+          "p_value": 0.01,
+          "null_mean": 0.48387352254389787,
+          "null_max": 0.6747967479674797,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 22,
+            "INCONCLUSIVE": 77
+          },
+          "false_positive_rate": 0.0
+        }
+      },
+      "analysis": {
+        "macro_f1": 0.7493734335839599,
+        "ci_lo": 0.5989215462899674,
+        "ci_hi": 0.8742928975487115,
+        "accuracy": 0.75,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "LEAK",
+      "reason": "CI lower bound 0.599 > chance + margin 0.550",
+      "prioritization": {
+        "effect_size": 0.4987468671679198,
+        "severity": "medium"
+      },
+      "attribution": {
+        "families": {
+          "sizes": {
+            "macro_f1": 0.6698412698412699,
+            "ci_lo": 0.5054945054945055,
+            "ci_hi": 0.8043326345213138,
+            "accuracy": 0.675,
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.07953216374269001,
+              "ci_lo": -0.051006527134277384,
+              "ci_hi": 0.2066065544373692,
+              "significant": false
+            }
+          },
+          "timing": {
+            "macro_f1": 0.6698412698412699,
+            "ci_lo": 0.49967083607636603,
+            "ci_hi": 0.7995112781954887,
+            "accuracy": 0.675,
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.07953216374269001,
+              "ci_lo": -0.09168813131313143,
+              "ci_hi": 0.24479055888283396,
+              "significant": false
+            }
+          },
+          "counts_direction": {
+            "macro_f1": 0.696969696969697,
+            "ci_lo": 0.5454545454545454,
+            "ci_hi": 0.8248905565978737,
+            "accuracy": 0.7,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.0524037366142629,
+              "ci_lo": -0.10231838511199756,
+              "ci_hi": 0.20714595207371123,
+              "significant": false
+            }
+          }
+        },
+        "top_family": "counts_direction",
+        "top_family_matches_all": true,
+        "single_request_size": {
+          "feature": "first_request_bytes",
+          "macro_f1": 0.3333333333333333,
+          "ci_lo": 0.24528301886792453,
+          "ci_hi": 0.3939393939393939,
+          "accuracy": 0.5,
+          "all_minus_this": {
+            "diff": 0.4160401002506266,
+            "ci_lo": 0.2516973008776288,
+            "ci_hi": 0.550351443686215,
+            "significant": true
+          },
+          "matches_all": false
+        }
+      },
+      "mitigations": [
+        {
+          "id": "fix-message-counts",
+          "hint": "Message counts and direction carry the leak. Keep the number of calls per agent constant and add dummy calls (defense=rate)."
+        }
+      ]
+    }
+  },
+  "summary": {
+    "LEAK": [
+      "task_type"
+    ],
+    "NO LEAK": [],
+    "INCONCLUSIVE": []
+  },
+  "runtime": {
+    "total_s": 16.877577708975878,
+    "stages_s": {
+      "collection": 0.021187208010815084,
+      "extraction": 1.5057172499946319,
+      "analysis": 15.305564999987837
+    },
+    "analysis_by_attribute_s": {
+      "task_type": 15.050664666981902
+    },
+    "peak_rss_by_stage_mb": {
+      "collection": {
+        "main_mb": 168.75
+      },
+      "extraction": {
+        "main_mb": 238.328125
+      },
+      "analysis:task_type": {
+        "main_mb": 240.765625,
+        "worker_mb": 193.125
+      }
+    },
+    "peak_rss_mb": 240.765625,
+    "peak_rss_children_mb": 193.125,
+    "workers": 14,
+    "python": "3.12.1",
+    "platform": "macOS-27.0.1-arm64-arm-64bit"
+  }
+}

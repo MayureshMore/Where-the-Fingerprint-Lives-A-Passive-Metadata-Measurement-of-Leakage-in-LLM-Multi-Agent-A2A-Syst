@@ -1,0 +1,13 @@
+dataset,cell,attribute,classes,features,dims,verdict,macro_f1,ci_lo,ci_hi,p,n
+D2,lan_v1,task_type,sensor_analysis/fault_diagnosis,all,195,LEAK,0.933993,0.91191,0.954021,0.01,500
+D2,lan_v1,task_type,sensor_analysis/fault_diagnosis,timing,30,LEAK,0.781992,0.745633,0.817471,0.01,500
+D2,lan_v2,task_type,sensor_analysis/fault_diagnosis,all,195,LEAK,0.939991,0.91971,0.959959,0.01,500
+D2,lan_v2,task_type,sensor_analysis/fault_diagnosis,timing,30,LEAK,0.797993,0.762158,0.831407,0.01,500
+D2,lan_pad_v1,task_type,sensor_analysis/fault_diagnosis,all,195,LEAK,0.913942,0.8899,0.939813,0.01,500
+D2,lan_pad_v1,task_type,sensor_analysis/fault_diagnosis,timing,30,LEAK,0.783997,0.745588,0.817982,0.01,500
+D2,lan_pad_v2,task_type,sensor_analysis/fault_diagnosis,all,195,LEAK,0.915952,0.889996,0.941933,0.01,500
+D2,lan_pad_v2,task_type,sensor_analysis/fault_diagnosis,timing,30,LEAK,0.791997,0.756,0.827902,0.01,500
+D2,lan_padmax_v1,task_type,sensor_analysis/fault_diagnosis,all,195,LEAK,0.773977,0.736964,0.809871,0.01,500
+D2,lan_padmax_v1,task_type,sensor_analysis/fault_diagnosis,timing,30,LEAK,0.747899,0.709472,0.785989,0.01,500
+D2,lan_padmax_v2,task_type,sensor_analysis/fault_diagnosis,all,195,LEAK,0.787969,0.749989,0.822039,0.01,500
+D2,lan_padmax_v2,task_type,sensor_analysis/fault_diagnosis,timing,30,LEAK,0.783986,0.749636,0.819444,0.01,500

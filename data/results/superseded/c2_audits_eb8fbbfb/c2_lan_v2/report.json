@@ -1,0 +1,610 @@
+{
+  "tool": "a2a-leakcheck",
+  "version": "0.1.0",
+  "created": "2026-11-13T11:17:26-0800",
+  "git_commit": "eb8fbbfb3045eaab24228338771dbec89ecba1df",
+  "git_dirty": false,
+  "input": {
+    "folder": "data/raw_c2",
+    "label": "C2 lan, view v2",
+    "vantage": "v2"
+  },
+  "parameters": {
+    "attributes": [
+      "task_type",
+      "escalated",
+      "cloud_role",
+      "audit_null"
+    ],
+    "role_within": [],
+    "margin": 0.05,
+    "folds": 5,
+    "n_boot": 1000,
+    "permutations": 99,
+    "alpha": 0.05,
+    "min_per_class": 20,
+    "seed": 42,
+    "model": "gbt",
+    "null_model": "rf-light",
+    "jobs": -1,
+    "rules": "default",
+    "strip": true,
+    "legacy_all_connections": false,
+    "keep_retransmissions": false
+  },
+  "collection": {
+    "folder": "data/raw_c2",
+    "vantage": "v2",
+    "pcaps": 1000,
+    "traces": 1000,
+    "skipped": [],
+    "stripped_copies": 1000,
+    "group_source": {
+      "prompt_group": 1000
+    },
+    "visible_agents": {
+      "edge_cloud": {
+        "traces": 1000,
+        "roles": {
+          "diagnostics": 500,
+          "knowledge": 250
+        },
+        "never_seen": []
+      }
+    }
+  },
+  "extraction": {
+    "traces": 1000,
+    "failed": [],
+    "role_samples": 750,
+    "empty_traces": 250,
+    "trace_dims": 195,
+    "role_dims": 35,
+    "measurement": "own connections: only TCP connections whose SYN is in the capture",
+    "retransmissions": "dropped: every payload byte counted once (TCP sequence numbers)",
+    "first_request": "Bytes of the first request message that reaches an agent, in TCP sequence space (each byte once; IP and TCP headers only): on each agent link the trace opened, after the TLS handshake (the client's bytes before the server's first data are the ClientHello, its next segment of at most 100 B the Finished), a request runs from the end of the previous one to the acknowledgment number of the first server data segment that acknowledges every client byte seen so far and that the client has received before it sends its next byte (its next data segment acknowledges it). A server answers only once it holds the whole request, and the client sends nothing more until it has the answer; a record the server sends mid-request (a TLS session ticket) acknowledges less than the client has sent, or the client goes on with the request without having received it. Per link the first request of at least 300 B; of those, the one that starts earliest."
+  },
+  "attributes": {
+    "task_type": {
+      "classes": [
+        "alert_triage",
+        "fault_diagnosis",
+        "procedure_lookup",
+        "sensor_analysis"
+      ],
+      "n": 1000,
+      "n_groups": 982,
+      "chance": 0.25,
+      "margin": 0.05,
+      "threshold": 0.3,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "alert_triage": 250,
+            "fault_diagnosis": 250,
+            "procedure_lookup": 250,
+            "sensor_analysis": 250
+          },
+          "groups_per_class": {
+            "alert_triage": 246,
+            "fault_diagnosis": 250,
+            "procedure_lookup": 236,
+            "sensor_analysis": 250
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "observed_macro_f1": 0.9710180359120094,
+          "p_value": 0.01,
+          "null_mean": 0.24586380953821133,
+          "null_max": 0.2810331349931261,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 96,
+            "INCONCLUSIVE": 3
+          },
+          "false_positive_rate": 0.0
+        }
+      },
+      "analysis": {
+        "macro_f1": 0.9750503298129867,
+        "ci_lo": 0.9654094257423811,
+        "ci_hi": 0.9837578606831751,
+        "accuracy": 0.975,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "LEAK",
+      "reason": "CI lower bound 0.965 > chance + margin 0.300",
+      "prioritization": {
+        "effect_size": 0.9667337730839822,
+        "severity": "high"
+      },
+      "attribution": {
+        "families": {
+          "sizes": {
+            "macro_f1": 0.9679714164744104,
+            "ci_lo": 0.9568573749285672,
+            "ci_hi": 0.978138557102085,
+            "accuracy": 0.968,
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.007078913338576243,
+              "ci_lo": -0.0017967473878509831,
+              "ci_hi": 0.016339203471621662,
+              "significant": false
+            }
+          },
+          "timing": {
+            "macro_f1": 0.8817371754217361,
+            "ci_lo": 0.8614162823398624,
+            "ci_hi": 0.9008076852489949,
+            "accuracy": 0.882,
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.09331315439125054,
+              "ci_lo": 0.07565779368420493,
+              "ci_hi": 0.11251709526666939,
+              "significant": true
+            }
+          },
+          "counts_direction": {
+            "macro_f1": 0.7517132999209641,
+            "ci_lo": 0.7266739118757498,
+            "ci_hi": 0.7731465852754964,
+            "accuracy": 0.753,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.22333702989202253,
+              "ci_lo": 0.20173941528459044,
+              "ci_hi": 0.2513705769024847,
+              "significant": true
+            }
+          }
+        },
+        "top_family": "sizes",
+        "top_family_matches_all": true,
+        "single_request_size": {
+          "feature": "first_request_bytes",
+          "macro_f1": 0.7966137463597236,
+          "ci_lo": 0.7752377784741175,
+          "ci_hi": 0.8169331971612686,
+          "accuracy": 0.797,
+          "all_minus_this": {
+            "diff": 0.17843658345326308,
+            "ci_lo": 0.15592929309892026,
+            "ci_hi": 0.20063117598998956,
+            "significant": true
+          },
+          "matches_all": false
+        }
+      },
+      "mitigations": [
+        {
+          "id": "pad-messages",
+          "hint": "Message sizes carry the leak, beyond any single request. Pad streamed response events to fixed cells (defense=pad) as well as request bodies to buckets."
+        }
+      ]
+    },
+    "escalated": {
+      "classes": [
+        "no",
+        "yes"
+      ],
+      "n": 1000,
+      "n_groups": 982,
+      "chance": 0.5,
+      "margin": 0.05,
+      "threshold": 0.55,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "no": 250,
+            "yes": 750
+          },
+          "groups_per_class": {
+            "no": 246,
+            "yes": 736
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "observed_macro_f1": 1.0,
+          "p_value": 0.01,
+          "null_mean": 0.4953551659151194,
+          "null_max": 0.5365916609962693,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 93,
+            "INCONCLUSIVE": 6
+          },
+          "false_positive_rate": 0.0
+        }
+      },
+      "analysis": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "LEAK",
+      "reason": "CI lower bound 1.000 > chance + margin 0.550",
+      "prioritization": {
+        "effect_size": 1.0,
+        "severity": "high"
+      },
+      "attribution": {
+        "families": {
+          "sizes": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            }
+          },
+          "timing": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            }
+          },
+          "counts_direction": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            }
+          }
+        },
+        "top_family": "sizes",
+        "top_family_matches_all": true,
+        "single_request_size": {
+          "feature": "first_request_bytes",
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "all_minus_this": {
+            "diff": 0.0,
+            "ci_lo": 0.0,
+            "ci_hi": 0.0,
+            "significant": false
+          },
+          "matches_all": true
+        }
+      },
+      "mitigations": [
+        {
+          "id": "pad-task-inputs",
+          "hint": "One request-size feature alone matches all features: the size of the task input gives the attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that the inputs of different classes share one. Padding task inputs may not remove the leak: other size and timing features can still carry it. Re-run the audit on the padded deployment."
+        }
+      ]
+    },
+    "cloud_role": {
+      "classes": [
+        "diagnostics",
+        "knowledge"
+      ],
+      "n": 750,
+      "n_groups": 736,
+      "chance": 0.5,
+      "margin": 0.05,
+      "threshold": 0.55,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "diagnostics": 500,
+            "knowledge": 250
+          },
+          "groups_per_class": {
+            "diagnostics": 500,
+            "knowledge": 236
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "observed_macro_f1": 0.997,
+          "p_value": 0.01,
+          "null_mean": 0.4958545631406552,
+          "null_max": 0.5397591259050423,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 77,
+            "INCONCLUSIVE": 22
+          },
+          "false_positive_rate": 0.0
+        }
+      },
+      "analysis": {
+        "macro_f1": 0.9984984954924835,
+        "ci_lo": 0.9953237617265707,
+        "ci_hi": 1.0,
+        "accuracy": 0.9986666666666667,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "LEAK",
+      "reason": "CI lower bound 0.995 > chance + margin 0.550",
+      "prioritization": {
+        "effect_size": 0.996996990984967,
+        "severity": "high"
+      },
+      "attribution": {
+        "families": {
+          "sizes": {
+            "macro_f1": 0.9985014955074836,
+            "ci_lo": 0.9953945315429003,
+            "ci_hi": 1.0,
+            "accuracy": 0.9986666666666667,
+            "dims": 139,
+            "all_minus_this": {
+              "diff": -3.000015000087508e-06,
+              "ci_lo": -0.004553506659292814,
+              "ci_hi": 0.004349168094471849,
+              "significant": false
+            }
+          },
+          "timing": {
+            "macro_f1": 0.9984984954924835,
+            "ci_lo": 0.9953237617265707,
+            "ci_hi": 1.0,
+            "accuracy": 0.9986666666666667,
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            }
+          },
+          "counts_direction": {
+            "macro_f1": 0.8818523163925175,
+            "ci_lo": 0.8572618652206645,
+            "ci_hi": 0.9055042969904388,
+            "accuracy": 0.8946666666666667,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.116646179099966,
+              "ci_lo": 0.09315266123080321,
+              "ci_hi": 0.1417242517540723,
+              "significant": true
+            }
+          }
+        },
+        "top_family": "sizes",
+        "top_family_matches_all": true,
+        "single_request_size": {
+          "feature": "first_request_bytes",
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "all_minus_this": {
+            "diff": -0.0015015045075165157,
+            "ci_lo": -0.00467623827342932,
+            "ci_hi": 0.0,
+            "significant": false
+          },
+          "matches_all": true
+        }
+      },
+      "mitigations": [
+        {
+          "id": "pad-task-inputs",
+          "hint": "One request-size feature alone matches all features: the size of the task input gives the attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that the inputs of different classes share one. Padding task inputs may not remove the leak: other size and timing features can still carry it. Re-run the audit on the padded deployment."
+        }
+      ]
+    },
+    "audit_null": {
+      "classes": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ],
+      "n": 1000,
+      "n_groups": 982,
+      "chance": 0.25,
+      "margin": 0.05,
+      "threshold": 0.3,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "a": 251,
+            "b": 252,
+            "c": 244,
+            "d": 253
+          },
+          "groups_per_class": {
+            "a": 247,
+            "b": 249,
+            "c": 238,
+            "d": 248
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "observed_macro_f1": 0.24890038965721348,
+          "p_value": 0.37,
+          "null_mean": 0.24382225931436083,
+          "null_max": 0.2755529144271528,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 95,
+            "INCONCLUSIVE": 4
+          },
+          "false_positive_rate": 0.0
+        }
+      },
+      "analysis": {
+        "macro_f1": 0.23831874277569787,
+        "ci_lo": 0.21110313671968808,
+        "ci_hi": 0.264620544135588,
+        "accuracy": 0.242,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "NO LEAK",
+      "reason": "CI upper bound 0.265 <= chance + margin 0.300",
+      "prioritization": {
+        "effect_size": -0.015575009632402844,
+        "severity": "none"
+      },
+      "attribution": {
+        "families": {
+          "sizes": {
+            "macro_f1": 0.23737892953622045,
+            "ci_lo": 0.21139900786767052,
+            "ci_hi": 0.263376099730736,
+            "accuracy": 0.243,
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.0009398132394774217,
+              "ci_lo": -0.018173076799292573,
+              "ci_hi": 0.021307784635292905,
+              "significant": false
+            }
+          },
+          "timing": {
+            "macro_f1": 0.25187987156084557,
+            "ci_lo": 0.22387946216710433,
+            "ci_hi": 0.27737610349206393,
+            "accuracy": 0.254,
+            "dims": 30,
+            "all_minus_this": {
+              "diff": -0.013561128785147702,
+              "ci_lo": -0.044666757868329035,
+              "ci_hi": 0.01700142998667328,
+              "significant": false
+            }
+          },
+          "counts_direction": {
+            "macro_f1": 0.2658057339750011,
+            "ci_lo": 0.23795310195178102,
+            "ci_hi": 0.29225359288600006,
+            "accuracy": 0.269,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": -0.027486991199303257,
+              "ci_lo": -0.062485394358073265,
+              "ci_hi": 0.0037398668541011883,
+              "significant": false
+            }
+          }
+        },
+        "top_family": "counts_direction",
+        "top_family_matches_all": true,
+        "single_request_size": {
+          "feature": "first_request_bytes",
+          "macro_f1": 0.22977422640610498,
+          "ci_lo": 0.20415605946966012,
+          "ci_hi": 0.2539552754572518,
+          "accuracy": 0.236,
+          "all_minus_this": {
+            "diff": 0.008544516369592886,
+            "ci_lo": -0.024468498487951445,
+            "ci_hi": 0.04018636276949669,
+            "significant": false
+          },
+          "matches_all": true
+        }
+      },
+      "mitigations": []
+    }
+  },
+  "summary": {
+    "LEAK": [
+      "task_type",
+      "escalated",
+      "cloud_role"
+    ],
+    "NO LEAK": [
+      "audit_null"
+    ],
+    "INCONCLUSIVE": []
+  },
+  "runtime": {
+    "total_s": 186.53591741702985,
+    "stages_s": {
+      "collection": 0.5739181250100955,
+      "extraction": 22.59592283400707,
+      "analysis": 163.26933766598813
+    },
+    "analysis_by_attribute_s": {
+      "task_type": 44.71872241597157,
+      "escalated": 35.58779487502761,
+      "cloud_role": 33.4146245829761,
+      "audit_null": 48.62184395798249
+    },
+    "peak_rss_by_stage_mb": {
+      "collection": {
+        "main_mb": 169.28125
+      },
+      "extraction": {
+        "main_mb": 244.328125
+      },
+      "analysis:task_type": {
+        "main_mb": 290.578125,
+        "worker_mb": 288.734375
+      },
+      "analysis:escalated": {
+        "main_mb": 297.3125,
+        "worker_mb": 288.734375
+      },
+      "analysis:cloud_role": {
+        "main_mb": 305.984375,
+        "worker_mb": 288.734375
+      },
+      "analysis:audit_null": {
+        "main_mb": 306.53125,
+        "worker_mb": 314.21875
+      }
+    },
+    "peak_rss_mb": 306.53125,
+    "peak_rss_children_mb": 314.21875,
+    "workers": 14,
+    "python": "3.12.1",
+    "platform": "macOS-27.0.1-arm64-arm-64bit"
+  }
+}

@@ -1,6 +1,6 @@
 # Leak check: C2 lan_padmax, view v1
 
-1000 traces from 1000 captures in `data/raw_c2_padmax` (0 skipped, 1000 analysed as stripped copies). a2a-leakcheck 0.1.0, 2026-11-13T11:27:25-0800.
+1000 traces from 1000 captures in `data/raw_c2_padmax` (0 skipped, 1000 analysed as stripped copies). a2a-leakcheck 0.1.0, 2026-11-14T12:26:23-0800.
 
 Vantage `v1`: only the flows of the endpoints this observer sees (the sidecars' `vantages`). 0 of 1000 traces show no flow there; they stay in the analysis with all-zero features, since seeing nothing is what this observer sees for them.
 
@@ -37,7 +37,9 @@ Effect size 0.86 (share of the way from chance to perfect); severity high.
 
 Permutation test (rf-light: macro-F1 0.905 on the real labels): p = 0.010; permuted-label macro-F1 mean 0.246, max 0.289; verdicts on permuted labels: 0 LEAK, 93 NO LEAK, 6 INCONCLUSIVE.
 
-- **shape-timing**: Timing carries the leak. Add jitter and reordering to delegations (defense=rate), or batch responses so their timing no longer follows the work done.
+- **padding-not-enough-timing**: The requests are padded, yet the attribute still leaks and timing carries it: padding is not enough. Shape the response timing as well (replies at a fixed rate or in batches, delays that do not follow the work done), then re-run the audit.
+
+- **pad-local-posts**: This view also sees requests that are not padded, such as posts to a local service (in C2, the ticket service on the building network). Pad posts to local services too, then re-run the audit; the audit of a view without them shows what they add.
 
 ## escalated
 
@@ -57,7 +59,7 @@ Effect size 1.00 (share of the way from chance to perfect); severity high.
 
 Permutation test (rf-light: macro-F1 1.000 on the real labels): p = 0.010; permuted-label macro-F1 mean 0.496, max 0.562; verdicts on permuted labels: 0 LEAK, 87 NO LEAK, 12 INCONCLUSIVE.
 
-- **pad-task-inputs**: One request-size feature alone matches all features: the size of the task input gives the attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that the inputs of different classes share one. Padding task inputs may not remove the leak: other size and timing features can still carry it. Re-run the audit on the padded deployment.
+- **hide-escalation**: Whether the edge called the cloud is visible from the connections themselves, and padding cannot hide a call that did or did not happen. Make every task look alike upstream: dummy cloud calls at a fixed rate (cover traffic), or send every task to the cloud. Then re-run the audit.
 
 ## cloud_role
 
@@ -77,7 +79,7 @@ Effect size 0.99 (share of the way from chance to perfect); severity high.
 
 Permutation test (rf-light: macro-F1 0.997 on the real labels): p = 0.010; permuted-label macro-F1 mean 0.501, max 0.558; verdicts on permuted labels: 0 LEAK, 72 NO LEAK, 27 INCONCLUSIVE.
 
-- **pad-messages**: Message sizes carry the leak, beyond any single request. Pad streamed response events to fixed cells (defense=pad) as well as request bodies to buckets.
+- **one-cloud-front-end**: Each cloud agent has its own address and TLS server name, which tell an observer which agent served the task whatever the traffic's shape (this audit scores the shape alone). Put the cloud agents behind one front end, one address and server name, then re-run the audit to see whether the shape still gives the agent away.
 
 ## audit_null
 
@@ -101,13 +103,13 @@ Permutation test (rf-light: macro-F1 0.271 on the real labels): p = 0.120; permu
 
 ## Runtime
 
-205.2 s in all (collection 0.6 s, extraction 23.2 s, analysis 181.3 s); peak memory 310 MB in the main process, up to 334 MB in each of 14 worker processes.
+220.8 s in all (collection 0.6 s, extraction 24.7 s, analysis 195.4 s); peak memory 309 MB in the main process, up to 324 MB in each of 14 worker processes.
 
 | Stage | Time (s) | Peak so far, main (MB) | Peak so far, one worker (MB) |
 |---|---|---|---|
-| collection | 0.6 | 169 | — |
-| extraction | 23.2 | 244 | — |
-| analysis:task_type | 48.3 | 292 | 317 |
-| analysis:escalated | 37.9 | 300 | 317 |
-| analysis:cloud_role | 35.0 | 309 | 317 |
-| analysis:audit_null | 59.1 | 310 | 334 |
+| collection | 0.6 | 170 | — |
+| extraction | 24.7 | 248 | — |
+| analysis:task_type | 52.3 | 297 | 304 |
+| analysis:escalated | 39.5 | 300 | 304 |
+| analysis:cloud_role | 36.6 | 306 | 304 |
+| analysis:audit_null | 66.0 | 309 | 324 |

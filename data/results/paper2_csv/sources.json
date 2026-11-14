@@ -1,0 +1,57 @@
+{
+  "paper": "P2",
+  "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+  "git_dirty": false,
+  "inputs": [
+    {
+      "file": "data/results/paper2_tool_eval.json",
+      "git_commit": "a8556554c8450101c766aec1b2ca6600d5e0a8a3",
+      "git_dirty": false
+    },
+    {
+      "file": "data/results/paper2_tool_eval_c2.json",
+      "git_commit": "e485f117cbf6773d9332716dcd77d3b76db6503e",
+      "git_dirty": false
+    },
+    {
+      "file": "data/results/leakcheck/tls_control_clear_own/report.json",
+      "git_commit": "da31192ab160c58767221fb2818a70e9cbe69894",
+      "git_dirty": false
+    },
+    {
+      "file": "data/results/leakcheck/tls_control_tls_own/report.json",
+      "git_commit": "da31192ab160c58767221fb2818a70e9cbe69894",
+      "git_dirty": false
+    },
+    {
+      "file": "data/results/leakcheck/c2_lan_v1/report.json",
+      "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "git_dirty": false
+    },
+    {
+      "file": "data/results/leakcheck/c2_lan_v2/report.json",
+      "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "git_dirty": false
+    },
+    {
+      "file": "data/results/leakcheck/c2_lan_pad_v1/report.json",
+      "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "git_dirty": false
+    },
+    {
+      "file": "data/results/leakcheck/c2_lan_pad_v2/report.json",
+      "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "git_dirty": false
+    },
+    {
+      "file": "data/results/leakcheck/c2_lan_padmax_v1/report.json",
+      "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "git_dirty": false
+    },
+    {
+      "file": "data/results/leakcheck/c2_lan_padmax_v2/report.json",
+      "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "git_dirty": false
+    }
+  ]
+}

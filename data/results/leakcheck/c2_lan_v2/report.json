@@ -1,8 +1,8 @@
 {
   "tool": "a2a-leakcheck",
   "version": "0.1.0",
-  "created": "2026-11-13T11:17:26-0800",
-  "git_commit": "eb8fbbfb3045eaab24228338771dbec89ecba1df",
+  "created": "2026-11-14T12:15:51-0800",
+  "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
   "git_dirty": false,
   "input": {
     "folder": "data/raw_c2",
@@ -306,8 +306,8 @@
       },
       "mitigations": [
         {
-          "id": "pad-task-inputs",
-          "hint": "One request-size feature alone matches all features: the size of the task input gives the attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that the inputs of different classes share one. Padding task inputs may not remove the leak: other size and timing features can still carry it. Re-run the audit on the padded deployment."
+          "id": "hide-escalation",
+          "hint": "Whether the edge called the cloud is visible from the connections themselves, and padding cannot hide a call that did or did not happen. Make every task look alike upstream: dummy cloud calls at a fixed rate (cover traffic), or send every task to the cloud. Then re-run the audit."
         }
       ]
     },
@@ -426,8 +426,8 @@
       },
       "mitigations": [
         {
-          "id": "pad-task-inputs",
-          "hint": "One request-size feature alone matches all features: the size of the task input gives the attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that the inputs of different classes share one. Padding task inputs may not remove the leak: other size and timing features can still carry it. Re-run the audit on the padded deployment."
+          "id": "one-cloud-front-end",
+          "hint": "Each cloud agent has its own address and TLS server name, which tell an observer which agent served the task whatever the traffic's shape (this audit scores the shape alone). Put the cloud agents behind one front end, one address and server name, then re-run the audit to see whether the shape still gives the agent away."
         }
       ]
     },
@@ -565,44 +565,44 @@
     "INCONCLUSIVE": []
   },
   "runtime": {
-    "total_s": 186.53591741702985,
+    "total_s": 183.73430062498664,
     "stages_s": {
-      "collection": 0.5739181250100955,
-      "extraction": 22.59592283400707,
-      "analysis": 163.26933766598813
+      "collection": 0.8391064999741502,
+      "extraction": 21.689511750009842,
+      "analysis": 161.10783479205566
     },
     "analysis_by_attribute_s": {
-      "task_type": 44.71872241597157,
-      "escalated": 35.58779487502761,
-      "cloud_role": 33.4146245829761,
-      "audit_null": 48.62184395798249
+      "task_type": 43.44396191701526,
+      "escalated": 34.42323795804987,
+      "cloud_role": 32.55711741698906,
+      "audit_null": 49.54830424999818
     },
     "peak_rss_by_stage_mb": {
       "collection": {
-        "main_mb": 169.28125
+        "main_mb": 166.828125
       },
       "extraction": {
-        "main_mb": 244.328125
+        "main_mb": 243.15625
       },
       "analysis:task_type": {
-        "main_mb": 290.578125,
-        "worker_mb": 288.734375
+        "main_mb": 288.890625,
+        "worker_mb": 292.515625
       },
       "analysis:escalated": {
-        "main_mb": 297.3125,
-        "worker_mb": 288.734375
+        "main_mb": 295.0,
+        "worker_mb": 292.515625
       },
       "analysis:cloud_role": {
-        "main_mb": 305.984375,
-        "worker_mb": 288.734375
+        "main_mb": 303.109375,
+        "worker_mb": 292.515625
       },
       "analysis:audit_null": {
-        "main_mb": 306.53125,
-        "worker_mb": 314.21875
+        "main_mb": 305.96875,
+        "worker_mb": 314.421875
       }
     },
-    "peak_rss_mb": 306.53125,
-    "peak_rss_children_mb": 314.21875,
+    "peak_rss_mb": 305.96875,
+    "peak_rss_children_mb": 314.421875,
     "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"

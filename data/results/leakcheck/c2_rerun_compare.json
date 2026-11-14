@@ -1,0 +1,185 @@
+{
+  "c2_lan_pad_v1": {
+    "same_apart_from_hints": true,
+    "differences": [],
+    "hints_changed": {
+      "cloud_role": {
+        "a": [
+          "one-cloud-front-end"
+        ],
+        "b": [
+          "shape-timing"
+        ]
+      },
+      "escalated": {
+        "a": [
+          "hide-escalation"
+        ],
+        "b": [
+          "pad-task-inputs"
+        ]
+      },
+      "task_type": {
+        "a": [
+          "pad-messages",
+          "pad-local-posts"
+        ],
+        "b": [
+          "pad-messages"
+        ]
+      }
+    },
+    "commits": {
+      "new": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "old": "eb8fbbfb3045eaab24228338771dbec89ecba1df"
+    }
+  },
+  "c2_lan_pad_v2": {
+    "same_apart_from_hints": true,
+    "differences": [],
+    "hints_changed": {
+      "cloud_role": {
+        "a": [
+          "one-cloud-front-end"
+        ],
+        "b": [
+          "shape-timing"
+        ]
+      },
+      "escalated": {
+        "a": [
+          "hide-escalation"
+        ],
+        "b": [
+          "pad-task-inputs"
+        ]
+      }
+    },
+    "commits": {
+      "new": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "old": "eb8fbbfb3045eaab24228338771dbec89ecba1df"
+    }
+  },
+  "c2_lan_padmax_v1": {
+    "same_apart_from_hints": true,
+    "differences": [],
+    "hints_changed": {
+      "cloud_role": {
+        "a": [
+          "one-cloud-front-end"
+        ],
+        "b": [
+          "pad-messages"
+        ]
+      },
+      "escalated": {
+        "a": [
+          "hide-escalation"
+        ],
+        "b": [
+          "pad-task-inputs"
+        ]
+      },
+      "task_type": {
+        "a": [
+          "padding-not-enough-timing",
+          "pad-local-posts"
+        ],
+        "b": [
+          "shape-timing"
+        ]
+      }
+    },
+    "commits": {
+      "new": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "old": "eb8fbbfb3045eaab24228338771dbec89ecba1df"
+    }
+  },
+  "c2_lan_padmax_v2": {
+    "same_apart_from_hints": true,
+    "differences": [],
+    "hints_changed": {
+      "cloud_role": {
+        "a": [
+          "one-cloud-front-end"
+        ],
+        "b": [
+          "pad-messages"
+        ]
+      },
+      "escalated": {
+        "a": [
+          "hide-escalation"
+        ],
+        "b": [
+          "pad-task-inputs"
+        ]
+      },
+      "task_type": {
+        "a": [
+          "padding-not-enough-timing"
+        ],
+        "b": [
+          "shape-timing"
+        ]
+      }
+    },
+    "commits": {
+      "new": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "old": "eb8fbbfb3045eaab24228338771dbec89ecba1df"
+    }
+  },
+  "c2_lan_v1": {
+    "same_apart_from_hints": true,
+    "differences": [],
+    "hints_changed": {
+      "cloud_role": {
+        "a": [
+          "one-cloud-front-end"
+        ],
+        "b": [
+          "pad-task-inputs",
+          "shape-timing"
+        ]
+      },
+      "escalated": {
+        "a": [
+          "hide-escalation"
+        ],
+        "b": [
+          "pad-messages"
+        ]
+      }
+    },
+    "commits": {
+      "new": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "old": "eb8fbbfb3045eaab24228338771dbec89ecba1df"
+    }
+  },
+  "c2_lan_v2": {
+    "same_apart_from_hints": true,
+    "differences": [],
+    "hints_changed": {
+      "cloud_role": {
+        "a": [
+          "one-cloud-front-end"
+        ],
+        "b": [
+          "pad-task-inputs"
+        ]
+      },
+      "escalated": {
+        "a": [
+          "hide-escalation"
+        ],
+        "b": [
+          "pad-task-inputs"
+        ]
+      }
+    },
+    "commits": {
+      "new": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+      "old": "eb8fbbfb3045eaab24228338771dbec89ecba1df"
+    }
+  }
+}

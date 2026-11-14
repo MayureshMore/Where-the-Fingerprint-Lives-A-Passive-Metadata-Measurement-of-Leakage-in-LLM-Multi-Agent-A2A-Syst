@@ -1,6 +1,6 @@
 # Leak check: C2 lan, view v2
 
-1000 traces from 1000 captures in `data/raw_c2` (0 skipped, 1000 analysed as stripped copies). a2a-leakcheck 0.1.0, 2026-11-13T11:17:26-0800.
+1000 traces from 1000 captures in `data/raw_c2` (0 skipped, 1000 analysed as stripped copies). a2a-leakcheck 0.1.0, 2026-11-14T12:15:51-0800.
 
 Vantage `v2`: only the flows of the endpoints this observer sees (the sidecars' `vantages`). 250 of 1000 traces show no flow there; they stay in the analysis with all-zero features, since seeing nothing is what this observer sees for them.
 
@@ -57,7 +57,7 @@ Effect size 1.00 (share of the way from chance to perfect); severity high.
 
 Permutation test (rf-light: macro-F1 1.000 on the real labels): p = 0.010; permuted-label macro-F1 mean 0.495, max 0.537; verdicts on permuted labels: 0 LEAK, 93 NO LEAK, 6 INCONCLUSIVE.
 
-- **pad-task-inputs**: One request-size feature alone matches all features: the size of the task input gives the attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that the inputs of different classes share one. Padding task inputs may not remove the leak: other size and timing features can still carry it. Re-run the audit on the padded deployment.
+- **hide-escalation**: Whether the edge called the cloud is visible from the connections themselves, and padding cannot hide a call that did or did not happen. Make every task look alike upstream: dummy cloud calls at a fixed rate (cover traffic), or send every task to the cloud. Then re-run the audit.
 
 ## cloud_role
 
@@ -77,7 +77,7 @@ Effect size 1.00 (share of the way from chance to perfect); severity high.
 
 Permutation test (rf-light: macro-F1 0.997 on the real labels): p = 0.010; permuted-label macro-F1 mean 0.496, max 0.540; verdicts on permuted labels: 0 LEAK, 77 NO LEAK, 22 INCONCLUSIVE.
 
-- **pad-task-inputs**: One request-size feature alone matches all features: the size of the task input gives the attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that the inputs of different classes share one. Padding task inputs may not remove the leak: other size and timing features can still carry it. Re-run the audit on the padded deployment.
+- **one-cloud-front-end**: Each cloud agent has its own address and TLS server name, which tell an observer which agent served the task whatever the traffic's shape (this audit scores the shape alone). Put the cloud agents behind one front end, one address and server name, then re-run the audit to see whether the shape still gives the agent away.
 
 ## audit_null
 
@@ -99,13 +99,13 @@ Permutation test (rf-light: macro-F1 0.249 on the real labels): p = 0.370; permu
 
 ## Runtime
 
-186.5 s in all (collection 0.6 s, extraction 22.6 s, analysis 163.3 s); peak memory 307 MB in the main process, up to 314 MB in each of 14 worker processes.
+183.7 s in all (collection 0.8 s, extraction 21.7 s, analysis 161.1 s); peak memory 306 MB in the main process, up to 314 MB in each of 14 worker processes.
 
 | Stage | Time (s) | Peak so far, main (MB) | Peak so far, one worker (MB) |
 |---|---|---|---|
-| collection | 0.6 | 169 | — |
-| extraction | 22.6 | 244 | — |
-| analysis:task_type | 44.7 | 291 | 289 |
-| analysis:escalated | 35.6 | 297 | 289 |
-| analysis:cloud_role | 33.4 | 306 | 289 |
-| analysis:audit_null | 48.6 | 307 | 314 |
+| collection | 0.8 | 167 | — |
+| extraction | 21.7 | 243 | — |
+| analysis:task_type | 43.4 | 289 | 293 |
+| analysis:escalated | 34.4 | 295 | 293 |
+| analysis:cloud_role | 32.6 | 303 | 293 |
+| analysis:audit_null | 49.5 | 306 | 314 |

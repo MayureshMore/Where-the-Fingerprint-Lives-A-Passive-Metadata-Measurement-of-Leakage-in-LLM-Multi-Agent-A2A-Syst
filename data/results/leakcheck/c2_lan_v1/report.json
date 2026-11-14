@@ -1,8 +1,8 @@
 {
   "tool": "a2a-leakcheck",
   "version": "0.1.0",
-  "created": "2026-11-13T11:14:18-0800",
-  "git_commit": "eb8fbbfb3045eaab24228338771dbec89ecba1df",
+  "created": "2026-11-14T12:12:46-0800",
+  "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
   "git_dirty": false,
   "input": {
     "folder": "data/raw_c2",
@@ -307,8 +307,8 @@
       },
       "mitigations": [
         {
-          "id": "pad-messages",
-          "hint": "Message sizes carry the leak, beyond any single request. Pad streamed response events to fixed cells (defense=pad) as well as request bodies to buckets."
+          "id": "hide-escalation",
+          "hint": "Whether the edge called the cloud is visible from the connections themselves, and padding cannot hide a call that did or did not happen. Make every task look alike upstream: dummy cloud calls at a fixed rate (cover traffic), or send every task to the cloud. Then re-run the audit."
         }
       ]
     },
@@ -427,12 +427,8 @@
       },
       "mitigations": [
         {
-          "id": "pad-task-inputs",
-          "hint": "One request-size feature alone matches all features: the size of the task input gives the attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that the inputs of different classes share one. Padding task inputs may not remove the leak: other size and timing features can still carry it. Re-run the audit on the padded deployment."
-        },
-        {
-          "id": "shape-timing",
-          "hint": "Timing carries the leak. Add jitter and reordering to delegations (defense=rate), or batch responses so their timing no longer follows the work done."
+          "id": "one-cloud-front-end",
+          "hint": "Each cloud agent has its own address and TLS server name, which tell an observer which agent served the task whatever the traffic's shape (this audit scores the shape alone). Put the cloud agents behind one front end, one address and server name, then re-run the audit to see whether the shape still gives the agent away."
         }
       ]
     },
@@ -570,44 +566,44 @@
     "INCONCLUSIVE": []
   },
   "runtime": {
-    "total_s": 209.74659104197053,
+    "total_s": 219.98820595798315,
     "stages_s": {
-      "collection": 0.5403958749957383,
-      "extraction": 22.253447208029684,
-      "analysis": 186.8699372499832
+      "collection": 0.8858971250010654,
+      "extraction": 23.66815049998695,
+      "analysis": 195.339925459004
     },
     "analysis_by_attribute_s": {
-      "task_type": 49.88431616697926,
-      "escalated": 38.70280112500768,
-      "cloud_role": 35.74179129098775,
-      "audit_null": 61.630780250008684
+      "task_type": 52.377971666981466,
+      "escalated": 42.615082459000405,
+      "cloud_role": 36.92322649998823,
+      "audit_null": 62.313665415975265
     },
     "peak_rss_by_stage_mb": {
       "collection": {
-        "main_mb": 170.890625
+        "main_mb": 171.8125
       },
       "extraction": {
-        "main_mb": 247.859375
+        "main_mb": 247.890625
       },
       "analysis:task_type": {
-        "main_mb": 297.28125,
-        "worker_mb": 291.734375
+        "main_mb": 296.6875,
+        "worker_mb": 281.6875
       },
       "analysis:escalated": {
-        "main_mb": 301.359375,
-        "worker_mb": 291.734375
+        "main_mb": 301.09375,
+        "worker_mb": 281.6875
       },
       "analysis:cloud_role": {
-        "main_mb": 309.4375,
-        "worker_mb": 291.734375
+        "main_mb": 307.953125,
+        "worker_mb": 281.6875
       },
       "analysis:audit_null": {
-        "main_mb": 310.328125,
-        "worker_mb": 326.078125
+        "main_mb": 309.515625,
+        "worker_mb": 330.84375
       }
     },
-    "peak_rss_mb": 310.328125,
-    "peak_rss_children_mb": 326.078125,
+    "peak_rss_mb": 309.515625,
+    "peak_rss_children_mb": 330.84375,
     "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"

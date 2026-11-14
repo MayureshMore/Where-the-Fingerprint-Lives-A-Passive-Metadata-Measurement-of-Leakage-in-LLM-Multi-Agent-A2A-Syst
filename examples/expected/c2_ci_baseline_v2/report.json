@@ -1,0 +1,146 @@
+{
+  "tool": "a2a-leakcheck",
+  "version": "0.1.0",
+  "created": "2026-11-14T12:30:06-0800",
+  "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+  "git_dirty": false,
+  "input": {
+    "folder": "examples/c2_ci_baseline",
+    "label": "example: c2_ci_baseline, view v2",
+    "vantage": "v2"
+  },
+  "parameters": {
+    "attributes": [
+      "task_type"
+    ],
+    "role_within": [],
+    "margin": 0.05,
+    "folds": 5,
+    "n_boot": 1000,
+    "permutations": 99,
+    "alpha": 0.05,
+    "min_per_class": 20,
+    "seed": 42,
+    "model": "gbt",
+    "null_model": "rf-light",
+    "jobs": -1,
+    "rules": "default",
+    "strip": false,
+    "legacy_all_connections": false,
+    "keep_retransmissions": false
+  },
+  "collection": {
+    "folder": "examples/c2_ci_baseline",
+    "vantage": "v2",
+    "pcaps": 20,
+    "traces": 20,
+    "skipped": [],
+    "stripped_copies": 0,
+    "group_source": {
+      "prompt_group": 20
+    },
+    "visible_agents": {
+      "edge_cloud": {
+        "traces": 20,
+        "roles": {
+          "diagnostics": 20,
+          "knowledge": 0
+        },
+        "never_seen": [
+          "knowledge"
+        ]
+      }
+    }
+  },
+  "extraction": {
+    "traces": 20,
+    "failed": [],
+    "role_samples": 20,
+    "empty_traces": 0,
+    "trace_dims": 195,
+    "role_dims": 35,
+    "measurement": "own connections: only TCP connections whose SYN is in the capture",
+    "retransmissions": "dropped: every payload byte counted once (TCP sequence numbers)",
+    "first_request": "Bytes of the first request message that reaches an agent, in TCP sequence space (each byte once; IP and TCP headers only): on each agent link the trace opened, after the TLS handshake (the client's bytes before the server's first data are the ClientHello, its next segment of at most 100 B the Finished), a request runs from the end of the previous one to the acknowledgment number of the first server data segment that acknowledges every client byte seen so far and that the client has received before it sends its next byte (its next data segment acknowledges it). A server answers only once it holds the whole request, and the client sends nothing more until it has the answer; a record the server sends mid-request (a TLS session ticket) acknowledges less than the client has sent, or the client goes on with the request without having received it. Per link the first request of at least 300 B; of those, the one that starts earliest."
+  },
+  "attributes": {
+    "task_type": {
+      "classes": [
+        "fault_diagnosis",
+        "sensor_analysis"
+      ],
+      "n": 20,
+      "n_groups": 20,
+      "chance": 0.5,
+      "margin": 0.05,
+      "threshold": 0.55,
+      "validation": {
+        "min_samples": {
+          "ok": false,
+          "problems": [
+            "fault_diagnosis: 10 samples < 20",
+            "sensor_analysis: 10 samples < 20"
+          ],
+          "min_per_class": 20,
+          "per_class": {
+            "fault_diagnosis": 10,
+            "sensor_analysis": 10
+          },
+          "groups_per_class": {
+            "fault_diagnosis": 10,
+            "sensor_analysis": 10
+          }
+        }
+      },
+      "verdict": "INCONCLUSIVE",
+      "reason": "too few samples: fault_diagnosis: 10 samples < 20; sensor_analysis: 10 samples < 20",
+      "analysis": null,
+      "prioritization": {
+        "effect_size": null,
+        "severity": "none"
+      },
+      "attribution": null,
+      "mitigations": [
+        {
+          "id": "collect-more",
+          "hint": "Too few samples per class for a verdict: collect more traces (at least min_per_class per class, from at least as many prompt groups as folds)."
+        }
+      ]
+    }
+  },
+  "summary": {
+    "LEAK": [],
+    "NO LEAK": [],
+    "INCONCLUSIVE": [
+      "task_type"
+    ]
+  },
+  "runtime": {
+    "total_s": 0.9819254580070265,
+    "stages_s": {
+      "collection": 0.011275875032879412,
+      "extraction": 0.9096432500518858,
+      "analysis": 0.006310958007816225
+    },
+    "analysis_by_attribute_s": {
+      "task_type": 0.00018737500067800283
+    },
+    "peak_rss_by_stage_mb": {
+      "collection": {
+        "main_mb": 166.4375
+      },
+      "extraction": {
+        "main_mb": 233.5625
+      },
+      "analysis:task_type": {
+        "main_mb": 233.828125,
+        "worker_mb": 0.0
+      }
+    },
+    "peak_rss_mb": 233.984375,
+    "peak_rss_children_mb": 5.734375,
+    "workers": 14,
+    "python": "3.12.1",
+    "platform": "macOS-27.0.1-arm64-arm-64bit"
+  }
+}
