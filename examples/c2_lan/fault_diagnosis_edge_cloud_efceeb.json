@@ -1,0 +1,35 @@
+{
+  "run_id": "fault_diagnosis_edge_cloud_efceeb",
+  "agent_endpoints": {
+    "diagnostics": "172.30.0.100:8101",
+    "knowledge": "172.30.0.100:8102",
+    "ticket": "10.0.0.228:8105"
+  },
+  "vantages": {
+    "v1": [
+      "diagnostics",
+      "knowledge",
+      "ticket"
+    ],
+    "v2": [
+      "diagnostics",
+      "knowledge"
+    ]
+  },
+  "topology": "edge_cloud",
+  "prompt_group": "15a5ac3d",
+  "task_type": "fault_diagnosis",
+  "escalated": "yes",
+  "cloud_role": "diagnostics",
+  "audit_null": "a",
+  "arm": "lan",
+  "edge_host": "10.0.0.171",
+  "defense": "none",
+  "pad_buckets": [],
+  "pad_expect": null,
+  "padded_endpoints": [
+    "diagnostics",
+    "knowledge"
+  ],
+  "success": true
+}

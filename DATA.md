@@ -312,6 +312,54 @@ all three (quartiles by Python's `statistics.quantiles`):
 
 The median over all 1,000 tasks is 380 B. The largest input, 5,490 B, fits in the 8192 bucket.
 
+## Paper 2 archive (collections C2 and the TLS control)
+
+**Zenodo:** a new version of the record above (concept DOI 10.5281/zenodo.23868868):
+`<DOI — filled in after the upload>`. Data CC BY 4.0.
+
+| File | Contents | SHA-256 |
+|---|---|---|
+| `c2-raw-pcaps-headers-only.zip` | `data/raw_c2`, `raw_c2_pad`, `raw_c2_padmax`: 1,000 captures per arm with their sidecars, and the run's check files | `<from SHA256SUMS.txt>` |
+| `c2-features.zip` | `data/features_c2/<arm>_<view>.npz`: the 195 trace features and the first-request size a2a-leakcheck computes at each view, with the labels (README inside) | `<from SHA256SUMS.txt>` |
+| `tlscontrol-raw-pcaps-headers-only.zip` | `data/raw_tlspair_tls`, `raw_tlspair_clear`: 432 captures per arm (loopback) with sidecars | `<from SHA256SUMS.txt>` |
+| `tlscontrol-features-own.zip` | `data/processed_tlspair_{tls,clear}_own` | `<from SHA256SUMS.txt>` |
+| `manifest.json` | what `scripts/package_paper2_data.py` checked, cut and left out, and its commit | `<from SHA256SUMS.txt>` |
+
+The record also holds `SHA256SUMS.txt`. Unzip the archives into the repository root, then
+`bash scripts/reproduce_paper2.sh` rebuilds every paper 2 number and compares it with the
+committed one (docs/PAPER2_NUMBERS.md maps each number to its file).
+
+**How the release differs from the captures in `data/`.** `scripts/package_paper2_data.py` builds
+it, and `manifest.json` records each change:
+- **Headers only.** Every packet is cut to its link, IP and TCP headers. The C2 captures held up
+  to 30 bytes of TLS records per packet at the 96-byte snaplen, about 4 MB per arm. Timestamps and
+  on-wire lengths are kept.
+- **Hardware addresses.** The C2 captures were taken on the Mac's Wi-Fi interface. Their Ethernet
+  headers hold two real hardware addresses: the Mac's own, on every frame to or from 10.0.0.228 and
+  172.30.0.100, and the Pi's, on every frame to or from 10.0.0.171. They are replaced by the
+  placeholders 02:00:00:00:00:01 (the Mac) and 02:00:00:00:00:02 (the Pi). No feature reads the
+  link header. The TLS control's loopback captures carry no hardware address.
+- **The WAN watcher's log** (`data/raw_c2/wan_watch.jsonl`) kept running after the collection until
+  Nov 13, 19:46. The release keeps only the records from the collection window, Nov 12, 21:43:53 to
+  Nov 13, 03:28:38: the collection's start and end in `session_meta.json`, one second either side.
+  That is 689 of 2,659 records. The full log is not released.
+- **Left out:** `data/raw_c2/wan_status.json`, the watcher's last state, written after the
+  collection.
+
+**Checked before anything is zipped** (the build stops on any failure):
+- every capture's snaplen is at most 96 and no stored packet is longer;
+- no payload byte is left;
+- every packet is IPv4 between the hosts its sidecar names. For C2 those are 10.0.0.171, 10.0.0.228
+  and 172.30.0.100; for the TLS control, 127.0.0.1;
+- no unicast hardware address other than a placeholder appears;
+- neither real address occurs anywhere in any released file, as bytes or as text;
+- 1,000 captures per C2 arm, each with its sidecar;
+- the C2 features extracted from the released captures equal those from the original captures,
+  at both views.
+
+To rebuild: `python scripts/package_paper2_data.py --out dist/paper2` (from a populated `data/`;
+the output folder must not exist).
+
 ## Published archives
 
 | Archive | Contents | Unpacked size | Needed for |
