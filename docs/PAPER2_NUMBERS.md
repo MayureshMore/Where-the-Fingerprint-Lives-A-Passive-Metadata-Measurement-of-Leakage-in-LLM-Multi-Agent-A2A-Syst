@@ -17,7 +17,10 @@ retransmissions dropped), since Nov 14. The earlier D1 results, with retransmitt
 again, are in `superseded/d1_before_dedup/`; `d1_dedup_comparison.{json,md}` sets every D1 number
 below old against new, and counts the TCP retransmissions that counting each byte once drops in each arm
 (`retransmissions.<tls|clear>`: sizes, direction, after the last data packet, per workflow and topology with
-chi-square and Kruskal-Wallis tests).
+chi-square and Kruskal-Wallis tests), and sets the old and new features against each other on the same folds and
+bootstrap resamples (`same_folds_old_vs_new.<arm>.<task>.new_minus_old`). Paper 2 reports the TLS − cleartext
+paired difference under both measures (`rows`, "TLS − cleartext") and does not claim that TLS lowers workflow
+leakage.
 
 ## Data and setup
 

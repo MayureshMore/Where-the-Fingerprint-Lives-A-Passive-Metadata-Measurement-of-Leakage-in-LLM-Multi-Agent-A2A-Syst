@@ -15,6 +15,12 @@ paths. A result not rebuilt yet is shown as pending.
                 contains 0, cleartext → TLS transfer, on-wire bytes and packets per trace (TLS / cleartext)
     tool eval   paper2_tool_eval: recall, false-positive rate and precision per method; recall and
                 false-positive rate at 20, 30 and 50 samples per class
+    same folds  TLS and cleartext arms, each task: the old features (data/processed_tlspair_<arm>_own,
+                retransmissions counted) against the new (…_own_dedup, each byte once) on the same traces,
+                the same folds (5-fold StratifiedGroupKFold by prompt group, seed 42, as tls_control_own)
+                and the same group-bootstrap resamples: new − old with its 95% interval, as paper 1's
+                robustness check (scripts/evaluate_c1_tail_robustness.py) does; the cleartext arm, whose
+                features do not change, must give exactly 0
     retransmissions  per arm, from the captures (no model): the TCP segments that counting each byte once
                 drops (features/kfp.py is_retransmission, on each trace's own agent connections),
                 their payload sizes and direction, how many come after their connection's last packet
@@ -35,11 +41,16 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+import numpy as np
+
 from scipy.stats import chi2_contingency, kruskal
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from a2a_leakcheck.cli import _git  # noqa: E402
+from scripts.evaluate_c1 import paired_diff, score  # noqa: E402
+from scripts.evaluate_cross_deployment import load_deployment  # noqa: E402
+from scripts.evaluate_tls_control import oof  # noqa: E402
 from features.connections import opened_connections  # noqa: E402
 from features.kfp import duplicate_bytes, is_retransmission, tcp_records  # noqa: E402
 
@@ -132,6 +143,37 @@ def tool_eval_numbers(e: dict | None) -> dict:
         r = r.get("leakcheck", r)
         out[f"tool eval sample size {n}: recall [CI]"] = [r.get("recall"), *(r.get("recall_ci") or [None, None])]
         out[f"tool eval sample size {n}: false-positive rate"] = r.get("false_positive_rate")
+    return out
+
+
+def same_folds(X_old: np.ndarray, X_new: np.ndarray, y, g, task: str) -> dict:
+    """GBT out-of-fold predictions on both feature sets with the same folds, scored on the same
+    group-bootstrap resamples: old, new, new − old."""
+    y, g = np.asarray(y), np.asarray(g)
+    classes = sorted(set(y.tolist()))
+    p_old, p_new = oof(X_old, y, g, task), oof(X_new, y, g, task)
+    return {"n": int(len(y)), "old": score(y, p_old, g, classes), "new": score(y, p_new, g, classes),
+            "new_minus_old": paired_diff(y, p_new, p_old, g, classes),
+            "predictions_differ": int((p_old != p_new).sum())}
+
+
+def same_folds_d1(root: Path) -> dict:
+    """Both arms, each task: the processed TLS-control sets before and after counting each byte once."""
+    out = {}
+    for arm in ARMS:
+        old, new = root / f"processed_tlspair_{arm}_own", root / f"processed_tlspair_{arm}_own_dedup"
+        if not (old / "labels.json").exists() or not (new / "labels.json").exists():
+            out[arm] = None
+            continue
+        if sorted(f.name for f in old.glob("*.npz")) != sorted(f.name for f in new.glob("*.npz")):
+            raise SystemExit(f"{old} and {new} hold different traces")
+        out[arm] = {}
+        for task in ATTRS:
+            Xo, _, yo, go = load_deployment(old, task)
+            Xn, _, yn, gn = load_deployment(new, task)
+            if list(yo) != list(yn) or list(go) != list(gn):
+                raise SystemExit(f"{arm} {task}: labels or groups differ between {old} and {new}")
+            out[arm][task] = same_folds(Xo, Xn, yo, go, task)
     return out
 
 
@@ -240,6 +282,23 @@ def compare(old: dict, new: dict) -> list[dict]:
     return rows
 
 
+def same_folds_markdown(sf: dict) -> list[str]:
+    if not any(sf.values()):
+        return []
+    L = ["", "## Old against new on the same folds and bootstrap resamples", "",
+         "GBT out-of-fold predictions on the old features (retransmissions counted) and the new ones (each byte once), "
+         "the same 5 folds, scored on the same 2,000 group resamples (paired, as paper 1's robustness check).", "",
+         "| Arm | Task | Old macro-F1 [CI] | New macro-F1 [CI] | New − old [CI] | Significant | Predictions that differ |",
+         "|---|---|---|---|---|---|---|"]
+    for arm, tasks in sf.items():
+        for task, r in (tasks or {}).items():
+            d = r["new_minus_old"]
+            L.append(f"| {ARMS[arm]} | {task} | {fmt(f1ci(r['old']))} | {fmt(f1ci(r['new']))} | "
+                     f"{d['diff']:+.4f} [{d['ci_lo']:+.4f}, {d['ci_hi']:+.4f}] | {fmt(bool(d['significant']))} | "
+                     f"{r['predictions_differ']} of {r['n']} |")
+    return L
+
+
 def retx_markdown(retx: dict) -> list[str]:
     arms = [a for a in ARMS if retx.get(a)]
     if not arms:
@@ -284,6 +343,9 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--old", default=str(OLD))
     p.add_argument("--new", default=str(RES))
+    p.add_argument("--processed-root", default="data", dest="processed_root",
+                   help="folder holding processed_tlspair_<arm>_own and _own_dedup (the same-folds comparison)")
+    p.add_argument("--no-same-folds", action="store_true", dest="no_same_folds", help="skip the model runs")
     p.add_argument("--raw-root", default="data", dest="raw_root",
                    help="folder holding raw_tlspair_{tls,clear} (the retransmission counts)")
     p.add_argument("--out", default=None, help="path stem for .json and .md (not overwritten)")
@@ -294,16 +356,26 @@ def main(argv: list[str] | None = None) -> int:
     rows = compare(old, new)
     paired = {attr: new.get(f"{attr}: TLS − cleartext interval contains 0 (not significant)") for attr in ATTRS}
     retx = {arm: retransmissions(Path(a.raw_root) / d) for arm, d in RAW.items()}
+    sf = {} if a.no_same_folds else same_folds_d1(Path(a.processed_root))
     out = {"paper": "P2", "collection_id": "TLS control", **_git(), "old": a.old, "new": a.new,
-           "paired_difference_not_significant": paired, "rows": rows, "retransmissions": retx}
+           "paired_difference_not_significant": paired, "rows": rows, "same_folds_old_vs_new": sf,
+           "retransmissions": retx}
     md = ["# D1 before and after counting every payload byte once", "",
           f"Old: `{a.old}` (retransmitted segments counted again). New: `{a.new}` (each payload byte once). "
           "Pending: not rebuilt yet.", "",
-          "Paired TLS − cleartext difference still not significant (interval contains 0): "
-          + ", ".join(f"{k} {fmt(v)}" for k, v in paired.items()) + ".", "",
+          "TLS − cleartext paired difference under both measures (macro-F1, 95% CI over shared prompt groups):", "",
+          "| Task | Old: retransmissions counted | New: each byte once |", "|---|---|---|"]
+    for attr in ATTRS:
+        o, n_ = old.get(f"{attr}: TLS − cleartext [CI]"), new.get(f"{attr}: TLS − cleartext [CI]")
+        so = old.get(f"{attr}: TLS − cleartext interval contains 0 (not significant)")
+        sn = new.get(f"{attr}: TLS − cleartext interval contains 0 (not significant)")
+        md.append(f"| {attr} | {fmt(o)} ({'not significant' if so else 'significant'}) | "
+                  f"{fmt(n_)}" + ("" if n_ is None else f" ({'not significant' if sn else 'significant'})") + " |")
+    md += ["",
           "| Number | Old | New | Same |", "|---|---|---|---|"]
     md += [f"| {r['number']} | {fmt(r['old'])} | {fmt(r['new'])} | {fmt(r['same']) if r['same'] is not None else '—'} |"
            for r in rows]
+    md += same_folds_markdown(sf)
     md += retx_markdown(retx)
     text = "\n".join(md) + "\n"
     print(text)

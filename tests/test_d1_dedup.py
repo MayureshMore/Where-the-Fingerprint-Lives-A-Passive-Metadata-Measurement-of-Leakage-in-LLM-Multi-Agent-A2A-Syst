@@ -76,3 +76,16 @@ def test_retransmissions_by_class_tests():
     assert d["classes"]["a"] == {"traces": 20, "traces_with_retransmissions": 10, "segments": 15, "per_trace_mean": 0.75}
     assert 0 <= d["chi_square_traces_with_any"]["p"] <= 1 and d["kruskal_per_trace"]["p"] > 0.05
     assert by_class([{"workflow": "a", "segments": 0}, {"workflow": "b", "segments": 0}], "workflow")["kruskal_per_trace"] is None
+
+
+def test_same_folds_identical_features_give_zero():
+    import numpy as np
+    from scripts.compare_d1_dedup import same_folds
+    rng = np.random.default_rng(0)
+    y = np.array(["a", "b"] * 30)
+    g = np.array([f"g{i}" for i in range(60)])
+    X = rng.normal(size=(60, 8)) + (y == "a")[:, None] * 0.8
+    r = same_folds(X, X.copy(), y, g, "workflow")
+    assert r["predictions_differ"] == 0 and r["new_minus_old"]["diff"] == 0.0
+    assert r["new_minus_old"]["ci_lo"] == 0.0 == r["new_minus_old"]["ci_hi"] and not r["new_minus_old"]["significant"]
+    assert r["old"]["macro_f1"] == r["new"]["macro_f1"] and r["n"] == 60
