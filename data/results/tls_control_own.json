@@ -1,14 +1,15 @@
 {
-  "paper": "P1",
+  "paper": "P2",
   "collection_id": "TLS control",
   "seed": 42,
-  "git_commit": "0c0e6e01e15c79bd523940dad0297b1db4f6d25b",
+  "git_commit": "56849f020219ad42802c136bf554d7314783db3e",
   "git_dirty": false,
   "measurement": "own connections: only TCP connections whose SYN is in the trace (features/connections.py)",
+  "retransmissions": "dropped: every payload byte counted once (TCP sequence numbers)",
   "task": "TLS control \u2014 fingerprinting with TLS on every agent link (same-session, paired)",
   "method": "Deployment A collected in one session with cleartext and TLS traces alternating (same prompt per pair, arm order counterbalanced). GBT; group-safe 5-fold StratifiedGroupKFold by prompt_group; the cleartext\u2192TLS transfer is cross-fitted so no test prompt is in training; macro-F1 with cluster (group) bootstrap 95% CI; seed 42. Port never a feature. Within-arm and transfer: macro-F1 on out-of-fold predictions pooled across folds (the evaluate_c1 folds within each arm).",
-  "clear_dir": "data/processed_tlspair_clear_own",
-  "tls_dir": "data/processed_tlspair_tls_own",
+  "clear_dir": "data/processed_tlspair_clear_own_dedup",
+  "tls_dir": "data/processed_tlspair_tls_own_dedup",
   "results": {
     "workflow": {
       "chance": 0.25,
@@ -23,20 +24,20 @@
         "protocol": "out-of-fold GBT predictions pooled across the 5 folds"
       },
       "within_tls": {
-        "macro_f1": 0.6127851817820327,
-        "ci_lo": 0.5584001905952592,
-        "ci_hi": 0.661598403874878,
-        "accuracy": 0.6134259259259259,
+        "macro_f1": 0.5766140667834622,
+        "ci_lo": 0.5204827790428442,
+        "ci_hi": 0.6267837818291709,
+        "accuracy": 0.5763888888888888,
         "n": 432,
         "ci_method": "group_bootstrap",
         "ci_n_clusters": 231,
         "protocol": "out-of-fold GBT predictions pooled across the 5 folds"
       },
       "clear_to_tls": {
-        "macro_f1": 0.4781750705434916,
-        "ci_lo": 0.4226710027070696,
-        "ci_hi": 0.5296239173990578,
-        "accuracy": 0.5231481481481481,
+        "macro_f1": 0.47404843305761335,
+        "ci_lo": 0.4183276514025677,
+        "ci_hi": 0.5264683582356448,
+        "accuracy": 0.5185185185185185,
         "n_test": 432,
         "ci_method": "group_bootstrap",
         "ci_n_clusters": 231,
@@ -45,11 +46,11 @@
       },
       "tls_minus_clear": {
         "clear_oof_macro_f1": 0.6591310922554636,
-        "tls_oof_macro_f1": 0.6127851817820327,
-        "diff": -0.04634591047343095,
-        "ci_lo": -0.10489334900613621,
-        "ci_hi": 0.014706926997993175,
-        "significant": false,
+        "tls_oof_macro_f1": 0.5766140667834622,
+        "diff": -0.08251702547200146,
+        "ci_lo": -0.13745337753997047,
+        "ci_hi": -0.02549206335111438,
+        "significant": true,
         "shared_groups": 231,
         "groups_only_clear": 0,
         "groups_only_tls": 0,
@@ -117,9 +118,9 @@
         "protocol": "out-of-fold GBT predictions pooled across the 5 folds"
       },
       "within_tls": {
-        "macro_f1": 0.9907380398684432,
-        "ci_lo": 0.9842181735957669,
-        "ci_hi": 0.9964364865377302,
+        "macro_f1": 0.9907398394091763,
+        "ci_lo": 0.9843044799684557,
+        "ci_hi": 0.9961869794146266,
         "accuracy": 0.9907407407407407,
         "n": 1296,
         "ci_method": "group_bootstrap",
@@ -139,10 +140,10 @@
       },
       "tls_minus_clear": {
         "clear_oof_macro_f1": 0.9899609063520062,
-        "tls_oof_macro_f1": 0.9907380398684432,
-        "diff": 0.0007771335164370452,
-        "ci_lo": -0.007197214769946847,
-        "ci_hi": 0.008323055004005164,
+        "tls_oof_macro_f1": 0.9907398394091763,
+        "diff": 0.0007789330571701392,
+        "ci_lo": -0.00698336635517755,
+        "ci_hi": 0.008109762308911,
         "significant": false,
         "shared_groups": 231,
         "groups_only_clear": 0,
@@ -166,8 +167,8 @@
     },
     "tls": {
       "n_traces": 432,
-      "bytes_mean": 214957.8148148148,
-      "packets_mean": 633.3055555555555,
+      "bytes_mean": 214921.5185185185,
+      "packets_mean": 632.8518518518518,
       "connections_mean": 3.4537037037037037,
       "connections_per_trace_by_port": {
         "8041": 1.0,
@@ -175,8 +176,8 @@
         "8043": 1.1203703703703705
       }
     },
-    "bytes_ratio": 1.0856882151312603,
-    "packets_ratio": 1.0490256976556926
+    "bytes_ratio": 1.085504893295877,
+    "packets_ratio": 1.048274169676613
   },
   "tls_params": {
     "tls_version": "TLSv1.3",

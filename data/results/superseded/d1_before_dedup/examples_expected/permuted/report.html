@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leak check: example: permuted</title><style>
+:root { --bg:#ffffff; --fg:#1d2433; --muted:#5b6475; --line:#d9dee7; --leak:#b42318; --ok:#067647; --inc:#8a6100; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171c; --fg:#e7eaf0; --muted:#a3abb9; --line:#2c323c; --leak:#ff8a7a; --ok:#6ce9a6; --inc:#f5c451; }
+}
+body { background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; margin:0 auto; max-width:1100px; padding:24px 16px; }
+h1 { font-size:22px; margin:0 0 4px; } p.meta { color:var(--muted); margin:0 0 20px; }
+.wrap { overflow-x:auto; } table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
+th, td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+th { color:var(--muted); font-weight:600; font-size:13px; }
+.LEAK { color:var(--leak); font-weight:700; } .NO { color:var(--ok); font-weight:700; } .INCONCLUSIVE { color:var(--inc); font-weight:700; }
+ul { margin:4px 0 0; padding-left:18px; } li { margin:2px 0; }
+</style></head><body>
+<h1>Leak check: example: permuted</h1>
+<p class="meta">40 traces from 40 captures · a2a-leakcheck 0.1.0 ·
+2026-11-05T07:36:45-0800 · 51.3 s · peak memory 246 MB</p>
+<div class="wrap"><table><thead><tr><th>Attribute</th><th>Verdict</th><th>Severity</th><th>macro-F1 [95% CI]</th>
+<th>Chance + margin</th><th>Permutation p</th><th>False positives (permuted)</th><th>Carried by</th><th>Why, and what to do</th></tr></thead>
+<tbody><tr><td>role</td><td class='NO'>NO LEAK</td><td>none</td><td>0.165 [0.094, 0.241]</td><td>0.300</td><td>0.990</td><td>0.00</td><td>—</td><td>CI upper bound 0.241 &lt;= chance + margin 0.300<p class='meta'>A role verdict holds for the topologies in the captures; a role profile need not transfer to another topology.</p></td></tr><tr><td>workflow</td><td class='NO'>NO LEAK</td><td>none</td><td>0.386 [0.231, 0.540]</td><td>0.550</td><td>0.820</td><td>0.00</td><td>—</td><td>CI upper bound 0.540 &lt;= chance + margin 0.550</td></tr><tr><td>topology</td><td class='INCONCLUSIVE'>INCONCLUSIVE</td><td>none</td><td>0.479 [0.314, 0.623]</td><td>0.550</td><td>0.580</td><td>0.01</td><td>—</td><td>CI [0.314, 0.623] straddles chance + margin 0.550<ul><li><b>inconclusive</b>: The interval straddles chance + margin: more traces will narrow it. Re-run before treating this attribute as safe.</li></ul></td></tr></tbody></table></div>
+<h2 style='font-size:16px'>Visible agents per topology</h2><div class='wrap'><table><thead><tr><th>Topology</th><th>Traces</th><th>executor</th><th>orchestrator</th><th>retriever</th><th>validator</th></tr></thead><tbody><tr><td>chain</td><td>20</td><td>16</td><td>14</td><td>16</td><td>14</td></tr><tr><td>star</td><td>20</td><td>12</td><td>14</td><td>17</td><td>17</td></tr></tbody></table></div><p class='meta'>Traces in which each listed agent carries traffic; an agent never seen gives no role samples.</p>
+<p class="meta">Full numbers: report.json and report.md next to this file.</p>
+</body></html>

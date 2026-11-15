@@ -1,9 +1,10 @@
 machine,report,traces,attributes,total_s,extraction_s,analysis_s,peak_rss_mb,peak_rss_children_mb,workers,platform
-laptop,tls_control_clear_own,432,3,121.468,20.3033,100.007,431.703,440.656,14,macOS-27.0.1-arm64-arm-64bit
-laptop,tls_control_tls_own,432,3,123.481,21.5549,100.786,425.062,431.703,14,macOS-27.0.1-arm64-arm-64bit
+laptop,tls_control_clear_own,432,3,148.629,23.735,124.209,281.203,259.781,14,macOS-27.0.1-arm64-arm-64bit
+laptop,tls_control_tls_own,432,3,135.272,23.2806,111.428,279.734,267.766,14,macOS-27.0.1-arm64-arm-64bit
 laptop,c2_lan_v1,1000,4,219.988,23.6682,195.34,309.516,330.844,14,macOS-27.0.1-arm64-arm-64bit
 laptop,c2_lan_v2,1000,4,183.734,21.6895,161.108,305.969,314.422,14,macOS-27.0.1-arm64-arm-64bit
 laptop,c2_lan_pad_v1,1000,4,214.621,24.4924,189.112,308.203,328.828,14,macOS-27.0.1-arm64-arm-64bit
 laptop,c2_lan_pad_v2,1000,4,192.294,22.5068,168.833,309.859,319.141,14,macOS-27.0.1-arm64-arm-64bit
 laptop,c2_lan_padmax_v1,1000,4,220.768,24.6867,195.37,308.656,323.734,14,macOS-27.0.1-arm64-arm-64bit
 laptop,c2_lan_padmax_v2,1000,4,182.706,23.4319,158.563,308.453,324.031,14,macOS-27.0.1-arm64-arm-64bit
+pi,c2_lan_v1,1000,4,1596.65,64.468,1531.09,212,212,4,Linux-6.18.50+rpt-rpi-2712-aarch64-with-glibc2.41

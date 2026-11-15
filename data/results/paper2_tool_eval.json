@@ -6,7 +6,7 @@
     "cleartext": "data/raw_tlspair_clear"
   },
   "seed": 42,
-  "git_commit": "a8556554c8450101c766aec1b2ca6600d5e0a8a3",
+  "git_commit": "1bdb792d41eec69a42326c774db7190f5f0f1725",
   "git_dirty": false,
   "task": "a2a-leakcheck verdicts on known leaks (real labels) and known non-leaks (permuted labels, audit_null)",
   "method": "Full-data verdicts on the real labels, and runtime and memory, from `python -m a2a_leakcheck run --strip` in a fresh process per arm. Permuted labels, baselines and subsamples go through the same verdict rule (a2a_leakcheck.analyze: 5-fold StratifiedGroupKFold by prompt group, macro-F1 with a 1000-resample cluster-bootstrap 95% CI, LEAK above chance + 0.05, 99-permutation test with the rf-light null at alpha 0.05, at least 20 samples per class in 5 groups), without feature attribution, which the verdict does not use. Own connections only. Ports are never features.",
@@ -28,12 +28,27 @@
     "null_model": "rf-light",
     "alpha": 0.05,
     "jobs": -1,
-    "not_known": []
+    "not_known": [],
+    "role_within": [],
+    "attributes": [
+      "role",
+      "workflow",
+      "topology"
+    ],
+    "vantage": [],
+    "reference": "labels",
+    "by_construction": [],
+    "pair": null,
+    "input_size": null,
+    "tool_reports": null,
+    "cleartext_arms": [
+      "cleartext"
+    ]
   },
   "methods": {
     "leakcheck": "a2a-leakcheck: GBT on the header-only features (195 per trace, 35 per agent)",
     "kfp_rf": "k-FP features (138, direction and timing only) with the tool's RF",
-    "first_request": "first-request size alone with GBT (role: bytes the agent receives)"
+    "first_request": "first-request size alone with GBT (in TCP sequence space, features/first_request.py first_request_seq; role: bytes the agent receives)"
   },
   "arms": {
     "tls": {
@@ -44,28 +59,110 @@
           "role": {
             "verdict": "LEAK",
             "reason": "CI lower bound 0.984 > chance + margin 0.383",
-            "macro_f1": 0.9907380398684432,
+            "macro_f1": 0.9907398394091763,
             "ci": [
-              0.9842316190663191,
-              0.9967795780209356
+              0.9842736609386611,
+              0.9962641521118454
             ],
             "p": 0.01,
             "false_positive_rate_on_permutations": 0.0,
             "carried_by": "timing",
+            "attribution": {
+              "top_family": "timing",
+              "top_family_matches_all": false,
+              "families": {
+                "sizes": {
+                  "macro_f1": 0.9251403269949479,
+                  "ci": [
+                    0.909887892407929,
+                    0.9407854269728673
+                  ],
+                  "dims": 26,
+                  "matches_all": false
+                },
+                "timing": {
+                  "macro_f1": 0.9722210369106038,
+                  "ci": [
+                    0.9610138281079215,
+                    0.9819181445845017
+                  ],
+                  "dims": 5,
+                  "matches_all": false
+                },
+                "counts_direction": {
+                  "macro_f1": 0.6884228496704464,
+                  "ci": [
+                    0.6597873586318612,
+                    0.7162178158869662
+                  ],
+                  "dims": 4,
+                  "matches_all": false
+                }
+              },
+              "single_request_size": {
+                "macro_f1": 0.526489115085051,
+                "ci": [
+                  0.4906879674073981,
+                  0.5594635265892296
+                ],
+                "matches_all": false
+              }
+            },
             "n": 1296,
             "groups": 231
           },
           "workflow": {
             "verdict": "LEAK",
-            "reason": "CI lower bound 0.558 > chance + margin 0.300",
-            "macro_f1": 0.6127851817820327,
+            "reason": "CI lower bound 0.518 > chance + margin 0.300",
+            "macro_f1": 0.5766140667834622,
             "ci": [
-              0.5577012317452725,
-              0.6600383384590842
+              0.5181550281644214,
+              0.6267161411899432
             ],
             "p": 0.01,
             "false_positive_rate_on_permutations": 0.0,
             "carried_by": "sizes",
+            "attribution": {
+              "top_family": "sizes",
+              "top_family_matches_all": true,
+              "families": {
+                "sizes": {
+                  "macro_f1": 0.5686152055965755,
+                  "ci": [
+                    0.509207498347468,
+                    0.6197308330182458
+                  ],
+                  "dims": 139,
+                  "matches_all": true
+                },
+                "timing": {
+                  "macro_f1": 0.4587854955811228,
+                  "ci": [
+                    0.4019887964141041,
+                    0.5101465250689947
+                  ],
+                  "dims": 30,
+                  "matches_all": false
+                },
+                "counts_direction": {
+                  "macro_f1": 0.27826880036542173,
+                  "ci": [
+                    0.2337990140079396,
+                    0.31853222564985745
+                  ],
+                  "dims": 26,
+                  "matches_all": false
+                }
+              },
+              "single_request_size": {
+                "macro_f1": 0.5715637466652781,
+                "ci": [
+                  0.5141315534204597,
+                  0.6280959270021949
+                ],
+                "matches_all": true
+              }
+            },
             "n": 432,
             "groups": 231
           },
@@ -80,49 +177,90 @@
             "p": 0.01,
             "false_positive_rate_on_permutations": 0.0,
             "carried_by": "sizes",
+            "attribution": {
+              "top_family": "sizes",
+              "top_family_matches_all": true,
+              "families": {
+                "sizes": {
+                  "macro_f1": 1.0,
+                  "ci": [
+                    1.0,
+                    1.0
+                  ],
+                  "dims": 139,
+                  "matches_all": true
+                },
+                "timing": {
+                  "macro_f1": 0.9953703703703703,
+                  "ci": [
+                    0.9878329291602345,
+                    1.0
+                  ],
+                  "dims": 30,
+                  "matches_all": true
+                },
+                "counts_direction": {
+                  "macro_f1": 1.0,
+                  "ci": [
+                    1.0,
+                    1.0
+                  ],
+                  "dims": 26,
+                  "matches_all": true
+                }
+              },
+              "single_request_size": {
+                "macro_f1": 0.34077606515595943,
+                "ci": [
+                  0.2976870412653114,
+                  0.38561006415198434
+                ],
+                "matches_all": false
+              }
+            },
             "n": 432,
             "groups": 231
           }
         },
         "runtime": {
-          "total_s": 125.78794295800617,
+          "total_s": 131.6912187919952,
           "stages_s": {
-            "collection": 0.467176542035304,
-            "extraction": 21.2566431669984,
-            "analysis": 104.00135174999014
+            "collection": 0.4608429159852676,
+            "extraction": 24.18157837499166,
+            "analysis": 106.9846142079914
           },
           "analysis_by_attribute_s": {
-            "role": 39.634096042020246,
-            "workflow": 37.28374845802318,
-            "topology": 26.356984957994428
+            "role": 42.44534604198998,
+            "workflow": 37.33689412503736,
+            "topology": 26.396782458992675
           },
           "peak_rss_by_stage_mb": {
             "collection": {
-              "main_mb": 168.03125
+              "main_mb": 170.296875
             },
             "extraction": {
-              "main_mb": 245.78125
+              "main_mb": 252.234375
             },
             "analysis:role": {
-              "main_mb": 264.578125,
-              "worker_mb": 207.875
+              "main_mb": 272.046875,
+              "worker_mb": 212.484375
             },
             "analysis:workflow": {
-              "main_mb": 273.484375,
-              "worker_mb": 267.875
+              "main_mb": 278.703125,
+              "worker_mb": 274.265625
             },
             "analysis:topology": {
-              "main_mb": 275.671875,
-              "worker_mb": 267.875
+              "main_mb": 280.453125,
+              "worker_mb": 274.265625
             }
           },
-          "peak_rss_mb": 275.671875,
-          "peak_rss_children_mb": 267.875,
+          "peak_rss_mb": 280.453125,
+          "peak_rss_children_mb": 274.265625,
           "workers": 14,
           "python": "3.12.1",
           "platform": "macOS-27.0.1-arm64-arm-64bit"
         },
-        "git_commit": "a8556554c8450101c766aec1b2ca6600d5e0a8a3",
+        "git_commit": "1bdb792d41eec69a42326c774db7190f5f0f1725",
         "git_dirty": false,
         "visible_agents": {
           "chain": {
@@ -175,14 +313,55 @@
             "leakcheck": {
               "verdict": "LEAK",
               "reason": "CI lower bound 0.984 > chance + margin 0.383",
-              "macro_f1": 0.9907380398684432,
+              "macro_f1": 0.9907398394091763,
               "ci": [
-                0.9842316190663191,
-                0.9967795780209356
+                0.9842736609386611,
+                0.9962641521118454
               ],
               "p": 0.01,
               "false_positive_rate_on_permutations": 0.0,
               "carried_by": "timing",
+              "attribution": {
+                "top_family": "timing",
+                "top_family_matches_all": false,
+                "families": {
+                  "sizes": {
+                    "macro_f1": 0.9251403269949479,
+                    "ci": [
+                      0.909887892407929,
+                      0.9407854269728673
+                    ],
+                    "dims": 26,
+                    "matches_all": false
+                  },
+                  "timing": {
+                    "macro_f1": 0.9722210369106038,
+                    "ci": [
+                      0.9610138281079215,
+                      0.9819181445845017
+                    ],
+                    "dims": 5,
+                    "matches_all": false
+                  },
+                  "counts_direction": {
+                    "macro_f1": 0.6884228496704464,
+                    "ci": [
+                      0.6597873586318612,
+                      0.7162178158869662
+                    ],
+                    "dims": 4,
+                    "matches_all": false
+                  }
+                },
+                "single_request_size": {
+                  "macro_f1": 0.526489115085051,
+                  "ci": [
+                    0.4906879674073981,
+                    0.5594635265892296
+                  ],
+                  "matches_all": false
+                }
+              },
               "n": 1296,
               "groups": 231,
               "source": "a2a_leakcheck run"
@@ -255,7 +434,7 @@
               "NO LEAK",
               "NO LEAK",
               "NO LEAK",
-              "NO LEAK"
+              "INCONCLUSIVE"
             ],
             "first_request": [
               "INCONCLUSIVE",
@@ -316,8 +495,8 @@
               "agreement_with_full": 1.0,
               "permuted": {
                 "LEAK": 0,
-                "INCONCLUSIVE": 13,
-                "NO LEAK": 7
+                "INCONCLUSIVE": 17,
+                "NO LEAK": 3
               }
             },
             "30": {
@@ -329,8 +508,8 @@
               "agreement_with_full": 1.0,
               "permuted": {
                 "LEAK": 0,
-                "INCONCLUSIVE": 13,
-                "NO LEAK": 7
+                "INCONCLUSIVE": 14,
+                "NO LEAK": 6
               }
             },
             "50": {
@@ -359,25 +538,66 @@
           "full": {
             "leakcheck": {
               "verdict": "LEAK",
-              "reason": "CI lower bound 0.558 > chance + margin 0.300",
-              "macro_f1": 0.6127851817820327,
+              "reason": "CI lower bound 0.518 > chance + margin 0.300",
+              "macro_f1": 0.5766140667834622,
               "ci": [
-                0.5577012317452725,
-                0.6600383384590842
+                0.5181550281644214,
+                0.6267161411899432
               ],
               "p": 0.01,
               "false_positive_rate_on_permutations": 0.0,
               "carried_by": "sizes",
+              "attribution": {
+                "top_family": "sizes",
+                "top_family_matches_all": true,
+                "families": {
+                  "sizes": {
+                    "macro_f1": 0.5686152055965755,
+                    "ci": [
+                      0.509207498347468,
+                      0.6197308330182458
+                    ],
+                    "dims": 139,
+                    "matches_all": true
+                  },
+                  "timing": {
+                    "macro_f1": 0.4587854955811228,
+                    "ci": [
+                      0.4019887964141041,
+                      0.5101465250689947
+                    ],
+                    "dims": 30,
+                    "matches_all": false
+                  },
+                  "counts_direction": {
+                    "macro_f1": 0.27826880036542173,
+                    "ci": [
+                      0.2337990140079396,
+                      0.31853222564985745
+                    ],
+                    "dims": 26,
+                    "matches_all": false
+                  }
+                },
+                "single_request_size": {
+                  "macro_f1": 0.5715637466652781,
+                  "ci": [
+                    0.5141315534204597,
+                    0.6280959270021949
+                  ],
+                  "matches_all": true
+                }
+              },
               "n": 432,
               "groups": 231,
               "source": "a2a_leakcheck run"
             },
             "kfp_rf": {
               "verdict": "LEAK",
-              "macro_f1": 0.535575054952151,
+              "macro_f1": 0.5369361470416273,
               "ci": [
-                0.476131906366877,
-                0.5906741571048665
+                0.47428191923243374,
+                0.5928708790554764
               ],
               "p": 0.01,
               "n": 432,
@@ -386,10 +606,10 @@
             },
             "first_request": {
               "verdict": "LEAK",
-              "macro_f1": 0.5824903688096503,
+              "macro_f1": 0.5715637466652781,
               "ci": [
-                0.5148876746405205,
-                0.6418855164588322
+                0.5141315534204597,
+                0.6280959270021949
               ],
               "p": 0.01,
               "n": 432,
@@ -402,12 +622,7 @@
               "INCONCLUSIVE",
               "NO LEAK",
               "NO LEAK",
-              "INCONCLUSIVE",
               "NO LEAK",
-              "NO LEAK",
-              "INCONCLUSIVE",
-              "NO LEAK",
-              "INCONCLUSIVE",
               "NO LEAK",
               "NO LEAK",
               "NO LEAK",
@@ -418,15 +633,17 @@
               "NO LEAK",
               "NO LEAK",
               "NO LEAK",
-              "INCONCLUSIVE"
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK"
             ],
             "kfp_rf": [
               "INCONCLUSIVE",
               "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
+              "INCONCLUSIVE",
               "NO LEAK",
               "INCONCLUSIVE",
               "NO LEAK",
@@ -435,7 +652,10 @@
               "NO LEAK",
               "NO LEAK",
               "NO LEAK",
-              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
               "NO LEAK",
               "NO LEAK",
               "NO LEAK",
@@ -450,18 +670,18 @@
               "INCONCLUSIVE",
               "NO LEAK",
               "NO LEAK",
-              "NO LEAK",
-              "INCONCLUSIVE",
-              "NO LEAK",
-              "INCONCLUSIVE",
-              "NO LEAK",
-              "INCONCLUSIVE",
-              "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
               "INCONCLUSIVE",
               "INCONCLUSIVE",
               "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
               "NO LEAK"
             ]
           },
@@ -494,28 +714,28 @@
             },
             "20": {
               "real": {
-                "LEAK": 12,
-                "INCONCLUSIVE": 8,
+                "LEAK": 15,
+                "INCONCLUSIVE": 5,
                 "NO LEAK": 0
               },
-              "agreement_with_full": 0.6,
+              "agreement_with_full": 0.75,
               "permuted": {
                 "LEAK": 0,
-                "INCONCLUSIVE": 15,
-                "NO LEAK": 5
+                "INCONCLUSIVE": 14,
+                "NO LEAK": 6
               }
             },
             "30": {
               "real": {
-                "LEAK": 18,
-                "INCONCLUSIVE": 2,
+                "LEAK": 19,
+                "INCONCLUSIVE": 1,
                 "NO LEAK": 0
               },
-              "agreement_with_full": 0.9,
+              "agreement_with_full": 0.95,
               "permuted": {
                 "LEAK": 0,
-                "INCONCLUSIVE": 16,
-                "NO LEAK": 4
+                "INCONCLUSIVE": 12,
+                "NO LEAK": 8
               }
             },
             "50": {
@@ -527,8 +747,8 @@
               "agreement_with_full": 1.0,
               "permuted": {
                 "LEAK": 0,
-                "INCONCLUSIVE": 12,
-                "NO LEAK": 8
+                "INCONCLUSIVE": 9,
+                "NO LEAK": 11
               }
             }
           }
@@ -552,6 +772,47 @@
               "p": 0.01,
               "false_positive_rate_on_permutations": 0.0,
               "carried_by": "sizes",
+              "attribution": {
+                "top_family": "sizes",
+                "top_family_matches_all": true,
+                "families": {
+                  "sizes": {
+                    "macro_f1": 1.0,
+                    "ci": [
+                      1.0,
+                      1.0
+                    ],
+                    "dims": 139,
+                    "matches_all": true
+                  },
+                  "timing": {
+                    "macro_f1": 0.9953703703703703,
+                    "ci": [
+                      0.9878329291602345,
+                      1.0
+                    ],
+                    "dims": 30,
+                    "matches_all": true
+                  },
+                  "counts_direction": {
+                    "macro_f1": 1.0,
+                    "ci": [
+                      1.0,
+                      1.0
+                    ],
+                    "dims": 26,
+                    "matches_all": true
+                  }
+                },
+                "single_request_size": {
+                  "macro_f1": 0.34077606515595943,
+                  "ci": [
+                    0.2976870412653114,
+                    0.38561006415198434
+                  ],
+                  "matches_all": false
+                }
+              },
               "n": 432,
               "groups": 231,
               "source": "a2a_leakcheck run"
@@ -570,12 +831,12 @@
             },
             "first_request": {
               "verdict": "INCONCLUSIVE",
-              "macro_f1": 0.3555019305019305,
+              "macro_f1": 0.34077606515595943,
               "ci": [
-                0.31254844167185863,
-                0.39780318061332065
+                0.2976870412653114,
+                0.38561006415198434
               ],
-              "p": 0.07,
+              "p": 0.39,
               "n": 432,
               "groups": 231,
               "sample_check_ok": true
@@ -583,47 +844,47 @@
           },
           "permuted": {
             "leakcheck": [
-              "INCONCLUSIVE",
-              "NO LEAK",
-              "NO LEAK",
-              "INCONCLUSIVE",
-              "INCONCLUSIVE",
-              "NO LEAK",
-              "INCONCLUSIVE",
-              "NO LEAK",
-              "NO LEAK",
-              "INCONCLUSIVE",
-              "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
               "NO LEAK",
               "NO LEAK",
               "NO LEAK",
               "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
               "NO LEAK",
               "NO LEAK",
-              "NO LEAK"
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE"
             ],
             "kfp_rf": [
               "NO LEAK",
               "INCONCLUSIVE",
               "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
               "INCONCLUSIVE",
               "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
-              "INCONCLUSIVE",
-              "NO LEAK",
               "INCONCLUSIVE",
               "INCONCLUSIVE",
               "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
+              "INCONCLUSIVE",
               "NO LEAK"
             ],
             "first_request": [
@@ -631,7 +892,6 @@
               "INCONCLUSIVE",
               "INCONCLUSIVE",
               "NO LEAK",
-              "NO LEAK",
               "INCONCLUSIVE",
               "INCONCLUSIVE",
               "INCONCLUSIVE",
@@ -639,14 +899,15 @@
               "NO LEAK",
               "NO LEAK",
               "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
               "INCONCLUSIVE",
               "NO LEAK",
               "NO LEAK",
-              "INCONCLUSIVE",
               "NO LEAK",
               "NO LEAK",
-              "NO LEAK",
-              "NO LEAK"
+              "INCONCLUSIVE"
             ]
           },
           "sample_size": {
@@ -684,9 +945,9 @@
               },
               "agreement_with_full": 1.0,
               "permuted": {
-                "LEAK": 1,
-                "INCONCLUSIVE": 13,
-                "NO LEAK": 6
+                "LEAK": 0,
+                "INCONCLUSIVE": 12,
+                "NO LEAK": 8
               }
             },
             "30": {
@@ -698,8 +959,8 @@
               "agreement_with_full": 1.0,
               "permuted": {
                 "LEAK": 0,
-                "INCONCLUSIVE": 17,
-                "NO LEAK": 3
+                "INCONCLUSIVE": 16,
+                "NO LEAK": 4
               }
             },
             "50": {
@@ -735,6 +996,47 @@
             "p": 0.01,
             "false_positive_rate_on_permutations": 0.0,
             "carried_by": "timing",
+            "attribution": {
+              "top_family": "timing",
+              "top_family_matches_all": true,
+              "families": {
+                "sizes": {
+                  "macro_f1": 0.9267626817211431,
+                  "ci": [
+                    0.910613086026549,
+                    0.9410656070942118
+                  ],
+                  "dims": 26,
+                  "matches_all": false
+                },
+                "timing": {
+                  "macro_f1": 0.9830315502502228,
+                  "ci": [
+                    0.9735066540059449,
+                    0.991571273523884
+                  ],
+                  "dims": 5,
+                  "matches_all": true
+                },
+                "counts_direction": {
+                  "macro_f1": 0.5420297836255492,
+                  "ci": [
+                    0.5123429615925461,
+                    0.5697486811208168
+                  ],
+                  "dims": 4,
+                  "matches_all": false
+                }
+              },
+              "single_request_size": {
+                "macro_f1": 0.5196405694141564,
+                "ci": [
+                  0.48318722693417987,
+                  0.5512657687631333
+                ],
+                "matches_all": false
+              }
+            },
             "n": 1296,
             "groups": 231
           },
@@ -749,6 +1051,47 @@
             "p": 0.01,
             "false_positive_rate_on_permutations": 0.0,
             "carried_by": "sizes",
+            "attribution": {
+              "top_family": "sizes",
+              "top_family_matches_all": true,
+              "families": {
+                "sizes": {
+                  "macro_f1": 0.641294877969513,
+                  "ci": [
+                    0.5814162603492298,
+                    0.6950492048369469
+                  ],
+                  "dims": 139,
+                  "matches_all": true
+                },
+                "timing": {
+                  "macro_f1": 0.5375311196918527,
+                  "ci": [
+                    0.4861868176863477,
+                    0.586769356620154
+                  ],
+                  "dims": 30,
+                  "matches_all": false
+                },
+                "counts_direction": {
+                  "macro_f1": 0.2695634432803597,
+                  "ci": [
+                    0.22492245578060396,
+                    0.304093812900054
+                  ],
+                  "dims": 26,
+                  "matches_all": false
+                }
+              },
+              "single_request_size": {
+                "macro_f1": 0.5874000704780605,
+                "ci": [
+                  0.5319497840783877,
+                  0.6381037160271387
+                ],
+                "matches_all": false
+              }
+            },
             "n": 432,
             "groups": 231
           },
@@ -763,49 +1106,90 @@
             "p": 0.01,
             "false_positive_rate_on_permutations": 0.0,
             "carried_by": "timing",
+            "attribution": {
+              "top_family": "timing",
+              "top_family_matches_all": true,
+              "families": {
+                "sizes": {
+                  "macro_f1": 0.9976851572766839,
+                  "ci": [
+                    0.9927252110940449,
+                    1.0
+                  ],
+                  "dims": 139,
+                  "matches_all": true
+                },
+                "timing": {
+                  "macro_f1": 1.0,
+                  "ci": [
+                    1.0,
+                    1.0
+                  ],
+                  "dims": 30,
+                  "matches_all": true
+                },
+                "counts_direction": {
+                  "macro_f1": 1.0,
+                  "ci": [
+                    1.0,
+                    1.0
+                  ],
+                  "dims": 26,
+                  "matches_all": true
+                }
+              },
+              "single_request_size": {
+                "macro_f1": 0.3347125005540847,
+                "ci": [
+                  0.2867349235160171,
+                  0.38207154685045724
+                ],
+                "matches_all": false
+              }
+            },
             "n": 432,
             "groups": 231
           }
         },
         "runtime": {
-          "total_s": 138.29694979201304,
+          "total_s": 131.18294187495485,
           "stages_s": {
-            "collection": 0.6495492500253022,
-            "extraction": 22.985941749997437,
-            "analysis": 114.53378300002078
+            "collection": 0.4418197500053793,
+            "extraction": 21.64213579200441,
+            "analysis": 109.00490524998168
           },
           "analysis_by_attribute_s": {
-            "role": 44.142108874977566,
-            "workflow": 40.77321583300363,
-            "topology": 28.776927749975584
+            "role": 41.00819016696187,
+            "workflow": 39.18983283400303,
+            "topology": 28.022818750003353
           },
           "peak_rss_by_stage_mb": {
             "collection": {
-              "main_mb": 170.859375
+              "main_mb": 170.453125
             },
             "extraction": {
-              "main_mb": 249.765625
+              "main_mb": 249.609375
             },
             "analysis:role": {
-              "main_mb": 249.765625,
-              "worker_mb": 205.15625
+              "main_mb": 268.25,
+              "worker_mb": 210.9375
             },
             "analysis:workflow": {
-              "main_mb": 249.765625,
-              "worker_mb": 264.609375
+              "main_mb": 274.59375,
+              "worker_mb": 261.21875
             },
             "analysis:topology": {
-              "main_mb": 249.765625,
-              "worker_mb": 264.609375
+              "main_mb": 275.046875,
+              "worker_mb": 261.21875
             }
           },
-          "peak_rss_mb": 249.765625,
-          "peak_rss_children_mb": 264.609375,
+          "peak_rss_mb": 275.046875,
+          "peak_rss_children_mb": 261.21875,
           "workers": 14,
           "python": "3.12.1",
           "platform": "macOS-27.0.1-arm64-arm-64bit"
         },
-        "git_commit": "a8556554c8450101c766aec1b2ca6600d5e0a8a3",
+        "git_commit": "6236a27061397fb4f6bfe279aaa695c7d682007d",
         "git_dirty": false,
         "visible_agents": {
           "chain": {
@@ -866,6 +1250,47 @@
               "p": 0.01,
               "false_positive_rate_on_permutations": 0.0,
               "carried_by": "timing",
+              "attribution": {
+                "top_family": "timing",
+                "top_family_matches_all": true,
+                "families": {
+                  "sizes": {
+                    "macro_f1": 0.9267626817211431,
+                    "ci": [
+                      0.910613086026549,
+                      0.9410656070942118
+                    ],
+                    "dims": 26,
+                    "matches_all": false
+                  },
+                  "timing": {
+                    "macro_f1": 0.9830315502502228,
+                    "ci": [
+                      0.9735066540059449,
+                      0.991571273523884
+                    ],
+                    "dims": 5,
+                    "matches_all": true
+                  },
+                  "counts_direction": {
+                    "macro_f1": 0.5420297836255492,
+                    "ci": [
+                      0.5123429615925461,
+                      0.5697486811208168
+                    ],
+                    "dims": 4,
+                    "matches_all": false
+                  }
+                },
+                "single_request_size": {
+                  "macro_f1": 0.5196405694141564,
+                  "ci": [
+                    0.48318722693417987,
+                    0.5512657687631333
+                  ],
+                  "matches_all": false
+                }
+              },
               "n": 1296,
               "groups": 231,
               "source": "a2a_leakcheck run"
@@ -1051,6 +1476,47 @@
               "p": 0.01,
               "false_positive_rate_on_permutations": 0.0,
               "carried_by": "sizes",
+              "attribution": {
+                "top_family": "sizes",
+                "top_family_matches_all": true,
+                "families": {
+                  "sizes": {
+                    "macro_f1": 0.641294877969513,
+                    "ci": [
+                      0.5814162603492298,
+                      0.6950492048369469
+                    ],
+                    "dims": 139,
+                    "matches_all": true
+                  },
+                  "timing": {
+                    "macro_f1": 0.5375311196918527,
+                    "ci": [
+                      0.4861868176863477,
+                      0.586769356620154
+                    ],
+                    "dims": 30,
+                    "matches_all": false
+                  },
+                  "counts_direction": {
+                    "macro_f1": 0.2695634432803597,
+                    "ci": [
+                      0.22492245578060396,
+                      0.304093812900054
+                    ],
+                    "dims": 26,
+                    "matches_all": false
+                  }
+                },
+                "single_request_size": {
+                  "macro_f1": 0.5874000704780605,
+                  "ci": [
+                    0.5319497840783877,
+                    0.6381037160271387
+                  ],
+                  "matches_all": false
+                }
+              },
               "n": 432,
               "groups": 231,
               "source": "a2a_leakcheck run"
@@ -1069,10 +1535,10 @@
             },
             "first_request": {
               "verdict": "LEAK",
-              "macro_f1": 0.5904874714657323,
+              "macro_f1": 0.5874000704780605,
               "ci": [
-                0.5274174293121542,
-                0.6449187415416164
+                0.5319497840783877,
+                0.6381037160271387
               ],
               "p": 0.01,
               "n": 432,
@@ -1126,21 +1592,21 @@
               "INCONCLUSIVE"
             ],
             "first_request": [
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "NO LEAK",
               "NO LEAK",
               "INCONCLUSIVE",
               "NO LEAK",
               "NO LEAK",
               "NO LEAK",
-              "INCONCLUSIVE",
-              "INCONCLUSIVE",
-              "INCONCLUSIVE",
               "NO LEAK",
               "INCONCLUSIVE",
               "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
+              "INCONCLUSIVE",
               "NO LEAK",
               "INCONCLUSIVE",
               "NO LEAK",
@@ -1235,6 +1701,47 @@
               "p": 0.01,
               "false_positive_rate_on_permutations": 0.0,
               "carried_by": "timing",
+              "attribution": {
+                "top_family": "timing",
+                "top_family_matches_all": true,
+                "families": {
+                  "sizes": {
+                    "macro_f1": 0.9976851572766839,
+                    "ci": [
+                      0.9927252110940449,
+                      1.0
+                    ],
+                    "dims": 139,
+                    "matches_all": true
+                  },
+                  "timing": {
+                    "macro_f1": 1.0,
+                    "ci": [
+                      1.0,
+                      1.0
+                    ],
+                    "dims": 30,
+                    "matches_all": true
+                  },
+                  "counts_direction": {
+                    "macro_f1": 1.0,
+                    "ci": [
+                      1.0,
+                      1.0
+                    ],
+                    "dims": 26,
+                    "matches_all": true
+                  }
+                },
+                "single_request_size": {
+                  "macro_f1": 0.3347125005540847,
+                  "ci": [
+                    0.2867349235160171,
+                    0.38207154685045724
+                  ],
+                  "matches_all": false
+                }
+              },
               "n": 432,
               "groups": 231,
               "source": "a2a_leakcheck run"
@@ -1252,13 +1759,13 @@
               "sample_check_ok": true
             },
             "first_request": {
-              "verdict": "INCONCLUSIVE",
-              "macro_f1": 0.34929889014593957,
+              "verdict": "NO LEAK",
+              "macro_f1": 0.3347125005540847,
               "ci": [
-                0.30376032814813725,
-                0.3935542682703778
+                0.2867349235160171,
+                0.38207154685045724
               ],
-              "p": 0.16,
+              "p": 0.32,
               "n": 432,
               "groups": 231,
               "sample_check_ok": true
@@ -1310,18 +1817,8 @@
               "NO LEAK"
             ],
             "first_request": [
-              "INCONCLUSIVE",
-              "NO LEAK",
-              "INCONCLUSIVE",
-              "INCONCLUSIVE",
-              "INCONCLUSIVE",
               "NO LEAK",
               "NO LEAK",
-              "INCONCLUSIVE",
-              "NO LEAK",
-              "NO LEAK",
-              "NO LEAK",
-              "INCONCLUSIVE",
               "INCONCLUSIVE",
               "INCONCLUSIVE",
               "NO LEAK",
@@ -1329,6 +1826,16 @@
               "INCONCLUSIVE",
               "INCONCLUSIVE",
               "INCONCLUSIVE",
+              "NO LEAK",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
+              "INCONCLUSIVE",
+              "INCONCLUSIVE",
+              "NO LEAK",
               "NO LEAK"
             ]
           },
@@ -1403,6 +1910,7 @@
       }
     }
   },
+  "runtime_s": 14477.184653292003,
   "summary": {
     "full_data": {
       "leakcheck": {
@@ -1476,8 +1984,8 @@
           0.09677141021353453,
           0.7000066870052566
         ],
-        "inconclusive_on_leaks": 2,
-        "no_leak_on_leaks": 0,
+        "inconclusive_on_leaks": 1,
+        "no_leak_on_leaks": 1,
         "false_positive_rate": 0.0,
         "false_positive_rate_ci": [
           0.0,
@@ -1546,60 +2054,60 @@
       "20": {
         "known_leaks": 120,
         "known_non_leaks": 120,
-        "true_positives": 105,
-        "false_positives": 1,
-        "recall": 0.875,
+        "true_positives": 108,
+        "false_positives": 0,
+        "recall": 0.9,
         "recall_ci": [
-          0.8039705972707158,
-          0.922765027559628
+          0.8333182582648719,
+          0.9418664082208283
         ],
-        "false_negative_rate": 0.125,
+        "false_negative_rate": 0.1,
         "false_negative_rate_ci": [
-          0.07723497244037196,
-          0.19602940272928399
+          0.05813359177917161,
+          0.16668174173512812
         ],
-        "inconclusive_on_leaks": 15,
+        "inconclusive_on_leaks": 12,
         "no_leak_on_leaks": 0,
-        "false_positive_rate": 0.008333333333333333,
+        "false_positive_rate": 0.0,
         "false_positive_rate_ci": [
-          0.00147255571707176,
-          0.04569629172758835
+          0.0,
+          0.03101916689287469
         ],
-        "precision": 0.9905660377358491,
+        "precision": 1.0,
         "precision_ci": [
-          0.948486451429492,
-          0.9983327283156644
+          0.9656526397301989,
+          0.9999999999999999
         ],
-        "agreement_with_full_mean": 0.875
+        "agreement_with_full_mean": 0.9
       },
       "30": {
         "known_leaks": 120,
         "known_non_leaks": 120,
-        "true_positives": 118,
+        "true_positives": 119,
         "false_positives": 1,
-        "recall": 0.9833333333333333,
+        "recall": 0.9916666666666667,
         "recall_ci": [
-          0.9412640365282555,
-          0.9954174354752988
+          0.9543037082724115,
+          0.9985274442829282
         ],
-        "false_negative_rate": 0.016666666666666666,
+        "false_negative_rate": 0.008333333333333333,
         "false_negative_rate_ci": [
-          0.004582564524701124,
-          0.05873596347174441
+          0.00147255571707176,
+          0.04569629172758835
         ],
-        "inconclusive_on_leaks": 2,
+        "inconclusive_on_leaks": 1,
         "no_leak_on_leaks": 0,
         "false_positive_rate": 0.008333333333333333,
         "false_positive_rate_ci": [
           0.00147255571707176,
           0.04569629172758835
         ],
-        "precision": 0.9915966386554622,
+        "precision": 0.9916666666666667,
         "precision_ci": [
-          0.9539321140806404,
-          0.9985150569763176
+          0.9543037082724115,
+          0.9985274442829282
         ],
-        "agreement_with_full_mean": 0.9833333333333334
+        "agreement_with_full_mean": 0.9916666666666667
       },
       "50": {
         "known_leaks": 120,
@@ -1632,5 +2140,39 @@
       }
     }
   },
-  "runtime_s": 15071.829387417005
+  "reference": {
+    "definition": "Known leaks: the real labels of every attribute but audit_null (and the cells named by --not-known). Known non-leaks: audit_null and the permuted labels.",
+    "cells": [
+      [
+        "tls",
+        "role",
+        "leak"
+      ],
+      [
+        "tls",
+        "workflow",
+        "leak"
+      ],
+      [
+        "tls",
+        "topology",
+        "leak"
+      ],
+      [
+        "cleartext",
+        "role",
+        "leak"
+      ],
+      [
+        "cleartext",
+        "workflow",
+        "leak"
+      ],
+      [
+        "cleartext",
+        "topology",
+        "leak"
+      ]
+    ]
+  }
 }

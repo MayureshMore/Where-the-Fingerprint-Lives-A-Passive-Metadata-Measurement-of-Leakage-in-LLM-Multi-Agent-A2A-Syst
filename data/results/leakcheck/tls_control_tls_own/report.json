@@ -1,12 +1,13 @@
 {
   "tool": "a2a-leakcheck",
   "version": "0.1.0",
-  "created": "2026-11-02T21:06:05-0800",
-  "git_commit": "da31192ab160c58767221fb2818a70e9cbe69894",
+  "created": "2026-11-14T14:13:29-0800",
+  "git_commit": "56849f020219ad42802c136bf554d7314783db3e",
   "git_dirty": false,
   "input": {
     "folder": "data/raw_tlspair_tls",
-    "label": ""
+    "label": "",
+    "vantage": null
   },
   "parameters": {
     "attributes": [
@@ -14,6 +15,7 @@
       "workflow",
       "topology"
     ],
+    "role_within": [],
     "margin": 0.05,
     "folds": 5,
     "n_boot": 1000,
@@ -26,26 +28,68 @@
     "jobs": -1,
     "rules": "default",
     "strip": true,
-    "legacy_all_connections": false
+    "legacy_all_connections": false,
+    "keep_retransmissions": false
   },
   "collection": {
     "folder": "data/raw_tlspair_tls",
+    "vantage": null,
     "pcaps": 432,
     "traces": 432,
     "skipped": [],
     "stripped_copies": 432,
     "group_source": {
       "input_prompt": 432
+    },
+    "visible_agents": {
+      "chain": {
+        "traces": 144,
+        "roles": {
+          "executor": 144,
+          "orchestrator": 0,
+          "retriever": 144,
+          "validator": 144
+        },
+        "never_seen": [
+          "orchestrator"
+        ]
+      },
+      "mesh": {
+        "traces": 144,
+        "roles": {
+          "executor": 144,
+          "orchestrator": 0,
+          "retriever": 144,
+          "validator": 144
+        },
+        "never_seen": [
+          "orchestrator"
+        ]
+      },
+      "star": {
+        "traces": 144,
+        "roles": {
+          "executor": 144,
+          "orchestrator": 0,
+          "retriever": 144,
+          "validator": 144
+        },
+        "never_seen": [
+          "orchestrator"
+        ]
+      }
     }
   },
   "extraction": {
     "traces": 432,
     "failed": [],
     "role_samples": 1296,
+    "empty_traces": 0,
     "trace_dims": 195,
     "role_dims": 35,
     "measurement": "own connections: only TCP connections whose SYN is in the capture",
-    "first_request": "TCP payload bytes of the first request message that reaches an agent (the caller \u2192 orchestrator link is not captured): on the agent link, opened by the trace, whose first post-handshake request starts earliest, the request-direction writes \u2264 50 ms apart, TLS ClientHello and client Finished excluded; from headers only."
+    "retransmissions": "dropped: every payload byte counted once (TCP sequence numbers)",
+    "first_request": "Bytes of the first request message that reaches an agent, in TCP sequence space (each byte once; IP and TCP headers only): on each agent link the trace opened, after the TLS handshake (the client's bytes before the server's first data are the ClientHello, its next segment of at most 100 B the Finished), a request runs from the end of the previous one to the acknowledgment number of the first server data segment that acknowledges every client byte seen so far and that the client has received before it sends its next byte (its next data segment acknowledges it). A server answers only once it holds the whole request, and the client sends nothing more until it has the answer; a record the server sends mid-request (a TLS session ticket) acknowledges less than the client has sent, or the client goes on with the request without having received it. Per link the first request of at least 300 B; of those, the one that starts earliest."
   },
   "attributes": {
     "role": {
@@ -79,22 +123,22 @@
           "permutations": 99,
           "alpha": 0.05,
           "null_model": "rf-light",
-          "observed_macro_f1": 0.9922829478295828,
+          "observed_macro_f1": 0.9915122619535087,
           "p_value": 0.01,
-          "null_mean": 0.33279258663928757,
-          "null_max": 0.3691782124043372,
+          "null_mean": 0.33342182588401714,
+          "null_max": 0.36803785572885744,
           "null_verdicts": {
             "LEAK": 0,
-            "NO LEAK": 95,
-            "INCONCLUSIVE": 4
+            "NO LEAK": 93,
+            "INCONCLUSIVE": 6
           },
           "false_positive_rate": 0.0
         }
       },
       "analysis": {
-        "macro_f1": 0.9907380398684432,
-        "ci_lo": 0.9842316190663191,
-        "ci_hi": 0.9967795780209356,
+        "macro_f1": 0.9907398394091763,
+        "ci_lo": 0.9842736609386611,
+        "ci_hi": 0.9962641521118454,
         "accuracy": 0.9907407407407407,
         "model": "gbt",
         "folds": 5
@@ -102,47 +146,47 @@
       "verdict": "LEAK",
       "reason": "CI lower bound 0.984 > chance + margin 0.383",
       "prioritization": {
-        "effect_size": 0.9861070598026647,
+        "effect_size": 0.9861097591137643,
         "severity": "high"
       },
       "attribution": {
         "families": {
           "sizes": {
-            "macro_f1": 0.9259538525285347,
-            "ci_lo": 0.9117431530617603,
-            "ci_hi": 0.9415423468087645,
-            "accuracy": 0.9259259259259259,
+            "macro_f1": 0.9251403269949479,
+            "ci_lo": 0.909887892407929,
+            "ci_hi": 0.9407854269728673,
+            "accuracy": 0.9251543209876543,
             "dims": 26,
             "all_minus_this": {
-              "diff": 0.06478418733990854,
-              "ci_lo": 0.051352805023216944,
-              "ci_hi": 0.07807265138068581,
+              "diff": 0.06559951241422846,
+              "ci_lo": 0.051015987041761204,
+              "ci_hi": 0.08008312416279952,
               "significant": true
             }
           },
           "timing": {
-            "macro_f1": 0.9737753306718823,
-            "ci_lo": 0.962985611615679,
-            "ci_hi": 0.9832691103597347,
-            "accuracy": 0.9737654320987654,
+            "macro_f1": 0.9722210369106038,
+            "ci_lo": 0.9610138281079215,
+            "ci_hi": 0.9819181445845017,
+            "accuracy": 0.9722222222222222,
             "dims": 5,
             "all_minus_this": {
-              "diff": 0.016962709196560954,
-              "ci_lo": 0.008706100387515911,
-              "ci_hi": 0.026521340605479102,
+              "diff": 0.018518802498572517,
+              "ci_lo": 0.01001800871486506,
+              "ci_hi": 0.02706162246756663,
               "significant": true
             }
           },
           "counts_direction": {
-            "macro_f1": 0.6931420612098224,
-            "ci_lo": 0.6622737297861293,
-            "ci_hi": 0.7206006369011044,
-            "accuracy": 0.6967592592592593,
+            "macro_f1": 0.6884228496704464,
+            "ci_lo": 0.6597873586318612,
+            "ci_hi": 0.7162178158869662,
+            "accuracy": 0.6929012345679012,
             "dims": 4,
             "all_minus_this": {
-              "diff": 0.29759597865862086,
-              "ci_lo": 0.26943411118773414,
-              "ci_hi": 0.32845211313193756,
+              "diff": 0.3023169897387299,
+              "ci_lo": 0.27371086184481414,
+              "ci_hi": 0.3314426808897062,
               "significant": true
             }
           }
@@ -156,9 +200,9 @@
           "ci_hi": 0.5594635265892296,
           "accuracy": 0.5262345679012346,
           "all_minus_this": {
-            "diff": 0.4642489247833922,
-            "ci_lo": 0.43149110356614034,
-            "ci_hi": 0.5007504278084793,
+            "diff": 0.4642507243241253,
+            "ci_lo": 0.4311002582454519,
+            "ci_hi": 0.5003965924331389,
             "significant": true
           },
           "matches_all": false
@@ -209,70 +253,70 @@
           "permutations": 99,
           "alpha": 0.05,
           "null_model": "rf-light",
-          "observed_macro_f1": 0.6224061323752064,
+          "observed_macro_f1": 0.635620879882036,
           "p_value": 0.01,
-          "null_mean": 0.24646581836525983,
-          "null_max": 0.31749553269583697,
+          "null_mean": 0.2446987370741944,
+          "null_max": 0.30412177951438535,
           "null_verdicts": {
             "LEAK": 0,
-            "NO LEAK": 71,
-            "INCONCLUSIVE": 28
+            "NO LEAK": 70,
+            "INCONCLUSIVE": 29
           },
           "false_positive_rate": 0.0
         }
       },
       "analysis": {
-        "macro_f1": 0.6127851817820327,
-        "ci_lo": 0.5577012317452725,
-        "ci_hi": 0.6600383384590842,
-        "accuracy": 0.6134259259259259,
+        "macro_f1": 0.5766140667834622,
+        "ci_lo": 0.5181550281644214,
+        "ci_hi": 0.6267161411899432,
+        "accuracy": 0.5763888888888888,
         "model": "gbt",
         "folds": 5
       },
       "verdict": "LEAK",
-      "reason": "CI lower bound 0.558 > chance + margin 0.300",
+      "reason": "CI lower bound 0.518 > chance + margin 0.300",
       "prioritization": {
-        "effect_size": 0.4837135757093769,
+        "effect_size": 0.43548542237794957,
         "severity": "medium"
       },
       "attribution": {
         "families": {
           "sizes": {
-            "macro_f1": 0.5802797043315899,
-            "ci_lo": 0.5251632670768963,
-            "ci_hi": 0.6356155856213591,
-            "accuracy": 0.5810185185185185,
+            "macro_f1": 0.5686152055965755,
+            "ci_lo": 0.509207498347468,
+            "ci_hi": 0.6197308330182458,
+            "accuracy": 0.5694444444444444,
             "dims": 139,
             "all_minus_this": {
-              "diff": 0.032505477450442744,
-              "ci_lo": -0.006235838196629686,
-              "ci_hi": 0.07060373573973387,
+              "diff": 0.007998861186886641,
+              "ci_lo": -0.02483965209366921,
+              "ci_hi": 0.04522619334893251,
               "significant": false
             }
           },
           "timing": {
-            "macro_f1": 0.4658498938838511,
-            "ci_lo": 0.41308252766142634,
-            "ci_hi": 0.51457349677159,
-            "accuracy": 0.4652777777777778,
+            "macro_f1": 0.4587854955811228,
+            "ci_lo": 0.4019887964141041,
+            "ci_hi": 0.5101465250689947,
+            "accuracy": 0.4537037037037037,
             "dims": 30,
             "all_minus_this": {
-              "diff": 0.14693528789818155,
-              "ci_lo": 0.09351778350465197,
-              "ci_hi": 0.19963363487562397,
+              "diff": 0.11782857120233936,
+              "ci_lo": 0.07156013965650701,
+              "ci_hi": 0.16482648736477953,
               "significant": true
             }
           },
           "counts_direction": {
-            "macro_f1": 0.264791372700061,
-            "ci_lo": 0.22224379680469833,
-            "ci_hi": 0.30580876629182574,
-            "accuracy": 0.2638888888888889,
+            "macro_f1": 0.27826880036542173,
+            "ci_lo": 0.2337990140079396,
+            "ci_hi": 0.31853222564985745,
+            "accuracy": 0.2777777777777778,
             "dims": 26,
             "all_minus_this": {
-              "diff": 0.3479938090819717,
-              "ci_lo": 0.2847804146897629,
-              "ci_hi": 0.4047781871571718,
+              "diff": 0.29834526641804043,
+              "ci_lo": 0.23743167379249808,
+              "ci_hi": 0.36036410086772364,
               "significant": true
             }
           }
@@ -281,14 +325,14 @@
         "top_family_matches_all": true,
         "single_request_size": {
           "feature": "first_request_bytes",
-          "macro_f1": 0.5824903688096503,
-          "ci_lo": 0.5148876746405205,
-          "ci_hi": 0.6418855164588322,
-          "accuracy": 0.5879629629629629,
+          "macro_f1": 0.5715637466652781,
+          "ci_lo": 0.5141315534204597,
+          "ci_hi": 0.6280959270021949,
+          "accuracy": 0.5763888888888888,
           "all_minus_this": {
-            "diff": 0.030294812972382346,
-            "ci_lo": -0.031663397661293655,
-            "ci_hi": 0.08761981811840144,
+            "diff": 0.005050320118184071,
+            "ci_lo": -0.05109001487965499,
+            "ci_hi": 0.05828012498298312,
             "significant": false
           },
           "matches_all": true
@@ -297,7 +341,7 @@
       "mitigations": [
         {
           "id": "pad-task-inputs",
-          "hint": "One request-size feature alone matches all features: the size of the task input gives the attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that the inputs of different classes share one."
+          "hint": "One request-size feature alone matches all features: the size of the task input gives the attribute away. Pad request bodies to fixed size buckets (AgentConfig.pad_buckets; in this testbed the session collector's arm option pad=B1/B2/...), with buckets wide enough that the inputs of different classes share one. Padding task inputs may not remove the leak: other size and timing features can still carry it. Re-run the audit on the padded deployment."
         }
       ]
     },
@@ -334,12 +378,12 @@
           "null_model": "rf-light",
           "observed_macro_f1": 0.9976851572766839,
           "p_value": 0.01,
-          "null_mean": 0.3305398675376667,
-          "null_max": 0.3907923942412895,
+          "null_mean": 0.331000503473842,
+          "null_max": 0.39346552027474474,
           "null_verdicts": {
             "LEAK": 0,
-            "NO LEAK": 61,
-            "INCONCLUSIVE": 38
+            "NO LEAK": 59,
+            "INCONCLUSIVE": 40
           },
           "false_positive_rate": 0.0
         }
@@ -404,14 +448,14 @@
         "top_family_matches_all": true,
         "single_request_size": {
           "feature": "first_request_bytes",
-          "macro_f1": 0.3555019305019305,
-          "ci_lo": 0.31254844167185863,
-          "ci_hi": 0.39780318061332065,
-          "accuracy": 0.35648148148148145,
+          "macro_f1": 0.34077606515595943,
+          "ci_lo": 0.2976870412653114,
+          "ci_hi": 0.38561006415198434,
+          "accuracy": 0.3425925925925926,
           "all_minus_this": {
-            "diff": 0.6444980694980695,
-            "ci_lo": 0.6021968193866795,
-            "ci_hi": 0.6874515583281414,
+            "diff": 0.6592239348440405,
+            "ci_lo": 0.6143899358480156,
+            "ci_hi": 0.7023129587346886,
             "significant": true
           },
           "matches_all": false
@@ -438,21 +482,40 @@
     "NO LEAK": [],
     "INCONCLUSIVE": []
   },
-  "diff": {
-    "baseline": "data/results/leakcheck/tls_control_tls/report.json",
-    "changes": [],
-    "new_leaks": [],
-    "resolved": []
-  },
   "runtime": {
-    "total_s": 123.48080941700027,
+    "total_s": 135.27241712494288,
     "stages_s": {
-      "collection": 0.5446469580056146,
-      "extraction": 21.554872084001545,
-      "analysis": 100.78613724999013
+      "collection": 0.4905392079963349,
+      "extraction": 23.28060562495375,
+      "analysis": 111.42765679204604
     },
-    "peak_rss_mb": 425.0625,
-    "peak_rss_children_mb": 431.703125,
+    "analysis_by_attribute_s": {
+      "role": 41.62112329201773,
+      "workflow": 40.49933008395601,
+      "topology": 28.583702832984272
+    },
+    "peak_rss_by_stage_mb": {
+      "collection": {
+        "main_mb": 171.03125
+      },
+      "extraction": {
+        "main_mb": 251.96875
+      },
+      "analysis:role": {
+        "main_mb": 270.890625,
+        "worker_mb": 211.15625
+      },
+      "analysis:workflow": {
+        "main_mb": 278.015625,
+        "worker_mb": 267.765625
+      },
+      "analysis:topology": {
+        "main_mb": 279.734375,
+        "worker_mb": 267.765625
+      }
+    },
+    "peak_rss_mb": 279.734375,
+    "peak_rss_children_mb": 267.765625,
     "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"

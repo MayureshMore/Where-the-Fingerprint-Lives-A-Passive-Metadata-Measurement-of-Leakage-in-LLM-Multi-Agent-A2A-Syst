@@ -1,0 +1,151 @@
+dataset,cell,attribute,n_per_class,full_verdict,real_leak,real_inconclusive,real_no_leak,permuted_leak,permuted_inconclusive,permuted_no_leak
+D1,tls,role,5,LEAK,0,20,0,0,20,0
+D1,tls,role,10,LEAK,0,20,0,0,20,0
+D1,tls,role,20,LEAK,20,0,0,0,13,7
+D1,tls,role,30,LEAK,20,0,0,0,13,7
+D1,tls,role,50,LEAK,20,0,0,0,16,4
+D1,tls,workflow,5,LEAK,0,20,0,0,20,0
+D1,tls,workflow,10,LEAK,0,20,0,0,20,0
+D1,tls,workflow,20,LEAK,12,8,0,0,15,5
+D1,tls,workflow,30,LEAK,18,2,0,0,16,4
+D1,tls,workflow,50,LEAK,20,0,0,0,12,8
+D1,tls,topology,5,LEAK,0,20,0,0,20,0
+D1,tls,topology,10,LEAK,0,20,0,0,20,0
+D1,tls,topology,20,LEAK,20,0,0,1,13,6
+D1,tls,topology,30,LEAK,20,0,0,0,17,3
+D1,tls,topology,50,LEAK,20,0,0,0,14,6
+D1,cleartext,role,5,LEAK,0,20,0,0,20,0
+D1,cleartext,role,10,LEAK,0,20,0,0,20,0
+D1,cleartext,role,20,LEAK,20,0,0,0,11,9
+D1,cleartext,role,30,LEAK,20,0,0,1,14,5
+D1,cleartext,role,50,LEAK,20,0,0,0,15,5
+D1,cleartext,workflow,5,LEAK,0,20,0,0,20,0
+D1,cleartext,workflow,10,LEAK,0,20,0,0,20,0
+D1,cleartext,workflow,20,LEAK,13,7,0,0,13,7
+D1,cleartext,workflow,30,LEAK,20,0,0,0,14,6
+D1,cleartext,workflow,50,LEAK,20,0,0,0,12,8
+D1,cleartext,topology,5,LEAK,0,20,0,0,20,0
+D1,cleartext,topology,10,LEAK,0,20,0,0,20,0
+D1,cleartext,topology,20,LEAK,20,0,0,0,12,8
+D1,cleartext,topology,30,LEAK,20,0,0,0,13,7
+D1,cleartext,topology,50,LEAK,20,0,0,0,14,6
+D2,lan_v1,task_type,5,LEAK,0,20,0,0,20,0
+D2,lan_v1,task_type,10,LEAK,0,20,0,0,20,0
+D2,lan_v1,task_type,20,LEAK,20,0,0,0,14,6
+D2,lan_v1,task_type,30,LEAK,20,0,0,0,14,6
+D2,lan_v1,task_type,50,LEAK,20,0,0,0,13,7
+D2,lan_v1,escalated,5,LEAK,0,20,0,0,20,0
+D2,lan_v1,escalated,10,LEAK,0,20,0,0,20,0
+D2,lan_v1,escalated,20,LEAK,20,0,0,0,17,3
+D2,lan_v1,escalated,30,LEAK,20,0,0,0,15,5
+D2,lan_v1,escalated,50,LEAK,20,0,0,1,14,5
+D2,lan_v1,cloud_role,5,LEAK,0,20,0,0,20,0
+D2,lan_v1,cloud_role,10,LEAK,0,20,0,0,20,0
+D2,lan_v1,cloud_role,20,LEAK,20,0,0,0,18,2
+D2,lan_v1,cloud_role,30,LEAK,20,0,0,1,15,4
+D2,lan_v1,cloud_role,50,LEAK,20,0,0,0,13,7
+D2,lan_v1,audit_null,5,NO LEAK,0,20,0,0,20,0
+D2,lan_v1,audit_null,10,NO LEAK,0,20,0,0,20,0
+D2,lan_v1,audit_null,20,NO LEAK,0,14,6,0,14,6
+D2,lan_v1,audit_null,30,NO LEAK,0,10,10,0,15,5
+D2,lan_v1,audit_null,50,NO LEAK,0,12,8,0,14,6
+D2,lan_v2,task_type,5,LEAK,0,20,0,0,20,0
+D2,lan_v2,task_type,10,LEAK,0,20,0,0,20,0
+D2,lan_v2,task_type,20,LEAK,20,0,0,0,11,9
+D2,lan_v2,task_type,30,LEAK,20,0,0,0,14,6
+D2,lan_v2,task_type,50,LEAK,20,0,0,0,8,12
+D2,lan_v2,escalated,5,LEAK,0,20,0,0,20,0
+D2,lan_v2,escalated,10,LEAK,0,20,0,0,20,0
+D2,lan_v2,escalated,20,LEAK,20,0,0,1,15,4
+D2,lan_v2,escalated,30,LEAK,20,0,0,0,10,10
+D2,lan_v2,escalated,50,LEAK,20,0,0,0,15,5
+D2,lan_v2,cloud_role,5,LEAK,0,20,0,0,20,0
+D2,lan_v2,cloud_role,10,LEAK,0,20,0,0,20,0
+D2,lan_v2,cloud_role,20,LEAK,20,0,0,0,18,2
+D2,lan_v2,cloud_role,30,LEAK,20,0,0,0,16,4
+D2,lan_v2,cloud_role,50,LEAK,20,0,0,0,15,5
+D2,lan_v2,audit_null,5,NO LEAK,0,20,0,0,20,0
+D2,lan_v2,audit_null,10,NO LEAK,0,20,0,0,20,0
+D2,lan_v2,audit_null,20,NO LEAK,0,15,5,0,12,8
+D2,lan_v2,audit_null,30,NO LEAK,0,9,11,0,15,5
+D2,lan_v2,audit_null,50,NO LEAK,0,9,11,0,8,12
+D2,lan_pad_v1,task_type,5,LEAK,0,20,0,0,20,0
+D2,lan_pad_v1,task_type,10,LEAK,0,20,0,0,20,0
+D2,lan_pad_v1,task_type,20,LEAK,20,0,0,0,16,4
+D2,lan_pad_v1,task_type,30,LEAK,20,0,0,0,11,9
+D2,lan_pad_v1,task_type,50,LEAK,20,0,0,0,12,8
+D2,lan_pad_v1,escalated,5,LEAK,0,20,0,0,20,0
+D2,lan_pad_v1,escalated,10,LEAK,0,20,0,0,20,0
+D2,lan_pad_v1,escalated,20,LEAK,20,0,0,0,18,2
+D2,lan_pad_v1,escalated,30,LEAK,20,0,0,0,16,4
+D2,lan_pad_v1,escalated,50,LEAK,20,0,0,0,14,6
+D2,lan_pad_v1,cloud_role,5,LEAK,0,20,0,0,20,0
+D2,lan_pad_v1,cloud_role,10,LEAK,0,20,0,0,20,0
+D2,lan_pad_v1,cloud_role,20,LEAK,20,0,0,0,17,3
+D2,lan_pad_v1,cloud_role,30,LEAK,20,0,0,0,18,2
+D2,lan_pad_v1,cloud_role,50,LEAK,20,0,0,0,15,5
+D2,lan_pad_v1,audit_null,5,INCONCLUSIVE,0,20,0,0,20,0
+D2,lan_pad_v1,audit_null,10,INCONCLUSIVE,0,20,0,0,20,0
+D2,lan_pad_v1,audit_null,20,INCONCLUSIVE,0,16,4,0,14,6
+D2,lan_pad_v1,audit_null,30,INCONCLUSIVE,0,16,4,0,13,7
+D2,lan_pad_v1,audit_null,50,INCONCLUSIVE,0,12,8,0,11,9
+D2,lan_pad_v2,task_type,5,LEAK,0,20,0,0,20,0
+D2,lan_pad_v2,task_type,10,LEAK,0,20,0,0,20,0
+D2,lan_pad_v2,task_type,20,LEAK,20,0,0,0,13,7
+D2,lan_pad_v2,task_type,30,LEAK,20,0,0,0,13,7
+D2,lan_pad_v2,task_type,50,LEAK,20,0,0,0,10,10
+D2,lan_pad_v2,escalated,5,LEAK,0,20,0,0,20,0
+D2,lan_pad_v2,escalated,10,LEAK,0,20,0,0,20,0
+D2,lan_pad_v2,escalated,20,LEAK,20,0,0,1,16,3
+D2,lan_pad_v2,escalated,30,LEAK,20,0,0,0,16,4
+D2,lan_pad_v2,escalated,50,LEAK,20,0,0,0,13,7
+D2,lan_pad_v2,cloud_role,5,LEAK,0,20,0,0,20,0
+D2,lan_pad_v2,cloud_role,10,LEAK,0,20,0,0,20,0
+D2,lan_pad_v2,cloud_role,20,LEAK,20,0,0,0,16,4
+D2,lan_pad_v2,cloud_role,30,LEAK,20,0,0,0,16,4
+D2,lan_pad_v2,cloud_role,50,LEAK,20,0,0,0,14,6
+D2,lan_pad_v2,audit_null,5,NO LEAK,0,20,0,0,20,0
+D2,lan_pad_v2,audit_null,10,NO LEAK,0,20,0,0,20,0
+D2,lan_pad_v2,audit_null,20,NO LEAK,0,13,7,0,13,7
+D2,lan_pad_v2,audit_null,30,NO LEAK,0,12,8,0,10,10
+D2,lan_pad_v2,audit_null,50,NO LEAK,0,11,9,0,9,11
+D2,lan_padmax_v1,task_type,5,LEAK,0,20,0,0,20,0
+D2,lan_padmax_v1,task_type,10,LEAK,0,20,0,0,20,0
+D2,lan_padmax_v1,task_type,20,LEAK,20,0,0,0,13,7
+D2,lan_padmax_v1,task_type,30,LEAK,20,0,0,0,14,6
+D2,lan_padmax_v1,task_type,50,LEAK,20,0,0,0,10,10
+D2,lan_padmax_v1,escalated,5,LEAK,0,20,0,0,20,0
+D2,lan_padmax_v1,escalated,10,LEAK,0,20,0,0,20,0
+D2,lan_padmax_v1,escalated,20,LEAK,20,0,0,1,17,2
+D2,lan_padmax_v1,escalated,30,LEAK,20,0,0,0,15,5
+D2,lan_padmax_v1,escalated,50,LEAK,20,0,0,0,15,5
+D2,lan_padmax_v1,cloud_role,5,LEAK,0,20,0,0,20,0
+D2,lan_padmax_v1,cloud_role,10,LEAK,0,20,0,0,20,0
+D2,lan_padmax_v1,cloud_role,20,LEAK,20,0,0,0,17,3
+D2,lan_padmax_v1,cloud_role,30,LEAK,20,0,0,0,17,3
+D2,lan_padmax_v1,cloud_role,50,LEAK,20,0,0,0,14,6
+D2,lan_padmax_v1,audit_null,5,INCONCLUSIVE,0,20,0,0,20,0
+D2,lan_padmax_v1,audit_null,10,INCONCLUSIVE,0,20,0,0,20,0
+D2,lan_padmax_v1,audit_null,20,INCONCLUSIVE,0,16,4,0,11,9
+D2,lan_padmax_v1,audit_null,30,INCONCLUSIVE,0,12,8,0,15,5
+D2,lan_padmax_v1,audit_null,50,INCONCLUSIVE,0,15,5,0,7,13
+D2,lan_padmax_v2,task_type,5,LEAK,0,20,0,0,20,0
+D2,lan_padmax_v2,task_type,10,LEAK,0,20,0,0,20,0
+D2,lan_padmax_v2,task_type,20,LEAK,20,0,0,0,11,9
+D2,lan_padmax_v2,task_type,30,LEAK,20,0,0,0,12,8
+D2,lan_padmax_v2,task_type,50,LEAK,20,0,0,0,11,9
+D2,lan_padmax_v2,escalated,5,LEAK,0,20,0,0,20,0
+D2,lan_padmax_v2,escalated,10,LEAK,0,20,0,0,20,0
+D2,lan_padmax_v2,escalated,20,LEAK,20,0,0,3,14,3
+D2,lan_padmax_v2,escalated,30,LEAK,20,0,0,0,17,3
+D2,lan_padmax_v2,escalated,50,LEAK,20,0,0,0,14,6
+D2,lan_padmax_v2,cloud_role,5,LEAK,0,20,0,0,20,0
+D2,lan_padmax_v2,cloud_role,10,LEAK,0,20,0,0,20,0
+D2,lan_padmax_v2,cloud_role,20,LEAK,20,0,0,0,16,4
+D2,lan_padmax_v2,cloud_role,30,LEAK,20,0,0,1,16,3
+D2,lan_padmax_v2,cloud_role,50,LEAK,20,0,0,2,13,5
+D2,lan_padmax_v2,audit_null,5,NO LEAK,0,20,0,0,20,0
+D2,lan_padmax_v2,audit_null,10,NO LEAK,0,20,0,0,20,0
+D2,lan_padmax_v2,audit_null,20,NO LEAK,0,16,4,0,14,6
+D2,lan_padmax_v2,audit_null,30,NO LEAK,0,11,9,0,12,8
+D2,lan_padmax_v2,audit_null,50,NO LEAK,0,8,12,0,10,10

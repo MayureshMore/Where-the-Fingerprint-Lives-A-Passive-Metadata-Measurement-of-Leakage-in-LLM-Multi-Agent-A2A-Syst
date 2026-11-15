@@ -1,0 +1,1100 @@
+{
+  "paper": "P2",
+  "collection_id": "TLS control",
+  "git_commit": "9705bd9892a1dee4d3ca521c82ecee22ea81a173",
+  "git_dirty": false,
+  "old": "data/results/superseded/d1_before_dedup",
+  "new": "data/results",
+  "paired_difference_not_significant": {
+    "role": true,
+    "workflow": false,
+    "topology": true
+  },
+  "rows": [
+    {
+      "number": "D1 TLS: traces",
+      "old": 432,
+      "new": 432,
+      "same": true
+    },
+    {
+      "number": "D1 TLS: runtime total (s)",
+      "old": 123.48080941700027,
+      "new": 135.27241712494288,
+      "same": false
+    },
+    {
+      "number": "D1 TLS: runtime analysis (s)",
+      "old": 100.78613724999013,
+      "new": 111.42765679204604,
+      "same": false
+    },
+    {
+      "number": "D1 TLS: peak memory per worker (MB)",
+      "old": 431.703125,
+      "new": 267.765625,
+      "same": false
+    },
+    {
+      "number": "D1 TLS role: verdict",
+      "old": "LEAK",
+      "new": "LEAK",
+      "same": true
+    },
+    {
+      "number": "D1 TLS role: macro-F1 [CI]",
+      "old": [
+        0.9907380398684432,
+        0.9842316190663191,
+        0.9967795780209356
+      ],
+      "new": [
+        0.9907398394091763,
+        0.9842736609386611,
+        0.9962641521118454
+      ],
+      "same": false
+    },
+    {
+      "number": "D1 TLS role: p",
+      "old": 0.01,
+      "new": 0.01,
+      "same": true
+    },
+    {
+      "number": "D1 TLS role: permuted LEAK / INCONCLUSIVE of 99",
+      "old": [
+        0,
+        4
+      ],
+      "new": [
+        0,
+        6
+      ],
+      "same": false
+    },
+    {
+      "number": "D1 TLS role: timing alone, macro-F1 [CI]",
+      "old": [
+        0.9737753306718823,
+        0.962985611615679,
+        0.9832691103597347
+      ],
+      "new": [
+        0.9722210369106038,
+        0.9610138281079215,
+        0.9819181445845017
+      ],
+      "same": false
+    },
+    {
+      "number": "D1 TLS workflow: verdict",
+      "old": "LEAK",
+      "new": "LEAK",
+      "same": true
+    },
+    {
+      "number": "D1 TLS workflow: macro-F1 [CI]",
+      "old": [
+        0.6127851817820327,
+        0.5577012317452725,
+        0.6600383384590842
+      ],
+      "new": [
+        0.5766140667834622,
+        0.5181550281644214,
+        0.6267161411899432
+      ],
+      "same": false
+    },
+    {
+      "number": "D1 TLS workflow: p",
+      "old": 0.01,
+      "new": 0.01,
+      "same": true
+    },
+    {
+      "number": "D1 TLS workflow: permuted LEAK / INCONCLUSIVE of 99",
+      "old": [
+        0,
+        28
+      ],
+      "new": [
+        0,
+        29
+      ],
+      "same": false
+    },
+    {
+      "number": "D1 TLS workflow: first request alone, macro-F1 [CI]",
+      "old": [
+        0.5824903688096503,
+        0.5148876746405205,
+        0.6418855164588322
+      ],
+      "new": [
+        0.5715637466652781,
+        0.5141315534204597,
+        0.6280959270021949
+      ],
+      "same": false
+    },
+    {
+      "number": "D1 TLS workflow: first request alone matches all",
+      "old": true,
+      "new": true,
+      "same": true
+    },
+    {
+      "number": "D1 TLS workflow: all \u2212 first request alone",
+      "old": 0.030294812972382346,
+      "new": 0.005050320118184071,
+      "same": false
+    },
+    {
+      "number": "D1 TLS topology: verdict",
+      "old": "LEAK",
+      "new": "LEAK",
+      "same": true
+    },
+    {
+      "number": "D1 TLS topology: macro-F1 [CI]",
+      "old": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "new": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "same": true
+    },
+    {
+      "number": "D1 TLS topology: p",
+      "old": 0.01,
+      "new": 0.01,
+      "same": true
+    },
+    {
+      "number": "D1 TLS topology: permuted LEAK / INCONCLUSIVE of 99",
+      "old": [
+        0,
+        38
+      ],
+      "new": [
+        0,
+        40
+      ],
+      "same": false
+    },
+    {
+      "number": "D1 cleartext: traces",
+      "old": 432,
+      "new": 432,
+      "same": true
+    },
+    {
+      "number": "D1 cleartext: runtime total (s)",
+      "old": 121.46798829201725,
+      "new": 148.62903750000987,
+      "same": false
+    },
+    {
+      "number": "D1 cleartext: runtime analysis (s)",
+      "old": 100.0067138329905,
+      "new": 124.20918962499127,
+      "same": false
+    },
+    {
+      "number": "D1 cleartext: peak memory per worker (MB)",
+      "old": 440.65625,
+      "new": 259.78125,
+      "same": false
+    },
+    {
+      "number": "D1 cleartext role: verdict",
+      "old": "LEAK",
+      "new": "LEAK",
+      "same": true
+    },
+    {
+      "number": "D1 cleartext role: macro-F1 [CI]",
+      "old": [
+        0.9899609063520062,
+        0.9834298275172777,
+        0.9951901743375623
+      ],
+      "new": [
+        0.9899609063520062,
+        0.9834298275172777,
+        0.9951901743375623
+      ],
+      "same": true
+    },
+    {
+      "number": "D1 cleartext role: p",
+      "old": 0.01,
+      "new": 0.01,
+      "same": true
+    },
+    {
+      "number": "D1 cleartext role: permuted LEAK / INCONCLUSIVE of 99",
+      "old": [
+        0,
+        6
+      ],
+      "new": [
+        0,
+        6
+      ],
+      "same": true
+    },
+    {
+      "number": "D1 cleartext role: timing alone, macro-F1 [CI]",
+      "old": [
+        0.9830315502502228,
+        0.9735066540059449,
+        0.991571273523884
+      ],
+      "new": [
+        0.9830315502502228,
+        0.9735066540059449,
+        0.991571273523884
+      ],
+      "same": true
+    },
+    {
+      "number": "D1 cleartext workflow: verdict",
+      "old": "LEAK",
+      "new": "LEAK",
+      "same": true
+    },
+    {
+      "number": "D1 cleartext workflow: macro-F1 [CI]",
+      "old": [
+        0.6591310922554636,
+        0.6020670109030845,
+        0.7113712175773608
+      ],
+      "new": [
+        0.6591310922554636,
+        0.6020670109030845,
+        0.7113712175773608
+      ],
+      "same": true
+    },
+    {
+      "number": "D1 cleartext workflow: p",
+      "old": 0.01,
+      "new": 0.01,
+      "same": true
+    },
+    {
+      "number": "D1 cleartext workflow: permuted LEAK / INCONCLUSIVE of 99",
+      "old": [
+        0,
+        31
+      ],
+      "new": [
+        0,
+        31
+      ],
+      "same": true
+    },
+    {
+      "number": "D1 cleartext workflow: first request alone, macro-F1 [CI]",
+      "old": [
+        0.5904874714657323,
+        0.5274174293121542,
+        0.6449187415416164
+      ],
+      "new": [
+        0.5874000704780605,
+        0.5319497840783877,
+        0.6381037160271387
+      ],
+      "same": false
+    },
+    {
+      "number": "D1 cleartext workflow: first request alone matches all",
+      "old": false,
+      "new": false,
+      "same": true
+    },
+    {
+      "number": "D1 cleartext workflow: all \u2212 first request alone",
+      "old": 0.0686436207897313,
+      "new": 0.07173102177740309,
+      "same": false
+    },
+    {
+      "number": "D1 cleartext topology: verdict",
+      "old": "LEAK",
+      "new": "LEAK",
+      "same": true
+    },
+    {
+      "number": "D1 cleartext topology: macro-F1 [CI]",
+      "old": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "new": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "same": true
+    },
+    {
+      "number": "D1 cleartext topology: p",
+      "old": 0.01,
+      "new": 0.01,
+      "same": true
+    },
+    {
+      "number": "D1 cleartext topology: permuted LEAK / INCONCLUSIVE of 99",
+      "old": [
+        0,
+        40
+      ],
+      "new": [
+        0,
+        40
+      ],
+      "same": true
+    },
+    {
+      "number": "D1 both arms: permuted-label LEAK / INCONCLUSIVE / runs",
+      "old": [
+        0,
+        147,
+        594
+      ],
+      "new": [
+        0,
+        152,
+        594
+      ],
+      "same": false
+    },
+    {
+      "number": "tls_control_own: retransmissions",
+      "old": "kept (before Nov 14)",
+      "new": "dropped: every payload byte counted once (TCP sequence numbers)",
+      "same": false
+    },
+    {
+      "number": "role: within cleartext, macro-F1 [CI]",
+      "old": [
+        0.9899609063520062,
+        0.983546071974185,
+        0.9957044435769359
+      ],
+      "new": [
+        0.9899609063520062,
+        0.983546071974185,
+        0.9957044435769359
+      ],
+      "same": true
+    },
+    {
+      "number": "role: within TLS, macro-F1 [CI]",
+      "old": [
+        0.9907380398684432,
+        0.9842181735957669,
+        0.9964364865377302
+      ],
+      "new": [
+        0.9907398394091763,
+        0.9843044799684557,
+        0.9961869794146266
+      ],
+      "same": false
+    },
+    {
+      "number": "role: TLS \u2212 cleartext [CI]",
+      "old": [
+        0.0007771335164370452,
+        -0.007197214769946847,
+        0.008323055004005164
+      ],
+      "new": [
+        0.0007789330571701392,
+        -0.00698336635517755,
+        0.008109762308911
+      ],
+      "same": false
+    },
+    {
+      "number": "role: TLS \u2212 cleartext interval contains 0 (not significant)",
+      "old": true,
+      "new": true,
+      "same": true
+    },
+    {
+      "number": "role: shared prompt groups",
+      "old": 231,
+      "new": 231,
+      "same": true
+    },
+    {
+      "number": "role: cleartext \u2192 TLS, macro-F1 [CI]",
+      "old": [
+        0.9605529254295228,
+        0.9482516784043176,
+        0.9725480662167705
+      ],
+      "new": [
+        0.9605529254295228,
+        0.9482516784043176,
+        0.9725480662167705
+      ],
+      "same": true
+    },
+    {
+      "number": "workflow: within cleartext, macro-F1 [CI]",
+      "old": [
+        0.6591310922554636,
+        0.6030384656151885,
+        0.7084038731762169
+      ],
+      "new": [
+        0.6591310922554636,
+        0.6030384656151885,
+        0.7084038731762169
+      ],
+      "same": true
+    },
+    {
+      "number": "workflow: within TLS, macro-F1 [CI]",
+      "old": [
+        0.6127851817820327,
+        0.5584001905952592,
+        0.661598403874878
+      ],
+      "new": [
+        0.5766140667834622,
+        0.5204827790428442,
+        0.6267837818291709
+      ],
+      "same": false
+    },
+    {
+      "number": "workflow: TLS \u2212 cleartext [CI]",
+      "old": [
+        -0.04634591047343095,
+        -0.10489334900613621,
+        0.014706926997993175
+      ],
+      "new": [
+        -0.08251702547200146,
+        -0.13745337753997047,
+        -0.02549206335111438
+      ],
+      "same": false
+    },
+    {
+      "number": "workflow: TLS \u2212 cleartext interval contains 0 (not significant)",
+      "old": true,
+      "new": false,
+      "same": false
+    },
+    {
+      "number": "workflow: shared prompt groups",
+      "old": 231,
+      "new": 231,
+      "same": true
+    },
+    {
+      "number": "workflow: cleartext \u2192 TLS, macro-F1 [CI]",
+      "old": [
+        0.4781750705434916,
+        0.4226710027070696,
+        0.5296239173990578
+      ],
+      "new": [
+        0.47404843305761335,
+        0.4183276514025677,
+        0.5264683582356448
+      ],
+      "same": false
+    },
+    {
+      "number": "topology: within cleartext, macro-F1 [CI]",
+      "old": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "new": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "same": true
+    },
+    {
+      "number": "topology: within TLS, macro-F1 [CI]",
+      "old": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "new": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "same": true
+    },
+    {
+      "number": "topology: TLS \u2212 cleartext [CI]",
+      "old": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "new": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "same": true
+    },
+    {
+      "number": "topology: TLS \u2212 cleartext interval contains 0 (not significant)",
+      "old": true,
+      "new": true,
+      "same": true
+    },
+    {
+      "number": "topology: shared prompt groups",
+      "old": 231,
+      "new": 231,
+      "same": true
+    },
+    {
+      "number": "topology: cleartext \u2192 TLS, macro-F1 [CI]",
+      "old": [
+        0.9953621925940265,
+        0.9880536652867381,
+        1.0
+      ],
+      "new": [
+        0.9953621925940265,
+        0.9880536652867381,
+        1.0
+      ],
+      "same": true
+    },
+    {
+      "number": "on-wire bytes per trace, TLS / cleartext",
+      "old": 1.0856882151312603,
+      "new": 1.085504893295877,
+      "same": false
+    },
+    {
+      "number": "on-wire packets per trace, TLS / cleartext",
+      "old": 1.0490256976556926,
+      "new": 1.048274169676613,
+      "same": false
+    },
+    {
+      "number": "tool eval leakcheck: recall (TP of known leaks)",
+      "old": [
+        1.0,
+        6,
+        6
+      ],
+      "new": [
+        1.0,
+        6,
+        6
+      ],
+      "same": true
+    },
+    {
+      "number": "tool eval leakcheck: false-positive rate (FP of known non-leaks)",
+      "old": [
+        0.0,
+        0,
+        120
+      ],
+      "new": [
+        0.0,
+        0,
+        120
+      ],
+      "same": true
+    },
+    {
+      "number": "tool eval leakcheck: precision",
+      "old": 1.0,
+      "new": 1.0,
+      "same": true
+    },
+    {
+      "number": "tool eval kfp_rf: recall (TP of known leaks)",
+      "old": [
+        1.0,
+        6,
+        6
+      ],
+      "new": [
+        1.0,
+        6,
+        6
+      ],
+      "same": true
+    },
+    {
+      "number": "tool eval kfp_rf: false-positive rate (FP of known non-leaks)",
+      "old": [
+        0.0,
+        0,
+        120
+      ],
+      "new": [
+        0.0,
+        0,
+        120
+      ],
+      "same": true
+    },
+    {
+      "number": "tool eval kfp_rf: precision",
+      "old": 1.0,
+      "new": 1.0,
+      "same": true
+    },
+    {
+      "number": "tool eval first_request: recall (TP of known leaks)",
+      "old": [
+        0.6666666666666666,
+        4,
+        6
+      ],
+      "new": [
+        0.6666666666666666,
+        4,
+        6
+      ],
+      "same": true
+    },
+    {
+      "number": "tool eval first_request: false-positive rate (FP of known non-leaks)",
+      "old": [
+        0.0,
+        0,
+        120
+      ],
+      "new": [
+        0.0,
+        0,
+        120
+      ],
+      "same": true
+    },
+    {
+      "number": "tool eval first_request: precision",
+      "old": 1.0,
+      "new": 1.0,
+      "same": true
+    },
+    {
+      "number": "tool eval sample size 20: recall [CI]",
+      "old": [
+        0.875,
+        0.8039705972707158,
+        0.922765027559628
+      ],
+      "new": [
+        0.9,
+        0.8333182582648719,
+        0.9418664082208283
+      ],
+      "same": false
+    },
+    {
+      "number": "tool eval sample size 20: false-positive rate",
+      "old": 0.008333333333333333,
+      "new": 0.0,
+      "same": false
+    },
+    {
+      "number": "tool eval sample size 30: recall [CI]",
+      "old": [
+        0.9833333333333333,
+        0.9412640365282555,
+        0.9954174354752988
+      ],
+      "new": [
+        0.9916666666666667,
+        0.9543037082724115,
+        0.9985274442829282
+      ],
+      "same": false
+    },
+    {
+      "number": "tool eval sample size 30: false-positive rate",
+      "old": 0.008333333333333333,
+      "new": 0.008333333333333333,
+      "same": true
+    },
+    {
+      "number": "tool eval sample size 50: recall [CI]",
+      "old": [
+        1.0,
+        0.9689808331071251,
+        0.9999999999999999
+      ],
+      "new": [
+        1.0,
+        0.9689808331071251,
+        0.9999999999999999
+      ],
+      "same": true
+    },
+    {
+      "number": "tool eval sample size 50: false-positive rate",
+      "old": 0.0,
+      "new": 0.0,
+      "same": true
+    }
+  ],
+  "same_folds_old_vs_new": {
+    "tls": {
+      "role": {
+        "n": 1296,
+        "old": {
+          "macro_f1": 0.9907380398684432,
+          "ci_lo": 0.9842181735957669,
+          "ci_hi": 0.9964364865377302,
+          "accuracy": 0.9907407407407407,
+          "n": 1296,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 231
+        },
+        "new": {
+          "macro_f1": 0.9907398394091763,
+          "ci_lo": 0.9843044799684557,
+          "ci_hi": 0.9961869794146266,
+          "accuracy": 0.9907407407407407,
+          "n": 1296,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 231
+        },
+        "new_minus_old": {
+          "diff": 1.7995407330939628e-06,
+          "ci_lo": -0.002296014819042161,
+          "ci_hi": 0.0022321955886362202,
+          "significant": false
+        },
+        "predictions_differ": 2
+      },
+      "workflow": {
+        "n": 432,
+        "old": {
+          "macro_f1": 0.6127851817820327,
+          "ci_lo": 0.5584001905952592,
+          "ci_hi": 0.661598403874878,
+          "accuracy": 0.6134259259259259,
+          "n": 432,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 231
+        },
+        "new": {
+          "macro_f1": 0.5766140667834622,
+          "ci_lo": 0.5204827790428442,
+          "ci_hi": 0.6267837818291709,
+          "accuracy": 0.5763888888888888,
+          "n": 432,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 231
+        },
+        "new_minus_old": {
+          "diff": -0.03617111499857051,
+          "ci_lo": -0.06488338412108231,
+          "ci_hi": -0.007448009116082882,
+          "significant": true
+        },
+        "predictions_differ": 47
+      },
+      "topology": {
+        "n": 432,
+        "old": {
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "n": 432,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 231
+        },
+        "new": {
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "n": 432,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 231
+        },
+        "new_minus_old": {
+          "diff": 0.0,
+          "ci_lo": 0.0,
+          "ci_hi": 0.0,
+          "significant": false
+        },
+        "predictions_differ": 0
+      }
+    },
+    "clear": {
+      "role": {
+        "n": 1296,
+        "old": {
+          "macro_f1": 0.9899609063520062,
+          "ci_lo": 0.983546071974185,
+          "ci_hi": 0.9957044435769359,
+          "accuracy": 0.9899691358024691,
+          "n": 1296,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 231
+        },
+        "new": {
+          "macro_f1": 0.9899609063520062,
+          "ci_lo": 0.983546071974185,
+          "ci_hi": 0.9957044435769359,
+          "accuracy": 0.9899691358024691,
+          "n": 1296,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 231
+        },
+        "new_minus_old": {
+          "diff": 0.0,
+          "ci_lo": 0.0,
+          "ci_hi": 0.0,
+          "significant": false
+        },
+        "predictions_differ": 0
+      },
+      "workflow": {
+        "n": 432,
+        "old": {
+          "macro_f1": 0.6591310922554636,
+          "ci_lo": 0.6030384656151885,
+          "ci_hi": 0.7084038731762169,
+          "accuracy": 0.6574074074074074,
+          "n": 432,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 231
+        },
+        "new": {
+          "macro_f1": 0.6591310922554636,
+          "ci_lo": 0.6030384656151885,
+          "ci_hi": 0.7084038731762169,
+          "accuracy": 0.6574074074074074,
+          "n": 432,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 231
+        },
+        "new_minus_old": {
+          "diff": 0.0,
+          "ci_lo": 0.0,
+          "ci_hi": 0.0,
+          "significant": false
+        },
+        "predictions_differ": 0
+      },
+      "topology": {
+        "n": 432,
+        "old": {
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "n": 432,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 231
+        },
+        "new": {
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "n": 432,
+          "ci_method": "group_bootstrap",
+          "ci_n_clusters": 231
+        },
+        "new_minus_old": {
+          "diff": 0.0,
+          "ci_lo": 0.0,
+          "ci_hi": 0.0,
+          "significant": false
+        },
+        "predictions_differ": 0
+      }
+    }
+  },
+  "retransmissions": {
+    "tls": {
+      "traces": 432,
+      "traces_with_retransmissions": 147,
+      "segments": 196,
+      "requests": 0,
+      "responses": 196,
+      "after_last_data": 196,
+      "partial": 0,
+      "bytes_dropped": 4704,
+      "payload_bytes": 77501416,
+      "payload_size": {
+        "min": 24,
+        "median": 24.0,
+        "max": 24,
+        "bins": {
+          "0-100 B": 196,
+          "101-1000 B": 0,
+          ">1000 B": 0
+        }
+      },
+      "per_workflow": {
+        "classes": {
+          "code_review": {
+            "traces": 108,
+            "traces_with_retransmissions": 35,
+            "segments": 47,
+            "per_trace_mean": 0.4351851851851852
+          },
+          "data_analysis": {
+            "traces": 108,
+            "traces_with_retransmissions": 41,
+            "segments": 51,
+            "per_trace_mean": 0.4722222222222222
+          },
+          "research_retrieval": {
+            "traces": 108,
+            "traces_with_retransmissions": 35,
+            "segments": 52,
+            "per_trace_mean": 0.48148148148148145
+          },
+          "support_triage": {
+            "traces": 108,
+            "traces_with_retransmissions": 36,
+            "segments": 46,
+            "per_trace_mean": 0.42592592592592593
+          }
+        },
+        "chi_square_traces_with_any": {
+          "chi2": 1.0208378088077334,
+          "dof": 3,
+          "p": 0.7962099977707542
+        },
+        "kruskal_per_trace": {
+          "H": 0.5443004419395785,
+          "p": 0.9090564048572718
+        }
+      },
+      "per_topology": {
+        "classes": {
+          "chain": {
+            "traces": 144,
+            "traces_with_retransmissions": 0,
+            "segments": 0,
+            "per_trace_mean": 0.0
+          },
+          "mesh": {
+            "traces": 144,
+            "traces_with_retransmissions": 40,
+            "segments": 40,
+            "per_trace_mean": 0.2777777777777778
+          },
+          "star": {
+            "traces": 144,
+            "traces_with_retransmissions": 107,
+            "segments": 156,
+            "per_trace_mean": 1.0833333333333333
+          }
+        },
+        "chi_square_traces_with_any": {
+          "chi2": 180.8429645542427,
+          "dof": 2,
+          "p": 5.375875490161759e-40
+        },
+        "kruskal_per_trace": {
+          "H": 192.9335265869626,
+          "p": 1.27355297466637e-42
+        }
+      }
+    },
+    "clear": {
+      "traces": 432,
+      "traces_with_retransmissions": 0,
+      "segments": 0,
+      "requests": 0,
+      "responses": 0,
+      "after_last_data": 0,
+      "partial": 0,
+      "bytes_dropped": 0,
+      "payload_bytes": 70891701,
+      "payload_size": null,
+      "per_workflow": {
+        "classes": {
+          "code_review": {
+            "traces": 108,
+            "traces_with_retransmissions": 0,
+            "segments": 0,
+            "per_trace_mean": 0.0
+          },
+          "data_analysis": {
+            "traces": 108,
+            "traces_with_retransmissions": 0,
+            "segments": 0,
+            "per_trace_mean": 0.0
+          },
+          "research_retrieval": {
+            "traces": 108,
+            "traces_with_retransmissions": 0,
+            "segments": 0,
+            "per_trace_mean": 0.0
+          },
+          "support_triage": {
+            "traces": 108,
+            "traces_with_retransmissions": 0,
+            "segments": 0,
+            "per_trace_mean": 0.0
+          }
+        },
+        "chi_square_traces_with_any": null,
+        "kruskal_per_trace": null
+      },
+      "per_topology": {
+        "classes": {
+          "chain": {
+            "traces": 144,
+            "traces_with_retransmissions": 0,
+            "segments": 0,
+            "per_trace_mean": 0.0
+          },
+          "mesh": {
+            "traces": 144,
+            "traces_with_retransmissions": 0,
+            "segments": 0,
+            "per_trace_mean": 0.0
+          },
+          "star": {
+            "traces": 144,
+            "traces_with_retransmissions": 0,
+            "segments": 0,
+            "per_trace_mean": 0.0
+          }
+        },
+        "chi_square_traces_with_any": null,
+        "kruskal_per_trace": null
+      }
+    }
+  }
+}

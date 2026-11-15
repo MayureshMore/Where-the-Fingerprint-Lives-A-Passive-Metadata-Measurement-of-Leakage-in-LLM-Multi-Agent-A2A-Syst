@@ -1,8 +1,16 @@
 # Leak check: data/raw_tlspair_clear
 
-432 traces from 432 captures in `data/raw_tlspair_clear` (0 skipped, 432 analysed as stripped copies). a2a-leakcheck 0.1.0, 2026-11-02T21:08:09-0800.
+432 traces from 432 captures in `data/raw_tlspair_clear` (0 skipped, 432 analysed as stripped copies). a2a-leakcheck 0.1.0, 2026-11-14T15:07:31-0800.
 
 Verdict: LEAK if the 95% CI lower bound of macro-F1 is above chance + 0.05; NO LEAK if the upper bound is at most chance + 0.05; INCONCLUSIVE otherwise, or when the minimum-sample check fails, or when a LEAK fails the label-permutation test (p > 0.05, 99 permutations scored with RF-LIGHT). 5-fold grouped CV, GBT, 1000 cluster-bootstrap resamples, seed 42.
+
+Visible agents per topology: traces in which each agent listed in `agent_endpoints` carries traffic. An agent never seen gives no role samples.
+
+| Topology | Traces | executor | orchestrator | retriever | validator |
+|---|---|---|---|---|---|
+| chain | 144 | 144 | 0 | 144 | 144 |
+| mesh | 144 | 144 | 0 | 144 | 144 |
+| star | 144 | 144 | 0 | 144 | 144 |
 
 | Attribute | Verdict | Severity | macro-F1 [95% CI] | Chance + margin | Permutation p | False positives on permuted labels | Leak carried by |
 |---|---|---|---|---|---|---|---|
@@ -32,6 +40,8 @@ Permutation test (rf-light: macro-F1 0.990 on the real labels): p = 0.010; permu
 
 - **role-endpoints**: Each agent's traffic profile identifies its role. Put agents behind one endpoint, or pad their requests and responses to common sizes.
 
+A role verdict holds for the topologies in the captures; a role profile need not transfer to another topology.
+
 ## workflow
 
 **LEAK**: CI lower bound 0.602 > chance + margin 0.300.
@@ -44,7 +54,7 @@ Permutation test (rf-light: macro-F1 0.990 on the real labels): p = 0.010; permu
 | sizes only | 139 | 0.641 [0.581, 0.695] | +0.018 [-0.015, +0.051] |
 | timing only | 30 | 0.538 [0.486, 0.587] | +0.122 [+0.062, +0.183] |
 | counts and direction only | 26 | 0.270 [0.225, 0.304] | +0.390 [+0.319, +0.464] |
-| first_request_bytes only | 1 | 0.590 [0.527, 0.645] | +0.069 [+0.004, +0.128] |
+| first_request_bytes only | 1 | 0.587 [0.532, 0.638] | +0.072 [+0.017, +0.126] |
 
 Effect size 0.55 (share of the way from chance to perfect); severity medium.
 
@@ -64,7 +74,7 @@ Permutation test (rf-light: macro-F1 0.621 on the real labels): p = 0.010; permu
 | sizes only | 139 | 0.998 [0.993, 1.000] | +0.002 [+0.000, +0.007] |
 | timing only | 30 | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] |
 | counts and direction only | 26 | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] |
-| first_request_bytes only | 1 | 0.349 [0.304, 0.394] | +0.651 [+0.606, +0.696] |
+| first_request_bytes only | 1 | 0.335 [0.287, 0.382] | +0.665 [+0.618, +0.713] |
 
 Effect size 1.00 (share of the way from chance to perfect); severity high.
 
@@ -74,12 +84,14 @@ Permutation test (rf-light: macro-F1 0.998 on the real labels): p = 0.010; permu
 
 - **topology-structure**: Which agents talk to each other is visible from the connections themselves, whatever their content. Hiding topology needs a constant call pattern (every agent called in every task) or relaying all calls through one endpoint.
 
-## Against the baseline
-
-Baseline: `data/results/leakcheck/tls_control_clear/report.json`.
-
-- no verdict changed
-
 ## Runtime
 
-121.5 s in all (collection 0.6 s, extraction 20.3 s, analysis 100.0 s); peak memory 432 MB in the main process, up to 441 MB in each of 14 worker processes.
+148.6 s in all (collection 0.6 s, extraction 23.7 s, analysis 124.2 s); peak memory 281 MB in the main process, up to 260 MB in each of 14 worker processes.
+
+| Stage | Time (s) | Peak so far, main (MB) | Peak so far, one worker (MB) |
+|---|---|---|---|
+| collection | 0.6 | 172 | — |
+| extraction | 23.7 | 256 | — |
+| analysis:role | 46.4 | 275 | 208 |
+| analysis:workflow | 46.9 | 281 | 260 |
+| analysis:topology | 30.2 | 281 | 260 |

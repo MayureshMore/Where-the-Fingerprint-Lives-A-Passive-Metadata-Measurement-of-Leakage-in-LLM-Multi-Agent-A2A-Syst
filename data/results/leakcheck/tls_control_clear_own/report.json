@@ -1,12 +1,13 @@
 {
   "tool": "a2a-leakcheck",
   "version": "0.1.0",
-  "created": "2026-11-02T21:08:09-0800",
-  "git_commit": "da31192ab160c58767221fb2818a70e9cbe69894",
+  "created": "2026-11-14T15:07:31-0800",
+  "git_commit": "1bdb792d41eec69a42326c774db7190f5f0f1725",
   "git_dirty": false,
   "input": {
     "folder": "data/raw_tlspair_clear",
-    "label": ""
+    "label": "",
+    "vantage": null
   },
   "parameters": {
     "attributes": [
@@ -14,6 +15,7 @@
       "workflow",
       "topology"
     ],
+    "role_within": [],
     "margin": 0.05,
     "folds": 5,
     "n_boot": 1000,
@@ -26,26 +28,71 @@
     "jobs": -1,
     "rules": "default",
     "strip": true,
-    "legacy_all_connections": false
+    "legacy_all_connections": false,
+    "keep_retransmissions": false,
+    "cleartext": true
   },
   "collection": {
     "folder": "data/raw_tlspair_clear",
+    "vantage": null,
     "pcaps": 432,
     "traces": 432,
+    "cleartext_traces": 432,
     "skipped": [],
     "stripped_copies": 432,
     "group_source": {
       "input_prompt": 432
+    },
+    "visible_agents": {
+      "chain": {
+        "traces": 144,
+        "roles": {
+          "executor": 144,
+          "orchestrator": 0,
+          "retriever": 144,
+          "validator": 144
+        },
+        "never_seen": [
+          "orchestrator"
+        ]
+      },
+      "mesh": {
+        "traces": 144,
+        "roles": {
+          "executor": 144,
+          "orchestrator": 0,
+          "retriever": 144,
+          "validator": 144
+        },
+        "never_seen": [
+          "orchestrator"
+        ]
+      },
+      "star": {
+        "traces": 144,
+        "roles": {
+          "executor": 144,
+          "orchestrator": 0,
+          "retriever": 144,
+          "validator": 144
+        },
+        "never_seen": [
+          "orchestrator"
+        ]
+      }
     }
   },
   "extraction": {
     "traces": 432,
     "failed": [],
     "role_samples": 1296,
+    "empty_traces": 0,
     "trace_dims": 195,
     "role_dims": 35,
     "measurement": "own connections: only TCP connections whose SYN is in the capture",
-    "first_request": "TCP payload bytes of the first request message that reaches an agent (the caller \u2192 orchestrator link is not captured): on the agent link, opened by the trace, whose first post-handshake request starts earliest, the request-direction writes \u2264 50 ms apart, TLS ClientHello and client Finished excluded; from headers only."
+    "retransmissions": "dropped: every payload byte counted once (TCP sequence numbers)",
+    "first_request": "Bytes of the first request message that reaches an agent, in TCP sequence space (each byte once; IP and TCP headers only): on each agent link the trace opened, after the TLS handshake (the client's bytes before the server's first data are the ClientHello, its next segment of at most 100 B the Finished), a request runs from the end of the previous one to the acknowledgment number of the first server data segment that acknowledges every client byte seen so far and that the client has received before it sends its next byte (its next data segment acknowledges it). A server answers only once it holds the whole request, and the client sends nothing more until it has the answer; a record the server sends mid-request (a TLS session ticket) acknowledges less than the client has sent, or the client goes on with the request without having received it. Per link the first request of at least 300 B; of those, the one that starts earliest.",
+    "first_request_cleartext": "432 traces without TLS: no handshake skipped, the request starts at the first client byte"
   },
   "attributes": {
     "role": {
@@ -281,14 +328,14 @@
         "top_family_matches_all": true,
         "single_request_size": {
           "feature": "first_request_bytes",
-          "macro_f1": 0.5904874714657323,
-          "ci_lo": 0.5274174293121542,
-          "ci_hi": 0.6449187415416164,
+          "macro_f1": 0.5874000704780605,
+          "ci_lo": 0.5319497840783877,
+          "ci_hi": 0.6381037160271387,
           "accuracy": 0.5902777777777778,
           "all_minus_this": {
-            "diff": 0.0686436207897313,
-            "ci_lo": 0.00394748616457995,
-            "ci_hi": 0.12789808931773353,
+            "diff": 0.07173102177740309,
+            "ci_lo": 0.016948024927599982,
+            "ci_hi": 0.12622065027385987,
             "significant": true
           },
           "matches_all": false
@@ -404,14 +451,14 @@
         "top_family_matches_all": true,
         "single_request_size": {
           "feature": "first_request_bytes",
-          "macro_f1": 0.34929889014593957,
-          "ci_lo": 0.30376032814813725,
-          "ci_hi": 0.3935542682703778,
-          "accuracy": 0.35185185185185186,
+          "macro_f1": 0.3347125005540847,
+          "ci_lo": 0.2867349235160171,
+          "ci_hi": 0.38207154685045724,
+          "accuracy": 0.33564814814814814,
           "all_minus_this": {
-            "diff": 0.6507011098540605,
-            "ci_lo": 0.6064457317296222,
-            "ci_hi": 0.6962396718518628,
+            "diff": 0.6652874994459153,
+            "ci_lo": 0.6179284531495428,
+            "ci_hi": 0.7132650764839829,
             "significant": true
           },
           "matches_all": false
@@ -438,21 +485,40 @@
     "NO LEAK": [],
     "INCONCLUSIVE": []
   },
-  "diff": {
-    "baseline": "data/results/leakcheck/tls_control_clear/report.json",
-    "changes": [],
-    "new_leaks": [],
-    "resolved": []
-  },
   "runtime": {
-    "total_s": 121.46798829201725,
+    "total_s": 148.62903750000987,
     "stages_s": {
-      "collection": 0.5761073750036303,
-      "extraction": 20.303262332978193,
-      "analysis": 100.0067138329905
+      "collection": 0.6139275840250775,
+      "extraction": 23.7349941249704,
+      "analysis": 124.20918962499127
     },
-    "peak_rss_mb": 431.703125,
-    "peak_rss_children_mb": 440.65625,
+    "analysis_by_attribute_s": {
+      "role": 46.378923500014935,
+      "workflow": 46.86509791697608,
+      "topology": 30.153870584035758
+    },
+    "peak_rss_by_stage_mb": {
+      "collection": {
+        "main_mb": 171.640625
+      },
+      "extraction": {
+        "main_mb": 255.578125
+      },
+      "analysis:role": {
+        "main_mb": 274.6875,
+        "worker_mb": 207.75
+      },
+      "analysis:workflow": {
+        "main_mb": 281.203125,
+        "worker_mb": 259.78125
+      },
+      "analysis:topology": {
+        "main_mb": 281.203125,
+        "worker_mb": 259.78125
+      }
+    },
+    "peak_rss_mb": 281.203125,
+    "peak_rss_children_mb": 259.78125,
     "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"
