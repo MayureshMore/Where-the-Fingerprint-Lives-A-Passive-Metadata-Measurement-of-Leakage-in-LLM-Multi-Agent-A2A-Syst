@@ -108,7 +108,7 @@
                 "path_validation_results": [
                   {
                     "trust_store": {
-                      "path": "/Users/mayureshmore/Desktop/DATA/CLAUDE/Projects/Passive Inference of Topology, Roles, and Workflows in LLM Multi-Agent Systems via Encrypted Traffic Analysis/Passive Inference of Topology Roles and Workflows in LLM Multi Agent Systems via Encrypted Traffic Analysis/venv-scanners/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/google_aosp.pem",
+                      "path": "<venv>/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/google_aosp.pem",
                       "name": "Android",
                       "version": "16.0.0_r4",
                       "ev_oids": null
@@ -119,7 +119,7 @@
                   },
                   {
                     "trust_store": {
-                      "path": "/Users/mayureshmore/Desktop/DATA/CLAUDE/Projects/Passive Inference of Topology, Roles, and Workflows in LLM Multi-Agent Systems via Encrypted Traffic Analysis/Passive Inference of Topology Roles and Workflows in LLM Multi Agent Systems via Encrypted Traffic Analysis/venv-scanners/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/apple.pem",
+                      "path": "<venv>/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/apple.pem",
                       "name": "Apple",
                       "version": "iOS 26, iPadOS 26, macOS 26, tvOS 26, visionOS 26 and watchOS 26",
                       "ev_oids": null
@@ -130,7 +130,7 @@
                   },
                   {
                     "trust_store": {
-                      "path": "/Users/mayureshmore/Desktop/DATA/CLAUDE/Projects/Passive Inference of Topology, Roles, and Workflows in LLM Multi-Agent Systems via Encrypted Traffic Analysis/Passive Inference of Topology Roles and Workflows in LLM Multi Agent Systems via Encrypted Traffic Analysis/venv-scanners/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/oracle_java.pem",
+                      "path": "<venv>/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/oracle_java.pem",
                       "name": "Java",
                       "version": "jdk-13.0.2",
                       "ev_oids": null
@@ -141,7 +141,7 @@
                   },
                   {
                     "trust_store": {
-                      "path": "/Users/mayureshmore/Desktop/DATA/CLAUDE/Projects/Passive Inference of Topology, Roles, and Workflows in LLM Multi-Agent Systems via Encrypted Traffic Analysis/Passive Inference of Topology Roles and Workflows in LLM Multi Agent Systems via Encrypted Traffic Analysis/venv-scanners/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/mozilla_nss.pem",
+                      "path": "<venv>/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/mozilla_nss.pem",
                       "name": "Mozilla",
                       "version": "2026-03-28",
                       "ev_oids": [
@@ -333,7 +333,7 @@
                   },
                   {
                     "trust_store": {
-                      "path": "/Users/mayureshmore/Desktop/DATA/CLAUDE/Projects/Passive Inference of Topology, Roles, and Workflows in LLM Multi-Agent Systems via Encrypted Traffic Analysis/Passive Inference of Topology Roles and Workflows in LLM Multi Agent Systems via Encrypted Traffic Analysis/venv-scanners/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/microsoft_windows.pem",
+                      "path": "<venv>/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/microsoft_windows.pem",
                       "name": "Windows",
                       "version": "2026-03-28",
                       "ev_oids": null
@@ -423,7 +423,7 @@
               "path_validation_results": [
                 {
                   "trust_store": {
-                    "path": "/Users/mayureshmore/Desktop/DATA/CLAUDE/Projects/Passive Inference of Topology, Roles, and Workflows in LLM Multi-Agent Systems via Encrypted Traffic Analysis/Passive Inference of Topology Roles and Workflows in LLM Multi Agent Systems via Encrypted Traffic Analysis/venv-scanners/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/google_aosp.pem",
+                    "path": "<venv>/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/google_aosp.pem",
                     "name": "Android",
                     "version": "16.0.0_r4",
                     "ev_oids": null
@@ -434,7 +434,7 @@
                 },
                 {
                   "trust_store": {
-                    "path": "/Users/mayureshmore/Desktop/DATA/CLAUDE/Projects/Passive Inference of Topology, Roles, and Workflows in LLM Multi-Agent Systems via Encrypted Traffic Analysis/Passive Inference of Topology Roles and Workflows in LLM Multi Agent Systems via Encrypted Traffic Analysis/venv-scanners/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/apple.pem",
+                    "path": "<venv>/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/apple.pem",
                     "name": "Apple",
                     "version": "iOS 26, iPadOS 26, macOS 26, tvOS 26, visionOS 26 and watchOS 26",
                     "ev_oids": null
@@ -445,7 +445,7 @@
                 },
                 {
                   "trust_store": {
-                    "path": "/Users/mayureshmore/Desktop/DATA/CLAUDE/Projects/Passive Inference of Topology, Roles, and Workflows in LLM Multi-Agent Systems via Encrypted Traffic Analysis/Passive Inference of Topology Roles and Workflows in LLM Multi Agent Systems via Encrypted Traffic Analysis/venv-scanners/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/oracle_java.pem",
+                    "path": "<venv>/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/oracle_java.pem",
                     "name": "Java",
                     "version": "jdk-13.0.2",
                     "ev_oids": null
@@ -456,7 +456,7 @@
                 },
                 {
                   "trust_store": {
-                    "path": "/Users/mayureshmore/Desktop/DATA/CLAUDE/Projects/Passive Inference of Topology, Roles, and Workflows in LLM Multi-Agent Systems via Encrypted Traffic Analysis/Passive Inference of Topology Roles and Workflows in LLM Multi Agent Systems via Encrypted Traffic Analysis/venv-scanners/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/mozilla_nss.pem",
+                    "path": "<venv>/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/mozilla_nss.pem",
                     "name": "Mozilla",
                     "version": "2026-03-28",
                     "ev_oids": [
@@ -648,7 +648,7 @@
                 },
                 {
                   "trust_store": {
-                    "path": "/Users/mayureshmore/Desktop/DATA/CLAUDE/Projects/Passive Inference of Topology, Roles, and Workflows in LLM Multi-Agent Systems via Encrypted Traffic Analysis/Passive Inference of Topology Roles and Workflows in LLM Multi Agent Systems via Encrypted Traffic Analysis/venv-scanners/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/microsoft_windows.pem",
+                    "path": "<venv>/lib/python3.12/site-packages/sslyze/plugins/certificate_info/trust_stores/pem_files/microsoft_windows.pem",
                     "name": "Windows",
                     "version": "2026-03-28",
                     "ev_oids": null

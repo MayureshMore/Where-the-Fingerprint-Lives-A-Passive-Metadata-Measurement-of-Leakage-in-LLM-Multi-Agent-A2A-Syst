@@ -371,7 +371,14 @@ it, and `manifest.json` records each change:
 To rebuild: `python scripts/package_paper2_data.py --out dist/paper2` (from a populated `data/`;
 the output folder must not exist).
 
-## Published archives
+## Earlier archives (not published)
+
+> **Not published, and superseded.** These two archives were planned for the earlier draft and
+> were never uploaded; the location and checksum lines below are placeholders. Most of the sets
+> they would hold were collected before the streaming-bug fix and have their chain and mesh
+> streams cut (RECREATE §7e), and their results are superseded ([RESULTS.md](RESULTS.md)). The
+> published records are the paper 1 and paper 2 archives above. The section numbers in the layout
+> below refer to the earlier draft.
 
 | Archive | Contents | Unpacked size | Needed for |
 |---|---|---|---|
@@ -427,7 +434,7 @@ data/
   results/                                 committed in the repo — the frozen canonical results
 ```
 
-Then follow **Reproducing the paper** in [README.md](README.md).
+Then follow **Reproducing the results** in [README.md](README.md).
 
 ## Re-packaging (maintainer)
 

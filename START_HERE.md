@@ -3,9 +3,14 @@
 The fastest path from a clone to results. Each step is **one command**; deeper docs are
 linked where a step has more to it.
 
-**Just want the paper's numbers?** Skip steps 2–6 — the headline tables/figures regenerate
-deterministically from the published feature archive in **step 7** alone (no GPU, no
-network, no Ollama, no testbed). Steps 2–6 are only for collecting a *fresh* dataset.
+**Just want a paper's numbers?** Skip steps 2–6: **step 7** regenerates them deterministically
+from the published archives (no GPU, no network, no Ollama, no testbed). Steps 2–6 collect a
+*fresh* dataset with the earlier, per-deployment pipeline; paper 1's collection C1 is
+`scripts/run_c1_collection.sh` ([RECREATE.md §7f](RECREATE.md#7f-session-collections-c1-and-later))
+and paper 2's C2 is [docs/LAN_SETUP.md](docs/LAN_SETUP.md).
+
+**Only auditing captures with a2a-leakcheck?** `pip install -r requirements-leakcheck.txt` is
+enough; see the paper 2 quick start in [README.md](README.md#paper-2-safeiot-track-1-a2a-leakcheck).
 
 **Prerequisites:** Python 3.11+, `tcpdump`, and (for real-LLM capture) [Ollama](https://ollama.com).
 
@@ -14,8 +19,11 @@ network, no Ollama, no testbed). Steps 2–6 are only for collecting a *fresh* d
 ## 1. Install
 
 ```bash
-python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+python3 -m venv venv && source venv/bin/activate && pip install -r requirements-lock.txt
 ```
+
+`requirements-lock.txt` holds the exact versions that produced `data/results/`;
+`requirements.txt` holds looser ranges.
 
 ## 2. Verify A2A traffic is on the wire (Phase 0 — must pass before collecting)
 
@@ -52,27 +60,42 @@ Tree models (RF/GBT) are the headline attackers; the deep CNN/Transformer are a
 data-scale sensitivity check — see [docs/DEEP_MODEL_APPENDIX.md](docs/DEEP_MODEL_APPENDIX.md).
 (`all` also trains the deep sensitivity-check models; use `--model gbt` for the headline path alone.)
 
-## 6. Evaluate (closed-world + open-world, written to `data/results/`)
+## 6. Evaluate (closed-world + open-world, into a fresh results folder)
 
 ```bash
-python scripts/evaluate.py --mode all
+A2A_RESULTS_DIR=data/results_rerun python scripts/evaluate.py --mode all
 ```
 
-Use `--rf-only` for a fast RF-only pass. Full headline results, with scope and caveats,
-are in [RESULTS.md](RESULTS.md).
+Use `--rf-only` for a fast RF-only pass. Without `A2A_RESULTS_DIR` the script writes into
+`data/results/` and replaces the committed results of the earlier suite. Those results are
+superseded (captures cut by the streaming bug, RECREATE §7e); [RESULTS.md](RESULTS.md) marks which
+results are valid.
 
-## 7. Reproduce the paper from frozen features (no collection needed)
+## 7. Reproduce a paper from the published archives (no collection needed)
 
-```bash
-bash scripts/reproduce.sh
-```
+Download the archive from Zenodo and unzip it into the repository root (files and checksums in
+[DATA.md](DATA.md)).
 
-Re-analyses the published feature matrices into a **sandbox** (`data/results_demo/`) and
-prints a side-by-side check against the committed canonical results — it **never overwrites
-`data/results/`**. Download/unpack the feature archive first; layout and the archive URL are
-in [DATA.md](DATA.md). Add `--full-suite` to run the whole evaluation suite (RF+GBT; needs the raw-pcap
-archive too); add
-`--with-deep` on top (`--full-suite --with-deep`) to also train the CNN/Transformer.
+- **Paper 1** (C1, [doi:10.5281/zenodo.23938311](https://doi.org/10.5281/zenodo.23938311)):
+
+  ```bash
+  A2A_RESULTS_DIR=data/results_p1 python scripts/evaluate_c1.py
+  ```
+
+  `scripts/evaluate_c1_revision.py` adds the first-request and padding analyses; it writes into
+  `data/results/` directly, so run it in a separate clone.
+- **Paper 2** (C2 and the TLS control, [doi:10.5281/zenodo.24238559](https://doi.org/10.5281/zenodo.24238559)):
+
+  ```bash
+  bash scripts/reproduce_paper2.sh --quick
+  ```
+
+  Rebuilds the examples and audits in minutes into a **sandbox** (`data/results_paper2_demo/`) and
+  compares every number with the committed one; without `--quick` it also runs the tool
+  evaluations (hours).
+
+`bash scripts/reproduce.sh` reproduces the earlier, superseded suite into `data/results_demo/`;
+its inputs (deployment A's captures and features) are not in a published archive.
 
 ---
 
@@ -81,7 +104,8 @@ archive too); add
 | You want to… | Go to |
 |---|---|
 | Rebuild the **entire project from scratch** (datasets → results) | [RECREATE.md](RECREATE.md) |
-| Understand the results, scope, and honest caveats | [RESULTS.md](RESULTS.md) |
+| Understand the results, scope, and honest caveats, and which results are superseded | [RESULTS.md](RESULTS.md) |
+| Find the file behind each paper 2 number | [docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md) |
 | Get the data archive + reproduction inputs | [DATA.md](DATA.md) |
 | Run the US⇄India WAN cross-network experiment (C5) | [docs/WAN_COLLECTION.md](docs/WAN_COLLECTION.md) |
 | Read the deep-model architectures / training budget | [docs/DEEP_MODEL_APPENDIX.md](docs/DEEP_MODEL_APPENDIX.md) |

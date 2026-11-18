@@ -3,7 +3,7 @@
 Headline results, with honest scope and caveats. All numbers are read from the
 committed JSONs under [`data/results/`](data/results/) and regenerate deterministically
 via `bash scripts/reproduce.sh --full-suite` (RF/GBT seed-fixed; deep models opt-in via
-`--with-deep`). Metric is **macro-F1** unless stated; 95% CIs are cluster (group) bootstrap
+`--with-deep`; paper 2: `bash scripts/reproduce_paper2.sh`). Metric is **macro-F1** unless stated; 95% CIs are cluster (group) bootstrap
 — whole prompt-groups or trips are resampled (2000 resamples, seed 42).
 
 > **Reporting conventions.** (1) **macro-F1** is the headline metric everywhere (accuracy
@@ -29,10 +29,23 @@ via `bash scripts/reproduce.sh --full-suite` (RF/GBT seed-fixed; deep models opt
 > **no longer used for any reported interval** — see the C4 notes in §1 and §9a.
 
 > **Streaming bug (RECREATE §7e).** Every set collected with more than one agent-set start in one
-> process has its chain and mesh specialist streams cut after the first event. Sections built on
-> those sets (§1–§3, §5, §6, §8, and the home side of §4) are kept for the record but are
-> superseded; their JSONs are snapshotted in `data/results/pre_fix/`. Paper 1 reports only the
-> clean C1 results below.
+> process has its chain and mesh specialist streams cut after the first event: deployment A's
+> `raw`, A-model, B, B-logic, C (LangGraph), both live defenses and the interleaved sets. The
+> results built on them are kept for the record but are **superseded and not to be cited**; their
+> JSONs are snapshotted in `data/results/pre_fix/`. Each section below starts with its status.
+
+| Section | Data | Status |
+|---|---|---|
+| P1 | C1 (TLS 1.3) | **Paper 1.** Paper 1 uses the own-connection numbers at the top of P1 |
+| P2 | C2 and the TLS control (TLS 1.3 and paired cleartext) | **Paper 2**: [docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md) |
+| §1, §2, §3, §3a, §5, §5.1, §6, §8, §13.1 | deployment A and the other cut sets | superseded, not to be cited |
+| §4 | the WAN run and deployment A | within-WAN clean; the LAN side and LAN→WAN transfer superseded |
+| §7 | `a2a_mcp`, background | clean, except the workflow-novelty context number (trained on A) |
+| §9–§13 | `a2a_mcp`, AutoGen, CrewAI, background | clean (cleartext); not yet reported in a paper |
+| Bottom line | all of the above | the draft's summary of the superseded results; not to be cited |
+
+The clean sections that no paper reports yet are material for paper 3, which re-measures the
+superseded comparisons on new same-session TLS collections.
 
 ---
 
@@ -41,8 +54,27 @@ via `bash scripts/reproduce.sh --full-suite` (RF/GBT seed-fixed; deep models opt
 600 traces (50 per topology × workflow), deployment A, llama3.2:3b, TLS on every agent link,
 5 balanced rounds with all 12 conditions in each, 0 failed attempts. Capture checks pass: one TLS
 handshake per connection; median largest specialist reply star 272, chain 44, mesh 78 packets,
-0% cut. Full tables: [`data/results/c1_evaluation.md`](data/results/c1_evaluation.md)
-(`scripts/evaluate_c1.py`; same five prompt-group folds for every row).
+0% cut.
+
+**What paper 1 reports: each trace's own connections** (only TCP connections whose SYN is in the
+trace; [`c1_evaluation_own.md`](data/results/c1_evaluation_own.md),
+[`c1_revision.md`](data/results/c1_revision.md); Zenodo v1.1):
+
+| Task | Chance | GBT | RF | k-FP baseline |
+|---|---|---|---|---|
+| role | 0.333 | 0.994 [0.990, 0.997] | 0.997 [0.993, 0.999] | 0.991 [0.985, 0.995] |
+| workflow | 0.250 | 0.660 [0.613, 0.703] | 0.624 [0.572, 0.669] | 0.515 [0.462, 0.563] |
+| topology | 0.333 | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 0.998 [0.995, 1.000] |
+
+The first request's size alone gives workflow 0.641 [0.589, 0.687], not distinguishable from all
+features; with requests padded to power-of-two buckets from 1 KB (simulated, 2.7% more bytes) it
+falls to 0.324, and all features still give 0.554 [0.506, 0.600].
+
+**The rest of P1 is the earlier all-connections run** (every connection on the agent ports, which
+includes the previous trace's closing packets; [`c1_evaluation.md`](data/results/c1_evaluation.md),
+commit `fd46e23e`, Zenodo v1.0). Paper 1 does not use these numbers; its own-connection
+counterparts are in the two files above. Same five prompt-group folds for every row
+(`scripts/evaluate_c1.py --legacy-all-connections`).
 
 | Task | Chance | GBT | RF | k-FP baseline |
 |---|---|---|---|---|
@@ -117,7 +149,27 @@ GBT closed-world predictions, same folds; full tables and the confusion figure
 
 ---
 
+## P2. a2a-leakcheck on C2 and the TLS control (paper 2)
+
+Paper 2 evaluates the audit tool on two data sets: C2, an edge-cloud deployment with the edge
+agent on a Raspberry Pi 5 (3,000 traces, three arms: no padding, power-of-two padding, 8 KB
+padding; two observer views), and D1, the TLS control (432 pairs of cleartext and TLS traces). On
+C2 the tool finds all 18 known leaks (recall 1.00 [0.82, 1.00]) with no LEAK on 486 known
+non-leaks (false-positive rate 0.00 [0.00, 0.01]); on D1, 6 of 6 and 0 of 120. Under 8 KB padding
+the task type still leaks through timing (0.90 [0.88, 0.92] at the building-network view). Full
+tables: [`paper2_tool_eval_c2.md`](data/results/paper2_tool_eval_c2.md),
+[`paper2_tool_eval.md`](data/results/paper2_tool_eval.md), the reports under
+`data/results/leakcheck/`, and every number in the paper with its file in
+[docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md). D1 counts every payload byte once since Nov 14;
+[`d1_dedup_comparison.md`](data/results/d1_dedup_comparison.md) sets each D1 number against the
+earlier measure. `bash scripts/reproduce_paper2.sh` rebuilds them all.
+
+---
+
 ## 1. Closed-world attack — deployment A
+
+> **Superseded (pre-fix, not to be cited).** Deployment A's `processed`: chain and mesh streams
+> cut (RECREATE §7e). Paper 1's clean closed world on C1 is P1.
 
 Held-out traces of seen classes; StratifiedGroupKFold on prompt_group (no prompt leaks
 across folds). `data/results/closed_world/`.
@@ -156,6 +208,11 @@ default** in `reproduce.sh` (opt in with `--with-deep`).
 
 ## 2. What the fingerprint depends on — model vs. logic (the causal result)
 
+> **Superseded (pre-fix, not to be cited).** A and A-model have every chain and mesh stream cut,
+> B and B-logic 68% of their chain streams. The truncation removed exactly the traffic where the
+> model shows (generation length and streaming), so the "logic, not model" conclusion is
+> unsupported until paper 3 measures it again on clean data.
+
 Same taxonomy, prompts, and label space; swap one factor at a time. `data/results/model_vs_logic.json`.
 
 | Task | A→A (ceiling) | Model swap | **Logic swap** | Both (A→B) |
@@ -170,6 +227,10 @@ structure, not the model.**
 ---
 
 ## 3. Runtime-invariance control — A ↔ C (LangGraph)
+
+> **Superseded (pre-fix, not to be cited)**, with §3a. A and C both have cut chain and mesh
+> streams; every transfer in §3a reads at least one cut set (A, A-model, B-logic, B, C or the
+> defended sets; the WAN rows' LAN side is A).
 
 Deployment C re-implements A's orchestrator in **LangGraph**, reusing A's specialists,
 prompts, and call structure unchanged — only the orchestration runtime differs.
@@ -238,6 +299,10 @@ swap (A→C 0.990). Parallelism rows are in the JSON.
 
 ## 4. Cross-network — US ⇄ India WAN (C5)
 
+> **Partly superseded.** `raw_wan` is intact, so the **WAN (in-domain)** column is clean
+> (cleartext; not yet reported in a paper). The **LAN** column and the **LAN→WAN transfer** use
+> deployment A's `processed`, whose chain and mesh streams are cut: superseded, not to be cited.
+
 `data/results/cross_network.json`.
 
 | Task | Chance | LAN | WAN (in-domain) | LAN→WAN transfer | n_wan |
@@ -269,6 +334,10 @@ networks, so the attacker must train under the target network's conditions.
 ---
 
 ## 5. Live C4 defenses (workflow attack, real defended captures)
+
+> **Superseded (pre-fix, not to be cited)**, with §5.1. The baseline (A) and both defended sets
+> (`raw_defense_pad`, `raw_defense_rate`) have cut chain and mesh streams. Paper 1's padding result
+> is simulated on C1 (P1); paper 2 measures real padding on C2 (P2).
 
 Fixed attacker trained on undefended traffic, applied to real defended captures
 (N=50/pair). `data/results/defense/defense_live.json`. **Headline = macro-F1; bandwidth = byte overhead.**
@@ -316,6 +385,10 @@ anchor, not a point on the timing curve. SOTA-strength defenses remain future wo
 ---
 
 ## 6. Open-world — two distinct experiments (do not conflate)
+
+> **Superseded (pre-fix, not to be cited).** The open-set rejection and the novelty detector are
+> both trained on deployment A, whose chain and mesh streams are cut. The supervised a2a_mcp
+> detector quoted in §5.4's second bullet reads only a2a_mcp and background captures (§7).
 
 ### §6 Open-set class rejection — `data/results/open_world/`
 Train on the *known* classes, hold out one class as *unknown*; can the classifier **reject
@@ -366,6 +439,11 @@ frameworks."** Separability from another **independent agentic framework** is no
 ---
 
 ## 7. Off-the-shelf external system — Google `a2a_mcp` (Phase 5)
+
+> **Clean (cleartext), not yet reported in a paper**, with §7.1: the detection, topology and role
+> results read only a2a_mcp and background captures. Exception: the workflow-novelty context
+> number (AUC 0.47) uses a classifier trained on deployment A and is superseded. Comparisons with
+> §1–§2 in §7.1 refer to superseded numbers.
 
 An independently-authored multi-agent system (MCP registry + orchestrator + LangGraph
 planner + ADK air/hotel/car specialists), captured over A2A (n=150). **Detection +
@@ -441,6 +519,12 @@ fingerprint on an external system needs deterministic routing — future work.
 ---
 
 ## 8. Framework / implementation identification (Phase 1 — recon)
+
+> **Superseded (pre-fix, not to be cited)**, with §8.1 and §8.2. §8 reads A, B and C (cut);
+> §8.1's interleaved sets are cut and `raw_interleaved_b` failed outright; §8.2's role and topology
+> rows read `raw_interleaved_a_pwr` (cut) against deployment A's closed world, and its workflow
+> row, on the intact `raw_wf_interleaved_full`, is cleartext and is replaced by C1's
+> interleaved design (P1).
 
 Can a passive observer tell *which implementation* a deployment runs, from traffic alone (the
 reconnaissance half of an attack)? Multiclass GBT over the four captured implementations
@@ -552,6 +636,10 @@ within-capture controls plus the cross-capture transfers together cover every cl
 ---
 
 ## 9. Cross-instance transfer on a2a_mcp (Phase 2 — the deployable-attack test)
+
+> **Clean (cleartext), not yet reported in a paper**, with §9a–§9b′: both a2a_mcp instances run
+> each agent in its own process and return each answer as one event, so the streaming bug does
+> not apply.
 
 §7.1 showed the role fingerprint *replicates* when we re-train on a2a_mcp. The stronger,
 deployability-relevant question is **transfer**: can an attacker train a role classifier on
@@ -666,6 +754,8 @@ transfers, but flagged **partly structural** (hub-vs-leaf rides on connection vo
 
 ## 10. Cross-framework replication + transfer on **AutoGen** (Task 3 pilot — independent, non-A2A)
 
+> **Clean, not yet reported in a paper**: a2a_mcp and AutoGen (gRPC, insecure channel) captures only.
+
 The prior cross-framework question (§7 future work) was *does the attack generalize past A2A?* We
 stood up an **independently-structured, networked** system: AutoGen's **distributed gRPC runtime**
 (autogen-core 0.7.5) — a message-routing host with orchestrator/worker agents as gRPC *clients*
@@ -702,6 +792,8 @@ and a second LLM are the natural robustness extensions.*
 
 ## 11. Agentic-vs-agentic detection — A2A vs AutoGen (closes the §7 "open problem")
 
+> **Clean, not yet reported in a paper**: a2a_mcp and AutoGen captures only.
+
 The referee's sharpest deployability point: the AUC 1.0 detector (§7) separates A2A only from
 **non-agentic** negatives, so "detect an A2A system in the wild" was open. With real AutoGen traffic
 we run the honest binary detector — **A2A flows (positive) vs AutoGen flows (negative)**, same 35-dim
@@ -720,6 +812,9 @@ agentic framework (another SSE-over-HTTP system such as CrewAI). **§13 removes 
 (A2A vs CrewAI over an identical a2a-sdk JSON-RPC+SSE transport). Reported as-is.
 
 ## 12. Background-multiplexing degradation — the cost of losing port isolation
+
+> **Clean (cleartext), not yet reported in a paper**: `evaluate_mixing_degradation.py` reads only
+> a2a_mcp flows (`raw_offtheshelf`) and the background set, no deployment-A capture.
 
 The detection/role results assume the observer isolates each agent's flows by port. Real deployments
 multiplex. We embed A2A flows amid genuine background flows (web/file/REST/JSON-RPC/multi-REST/LLM-direct)
@@ -743,6 +838,9 @@ even separable. That is **architectural** and is handled by the paper's threat-m
 this experiment.
 
 ## 13. Same-transport agentic detection — A2A vs **CrewAI** (removes §11's transport confound)
+
+> **Clean (cleartext), not yet reported in a paper**: a2a_mcp and CrewAI captures only. §13.1 is
+> different (below).
 
 §11 separated A2A from AutoGen at AUROC 1.0, but the sanity scan showed the driver was a **transport**
 tell (SSE-over-HTTP vs gRPC/HTTP2), so the harder question — can an observer distinguish A2A from
@@ -779,6 +877,10 @@ isolation of framework code. That stronger "framework identity with all else equ
 the **matched pair in §13.1**; `confounds` and `sanity_scan_reading` in the JSON record the confounds in full.
 
 ### 13.1 Matched pair — **deployment A vs CrewAI** (LLM + transport + agents + host + domain + roles + topology all held equal)
+
+> **Superseded (pre-fix, not to be cited).** The deployment-A side is `data/raw`'s chain traces,
+> whose specialist streams are cut after the first event; the "streaming vs blocking" difference
+> below is measured against those cut streams.
 
 §13 was SCOPED because the LLM backend, interaction pattern and agent count differed. This removes
 all of them. **Positive = deployment A** (our own orchestrator/executor/retriever/validator, chained,
@@ -820,6 +922,12 @@ driven by a configuration-level emission difference — not a subtle behavioural
 ---
 
 ## Bottom line
+
+> **Superseded (the earlier draft's summary; not to be cited).** It rests on §1–§3, §5 and §8,
+> which are superseded, and its central claim (the signal is caused by the call structure, not the
+> model) is unsupported until paper 3 measures it again. What stands: paper 1's C1 results (P1),
+> paper 2's tool evaluation (P2), and the clean sections §4 (within-WAN), §7, §9–§13 (except
+> §13.1).
 
 A passive observer, seeing only encrypted-traffic metadata, recovers **workflow** (GBT
 0.71) and **agent role** (0.86) far above chance. The signal is **caused by the inter-agent

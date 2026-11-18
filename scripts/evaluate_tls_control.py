@@ -381,8 +381,10 @@ def write_report(out: dict, path: Path) -> None:
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description="TLS control evaluation (same-session paired design)")
-    p.add_argument("--clear", help="default: data/processed_tlspair_clear_own (legacy: without _own)")
-    p.add_argument("--tls", help="default: data/processed_tlspair_tls_own (legacy: without _own)")
+    p.add_argument("--clear", help="default: data/processed_tlspair_clear_own_dedup "
+                                   "(--keep-retransmissions: _own; legacy: no suffix)")
+    p.add_argument("--tls", help="default: data/processed_tlspair_tls_own_dedup "
+                                 "(--keep-retransmissions: _own; legacy: no suffix)")
     p.add_argument("--clear-raw", default="data/raw_tlspair_clear")
     p.add_argument("--tls-raw", default="data/raw_tlspair_tls")
     p.add_argument("--legacy-all-connections", action="store_true",

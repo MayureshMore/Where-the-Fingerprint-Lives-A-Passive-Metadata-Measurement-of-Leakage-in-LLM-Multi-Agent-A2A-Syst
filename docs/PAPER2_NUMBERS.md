@@ -52,10 +52,11 @@ leakage.
 | D1 table: verdict, macro-F1 [CI] per attribute and arm | `leakcheck/tls_control_<arm>_own/report.json` | `attributes.<attr>.verdict`, `.analysis.macro_f1`, `.analysis.ci_lo`, `.analysis.ci_hi` |
 | Chance + margin (role 0.38, workflow 0.30, topology 0.38) | same | `attributes.<attr>.threshold` |
 | p = 0.01 | same | `attributes.<attr>.validation.permutation.p_value` |
-| FP 0/99 per row; 0 of 594, 147 INCONCLUSIVE | same | `attributes.<attr>.validation.permutation.null_verdicts` (summed over 3 attributes × 2 arms) |
-| TLS − cleartext: workflow −0.046 [−0.105, +0.015], role +0.001 | `tls_control_own.json` | `results.<attr>.tls_minus_clear.diff`, `.ci_lo`, `.ci_hi` |
-| Cleartext → TLS transfer 0.478 | `tls_control_own.json` | `results.workflow.clear_to_tls.macro_f1` |
-| +8.6% bytes, +4.9% packets | `tls_control_own.json` | `overhead.bytes_ratio`, `overhead.packets_ratio` |
+| FP 0/99 per row; 0 of 594, 152 INCONCLUSIVE | same | `attributes.<attr>.validation.permutation.null_verdicts` (summed over 3 attributes × 2 arms) |
+| TLS − cleartext: workflow −0.083 [−0.137, −0.025], role +0.001 | `tls_control_own.json` | `results.<attr>.tls_minus_clear.diff`, `.ci_lo`, `.ci_hi` |
+| TLS − cleartext with retransmissions counted: workflow −0.046 [−0.105, +0.015] | `d1_dedup_comparison.json` | `rows` ("workflow: TLS − cleartext [CI]", old) |
+| Cleartext → TLS transfer 0.474 | `tls_control_own.json` | `results.workflow.clear_to_tls.macro_f1` |
+| +8.6% bytes, +4.8% packets | `tls_control_own.json` | `overhead.bytes_ratio`, `overhead.packets_ratio` |
 | D2 table: verdict, macro-F1 [CI], p per cell and attribute | `leakcheck/c2_<arm>_<view>/report.json`; `paper2_tool_eval_c2.json` | report: as for D1; evaluation: `arms.<cell>.attributes.<attr>.full.leakcheck` |
 | Recall, false-negative rate, false-positive rate, precision (with CIs) | `paper2_tool_eval.json`, `paper2_tool_eval_c2.json` | `summary.full_data.<method>` |
 | Known leaks and non-leaks per cell, and why (D2: by construction, k-FP, first-request rule) | `paper2_tool_eval_c2.json` | `reference.cells` |
@@ -70,9 +71,9 @@ leakage.
 
 | Number | File | Field |
 |---|---|---|
-| D1 TLS workflow: first request alone 0.582 vs 0.613 | `leakcheck/tls_control_tls_own/report.json` | `attributes.workflow.attribution.single_request_size.macro_f1`, `.matches_all` |
-| D1 cleartext: first request 0.069 below all features | `leakcheck/tls_control_clear_own/report.json` | `attributes.workflow.attribution.single_request_size` (against `analysis.macro_f1`) |
-| Role carried by timing (0.974 vs 0.991) | `leakcheck/tls_control_tls_own/report.json` | `attributes.role.attribution.families.timing` |
+| D1 TLS workflow: first request alone 0.572 vs 0.577 | `leakcheck/tls_control_tls_own/report.json` | `attributes.workflow.attribution.single_request_size.macro_f1`, `.matches_all` |
+| D1 cleartext: first request 0.072 below all features | `leakcheck/tls_control_clear_own/report.json` | `attributes.workflow.attribution.single_request_size` (against `analysis.macro_f1`) |
+| Role carried by timing (0.972 vs 0.991) | `leakcheck/tls_control_tls_own/report.json` | `attributes.role.attribution.families.timing` |
 | D2: the family carrying each LEAK | `paper2_tool_eval_c2.json` | `summary.carried_by` (each family's F1 alone and whether it matches all) |
 | The hint per finding | the reports | `attributes.<attr>.mitigations` (rules: `a2a_leakcheck/rules.yaml`) |
 | The C2 audits with the C2 rules: every verdict and score unchanged, only the hints | `leakcheck/c2_rerun_compare.json` | `<audit>.same_apart_from_hints`, `.hints_changed`; the reports the evaluation read: `superseded/c2_audits_eb8fbbfb/` |

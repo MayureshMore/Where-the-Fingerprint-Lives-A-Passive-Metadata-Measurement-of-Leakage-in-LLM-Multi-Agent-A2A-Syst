@@ -1,46 +1,120 @@
-# Where the Fingerprint Lives: A Passive Metadata Measurement of Leakage in LLM Multi-Agent (A2A) Systems
+# Passive inference of topology, roles and workflows in LLM multi-agent systems from encrypted traffic
 
-Code, data pipeline, and frozen results for the paper above. A passive observer who sees only
-the **metadata** of encrypted agent-to-agent traffic — packet sizes, timing, direction, never
-payloads — recovers the **roles** of the agents and the **workflow** they are running in an LLM
-multi-agent system built on the official [Agent2Agent (A2A)](https://a2a-protocol.org/latest/specification/)
-SDK. The paper's central result is *where* that leakage lives: it is carried by the agent
-implementation's inter-agent call structure, not by the language model or the orchestration
-runtime — which is also why the attack is real within a profiled deployment and stops at its edges.
+Code, testbed, data pipeline and frozen results for three papers on what a passive observer learns
+from the **metadata** of encrypted agent-to-agent traffic (packet sizes, timing and direction,
+never payloads) in LLM multi-agent systems built on the official
+[Agent2Agent (A2A)](https://a2a-protocol.org/latest/specification/) SDK, and for **a2a-leakcheck**,
+a tool that audits a deployment's captures for that leakage.
 
-- **New here?** [START_HERE.md](START_HERE.md) — one command per step, install → reproduce.
-- **Results, scope, and caveats:** [RESULTS.md](RESULTS.md).
-- **Rebuild everything from scratch** (datasets → results): [RECREATE.md](RECREATE.md).
-- **Data archive layout:** [DATA.md](DATA.md).
+| | Paper | Data | Here |
+|---|---|---|---|
+| 1 | EDI 2027 (*Procedia Computer Science*) | C1 | [Paper 1](#paper-1-edi-2027-task-input-sizes-leak-through-tls) |
+| 2 | SafeIoT Hackathon, Track 1 (IoT vulnerability detection) | C2 and the TLS control (D1) | [Paper 2](#paper-2-safeiot-track-1-a2a-leakcheck) |
+| 3 | in progress | new collections | [Paper 3](#paper-3-in-progress) |
+
+Scores below are macro-F1 with 95% cluster-bootstrap CIs over prompt groups unless a row says
+otherwise (recall and false-positive rates carry their own 95% CIs), read from the committed files
+in [`data/results/`](data/results/), the single source of truth.
+
+- **New here?** [START_HERE.md](START_HERE.md): one command per step, install to reproduce.
+- **Every result, with its scope and whether it is still valid:** [RESULTS.md](RESULTS.md).
+- **Rebuild everything from scratch** (datasets to results): [RECREATE.md](RECREATE.md).
+- **Data archives and checksums:** [DATA.md](DATA.md).
 
 ---
 
-## Headline results
+## Paper 1 (EDI 2027): task input sizes leak through TLS
 
-All numbers are macro-F1 with 95% cluster-bootstrap CIs, from the committed JSONs in
-[`data/results/`](data/results/) (the single source of truth). Section numbers refer to the paper.
+*What TLS leaves on the wire: task input sizes leak from encrypted agent-to-agent traffic in
+industrial LLM multi-agent systems.* Collection C1: deployment A (four agents, llama3.2:3b), TLS 1.3
+on every agent link, 600 traces in one session (50 per topology × workflow, five balanced rounds),
+each trace measured on the TCP connections it opens itself. GBT on five prompt-group folds:
 
-| Finding | Result | Chance | Source |
+| Result | Macro-F1 [95% CI] | Chance | Source |
 |---|---|---|---|
-| Role recovery, single deployment (§5.1) | **0.864** [0.847, 0.881] | 0.333 | `closed_world/closed_world_gbt_role.json` |
-| Workflow recovery, single deployment (§5.1) | **0.708** [0.665, 0.745] | 0.250 | `closed_world/closed_world_gbt_workflow.json` |
-| Topology / parallelism — *structural baselines*, read off the connection graph (§5.1) | 0.995 / 0.989 | 0.333 / 0.500 | `closed_world/` |
-| Swap the **model**, keep the logic (§5.2) | role 0.822, workflow 0.532 — keeps most of the signal | | `transfer_crossfit.json` |
-| Swap the **logic**, keep the model (§5.2) | role 0.500, workflow 0.315 — signal collapses | | `transfer_crossfit.json` |
-| Swap only the **runtime** (LangGraph, §5.2) | role 0.83, workflow 0.61 — near ceiling | | `transfer_crossfit.json` |
-| Transfer across implementations, A→B workflow (§5.3) | 0.289 | 0.250 | `transfer_crossfit.json` |
-| Open world, novelty detector at a 1% base rate (§5.4) | precision ≈ **1.6%** | | `open_world_background.json` |
-| Live defenses: rate/count, size padding (§5.5) | 0.507 at +34.9% bytes; 0.505 at +30.8% | 0.250 | `transfer_crossfit.json`, `defense/defense_live.json` |
-| US⇄India WAN, train and test at the WAN vantage (§5.6) | role 0.871, workflow 0.616 | | `cross_network.json` |
-| LAN-trained model tested on WAN, workflow (§5.6) | 0.223 — does not transfer | 0.250 | `transfer_crossfit.json` |
-| Google `a2a_mcp` (not ours), six-way role (§5.7) | **0.906** [0.852, 0.956] | 0.167 | `offtheshelf_fingerprint.json` |
-| Same-session control: framework-ID collapses, core tasks hold (§5.8) | 0.997 → 0.46 | 0.500 | `confound_control.json` |
-| Cross-instance `a2a_mcp`, coordinator layer (§5.9) | 0.87 (82 trips); 0.94 (102 trips) | 0.333 | `cross_instance_transfer*.json` |
-| AutoGen over gRPC (not ours), four-way role (§5.10) | **0.966** | 0.250 | `cross_framework_autogen.json` |
-| Cross-framework transfer, `a2a_mcp` → AutoGen, coordinator vs specialist (§5.10) | 0.43 — collapses to predicting every flow "specialist" (accuracy 0.75 = the specialist share) | | `cross_framework_autogen.json` |
+| Role (1,800 agent samples) | **0.994** [0.990, 0.997] | 0.333 | `c1_evaluation_own.md` |
+| Workflow (600 traces) | **0.660** [0.613, 0.703] | 0.250 | `c1_evaluation_own.md` |
+| Topology: a structural baseline, readable from the connection graph | 1.000 [1.000, 1.000] | 0.333 | `c1_evaluation_own.md` |
+| Workflow from the size of the first request alone, not distinguishable from all 195 features | 0.641 [0.589, 0.687] | 0.250 | `c1_revision.md` |
+| Workflow with requests padded to power-of-two buckets from 1 KB (simulated, 2.7% more bytes); the first request alone falls to 0.324 | 0.554 [0.506, 0.600] | 0.250 | `c1_revision.md` |
 
-Every transfer is prompt-disjoint: the model never trains on a test trace's prompt
-(`scripts/evaluate_transfer_crossfit.py`, RESULTS §3a). Every value above regenerates exactly from the frozen features — see [Reproducing the paper](#reproducing-the-paper).
+**Data:** Zenodo [doi:10.5281/zenodo.23938311](https://doi.org/10.5281/zenodo.23938311) (version
+1.1; files and checksums in [DATA.md](DATA.md#paper-1-archive-collection-c1)). Unzip
+`c1-raw-pcaps-headers-only.zip` and `c1-features-own.zip` into the repository root, then:
+
+```bash
+A2A_RESULTS_DIR=data/results_p1 python scripts/evaluate_c1.py
+python scripts/evaluate_c1_revision.py
+```
+
+`evaluate_c1.py` writes to `$A2A_RESULTS_DIR` (by default `data/results/`, so set it);
+`evaluate_c1_revision.py` always writes to `data/results/`, so run it in a separate clone and
+compare with `git diff`. The full analysis is in [RESULTS.md](RESULTS.md#p1-collection-c1--deployment-a-over-tls-13-one-session-paper-1).
+
+---
+
+## Paper 2 (SafeIoT Track 1): a2a-leakcheck
+
+*a2a-leakcheck: Auditing Encrypted Agent-to-Agent Traffic for Metadata Leakage in Edge-AI
+Deployments.* Given one header-only capture per task and a label sidecar, a2a-leakcheck answers
+LEAK, NO LEAK or INCONCLUSIVE for each attribute, with a confidence interval, a label-permutation
+test, the feature family that carries the leak and a mitigation hint ([full usage](#leak-audit-a2a-leakcheck),
+[docs/LEAKCHECK.md](docs/LEAKCHECK.md)).
+
+**Quick start** (Python 3.11 or newer, no PyTorch):
+
+```bash
+python3 -m venv venv-leakcheck && venv-leakcheck/bin/pip install -r requirements-leakcheck.txt
+venv-leakcheck/bin/python -m a2a_leakcheck run examples/c2_lan --vantage v2 --attributes task_type --html --out /tmp/c2_lan
+PYTHON=venv-leakcheck/bin/python bash scripts/demo_paper2.sh
+```
+
+`demo_paper2.sh` audits the C2 examples without and with padding, writes the HTML reports and
+shows the CI gate (exit code 3 on a new LEAK).
+
+**Headline numbers** (`paper2_tool_eval_c2.json` for C2, `paper2_tool_eval.json` for D1; every
+number in the paper and its file: [docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md)):
+
+| Data | Result |
+|---|---|
+| C2: an edge-cloud deployment (3,000 traces, 1,000 per arm; the edge agent on a Raspberry Pi 5 gateway; observed on the building network, v1, and upstream, v2) | finds all 18 known leaks, recall 1.00 [0.82, 1.00]; no LEAK on 486 known non-leaks, false-positive rate 0.00 [0.00, 0.01] |
+| C2 with every cloud request padded to 8 KB | the task type still leaks, through timing: 0.90 [0.88, 0.92] at v1, 0.89 [0.87, 0.91] at v2 (the first-request rule falls to 0.38); whether the gateway called the cloud (`escalated`) stays LEAK upstream, 1.00 [1.00, 1.00] |
+| D1: the TLS control (paired cleartext and TLS arms, 864 traces) | recall 1.00 [0.61, 1.00] (6 of 6), false-positive rate 0.00 [0.00, 0.03] (0 of 120); TLS changes no verdict |
+| Traces an auditor needs | from 20 per class, recall 1.00 on C2 and 0.90 on D1 (0.99 at 30, 1.00 at 50); below 20 per class the verdict rule returns INCONCLUSIVE |
+| Cost of a full audit (one C2 arm and view, 1,000 traces) | 3 to 4 min on a laptop with 14 workers; 27 min on the Raspberry Pi 5 with 4 workers |
+
+D1 is measured as a2a-leakcheck measures, every payload byte counted once. Its TLS − cleartext
+workflow difference is −0.083 [−0.137, −0.025] that way and −0.046 [−0.105, +0.015] with TCP
+retransmissions counted ([`d1_dedup_comparison.md`](data/results/d1_dedup_comparison.md)); paper 2
+reports both and does not claim that TLS lowers workflow leakage.
+
+**Data:** Zenodo [doi:10.5281/zenodo.24238559](https://doi.org/10.5281/zenodo.24238559) (version
+1.0; files and checksums in [DATA.md](DATA.md#paper-2-archive-collections-c2-and-the-tls-control)).
+Unzip the archives into the repository root, then `bash scripts/reproduce_paper2.sh --quick`
+rebuilds the examples and audits in minutes and compares every number with the committed one;
+without `--quick` it also runs the tool evaluations (hours).
+
+---
+
+## Paper 3: in progress
+
+Paper 3 asks where the fingerprint comes from (the model or the agents' call logic), how far it
+carries across deployments, networks and frameworks, and which defenses stop it. Its results will
+come from new same-session TLS collections that have not been made yet; no result in this
+repository is a paper 3 result.
+
+---
+
+## Earlier results: superseded, not to be cited
+
+An earlier draft (*Where the Fingerprint Lives*) reported role 0.864 and workflow 0.708 on
+deployment A and concluded that the leak is carried by the agents' call structure rather than the
+model. Most of its numbers came from captures in which every chain and mesh specialist stream was
+cut after its first event: an sse-starlette bug, fixed in commit `28a1b23`
+([RECREATE.md §7e](RECREATE.md#7e-streaming-bug-in-the-pre-fix-captures-and-what-was-re-collected)).
+Its headline table has been removed from this README. The results stay in `data/results/`, with a
+snapshot in `data/results/pre_fix/`, and [RESULTS.md](RESULTS.md) marks each section as superseded
+or clean. Cite none of them; paper 3 measures the model-versus-logic question again on clean data.
 
 ---
 
@@ -54,15 +128,16 @@ service-mesh/sidecar vantage. It does **not** fit an observer who must first car
 out of heavy multiplexing (many TLS connections coalesced behind a shared reverse proxy or
 load balancer on port 443); separating target flows from such background is not solved here.
 The role task additionally assumes flows can be attributed to individual agents. Packet
-direction is assigned from the known agent ports; ports never enter the feature vector.
+direction is assigned from the known agent ports; ports never enter the feature vector. In
+paper 2 the observer is the IoT gateway's network or the link upstream of it (views v1 and v2,
+[docs/LEAKCHECK.md](docs/LEAKCHECK.md)), and the auditor knows the agent endpoints.
 
-**The testbed traffic itself is not encrypted.** Every deployment (A, B, C, `a2a_mcp`, CrewAI)
-speaks cleartext HTTP, and AutoGen uses an insecure gRPC channel. The observer is *restricted*
-to the metadata that TLS would leave visible — on-wire packet sizes, timing, and direction — and
-never reads content. TLS adds per-record overhead and a handshake per connection, which shift
-sizes and packet counts. A same-session TLS control for deployment A (RECREATE §7d) measures
-that effect; the other deployments are not re-measured under TLS. The WAN capture
-(§5.6) was taken post-decapsulation on the VPN tunnel interface, i.e. at the tunnel endpoint:
+**Transport.** C1 (paper 1), the TLS arm of the TLS control and C2 (paper 2) run TLS 1.3 on every
+agent link, so their captures hold only TLS records. The earlier collections (deployments A, B and
+C, the live defenses, the WAN run), `a2a_mcp` and CrewAI speak cleartext HTTP, and AutoGen uses an
+insecure gRPC channel; for those the observer is *restricted* to the metadata that TLS would leave
+visible (on-wire packet sizes, timing and direction) and never reads content. The WAN capture
+(RESULTS §4) was taken post-decapsulation on the VPN tunnel interface, i.e. at the tunnel endpoint:
 an on-path observer outside the tunnel would see one encrypted, multiplexed flow, the case
 excluded above.
 
@@ -87,13 +162,15 @@ evaluation/         Closed-world / open-world drivers, metrics, cluster-bootstra
 scripts/            Every runnable entry point: collect, extract, train, evaluate, reproduce
 a2a_leakcheck/      Leak audit tool: header-only captures in, LEAK / NO LEAK / INCONCLUSIVE per
                     attribute out (docs/LEAKCHECK.md)
-examples/           Two 40-trace leakcheck inputs (real and permuted labels) with expected reports
-baselines/          Standard TLS scanners (sslyze, testssl.sh) against the LAN deployment
-frameworks/         The independently authored comparison deployments (§5.10–5.11):
+examples/           Five small leakcheck inputs with their expected reports: the TLS control's
+                    leaky and permuted sets, and C2's c2_lan, c2_lan_padmax and c2_ci_baseline
+baselines/          Standard TLS scanners (sslyze, testssl.sh) against the C2 endpoints; k-FP and
+                    the first-request rule as detectors
+frameworks/         The independently authored comparison deployments (RESULTS §10–§13):
   autogen/            AutoGen distributed gRPC runtime (orchestrator + 3 workers) and its collector
   crewai/             CrewAI served over a2a-sdk, plus the fully matched A-vs-CrewAI pair
-third_party/a2a_mcp/ Compatibility patch and drivers for Google's a2a_mcp sample (§5.7, §5.9)
-configs/            Testbed configurations (local loopback, LangGraph, US⇄India WAN)
+third_party/a2a_mcp/ Compatibility patch and drivers for Google's a2a_mcp sample (RESULTS §7, §9)
+configs/            Testbed configurations (local loopback, LangGraph, US⇄India WAN, the C2 network)
 docs/               WAN and LAN runbooks, leakcheck, deep-model appendix, cross-framework plan,
                     a2a_mcp patch notes
 tests/              Unit and regression tests (pytest)
@@ -102,9 +179,14 @@ data/results/       Committed, canonical results: JSON + figures (everything els
 
 ### Deployments
 
+Deployment A, over TLS, is paper 1's C1. C2 (paper 2) has its own edge and cloud agents
+(`agents/edge.py`, `agents/cloud.py`): the edge agent on a Raspberry Pi gateway, the cloud agents
+on the Mac behind emulated WAN delay ([docs/LAN_SETUP.md](docs/LAN_SETUP.md)). The other rows were
+collected for the superseded draft and are measured again for paper 3.
+
 | Deployment | Code | What differs from A | Isolates |
 |---|---|---|---|
-| **A** (headline) | `agents/` | — (llama3.2:3b, parallel `asyncio.gather` orchestrator) | baseline |
+| **A** | `agents/` | — (llama3.2:3b, parallel `asyncio.gather` orchestrator) | baseline |
 | **B** | `agents_b/` | different model **and** call logic (qwen2.5:7b, sequential) | model + logic |
 | **A-model** | `agents/` + B's model | A's logic with B's model | model only |
 | **B-logic** | `agents_b/` + A's model | B's logic with A's model | logic only |
@@ -124,11 +206,11 @@ The 195-dim trace vector is `[0:35]` per-flow mean, `[35:70]` heaviest flow, `[7
 heaviest, `[105:195]` per-system aggregates. Per-flow features cover size distribution,
 inter-arrival timing, burst structure, and SSE streaming-chunk structure.
 
-| Model | File | Role in the paper |
+| Model | File | Role |
 |---|---|---|
-| Gradient-boosted trees | `models/gradient_boosted.py` | headline attacker |
+| Gradient-boosted trees | `models/gradient_boosted.py` | headline attacker (paper 1) |
 | Random forest | `models/random_forest.py` | equivalent baseline (overlapping CIs); used by the transfer evaluations |
-| 1-D CNN, gap-aware Transformer | `models/cnn1d.py`, `models/transformer.py` | collapse to near-single-class at ≈600 traces; excluded from claims — see [docs/DEEP_MODEL_APPENDIX.md](docs/DEEP_MODEL_APPENDIX.md) |
+| 1-D CNN, gap-aware Transformer | `models/cnn1d.py`, `models/transformer.py` | collapsed to near-single-class at ≈600 traces in the earlier suite; excluded from claims — see [docs/DEEP_MODEL_APPENDIX.md](docs/DEEP_MODEL_APPENDIX.md) |
 
 ### Defenses (run live, re-captured on the wire)
 
@@ -155,28 +237,32 @@ unsuited to an HTTP/SSE study. The AutoGen and CrewAI deployments each have thei
 
 ---
 
-## Reproducing the paper
+## Reproducing the results
 
-All tables and figures regenerate deterministically from the published feature matrices and
-captures — no GPU, no network, no Ollama. Download and unpack the archive into `data/`
-(layout in [DATA.md](DATA.md)), then:
+- **Paper 1:** [above](#paper-1-edi-2027-task-input-sizes-leak-through-tls), from the C1 archive.
+- **Paper 2:** `bash scripts/reproduce_paper2.sh` ([above](#paper-2-safeiot-track-1-a2a-leakcheck)),
+  from the paper 2 archive.
+- **The earlier suite (superseded):** `bash scripts/reproduce.sh` re-analyses deployment A's
+  closed world and the WAN run, and `--full-suite` every earlier result (with the C1 and
+  TLS-control stages); the earlier captures and features are not in a published archive
+  ([DATA.md](DATA.md#earlier-archives-not-published)).
 
-```bash
-bash scripts/reproduce.sh                          # short demo (~5 min): closed-world + WAN, side-by-side check
-bash scripts/reproduce.sh --full-suite             # every result in the paper (RF + GBT)
-bash scripts/reproduce.sh --full-suite --with-deep # also train the CNN/Transformer (stochastic, slow)
-```
-
-Output goes to a **sandbox** (`data/results_demo/`); the committed `data/results/` is never
-overwritten (the script refuses to run if pointed at it). To write a fresh copy instead:
-`A2A_RESULTS_DIR=data/results_$(date +%F) bash scripts/reproduce.sh --full-suite`.
-
-Raw *collection* is stochastic: a fresh collection gives a new dataset whose estimates fall
-within the published CIs, not identical numbers.
+Both reproduction scripts write to a **sandbox** (`data/results_demo/`,
+`data/results_paper2_demo/` or `$A2A_RESULTS_DIR`), compare with the committed results and refuse
+to write into `data/results/`. Results regenerate deterministically from the released features and captures, with
+no GPU, network or Ollama. Raw *collection* is stochastic: a fresh collection gives a new dataset
+whose estimates fall within the published CIs, not identical numbers.
 
 ---
 
 ## Running the pipeline
+
+The session collector gathers one or more arms (deployment, model, TLS on or off, defense) in one
+session with every condition interleaved: C1 is `bash scripts/run_c1_collection.sh`
+([RECREATE.md §7f](RECREATE.md#7f-session-collections-c1-and-later)), and C2 on the Mac and the
+Raspberry Pi is [docs/LAN_SETUP.md](docs/LAN_SETUP.md). The commands below are the earlier,
+per-deployment pipeline (cleartext). Since the fix it records complete streams, but the results it
+produced in `data/results/` are the superseded ones, so write a re-run elsewhere:
 
 ```bash
 # 0. Verify A2A traffic is on the wire (must print OVERALL : PASS)
@@ -186,32 +272,17 @@ python scripts/smoke_test_a2a.py --mode local --use-llm --model llama3.2:3b
 #    on macOS `chmod o+r /dev/bpf*` once removes the need for sudo)
 sudo venv/bin/python scripts/collect_deployment.py --n 50 --out data/raw
 
-# 2. Extract the 195-dim features
+# 2. Extract the 195-dim features (evaluate.py reads data/processed)
 python scripts/extract_features.py --raw data/raw --out data/processed --scapy
 
-# 3. Evaluate: closed-world + open-world, RF + GBT (add --full-suite for the deep models)
-python scripts/evaluate.py --mode all
-
-# Model vs. logic, cross-deployment, runtime control
-python scripts/evaluate_model_vs_logic.py
-python scripts/evaluate_cross_deployment.py --dir-a data/processed --dir-b data/processed_b_sdk
-python scripts/evaluate_cross_deployment.py --dir-a data/processed --dir-b data/processed_langgraph \
-    --label-b C --control --out data/results/cross_framework.json
-
-# Live defenses
-python scripts/evaluate_defense_live.py \
-  --baseline data/processed --baseline-raw data/raw \
-  --rate data/processed_defense_rate --rate-raw data/raw_defense_rate \
-  --pad  data/processed_defense_pad  --pad-raw  data/raw_defense_pad
+# 3. Evaluate: closed-world + open-world, RF + GBT, into a fresh results folder
+A2A_RESULTS_DIR=data/results_rerun python scripts/evaluate.py --mode all
 ```
 
-The US⇄India WAN experiment (§5.6) is documented step by step in
-[docs/WAN_COLLECTION.md](docs/WAN_COLLECTION.md); capture is taken post-decapsulation on the VPN
-tunnel interface, not the physical NIC. The Mac + Raspberry Pi LAN setup (gateway vantage) is in
-[docs/LAN_SETUP.md](docs/LAN_SETUP.md).
-
-The `a2a_mcp`, AutoGen, and CrewAI collections are in [RECREATE.md](RECREATE.md). Every
-evaluation step is also wired into `scripts/reproduce.sh`.
+The model-vs-logic, cross-deployment, runtime-control and live-defense evaluations, the US⇄India
+WAN run ([docs/WAN_COLLECTION.md](docs/WAN_COLLECTION.md); captured post-decapsulation on the VPN
+tunnel interface) and the `a2a_mcp`, AutoGen and CrewAI collections are in
+[RECREATE.md](RECREATE.md).
 
 ---
 
@@ -270,9 +341,11 @@ Pi's verdicts and scores equal the laptop's and lists both runtimes and peak mem
 
 ### What else is here
 
-- [examples/](examples/README.md): small header-only inputs with expected reports. The TLS
-  control's `leaky` and `permuted` sets (40 traces each), and C2's `c2_lan` and `c2_lan_padmax`
-  (the same 40 tasks without and with padding).
+- [examples/](examples/README.md): five small header-only inputs with expected reports. The TLS
+  control's `leaky` and `permuted` sets (the same 40 captures with real and permuted labels), and
+  C2's `c2_lan` and `c2_lan_padmax` (the same 40 tasks without and with padding) and
+  `c2_ci_baseline` (the first 10 tasks per type of `c2_lan`, the earlier report the CI gate
+  compares against).
 - [baselines/](baselines/README.md): the TLS scanners (sslyze, testssl.sh) on the same endpoints, and
   k-FP and the first-request rule in the tool's verdict rule (`baselines/run_detectors.py`).
 - `scripts/evaluate_leakcheck.py` measures the tool on known answers: recall on known leaks, false
@@ -310,13 +383,28 @@ multi-agent systems without the explicit authorization of their owner.
 
 ## Citation
 
+Until the papers appear, cite the data records:
+
 ```bibtex
-@misc{more2026wherefingerprintlives,
-  title  = {Where the Fingerprint Lives: A Passive Metadata Measurement of Leakage
-            in LLM Multi-Agent (A2A) Systems},
-  author = {More, Mayuresh Sanjay},
-  year   = {2026},
-  note   = {Code and data: https://github.com/MayureshMore/Where-the-Fingerprint-Lives-A-Passive-Metadata-Measurement-of-Leakage-in-LLM-Multi-Agent-A2A-Syst}
+@dataset{more2026c1,
+  author    = {More, Mayuresh Sanjay and Pujari, Shradha Devendra and Berhe, Solomon},
+  title     = {Encrypted agent-to-agent traffic of an LLM multi-agent system: TLS 1.3 A2A
+               captures and features (collection C1)},
+  year      = {2026},
+  version   = {1.1},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.23938311}
+}
+
+@dataset{more2026c2,
+  author    = {More, Mayuresh Sanjay and Pujari, Shradha Devendra and Berhe, Solomon},
+  title     = {Encrypted agent-to-agent traffic of an edge-AI gateway and its emulated cloud
+               agents (collection C2), with a paired cleartext/TLS control: header-only
+               captures and features},
+  year      = {2026},
+  version   = {1.0},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.24238559}
 }
 ```
 

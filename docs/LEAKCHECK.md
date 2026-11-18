@@ -102,10 +102,12 @@ of the TLS control's TLS arm with one worker per core, with the Pi's agents stop
 do not compete for the cores:
 
 ```bash
-# on the Mac: code (as in LAN_SETUP.md) and the captures
-rsync -a --exclude data --exclude venv --exclude .git --exclude dist ./ pi@192.168.2.2:a2a/
-rsync -a data/raw_tlspair_tls pi@192.168.2.2:a2a/data/
-rsync -aR data/results/leakcheck/tls_control_tls_own pi@192.168.2.2:a2a/      # the Mac's report
+# on the Mac: code (as in LAN_SETUP.md) and the captures; the Pi's address and login user
+# come from configs/c2_network.conf
+. configs/c2_network.conf
+rsync -a --exclude data --exclude venv --exclude 'venv-*' --exclude .git --exclude dist ./ "$C2_PI_USER@$C2_PI:a2a/"
+rsync -a data/raw_tlspair_tls "$C2_PI_USER@$C2_PI:a2a/data/"
+rsync -aR data/results/leakcheck/tls_control_tls_own "$C2_PI_USER@$C2_PI:a2a/"      # the Mac's report
 
 # on the Pi
 sudo apt install -y time                        # GNU time, for -v
