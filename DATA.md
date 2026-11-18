@@ -314,8 +314,10 @@ The median over all 1,000 tasks is 380 B. The largest input, 5,490 B, fits in th
 
 ## Paper 2 archive (collections C2 and the TLS control)
 
-**Zenodo:** a new version of the record above (concept DOI 10.5281/zenodo.23868868):
-`<DOI — filled in after the upload>`. Data CC BY 4.0.
+**Zenodo:** https://doi.org/10.5281/zenodo.24238559 (version 1.0, published 2026-11-15; data CC BY 4.0).
+All versions: https://doi.org/10.5281/zenodo.24238558 (concept DOI). A record of its own, separate
+from the paper 1 record above. It holds the five files in the table and `SHA256SUMS.txt`, uploaded
+from the build described below; their MD5 checksums on the record match that build.
 
 | File | Contents | SHA-256 |
 |---|---|---|

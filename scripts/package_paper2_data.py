@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build the paper 2 data release (a new version of the Zenodo record, DATA.md) from a populated data/.
+Build the paper 2 data release (Zenodo 10.5281/zenodo.24238559, DATA.md) from a populated data/.
 
     c2-raw-pcaps-headers-only.zip         data/raw_c2, raw_c2_pad, raw_c2_padmax: 1,000 captures per
                                           arm, every packet cut to its headers, Ethernet addresses
