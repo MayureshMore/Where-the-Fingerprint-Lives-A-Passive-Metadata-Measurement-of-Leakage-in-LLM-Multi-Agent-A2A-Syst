@@ -472,7 +472,7 @@ Other scripts: `train_models.py` (standalone model training),
 
 ```bash
 pytest -q                                  # the unit and regression tests
-bash scripts/reproduce_paper2.sh --quick   # paper 2: examples and audits into a sandbox, diff vs committed
+bash scripts/reproduce_paper2.sh --quick   # paper 2: examples, audits, review checks into a sandbox, diff vs committed
 bash scripts/reproduce.sh                  # the earlier suite: frozen features into a sandbox, diff vs committed
 ```
 

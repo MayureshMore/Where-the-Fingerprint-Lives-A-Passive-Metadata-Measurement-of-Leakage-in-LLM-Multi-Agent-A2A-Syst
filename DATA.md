@@ -342,9 +342,22 @@ D1 number of paper 2 old against new.
 
 **How the release differs from the captures in `data/`.** `scripts/package_paper2_data.py` builds
 it, and `manifest.json` records each change:
-- **Headers only.** Every packet is cut to its link, IP and TCP headers. The C2 captures held up
-  to 30 bytes of TLS records per packet at the 96-byte snaplen, about 4 MB per arm. Timestamps and
-  on-wire lengths are kept.
+- **Headers only; the raw captures are not released.** The captures in `data/` were taken at a
+  96-byte snaplen, so a stored packet can still hold the first bytes of its TCP payload:
+  - C2 (Ethernet; 14 + 20 + 32 B of headers): up to 30 B per packet, ciphertext (TLS records);
+    3,964,573 B in `raw_c2`, 4,013,487 B in `raw_c2_pad` and 4,077,929 B in `raw_c2_padmax`.
+  - TLS control (loopback; 4 + 20 + 32 B of headers): up to 40 B per packet; 5,329,275 B in
+    `raw_tlspair_tls` (ciphertext) and 5,069,965 B in `raw_tlspair_clear`. In the cleartext arm
+    those bytes are cleartext HTTP and JSON-RPC: request and status lines, headers, and the start of
+    each segment's body, which can include prompt and answer text.
+
+  Only stripped copies are released. `scripts/strip_payload.py` cuts every packet at the end of its
+  TCP header, computed per packet from the link-header length, the IPv4 header length (IHL) and the
+  TCP data offset. It keeps the IP header unchanged (with its total-length field), the whole TCP
+  header (ports, sequence and acknowledgment numbers, flags, window, options) and each record's
+  timestamp and original length. Every feature reads only those. The packager checks every staged
+  capture for bytes past a TCP header and stops on any. In the two released capture archives, none
+  of the 1,353,434 packets has one.
 - **Hardware addresses.** The C2 captures were taken on the Mac's Wi-Fi interface. Their Ethernet
   headers hold two real hardware addresses: the Mac's own, on every frame to or from 10.0.0.228 and
   172.30.0.100, and the Pi's, on every frame to or from 10.0.0.171. They are replaced by the

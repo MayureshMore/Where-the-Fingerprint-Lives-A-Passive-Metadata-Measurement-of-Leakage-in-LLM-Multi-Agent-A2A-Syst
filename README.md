@@ -91,8 +91,8 @@ reports both and does not claim that TLS lowers workflow leakage.
 **Data:** Zenodo [doi:10.5281/zenodo.24238559](https://doi.org/10.5281/zenodo.24238559) (version
 1.0; files and checksums in [DATA.md](DATA.md#paper-2-archive-collections-c2-and-the-tls-control)).
 Unzip the archives into the repository root, then `bash scripts/reproduce_paper2.sh --quick`
-rebuilds the examples and audits in minutes and compares every number with the committed one;
-without `--quick` it also runs the tool evaluations (hours).
+rebuilds the examples, the audits and the review checks (about 45 minutes) and compares every
+number with the committed one; without `--quick` it also runs the tool evaluations (hours).
 
 ---
 
@@ -351,8 +351,8 @@ Pi's verdicts and scores equal the laptop's and lists both runtimes and peak mem
 - `scripts/evaluate_leakcheck.py` measures the tool on known answers: recall on known leaks, false
   positives on permuted labels and on `audit_null`, the effect of sample size, and the baselines.
 - **Paper 2.** `bash scripts/reproduce_paper2.sh` rebuilds every paper 2 number from the released
-  data into a sandbox and compares it with the committed one (`--quick`: examples and audits,
-  minutes; without it also the tool evaluations, hours). [docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md)
+  data into a sandbox and compares it with the committed one (`--quick`: examples, audits and
+  the review checks, about 45 minutes; without it also the tool evaluations, hours). [docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md)
   maps each number in the paper to its JSON; `scripts/export_paper2_csv.py` writes the plotted
   ones as CSV for pgfplots.
 - [docs/EXTENDING.md](docs/EXTENDING.md): adding a framework, a protocol, a capture source or vantage

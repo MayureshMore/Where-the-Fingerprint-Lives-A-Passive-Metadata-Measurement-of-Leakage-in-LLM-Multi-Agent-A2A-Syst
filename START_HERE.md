@@ -90,8 +90,8 @@ Download the archive from Zenodo and unzip it into the repository root (files an
   bash scripts/reproduce_paper2.sh --quick
   ```
 
-  Rebuilds the examples and audits in minutes into a **sandbox** (`data/results_paper2_demo/`) and
-  compares every number with the committed one; without `--quick` it also runs the tool
+  Rebuilds the examples, the audits and the review checks (about 45 minutes) into a **sandbox**
+  (`data/results_paper2_demo/`) and compares every number with the committed one; without `--quick` it also runs the tool
   evaluations (hours).
 
 `bash scripts/reproduce.sh` reproduces the earlier, superseded suite into `data/results_demo/`;

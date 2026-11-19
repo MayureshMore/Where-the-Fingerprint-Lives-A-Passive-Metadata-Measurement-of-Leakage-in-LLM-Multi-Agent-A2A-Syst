@@ -111,6 +111,22 @@ leakage.
 | Raspberry Pi 5: the same audit | `leakcheck_pi/<audit>/report.json`, `leakcheck_pi/machine_c2.txt`, `leakcheck_pi/time_*.txt` | as above; `/usr/bin/time -v` gives the maximum resident set |
 | Pi and laptop give the same verdicts and scores | `scripts/compare_reports.py PI MAC` | exit 0, "every compared field matches" |
 
+### Review checks (C2)
+
+`scripts/paper2_review.py` → `paper2_review.{json,md}`: no new collection; the committed C2 evaluation
+and reports, and new runs of the same verdict rule on the C2 captures.
+
+| Number | File | Field |
+|---|---|---|
+| Every known leak (18) and known non-leak (480 permuted draws + 6 audit_null): LEAK / INCONCLUSIVE / NO LEAK per method | `paper2_review.json` | `accounting.positive_totals`, `.negative_totals`, `.positives`, `.negatives_by_attribute` |
+| Release-blocking rate: permuted audits (cell × draw index) with any LEAK | `paper2_review.json` | `accounting.release_blocking.methods.<method>` |
+| No permuted labelling reused by the permutation tests | `paper2_review.json` | `reuse.<cell>/<attr>` |
+| task_type on the escalated tasks only, all features and timing alone | `paper2_review.json` | `escalated_task_type.<cell>.all`, `.timing`, `.attribution` |
+| Input size: constant overhead − no traffic, paired CI; median and P90 per task type | `paper2_review.json` | `input_size.<cell>.constant_minus_no_traffic`, `.errors` |
+| lan_padmax's two first-request sizes, by trace | `paper2_review.json` | `input_size.<cell>.first_request_sizes` |
+| "Matches all features": the rule; padmax task_type; sensor vs fault, all − family per cell | `paper2_review.json` | `matches_all.rule`, `.padmax_task_type`, `.pair.<cell>.attribution` |
+| Distinct prompts, prompt groups and template pools, C2 and D1 | `paper2_review.json` | `data.C2`, `data.D1` |
+
 ## Appendix
 
 | Item | File |

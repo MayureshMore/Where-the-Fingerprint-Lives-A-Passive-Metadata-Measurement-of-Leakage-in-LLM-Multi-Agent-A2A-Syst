@@ -17,6 +17,8 @@
 #                      → tls_scanners_summary                                                seconds
 #   4. C2 audits       leakcheck on the three edge-cloud arms (data/raw_c2, data/raw_c2_pad,
 #                      data/raw_c2_padmax) at both observer views → leakcheck/c2_<arm>_<view> ~20 min
+#                      then the review checks (scripts/paper2_review.py, on the committed tool
+#                      evaluation and these reports → paper2_review)                         ~12 min
 #   5. tool evaluation scripts/evaluate_leakcheck.py on both TLS-control arms
 #                      → paper2_tool_eval.{json,md}                                            hours
 #                      and on all six C2 cells, in one process (the committed one ran split by
@@ -42,7 +44,7 @@
 #
 # Usage:
 #   bash scripts/reproduce_paper2.sh                  # all stages whose data is present
-#   bash scripts/reproduce_paper2.sh --quick          # stages 1 to 4 (about half an hour)
+#   bash scripts/reproduce_paper2.sh --quick          # stages 1 to 4 (about 45 minutes)
 #   A2A_RESULTS_DIR=data/results_p2 bash scripts/reproduce_paper2.sh
 #   PYTHON=venv/bin/python bash scripts/reproduce_paper2.sh
 #
@@ -189,6 +191,14 @@ for pair in lan:data/raw_c2 lan_pad:data/raw_c2_pad lan_padmax:data/raw_c2_padma
             --attributes task_type,escalated,cloud_role,audit_null --label "C2 ${pair%%:*}, view $v"
     done
 done
+if [ -d data/raw_c2 ] && [ -d data/raw_c2_pad ] && [ -d data/raw_c2_padmax ]; then
+    rm -f "$SANDBOX/paper2_review.json" "$SANDBOX/paper2_review.md"
+    run_json paper2_review "$CANON/paper2_review.json" "$PY" scripts/paper2_review.py \
+        --eval "$CANON/paper2_tool_eval_c2.json" --reports "$SANDBOX/leakcheck/c2_{cell}" \
+        --out "$SANDBOX/paper2_review" --allow-dirty
+else
+    echo "[skip] paper2_review: C2 captures absent"
+fi
 
 if [ "$QUICK" -eq 0 ]; then
     echo "== 5. tool evaluation"
