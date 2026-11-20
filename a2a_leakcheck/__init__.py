@@ -25,4 +25,4 @@ that folder runs the rest (the two halves of the SafeIoT pipeline's stages 2 and
 Usage: python -m a2a_leakcheck run CAPTURE_DIR --out REPORT_DIR   (docs/LEAKCHECK.md)
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

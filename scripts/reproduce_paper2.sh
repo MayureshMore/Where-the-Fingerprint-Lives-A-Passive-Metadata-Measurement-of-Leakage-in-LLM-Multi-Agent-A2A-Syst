@@ -4,6 +4,9 @@
 # compare it with the committed one. Like scripts/reproduce.sh it writes to a sandbox and never to
 # data/results/.
 #
+# The paper 2 (v1.0) audits run with --perm-unit sample, the permutation test of a2a-leakcheck
+# 0.1.x that made them; the examples run with the tool's defaults, as their expected reports.
+#
 #   1. examples        leakcheck on the examples in the repo: the TLS control's leaky and permuted
 #                      sets; C2's c2_lan, c2_lan_padmax and c2_ci_baseline at the upstream view
 #                      (--vantage v2, task_type)                                             ~3 min
@@ -167,8 +170,9 @@ for x in c2_lan c2_lan_padmax c2_ci_baseline; do
 done
 
 echo "== 2. TLS control"
-run_report tls_control_tls_own data/raw_tlspair_tls "$CANON/leakcheck/tls_control_tls_own" --strip
-run_report tls_control_clear_own data/raw_tlspair_clear "$CANON/leakcheck/tls_control_clear_own" --strip --cleartext
+run_report tls_control_tls_own data/raw_tlspair_tls "$CANON/leakcheck/tls_control_tls_own" --strip --perm-unit sample
+run_report tls_control_clear_own data/raw_tlspair_clear "$CANON/leakcheck/tls_control_clear_own" --strip --cleartext \
+    --perm-unit sample
 if [ -d data/processed_tlspair_clear_own_dedup ] && [ -d data/processed_tlspair_tls_own_dedup ]; then
     run_json tls_control_own "$CANON/tls_control_own.json" "$PY" scripts/evaluate_tls_control.py
 else
@@ -187,7 +191,7 @@ run_json tls_scanners_summary "$CANON/tls_scanners_summary.json" \
 echo "== 4. C2 audits"
 for pair in lan:data/raw_c2 lan_pad:data/raw_c2_pad lan_padmax:data/raw_c2_padmax; do
     for v in v1 v2; do
-        run_report "c2_${pair%%:*}_$v" "${pair#*:}" "$CANON/leakcheck/c2_${pair%%:*}_$v" --strip --vantage "$v" \
+        run_report "c2_${pair%%:*}_$v" "${pair#*:}" "$CANON/leakcheck/c2_${pair%%:*}_$v" --strip --perm-unit sample --vantage "$v" \
             --attributes task_type,escalated,cloud_role,audit_null --label "C2 ${pair%%:*}, view $v"
     done
 done

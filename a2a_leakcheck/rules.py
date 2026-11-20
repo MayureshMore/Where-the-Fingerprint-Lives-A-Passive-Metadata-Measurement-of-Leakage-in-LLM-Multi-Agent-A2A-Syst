@@ -38,7 +38,8 @@ def facts(attribute: str, result: dict, ctx: dict | None = None) -> dict:
         "top_family": attr.get("top_family"),
         "top_family_matches_all": attr.get("top_family_matches_all", False),
         "request_size_single_matches_all": single.get("matches_all", False),
-        "family_matches_all": {f: bool(v["all_minus_this"]["ci_lo"] <= 0) for f, v in fams.items()},
+        "family_matches_all": {f: bool(v.get("matches_all", v["all_minus_this"]["ci_lo"] <= 0))
+                               for f, v in fams.items()},
         "too_few_samples": not result["validation"]["min_samples"]["ok"],
         "vantage": ctx.get("vantage"),
         "padded": bool(ctx.get("padded", False)),

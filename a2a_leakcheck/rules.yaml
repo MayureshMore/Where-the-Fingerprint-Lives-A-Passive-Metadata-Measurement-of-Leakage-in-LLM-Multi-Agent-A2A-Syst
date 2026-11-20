@@ -11,10 +11,12 @@
 #   verdict                           LEAK | NO LEAK | INCONCLUSIVE
 #   severity                          high | medium | low | none
 #   top_family                        sizes | timing | counts_direction (best family alone)
-#   top_family_matches_all            true when that family alone is not below all features
-#   request_size_single_matches_all   true when one request-size feature alone is not below
-#                                     all features (trace attributes: the first request's size;
-#                                     role: bytes the agent receives)
+#   top_family_matches_all            true when that family alone matches all features: the
+#                                     upper bound of the paired 95% CI of all − family is at
+#                                     most match_margin (default 0.05; --match-margin)
+#   request_size_single_matches_all   true when one request-size feature alone matches all
+#                                     features, as above (trace attributes: the first request's
+#                                     size; role: bytes the agent receives)
 #   family_matches_all.<family>       per family, as above
 #   too_few_samples                   true when the minimum-sample check failed
 #   vantage                           the observer view audited (--vantage), or null

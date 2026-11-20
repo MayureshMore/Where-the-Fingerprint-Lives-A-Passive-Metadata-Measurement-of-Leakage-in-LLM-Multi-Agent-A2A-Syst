@@ -152,6 +152,9 @@ WITHIN = (100, 200, 300)
 # if none of these changed in between (--tool-reports)
 TOOL_CODE = ("a2a_leakcheck", "features", "models", "evaluation", "scripts/strip_payload.py")
 SIZES = (5, 10, 20, 30, 50)
+# paper 2 v1.0: the permutation test of a2a-leakcheck 0.1.x (labels permuted over the samples, one stream);
+# scripts/paper2_round2.py scores the round-2 checks with the 0.3.0 default (by prompt group)
+PERM_UNIT = "sample"
 VERDICTS = (LEAK, INCONCLUSIVE, NO_LEAK)
 METHODS = {"leakcheck": "a2a-leakcheck: GBT on the header-only features (195 per trace, 35 per agent)",
            "kfp_rf": f"k-FP features ({N_KFP}, direction and timing only) with the tool's RF",
@@ -307,7 +310,7 @@ def subsample(y: np.ndarray, g: np.ndarray, n: int, rng: np.random.Generator) ->
 def _cfg(a: argparse.Namespace, method: str) -> Config:
     return Config(margin=a.margin, n_splits=5, n_boot=a.n_boot, permutations=a.permutations, alpha=0.05,
                   min_per_class=a.min_per_class, seed=SEED, model="rf" if method == "kfp_rf" else "gbt",
-                  null_model="rf-light", jobs=a.jobs)
+                  null_model="rf-light", jobs=a.jobs, perm_unit=PERM_UNIT)
 
 
 def verdict(X, y, g, a, method: str, sev: dict) -> dict:
@@ -324,7 +327,8 @@ def run_tool(raw: Path, attrs: list[str], a: argparse.Namespace, out: Path, vant
     cmd = [sys.executable, "-m", "a2a_leakcheck", "run", str(raw), "--out", str(out), "--strip",
            "--attributes", ",".join(x for x in attrs if not x.startswith(ROLE_WITHIN)),
            "--jobs", str(a.jobs), "--permutations", str(a.permutations),
-           "--n-boot", str(a.n_boot), "--margin", str(a.margin), "--min-per-class", str(a.min_per_class)]
+           "--n-boot", str(a.n_boot), "--margin", str(a.margin), "--min-per-class", str(a.min_per_class),
+           "--perm-unit", PERM_UNIT]
     if a.role_within:
         cmd += ["--role-within", ",".join(a.role_within)]
     if vantage:
@@ -353,6 +357,8 @@ def tool_report(path: Path, raw: Path, attrs: list[str], a: argparse.Namespace, 
         bad["vantage"] = [rep["input"].get("vantage"), vantage]
     if bool(p.get("cleartext", False)) != cleartext:
         bad["cleartext"] = [p.get("cleartext", False), cleartext]
+    if p.get("perm_unit", "sample") != PERM_UNIT:              # reports before 0.3.0 permuted over samples
+        bad["perm_unit"] = [p.get("perm_unit", "sample"), PERM_UNIT]
     if rep.get("git_dirty") is not False or not rep.get("git_commit"):
         bad["git"] = [rep.get("git_commit"), rep.get("git_dirty")]
     if bad:

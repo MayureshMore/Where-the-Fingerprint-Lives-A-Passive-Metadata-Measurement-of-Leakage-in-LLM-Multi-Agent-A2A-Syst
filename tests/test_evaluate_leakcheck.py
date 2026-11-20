@@ -187,7 +187,7 @@ def test_tool_reports_must_stand_for_the_run(edge, tmp_path):
     rep_dir = tmp_path / "c2_a_v2"
     assert leakcheck(["run", str(edge), "--out", str(rep_dir), "--strip", "--vantage", "v2",
                       "--attributes", "escalated,audit_null", "--permutations", "19", "--n-boot", "50",
-                      "--min-per-class", "10", "--jobs", "2"]) == 0
+                      "--min-per-class", "10", "--jobs", "2", "--perm-unit", "sample"]) == 0
     head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     rep = json.loads((rep_dir / "report.json").read_text())
     (rep_dir / "report.json").write_text(json.dumps({**rep, "git_commit": head, "git_dirty": False}))
@@ -206,4 +206,8 @@ def test_tool_reports_must_stand_for_the_run(edge, tmp_path):
         ev.tool_report(rep_dir, edge, attrs, b, "v2")
     (rep_dir / "report.json").write_text(json.dumps({**rep, "git_commit": head, "git_dirty": True}))
     with pytest.raises(SystemExit):                       # made from uncommitted code
+        ev.tool_report(rep_dir, edge, attrs, a, "v2")
+    group = {**rep, "git_commit": head, "git_dirty": False, "parameters": {**rep["parameters"], "perm_unit": "group"}}
+    (rep_dir / "report.json").write_text(json.dumps(group))
+    with pytest.raises(SystemExit, match="perm_unit"):    # 0.3.0's group permutation is not v1.0's test
         ev.tool_report(rep_dir, edge, attrs, a, "v2")

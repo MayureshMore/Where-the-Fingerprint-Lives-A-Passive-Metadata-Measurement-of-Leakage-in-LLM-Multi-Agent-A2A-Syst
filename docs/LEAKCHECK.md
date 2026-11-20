@@ -21,9 +21,9 @@ python -m a2a_leakcheck run FEATURES_DIR --out REPORT_DIR           # stage 3 on
 | Extraction | the repository's header-only features: a 195-dim vector per trace, a 35-dim vector per agent per trace, and the size of the first request that reaches an agent; only from the TCP connections each capture opens itself (the tail of an earlier trace's connections is dropped; `--legacy-all-connections` keeps it) | `extract.py`, `features/` |
 | Analysis | per attribute, out-of-fold predictions from 5-fold `StratifiedGroupKFold` (a group of traces sharing a prompt is never split), GBT by default (the repository's, with the leaf size lowered on training folds under 2 × 20 samples per class, where 20 per leaf allows no split); macro-F1 with a 95% cluster-bootstrap CI over groups | `analyze.py` |
 | Detection | chance = 1/k classes. **LEAK** if the CI lower bound is above chance + margin; **NO LEAK** if the CI upper bound is at most chance + margin; **INCONCLUSIVE** otherwise. `--margin`, default 0.05 | `analyze.py` |
-| Validation | minimum-sample check (each class needs `--min-per-class` samples, default 20, in at least as many groups as folds; else INCONCLUSIVE). Label-permutation test: the same CV on `--permutations` shuffles of the labels (default 99, so p can reach 0.01), scored with `--null-model` (default `rf-light`, a 100-tree random forest); that model also scores the real labels, so the p-value is exact for it, and a weaker null model only makes the test more conservative. A LEAK whose p-value exceeds `--alpha` (0.05) becomes INCONCLUSIVE, and so does a NO LEAK whose p-value is at most `--alpha` (the two models disagree). The share of permuted runs that would read LEAK is reported as the false-positive rate | `analyze.py` |
+| Validation | minimum-sample check (each class needs `--min-per-class` samples, default 20, in at least as many groups as folds; else INCONCLUSIVE). Label-permutation test: the same CV on `--permutations` permutations of the labels (default 99, so p can reach 0.01). `--perm-unit group` (default since 0.3.0) respects the prompt groups: where each group has one label, the groups' labels are permuted across the groups (every group keeps one label and each class its number of groups); where labels vary inside a group (role samples), they are permuted within the group, since swapping whole label sequences between groups would leave every agent's role in place. Permutation i has its own seed (seed, 7, i). `--perm-unit sample` permutes over the samples from one stream, as 0.1.x did (to reproduce earlier reports). `--perm-max N` adds permutations up to N when p after the first R is in [0.02, 0.20] (off by default). The permutations are scored with `--null-model` (default `rf-light`, a 100-tree random forest); that model also scores the real labels, so the p-value is exact for it, and a weaker null model only makes the test more conservative. A LEAK whose p-value exceeds `--alpha` (0.05) becomes INCONCLUSIVE, and so does a NO LEAK whose p-value is at most `--alpha` (the two models disagree). The share of permuted runs that would read LEAK is reported as the false-positive rate | `analyze.py` |
 | Prioritization | effect size = (macro-F1 − chance) / (1 − chance); severity high ≥ 0.6, medium ≥ 0.3, else low (thresholds in `rules.yaml`) | `analyze.py` |
-| Attribution | the same CV on each feature family alone (sizes; timing; counts and direction) and on one request-size feature alone, each paired against all features | `analyze.py` |
+| Attribution | the same CV on each feature family alone (sizes; timing; counts and direction) and on one request-size feature alone, each paired against all features over the same folds and bootstrap resamples. A family **matches all features** when the upper bound of the paired 95% CI of macro-F1(all) − macro-F1(family) is at most `--match-margin` (default 0.05): it is shown to be at most that much below all features (non-inferiority). `no_detected_deficit` keeps 0.1.x's weaker rule (lower bound ≤ 0: no deficit detected, which an imprecise estimate passes) | `analyze.py` |
 | Report | `report.json` (everything), `report.md`, `report.html` with `--html`; mitigation hints from `rules.yaml`; runtime per stage and peak memory | `report.py`, `rules.py` |
 | Repeat | `--baseline` (or `diff`) first checks that the two reports are comparable, then compares verdicts: `new_leaks` (LEAK now, not LEAK before), `needs_review` (LEAK before, INCONCLUSIVE or missing now), `resolved` (LEAK before, NO LEAK now) and every change | `report.py` |
 | Policy | the report's `status` keeps "audit completed" apart from "release policy satisfied": which checks were asked for (`--baseline`, `--fail-on-leak`, `--strict`, `--require`), which failed, the exit code, and what is left for review | `report.py` |
@@ -125,7 +125,9 @@ traces that have them.
 
 - **LEAK** says an observer does better than chance + margin, with 95% confidence, and the
   permutation test agrees. "Carried by" names what is enough on its own: one request-size
-  feature, or a family that alone is not below all features.
+  feature, or a family that alone matches all features (at most `--match-margin` below them, with
+  95% confidence). Without "(alone matches all)" the top family is the best single family but is
+  not shown to carry the leak alone.
 - **NO LEAK** says the observer, with these features and this much data, stays within the margin
   of chance. It is not a proof that no other attack would work.
 - **INCONCLUSIVE** says to collect more data, or that the permutation test did not back a LEAK.
@@ -140,34 +142,41 @@ can still carry the leak.
 
 The audit needs only `requirements-leakcheck.txt` (Python 3.11+): numpy, SciPy, scikit-learn,
 joblib, threadpoolctl, PyYAML and scapy, at the versions in `requirements-lock.txt`. PyTorch is
-not needed (`models/` and `evaluation/` import their deep-model code lazily). To time a full audit
-of the TLS control's TLS arm with one worker per core, with the Pi's agents stopped so that they
-do not compete for the cores:
+not needed (`models/` and `evaluation/` import their deep-model code lazily). The committed Pi
+timing (`data/results/leakcheck_pi/`) is a full audit of C2's unpadded arm at V1 with one worker per
+core, with the Pi's agents stopped so that they do not compete for the cores:
 
 ```bash
-# on the Mac: code (as in LAN_SETUP.md) and the captures; the Pi's address and login user
-# come from configs/c2_network.conf
+# on the Mac: code (as in LAN_SETUP.md), the commit it is, and the captures; the Pi's address and
+# login user come from configs/c2_network.conf
 . configs/c2_network.conf
+git rev-parse HEAD > COMMIT
 rsync -a --exclude data --exclude venv --exclude 'venv-*' --exclude .git --exclude dist ./ "$C2_PI_USER@$C2_PI:a2a/"
-rsync -a data/raw_tlspair_tls "$C2_PI_USER@$C2_PI:a2a/data/"
-rsync -aR data/results/leakcheck/tls_control_tls_own "$C2_PI_USER@$C2_PI:a2a/"      # the Mac's report
+rm COMMIT
+rsync -a data/raw_c2 "$C2_PI_USER@$C2_PI:a2a/data/"
+rsync -aR data/results/leakcheck/c2_lan_v1 "$C2_PI_USER@$C2_PI:a2a/"      # the Mac's report
 
 # on the Pi
 sudo apt install -y time                        # GNU time, for -v
 cd ~/a2a && python3 -m venv venv-leakcheck && venv-leakcheck/bin/pip install -r requirements-leakcheck.txt
 mkdir -p data/results/leakcheck_pi
 { cat /proc/device-tree/model; echo; nproc; free -m; python3 --version; du -sh venv-leakcheck; } \
-    > data/results/leakcheck_pi/machine.txt
-/usr/bin/time -v -o data/results/leakcheck_pi/time_tls.txt \
-    venv-leakcheck/bin/python -m a2a_leakcheck run data/raw_tlspair_tls --strip --jobs 4 \
-    --out data/results/leakcheck_pi/tls_control_tls_own
-venv-leakcheck/bin/python -m a2a_leakcheck diff data/results/leakcheck_pi/tls_control_tls_own/report.json \
-    data/results/leakcheck/tls_control_tls_own/report.json      # same verdicts as on the Mac
+    > data/results/leakcheck_pi/machine_c2.txt
+/usr/bin/time -v -o data/results/leakcheck_pi/time_c2_lan_v1.txt \
+    venv-leakcheck/bin/python -m a2a_leakcheck run data/raw_c2 --strip --vantage v1 \
+    --attributes task_type,escalated,cloud_role,audit_null --jobs 4 --out data/results/leakcheck_pi/c2_lan_v1
 ```
 
-`time_tls.txt` gives the wall-clock time, CPU time and the maximum resident set size of the
-largest single process, main or worker (GNU time does not add the workers up); the report's runtime section gives the time per stage and
-the peak memory of the main process and of one worker after each stage.
+`time_c2_lan_v1.txt` gives the wall-clock time, CPU time and the maximum resident set size of the
+largest single process, main or worker (GNU time does not add the workers up); the report's runtime
+section gives the time per stage and the peak memory of the main process and of one worker after each
+stage. `scripts/compare_reports.py` sets the Pi's report against the Mac's
+(`compare_c2_lan_v1.txt`): every GBT number agreed; the permutation test's p-values did not (audit_null
+0.22 on the Pi, 0.07 on the Mac). The light random forest that scores the test already differs on the
+real labels (macro-F1 0.2616 on the Pi, 0.2704 on the Mac); `scripts/pvalue_diagnostics.py` traces it
+stage by stage (paper 2 round 2).
+The rsync copy has no `.git`, so its reports say `git_commit: null`; `COMMIT` names the commit for the
+diagnostics.
 
 ## Extending
 

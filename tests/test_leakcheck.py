@@ -426,3 +426,85 @@ def test_padding_context_from_sidecars(tmp_path):
     assert context([p1], "v1") == {"vantage": "v1", "padded": True, "unpadded_in_view": True}
     assert context([p2], "v2")["unpadded_in_view"] is False
     assert context([p1, u1], "v1")["padded"] is False                                 # every trace must be padded
+
+
+# ── 0.3.0: group-level permutation, per-index seeds, adaptive test, non-inferiority match ────────────
+
+def _grouped(seed=0):
+    rng = np.random.default_rng(seed)
+    g = np.array([f"g{i}" for i in range(30)] + [f"p{i // 2}" for i in range(20)])        # 30 singletons, 10 pairs
+    y = np.array(["a", "b", "c"] * 10 + [x for i in range(10) for x in ("a", "a") if i < 5]
+                 + [x for i in range(10) for x in ("b", "b") if i >= 5])
+    return y, g, rng
+
+
+def test_group_permutation_moves_whole_group_labels():
+    from a2a_leakcheck.analyze import group_plan, permute_group
+    y, g, _ = _grouped()
+    plan = group_plan(y, g)
+    assert plan["groups"] == 40 and plan["within_groups"] == 0 and plan["sizes"] == {1: 30, 2: 10}
+    group_label = lambda lab: sorted(lab[g == k][0] for k in set(g.tolist()))      # noqa: E731
+    changed = 0
+    for i in range(20):
+        yp = permute_group(y, plan, np.random.default_rng(i))
+        for k in set(g.tolist()):
+            assert len(set(yp[g == k].tolist())) == 1                         # a group keeps one label
+        assert group_label(yp) == group_label(y)                              # groups per class kept
+        changed += int((yp != y).any())
+    assert changed == 20
+
+
+def test_group_permutation_permutes_within_groups_whose_labels_vary():
+    from a2a_leakcheck.analyze import group_plan, permute_group
+    g = np.repeat([f"t{i}" for i in range(12)], 4)                            # role samples: 4 agents a trace
+    y = np.tile(["executor", "retriever", "validator", "orchestrator"], 12)
+    plan = group_plan(y, g)
+    assert plan["within_groups"] == 12 and plan["const"] == []
+    yp = permute_group(y, plan, np.random.default_rng(3))
+    assert all(sorted(yp[g == k]) == sorted(y[g == k]) for k in set(g.tolist()))
+    assert (yp != y).any()                       # not the identity, unlike swapping whole sequences
+
+
+def test_permutations_are_indexed_and_the_sample_unit_keeps_the_0_1_stream():
+    from a2a_leakcheck.analyze import permutations
+    y, g, _ = _grouped()
+    cfg = Config(perm_unit="group")
+    ten = permutations(y, g, cfg, 0, 10)
+    assert all((a == b).all() for a, b in zip(permutations(y, g, cfg, 0, 5), ten[:5]))
+    assert all((a == b).all() for a, b in zip(permutations(y, g, cfg, 5, 10), ten[5:]))
+    rng = np.random.default_rng(42)
+    legacy = [rng.permutation(y) for _ in range(10)]
+    assert all((a == b).all() for a, b in zip(permutations(y, g, Config(perm_unit="sample"), 0, 10), legacy))
+
+
+def test_match_rule_is_non_inferiority_and_keeps_the_old_rule_apart():
+    from a2a_leakcheck.analyze import matches
+    assert matches({"ci_lo": -0.01, "ci_hi": 0.031}, 0.05) == {"matches_all": True, "no_detected_deficit": True}
+    assert matches({"ci_lo": -0.010, "ci_hi": 0.062}, 0.05) == {"matches_all": False, "no_detected_deficit": True}
+    assert matches({"ci_lo": 0.003, "ci_hi": 0.031}, 0.05) == {"matches_all": True, "no_detected_deficit": False}
+
+
+def test_adaptive_permutations_extend_a_p_value_in_the_window():
+    rng = np.random.default_rng(0)
+    X, y = rng.normal(size=(80, 4)), np.array(["a", "b"] * 40)
+    g = np.array([f"g{i}" for i in range(80)])
+    base = dict(permutations=9, n_boot=100, jobs=2, model="rf-light")
+    r = analyze(X, y, g, {}, None, Config(**base, perm_max=19, perm_window=(0.0, 1.0)), {})
+    perm = r["validation"]["permutation"]
+    assert perm["permutations_run"] == 19 and "p_value_first" in perm
+    r = analyze(X, y, g, {}, None, Config(**base, perm_max=19, perm_window=(0.0, 0.0)), {})
+    assert r["validation"]["permutation"]["permutations_run"] == 9
+
+
+def test_fold_seed_changes_only_the_split():
+    from a2a_leakcheck.analyze import _splits
+    y, g, _ = _grouped()
+    a, b = _splits(y, g, Config()), _splits(y, g, Config(fold_seed=43))
+    assert [sorted(te) for _, te in a] != [sorted(te) for _, te in b]
+    assert [sorted(te) for _, te in a] == [sorted(te) for _, te in _splits(y, g, Config(fold_seed=42))]
+
+
+def test_a_0_1_report_is_not_comparable_with_a_group_permutation_one():
+    old, new = _full(), _full(_params(perm_unit="group", perm_max=0))
+    assert [x["field"] for x in compatibility(new, old)] == ["parameters.perm_unit"]
+    assert compatibility(_full(_params(perm_unit="sample", perm_max=0)), old) == []

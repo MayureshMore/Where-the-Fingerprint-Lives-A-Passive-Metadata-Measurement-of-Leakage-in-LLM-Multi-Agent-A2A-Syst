@@ -31,6 +31,8 @@ def _rows(report: dict) -> list[dict]:
             single = attr.get("single_request_size") or {}
             carried = (f"{single['feature']} alone" if single.get("matches_all") else
                        top.replace("_", " and ") + (" (alone matches all)" if attr["top_family_matches_all"] else ""))
+            if attr.get("match_rule") is None and carried != "—":
+                carried += " [0.1.x rule]"
         rows.append({
             "attribute": name, "verdict": r["verdict"], "severity": r["prioritization"]["severity"],
             "score": _ci(r.get("analysis")), "threshold": f"{r['threshold']:.3f}",
@@ -147,25 +149,41 @@ def write_markdown(report: dict, path: Path) -> None:
         if attr:
             ex = report["extraction"]
             dims = ex["role_dims"] if name == "role" or r.get("within_topology") else ex["trace_dims"]
-            L += ["", "| Features | Dims | macro-F1 [95% CI] | All − this |", "|---|---|---|---|",
-                  f"| all | {dims} | {_ci(r['analysis'])} | — |"]
+            mm = (attr.get("match_rule") or {}).get("match_margin")
+            yes = lambda v: "—" if "matches_all" not in v else ("yes" if v["matches_all"] else "no")  # noqa: E731
+            L += ["", "| Features | Dims | macro-F1 [95% CI] | All − this | Matches all |", "|---|---|---|---|---|",
+                  f"| all | {dims} | {_ci(r['analysis'])} | — | — |"]
             for fam, v in attr["families"].items():
                 d = v["all_minus_this"]
                 L.append(f"| {fam.replace('_', ' and ')} only | {v['dims']} | {_ci(v)} | {d['diff']:+.3f} "
-                         f"[{d['ci_lo']:+.3f}, {d['ci_hi']:+.3f}] |")
+                         f"[{d['ci_lo']:+.3f}, {d['ci_hi']:+.3f}] | {yes(v)} |")
             s = attr.get("single_request_size")
             if s:
                 d = s["all_minus_this"]
-                L.append(f"| {s['feature']} only | 1 | {_ci(s)} | {d['diff']:+.3f} [{d['ci_lo']:+.3f}, {d['ci_hi']:+.3f}] |")
+                L.append(f"| {s['feature']} only | 1 | {_ci(s)} | {d['diff']:+.3f} [{d['ci_lo']:+.3f}, {d['ci_hi']:+.3f}] "
+                         f"| {yes(s)} |")
+            if mm is not None:
+                L += ["", f"A feature set matches all features when the upper bound of all − this is at most {mm} "
+                          "(it is shown to be no more than that below all features)."]
             pr = r["prioritization"]
             L += ["", f"Effect size {pr['effect_size']:.2f} (share of the way from chance to perfect); "
                       f"severity {pr['severity']}."]
         perm = r["validation"].get("permutation") or {}
         if perm.get("permutations"):
             nv = perm["null_verdicts"]
-            L += ["", f"Permutation test ({perm.get('null_model', p['model'])}: macro-F1 "
+            unit = perm.get("unit", "sample")
+            gp = perm.get("groups") or {}
+            how = ("labels permuted over the samples" if unit == "sample" else
+                   f"labels permuted by prompt group ({gp.get('groups', '?')} groups"
+                   + (f", {gp['within_groups']} permuted within" if gp.get("within_groups") else "")
+                   + ")")
+            runs = perm.get("permutations_run", perm["permutations"])
+            L += ["", f"Permutation test ({perm.get('null_model', p['model'])}, {runs} permutations, {how}: macro-F1 "
                       f"{perm.get('observed_macro_f1', r['analysis']['macro_f1']):.3f} on the real labels): "
-                      f"p = {perm['p_value']:.3f}; permuted-label macro-F1 mean "
+                      f"p = {perm['p_value']:.3f}"
+                      + (f" (p = {perm['p_value_first']:.3f} after the first {perm['permutations']})"
+                         if "p_value_first" in perm else "")
+                      + f"; permuted-label macro-F1 mean "
                       f"{perm['null_mean']:.3f}, max {perm['null_max']:.3f}; verdicts on permuted labels: "
                       f"{nv['LEAK']} LEAK, {nv['NO LEAK']} NO LEAK, {nv['INCONCLUSIVE']} INCONCLUSIVE."]
         for h in r.get("mitigations", []):
@@ -252,7 +270,10 @@ PRECEDENCE = (EXIT_INCOMPATIBLE, EXIT_NEW_LEAK, EXIT_LEAK, EXIT_POLICY)
 
 # What two reports must share before their verdicts can be compared: the verdict rule, the observer
 # view, the features and, per attribute present in both, its definition (class set, topology).
-VERDICT_RULE = ("margin", "alpha", "permutations", "null_model", "model", "folds", "n_boot", "min_per_class")
+VERDICT_RULE = ("margin", "alpha", "permutations", "null_model", "model", "folds", "n_boot", "min_per_class",
+                "perm_unit", "perm_max")
+# verdict-rule parameters added after 0.1.x, with the value a report that predates them used
+RULE_DEFAULTS = {"perm_unit": "sample", "perm_max": 0}
 FEATURE_FIELDS = ("schema_version", "trace_dims", "role_dims", "measurement", "retransmissions")
 
 
@@ -274,8 +295,9 @@ def compatibility(new: dict, old: dict) -> list[dict]:
     out = []
     pn, po = new.get("parameters", {}), old.get("parameters", {})
     for k in VERDICT_RULE:
-        if pn.get(k) != po.get(k):
-            out.append({"field": f"parameters.{k}", "new": pn.get(k), "baseline": po.get(k)})
+        x, y = pn.get(k, RULE_DEFAULTS.get(k)), po.get(k, RULE_DEFAULTS.get(k))
+        if x != y:
+            out.append({"field": f"parameters.{k}", "new": x, "baseline": y})
     vn, vo = new.get("input", {}).get("vantage"), old.get("input", {}).get("vantage")
     if vn != vo:
         out.append({"field": "input.vantage", "new": vn, "baseline": vo})

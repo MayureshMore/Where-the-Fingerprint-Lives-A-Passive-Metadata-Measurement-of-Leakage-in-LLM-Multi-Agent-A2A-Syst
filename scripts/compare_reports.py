@@ -60,7 +60,40 @@ def _schema(r: dict) -> dict:
     return e
 
 
+def _is_legacy(r: dict) -> bool:
+    """A report from before 0.3.0: no match rule in its attribution, no permutation unit."""
+    return "perm_unit" not in r.get("parameters", {})
+
+
+def _as_legacy(r: dict) -> dict:
+    """A 0.3.0+ report in the form of an earlier one, to compare the two field by field: the attribution's
+    matches fields hold 0.1.x's rule (no_detected_deficit), and the fields earlier reports lack are dropped.
+    Only meaningful when the newer report used --perm-unit sample, as earlier reports did."""
+    r = json.loads(json.dumps(r))
+    for k in ("perm_unit", "perm_max", "perm_window", "match_margin"):
+        r.get("parameters", {}).pop(k, None)
+    for x in r.get("attributes", {}).values():
+        perm = x.get("validation", {}).get("permutation") or {}
+        for k in ("unit", "groups", "permutations_run", "p_value_first"):
+            perm.pop(k, None)
+        at = x.get("attribution")
+        if not at:
+            continue
+        at.pop("match_rule", None)
+        if "top_family_no_detected_deficit" in at:
+            at["top_family_matches_all"] = at.pop("top_family_no_detected_deficit")
+        for v in at.get("families", {}).values():
+            v.pop("matches_all", None)
+            v.pop("no_detected_deficit", None)
+        single = at.get("single_request_size")
+        if single and "no_detected_deficit" in single:
+            single["matches_all"] = single.pop("no_detected_deficit")
+    return r
+
+
 def compare(a: dict, b: dict, tol: float = 0.0, ignore_hints: bool = False) -> dict:
+    if _is_legacy(a) != _is_legacy(b):                 # one report predates 0.3.0
+        a, b = (x if _is_legacy(x) else _as_legacy(x) for x in (a, b))
     diffs: list = []
     skip = {"mitigations"} if ignore_hints else set()
     for section in ("attributes", "summary", "extraction", "collection", "parameters", "input"):

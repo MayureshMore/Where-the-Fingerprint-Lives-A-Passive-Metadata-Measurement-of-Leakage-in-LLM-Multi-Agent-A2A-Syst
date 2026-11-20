@@ -96,3 +96,6 @@ htmlcov/
 
 # ── Mininet / network emulation ───────────────────────────────────────────────
 *.mnlog
+
+# commit marker written for an rsync copy (docs/LEAKCHECK.md, On a Raspberry Pi)
+/COMMIT

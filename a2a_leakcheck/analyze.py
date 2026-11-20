@@ -17,13 +17,31 @@ validation      minimum-sample check (every class needs min_per_class samples in
                 INCONCLUSIVE, and so does a NO LEAK the test contradicts (p <= alpha). Each
                 permuted run also gets a verdict, and the share of them that read LEAK is the
                 tool's false-positive rate on that data.
+permutation     perm_unit "group" (default): the permutation respects the prompt groups. Where
+                every group has one label (a trace attribute), the groups' labels are permuted
+                across the groups: every group keeps one label, and the number of groups per class
+                is kept (with groups of different sizes, a class's sample count can change). Where
+                labels vary inside a group (role samples: the agents of the traces that share a
+                prompt), the labels are permuted within each group, so every group keeps its
+                classes; exchanging whole label sequences between groups would leave role labels
+                where they were, since every trace lists its agents in the same order. Permutation i is drawn from its own seed (seed, 7, i), so
+                it does not depend on how many run or in which order. perm_unit "sample": the
+                labels permuted over all samples from one stream (seed), as a2a-leakcheck 0.1.x
+                did; kept to reproduce earlier reports. perm_max > R: if p after R permutations is
+                in perm_window (default [0.02, 0.20]), permutations R..perm_max-1 are added and p
+                is computed over all of them (off by default).
 model           GBT as in the repository (models/gradient_boosted.py), with the leaf size lowered
                 on training folds under 2 × 20 samples per class (gbt_min_leaf), where 20 per
                 leaf would allow no split
 prioritization  effect size = (macro-F1 − chance) / (1 − chance), the share of the way from
                 chance to perfect; severity high / medium / low by the thresholds in rules.yaml
 attribution     the same CV on each feature family alone (sizes, timing, counts and direction)
-                and on one request-size feature alone, each paired against all features
+                and on one request-size feature alone, each paired against all features: the
+                paired cluster-bootstrap CI of macro-F1(all) − macro-F1(family), over the same
+                folds and resamples. A family matches all features when the CI's upper bound is
+                at most match_margin (default 0.05): it is shown to be no more than that below
+                all features (non-inferiority). no_detected_deficit keeps 0.1.x's weaker rule,
+                the CI's lower bound at most 0 (no deficit was detected).
 """
 
 from __future__ import annotations
@@ -58,6 +76,51 @@ class Config:
     model: str = "gbt"
     null_model: str = "rf-light"       # model of the permutation test; "same" = model
     jobs: int = -1                     # parallel CV runs (-1: one per core)
+    perm_unit: str = "group"           # "group" (respects prompt groups) | "sample" (0.1.x)
+    perm_max: int = 0                  # > permutations: extend a p-value inside perm_window to this many
+    perm_window: tuple = (0.02, 0.20)
+    match_margin: float = 0.05         # a family matches all features when all − family ≤ this (CI upper bound)
+    fold_seed: int | None = None       # seed of the fold split (default: seed); for repeated splits
+
+
+PERM_UNITS = ("group", "sample")
+PERM_STREAM = 7                        # permutation i of a "group" test: default_rng([seed, 7, i])
+
+
+def group_plan(y: np.ndarray, g: np.ndarray) -> dict:
+    """How a group-level permutation moves labels: groups with one label exchange labels across
+    those groups; groups whose labels vary keep them, permuted within the group."""
+    order = np.argsort(g, kind="stable")
+    names, starts, sizes = np.unique(g[order], return_index=True, return_counts=True)
+    members = [order[a:a + n] for a, n in zip(starts, sizes)]
+    const = [k for k, m in enumerate(members) if len(set(y[m].tolist())) == 1]
+    vary = [k for k, m in enumerate(members) if len(set(y[m].tolist())) > 1]
+    return {"members": members, "const": const, "vary": vary, "groups": int(len(members)),
+            "within_groups": len(vary), "sizes": {int(n): int((sizes == n).sum()) for n in np.unique(sizes)}}
+
+
+def permute_group(y: np.ndarray, plan: dict, rng: np.random.Generator) -> np.ndarray:
+    yp = y.copy()
+    mem, const = plan["members"], plan["const"]
+    if len(const) > 1:
+        labels = [y[mem[k][0]] for k in const]
+        for k, i in zip(const, rng.permutation(len(const))):
+            yp[mem[k]] = labels[i]
+    for k in plan["vary"]:
+        yp[mem[k]] = y[mem[k]][rng.permutation(len(mem[k]))]
+    return yp
+
+
+def permutations(y: np.ndarray, g: np.ndarray, cfg: Config, start: int, stop: int, plan: dict | None = None) -> list:
+    """Permuted label vectors start..stop-1 of this attribute's test (see the module docstring)."""
+    if cfg.perm_unit == "sample":
+        rng = np.random.default_rng(cfg.seed)
+        out = [rng.permutation(y) for _ in range(stop)]
+        return out[start:]
+    if cfg.perm_unit != "group":
+        raise ValueError(f"unknown perm_unit {cfg.perm_unit!r} ({', '.join(PERM_UNITS)})")
+    plan = plan or group_plan(y, g)
+    return [permute_group(y, plan, np.random.default_rng([cfg.seed, PERM_STREAM, i])) for i in range(start, stop)]
 
 
 def verdict(ci_lo: float, ci_hi: float, chance: float, margin: float) -> str:
@@ -105,7 +168,8 @@ def _model(name: str, seed: int = 42, n_train: int | None = None, n_classes: int
 
 
 def _splits(y, g, cfg: Config):
-    return list(StratifiedGroupKFold(cfg.n_splits, shuffle=True, random_state=cfg.seed)
+    seed = cfg.seed if cfg.fold_seed is None else cfg.fold_seed
+    return list(StratifiedGroupKFold(cfg.n_splits, shuffle=True, random_state=seed)
                 .split(np.zeros(len(y)), y, g))
 
 
@@ -136,6 +200,13 @@ def _score(y, pred, g, classes, cfg: Config) -> dict:
     ci = bootstrap_ci(list(y), list(pred), classes=classes, groups=list(g), n=cfg.n_boot, seed=cfg.seed)
     return {"macro_f1": ci["macro_f1"], "ci_lo": ci["macro_f1_ci_lo"], "ci_hi": ci["macro_f1_ci_hi"],
             "accuracy": ci["accuracy"]}
+
+
+def matches(d: dict, margin: float) -> dict:
+    """A family (or one feature) against all features, from the paired CI of all − this: matches_all
+    when it is shown to be at most `margin` below (non-inferiority); no_detected_deficit when no
+    deficit was detected (0.1.x's rule, which an imprecise estimate passes)."""
+    return {"matches_all": bool(d["ci_hi"] <= margin), "no_detected_deficit": bool(d["ci_lo"] <= 0)}
 
 
 def sample_check(y, g, cfg: Config) -> dict:
@@ -170,8 +241,8 @@ def analyze(X: np.ndarray, y: np.ndarray, g: np.ndarray, families: dict[str, np.
 
     splits = _splits(y, g, cfg)
     null_model = cfg.model if cfg.null_model == "same" else cfg.null_model
-    rng = np.random.default_rng(cfg.seed)
-    perms = [rng.permutation(y) for _ in range(cfg.permutations)]
+    plan = group_plan(y, g) if cfg.perm_unit == "group" else None
+    perms = permutations(y, g, cfg, 0, cfg.permutations, plan)
     # every CV of this attribute in one pool: the model on all features, on each family, on the
     # single request-size feature, the null model on the real labels, and the permutations
     fam_cols = list(families.items())
@@ -193,17 +264,26 @@ def analyze(X: np.ndarray, y: np.ndarray, g: np.ndarray, families: dict[str, np.
     v = verdict(s["ci_lo"], s["ci_hi"], chance, cfg.margin)
     out["analysis"] = {**s, "model": cfg.model, "folds": cfg.n_splits}
 
-    perm = {"permutations": cfg.permutations, "alpha": cfg.alpha, "null_model": null_model}
+    perm = {"permutations": cfg.permutations, "alpha": cfg.alpha, "null_model": null_model, "unit": cfg.perm_unit}
+    if plan is not None:
+        perm["groups"] = {k: plan[k] for k in ("groups", "within_groups")}
     if cfg.permutations:
         observed = s["macro_f1"] if null_obs_pred is None else \
             float(f1_score(y, null_obs_pred, labels=classes, average="macro", zero_division=0))
         null_f1 = [f for f, _ in null_runs]
         null_verdicts = [nv for _, nv in null_runs]
-        p_value = (1 + sum(f >= observed for f in null_f1)) / (cfg.permutations + 1)
-        perm.update({"observed_macro_f1": observed, "p_value": p_value,
+        p_value = (1 + sum(f >= observed for f in null_f1)) / (len(null_f1) + 1)
+        if cfg.perm_max > cfg.permutations and cfg.perm_window[0] <= p_value <= cfg.perm_window[1]:
+            more = permutations(y, g, cfg, cfg.permutations, cfg.perm_max, plan)
+            extra = _parallel([(_null_run, X, yp, g, classes, cfg, null_model) for yp in more], cfg.jobs)
+            perm["p_value_first"] = p_value
+            null_f1 += [f for f, _ in extra]
+            null_verdicts += [nv for _, nv in extra]
+            p_value = (1 + sum(f >= observed for f in null_f1)) / (len(null_f1) + 1)
+        perm.update({"permutations_run": len(null_f1), "observed_macro_f1": observed, "p_value": p_value,
                      "null_mean": float(np.mean(null_f1)), "null_max": float(np.max(null_f1)),
                      "null_verdicts": {k: null_verdicts.count(k) for k in (LEAK, NO_LEAK, INCONCLUSIVE)},
-                     "false_positive_rate": null_verdicts.count(LEAK) / cfg.permutations})
+                     "false_positive_rate": null_verdicts.count(LEAK) / len(null_f1)})
     out["validation"]["permutation"] = perm
 
     reason = {LEAK: f"CI lower bound {s['ci_lo']:.3f} > chance + margin {chance + cfg.margin:.3f}",
@@ -228,19 +308,22 @@ def analyze(X: np.ndarray, y: np.ndarray, g: np.ndarray, families: dict[str, np.
         out["attribution"] = None
         return out
     f1 = lambda t, p: f1_score(t, p, labels=classes, average="macro", zero_division=0)  # noqa: E731
-    attribution = {"families": {}}
+    attribution = {"match_rule": {"match_margin": cfg.match_margin,
+                                  "matches_all": "upper bound of the paired 95% CI of all − this <= match_margin",
+                                  "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"},
+                   "families": {}}
     for (fam, cols), pf in zip(fam_cols, fam_preds):
-        attribution["families"][fam] = {**_score(y, pf, g, classes, cfg), "dims": int(len(cols)),
-                                        "all_minus_this": paired_bootstrap_diff(
-                                            y, pred, pf, g, f1, n=cfg.n_boot, seed=cfg.seed)}
+        d = paired_bootstrap_diff(y, pred, pf, g, f1, n=cfg.n_boot, seed=cfg.seed)
+        attribution["families"][fam] = {**_score(y, pf, g, classes, cfg), "dims": int(len(cols)), "all_minus_this": d,
+                                        **matches(d, cfg.match_margin)}
     if fam_cols:
         top = max(attribution["families"], key=lambda f: attribution["families"][f]["macro_f1"])
-        d = attribution["families"][top]["all_minus_this"]
         attribution["top_family"] = top
-        attribution["top_family_matches_all"] = bool(d["ci_lo"] <= 0)
+        attribution["top_family_matches_all"] = attribution["families"][top]["matches_all"]
+        attribution["top_family_no_detected_deficit"] = attribution["families"][top]["no_detected_deficit"]
     if single is not None:
         d = paired_bootstrap_diff(y, pred, single_pred, g, f1, n=cfg.n_boot, seed=cfg.seed)
         attribution["single_request_size"] = {"feature": single[0], **_score(y, single_pred, g, classes, cfg),
-                                              "all_minus_this": d, "matches_all": bool(d["ci_lo"] <= 0)}
+                                              "all_minus_this": d, **matches(d, cfg.match_margin)}
     out["attribution"] = attribution
     return out

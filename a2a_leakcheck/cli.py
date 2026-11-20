@@ -183,7 +183,8 @@ def run(a: argparse.Namespace) -> int:
     peaks: dict[str, dict] = {}                      # running peak memory at the end of each stage
     cfg = Config(margin=a.margin, n_splits=a.folds, n_boot=a.n_boot, permutations=a.permutations,
                  alpha=a.alpha, min_per_class=a.min_per_class, seed=a.seed, model=a.model,
-                 null_model=a.null_model, jobs=a.jobs)
+                 null_model=a.null_model, jobs=a.jobs, perm_unit=a.perm_unit, perm_max=a.perm_max,
+                 match_margin=a.match_margin)
     rules = load_rules(a.rules)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -248,7 +249,8 @@ def run(a: argparse.Namespace) -> int:
                        "folds": cfg.n_splits, "n_boot": cfg.n_boot, "permutations": cfg.permutations,
                        "alpha": cfg.alpha,
                        "min_per_class": cfg.min_per_class, "seed": cfg.seed, "model": cfg.model,
-                       "null_model": cfg.null_model, "jobs": cfg.jobs,
+                       "null_model": cfg.null_model, "jobs": cfg.jobs, "perm_unit": cfg.perm_unit,
+                       "perm_max": cfg.perm_max, "perm_window": list(cfg.perm_window), "match_margin": cfg.match_margin,
                        "rules": str(a.rules or "default"), **xparams},
         "collection": col["summary"],
         "extraction": ext["summary"],
@@ -349,6 +351,15 @@ def parser() -> argparse.ArgumentParser:
                    help="label permutations (0 = skip the test); 99 lets p reach 0.01")
     r.add_argument("--null-model", choices=["rf-light", "gbt", "rf", "same"], default="rf-light",
                    dest="null_model", help="model of the permutation test (scores real and permuted labels)")
+    r.add_argument("--perm-unit", choices=["group", "sample"], default="group", dest="perm_unit",
+                   help="permutation test: permute labels by prompt group (default; whole groups exchange labels, "
+                        "or labels move within a group when they vary there) or over the samples (0.1.x)")
+    r.add_argument("--perm-max", type=int, default=0, dest="perm_max",
+                   help="if > --permutations and p falls in [0.02, 0.20], add permutations up to this many "
+                        "(e.g. 999); off by default")
+    r.add_argument("--match-margin", type=float, default=0.05, dest="match_margin",
+                   help="attribution: a feature family matches all features when the upper bound of the paired "
+                        "95%% CI of all − family is at most this")
     r.add_argument("--jobs", type=int, default=-1, help="parallel CV runs (-1: one per core)")
     r.add_argument("--alpha", type=float, default=0.05, help="permutation-test level a LEAK must pass")
     r.add_argument("--n-boot", type=int, default=1000, dest="n_boot", help="cluster-bootstrap resamples")

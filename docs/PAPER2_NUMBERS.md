@@ -127,6 +127,30 @@ and reports, and new runs of the same verdict rule on the C2 captures.
 | "Matches all features": the rule; padmax task_type; sensor vs fault, all − family per cell | `paper2_review.json` | `matches_all.rule`, `.padmax_task_type`, `.pair.<cell>.attribution` |
 | Distinct prompts, prompt groups and template pools, C2 and D1 | `paper2_review.json` | `data.C2`, `data.D1` |
 
+### Round 2 (reviewers' checks, a2a-leakcheck 0.3.0)
+
+`scripts/paper2_round2.py` → `paper2_round2.{json,md}`, merged from parts run at one clean commit
+(`parts`); no new collection. 0.3.0's defaults throughout: the permutation test by prompt group, and
+"matches all features" as non-inferiority (upper bound of the paired 95% CI of all − family ≤ 0.05).
+`scripts/pvalue_diagnostics.py` → `paper2_pvalue_{mac,pi}.json`, `paper2_pvalue_compare.{json,md}` (A6).
+
+| Number | File | Field |
+|---|---|---|
+| Main accounting: learned rows (task_type, sensor vs fault, escalated-only) per method | `paper2_round2.json` | `sections.a12.learned`, `.learned_by_task.<task>`, `.rows` |
+| Structural checks (escalated, cloud_role) per method | `paper2_round2.json` | `sections.a12.structural`, `.structural_by_task.<task>` |
+| Known non-leaks with group-level permutation (480 draws, 6 audit_null), next to v1.0's | `paper2_round2.json` | `sections.a12.negatives.<set>.<method>`; v1.0: `sections.a12.current.negative_totals` |
+| Release blocking over the permuted audits | `paper2_round2.json` | `sections.a12.release_blocking.<method>` |
+| All-zero V2 windows per arm and task type | `paper2_round2.json` | `sections.a12.all_zero_windows.<cell>` |
+| Groups per class and group sizes, C2 and D1; draw reuse | `paper2_round2.json` | `sections.a4.cells.<cell>.attributes.<attr>.groups_per_class`, `.group_sizes`; `sections.a4.d1`; `sections.a4.cells.<cell>.reuse` |
+| "Carried by" under the 0.1.x rule and under non-inferiority; every change | `paper2_round2.json` | `sections.a3.reports.<report / attr>`, `sections.a3.learned.<cell / task>` (`carried_0_1`, `carried_0_3`, `changed`) |
+| GBT as null model, and the adaptive 99→999 rule: verdict changes, runtime, Pi estimate | `paper2_round2.json` | `sections.a5.gbt_99`, `.rf_light_adaptive_999`, `.rows`, `.pi_over_mac` |
+| Pi against Mac p-value: the first stage that differs; versions, BLAS, threads; spread over 10 seeds | `paper2_pvalue_compare.json`, `paper2_pvalue_{mac,pi}.json` | `first_difference`, `stages`; `environment`; `seed_spread_<unit>` |
+| Repeated grouped splits: verdict agreement and ranges | `paper2_round2.json` | `sections.a7.<cell / task>` |
+| Timing family columns that depend on bytes or direction; timestamps-only against timing | `paper2_round2.json` | `sections.a8.timing_columns`; `sections.a8.cells.<cell / task>` |
+| Template-held-out against prompt-held-out | `paper2_round2.json` | `sections.a9.cells.<cell / task>.prompt`, `.template`; factors `sections.a9.factor`, `.levels` |
+| INCONCLUSIVE rate per attribute and per audit against traces per task type | `paper2_round2.json` | `sections.a10.<n>` (n = 50, 100, 150, 200, all) |
+| k-FP against a2a-leakcheck: INCONCLUSIVE sources, CI widths, agreement, runtime, plain k-FP | `paper2_round2.json` | `sections.a11.methods`, `.agreement`, `.plain_kfp`, `.runtime_task_type` |
+
 ## Appendix
 
 | Item | File |
