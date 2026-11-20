@@ -1,0 +1,3512 @@
+{
+  "paper": "P2",
+  "collection_id": "C2",
+  "seed": 42,
+  "git_commit": "0700d4bcef673960405f7645cd0247d2f46a3cbb",
+  "git_dirty": false,
+  "created": "2026-11-19T14:05:23-0800",
+  "task": "review checks: accounting of known leaks and non-leaks, escalated-only task type, input-size estimator, 'matches all features', prompts and template pools",
+  "source": {
+    "evaluation": "data/results/paper2_tool_eval_c2.json",
+    "evaluation_commit": "e485f117cbf6773d9332716dcd77d3b76db6503e",
+    "tool_reports": "data/results/leakcheck/c2_{cell}",
+    "tool_report_commits": [
+      "2c1f3ef19281eaac0bdd772623f3a4a34a383937"
+    ]
+  },
+  "data_dir": {
+    "lan": "data/raw_c2",
+    "lan_pad": "data/raw_c2_pad",
+    "lan_padmax": "data/raw_c2_padmax"
+  },
+  "d1_data_dir": {
+    "tls": "data/raw_tlspair_tls",
+    "cleartext": "data/raw_tlspair_clear"
+  },
+  "parameters": {
+    "permutations": 99,
+    "n_boot": 1000,
+    "margin": 0.05,
+    "min_per_class": 20,
+    "folds": 5,
+    "null_model": "rf-light",
+    "alpha": 0.05,
+    "label_perms": 20,
+    "attributes": [
+      "task_type",
+      "escalated",
+      "cloud_role",
+      "audit_null"
+    ],
+    "input_size": "escalated=yes"
+  },
+  "methods": [
+    "leakcheck",
+    "kfp_rf",
+    "first_request"
+  ],
+  "cells": [
+    "lan_v1",
+    "lan_v2",
+    "lan_pad_v1",
+    "lan_pad_v2",
+    "lan_padmax_v1",
+    "lan_padmax_v2"
+  ],
+  "accounting": {
+    "positives": [
+      {
+        "cell": "lan_v1",
+        "arm": "lan",
+        "view": "v1",
+        "attribute": "task_type",
+        "basis": [
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_v1",
+        "arm": "lan",
+        "view": "v1",
+        "attribute": "escalated",
+        "basis": [
+          "by construction",
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_v1",
+        "arm": "lan",
+        "view": "v1",
+        "attribute": "cloud_role",
+        "basis": [
+          "by construction",
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_v2",
+        "arm": "lan",
+        "view": "v2",
+        "attribute": "task_type",
+        "basis": [
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_v2",
+        "arm": "lan",
+        "view": "v2",
+        "attribute": "escalated",
+        "basis": [
+          "by construction",
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_v2",
+        "arm": "lan",
+        "view": "v2",
+        "attribute": "cloud_role",
+        "basis": [
+          "by construction",
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_pad_v1",
+        "arm": "lan_pad",
+        "view": "v1",
+        "attribute": "task_type",
+        "basis": [
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_pad_v1",
+        "arm": "lan_pad",
+        "view": "v1",
+        "attribute": "escalated",
+        "basis": [
+          "by construction",
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_pad_v1",
+        "arm": "lan_pad",
+        "view": "v1",
+        "attribute": "cloud_role",
+        "basis": [
+          "by construction",
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_pad_v2",
+        "arm": "lan_pad",
+        "view": "v2",
+        "attribute": "task_type",
+        "basis": [
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_pad_v2",
+        "arm": "lan_pad",
+        "view": "v2",
+        "attribute": "escalated",
+        "basis": [
+          "by construction",
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_pad_v2",
+        "arm": "lan_pad",
+        "view": "v2",
+        "attribute": "cloud_role",
+        "basis": [
+          "by construction",
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_padmax_v1",
+        "arm": "lan_padmax",
+        "view": "v1",
+        "attribute": "task_type",
+        "basis": [
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_padmax_v1",
+        "arm": "lan_padmax",
+        "view": "v1",
+        "attribute": "escalated",
+        "basis": [
+          "by construction",
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_padmax_v1",
+        "arm": "lan_padmax",
+        "view": "v1",
+        "attribute": "cloud_role",
+        "basis": [
+          "by construction",
+          "kfp_rf"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "NO LEAK"
+      },
+      {
+        "cell": "lan_padmax_v2",
+        "arm": "lan_padmax",
+        "view": "v2",
+        "attribute": "task_type",
+        "basis": [
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_padmax_v2",
+        "arm": "lan_padmax",
+        "view": "v2",
+        "attribute": "escalated",
+        "basis": [
+          "by construction",
+          "kfp_rf",
+          "first_request"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "LEAK"
+      },
+      {
+        "cell": "lan_padmax_v2",
+        "arm": "lan_padmax",
+        "view": "v2",
+        "attribute": "cloud_role",
+        "basis": [
+          "by construction",
+          "kfp_rf"
+        ],
+        "leakcheck": "LEAK",
+        "kfp_rf": "LEAK",
+        "first_request": "NO LEAK"
+      }
+    ],
+    "positive_totals": {
+      "by construction": {
+        "leakcheck": {
+          "LEAK": 12,
+          "INCONCLUSIVE": 0,
+          "NO LEAK": 0
+        },
+        "kfp_rf": {
+          "LEAK": 12,
+          "INCONCLUSIVE": 0,
+          "NO LEAK": 0
+        },
+        "first_request": {
+          "LEAK": 10,
+          "INCONCLUSIVE": 0,
+          "NO LEAK": 2
+        }
+      },
+      "baseline only": {
+        "leakcheck": {
+          "LEAK": 6,
+          "INCONCLUSIVE": 0,
+          "NO LEAK": 0
+        },
+        "kfp_rf": {
+          "LEAK": 6,
+          "INCONCLUSIVE": 0,
+          "NO LEAK": 0
+        },
+        "first_request": {
+          "LEAK": 6,
+          "INCONCLUSIVE": 0,
+          "NO LEAK": 0
+        }
+      },
+      "all": {
+        "leakcheck": {
+          "LEAK": 18,
+          "INCONCLUSIVE": 0,
+          "NO LEAK": 0
+        },
+        "kfp_rf": {
+          "LEAK": 18,
+          "INCONCLUSIVE": 0,
+          "NO LEAK": 0
+        },
+        "first_request": {
+          "LEAK": 16,
+          "INCONCLUSIVE": 0,
+          "NO LEAK": 2
+        }
+      }
+    },
+    "negative_totals": {
+      "permuted": {
+        "leakcheck": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 65,
+          "NO LEAK": 415
+        },
+        "kfp_rf": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 52,
+          "NO LEAK": 428
+        },
+        "first_request": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 47,
+          "NO LEAK": 433
+        }
+      },
+      "audit_null": {
+        "leakcheck": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 2,
+          "NO LEAK": 4
+        },
+        "kfp_rf": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 1,
+          "NO LEAK": 5
+        },
+        "first_request": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 2,
+          "NO LEAK": 4
+        }
+      },
+      "all": {
+        "leakcheck": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 67,
+          "NO LEAK": 419
+        },
+        "kfp_rf": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 53,
+          "NO LEAK": 433
+        },
+        "first_request": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 49,
+          "NO LEAK": 437
+        }
+      }
+    },
+    "negatives_by_attribute": {
+      "task_type": {
+        "leakcheck": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 14,
+          "NO LEAK": 106
+        },
+        "kfp_rf": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 8,
+          "NO LEAK": 112
+        },
+        "first_request": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 14,
+          "NO LEAK": 106
+        }
+      },
+      "escalated": {
+        "leakcheck": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 10,
+          "NO LEAK": 110
+        },
+        "kfp_rf": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 12,
+          "NO LEAK": 108
+        },
+        "first_request": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 10,
+          "NO LEAK": 110
+        }
+      },
+      "cloud_role": {
+        "leakcheck": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 31,
+          "NO LEAK": 89
+        },
+        "kfp_rf": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 27,
+          "NO LEAK": 93
+        },
+        "first_request": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 16,
+          "NO LEAK": 104
+        }
+      },
+      "audit_null": {
+        "leakcheck": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 10,
+          "NO LEAK": 110
+        },
+        "kfp_rf": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 5,
+          "NO LEAK": 115
+        },
+        "first_request": {
+          "LEAK": 0,
+          "INCONCLUSIVE": 7,
+          "NO LEAK": 113
+        }
+      }
+    },
+    "release_blocking": {
+      "attributes": [
+        "task_type",
+        "escalated",
+        "cloud_role",
+        "audit_null"
+      ],
+      "alignment": "audit k of a cell: the k-th full-size permuted draw of each attribute, on the same captures; each attribute's labels permuted with its own stream (seed, 1, attribute stream, k), so independently across attributes",
+      "methods": {
+        "leakcheck": {
+          "audits": 120,
+          "any_leak": 0,
+          "any_leak_rate": 0.0,
+          "any_leak_ci": [
+            0.0,
+            0.03101916689287469
+          ],
+          "inconclusive_no_leak": 56,
+          "inconclusive_no_leak_rate": 0.4666666666666667,
+          "inconclusive_no_leak_ci": [
+            0.37982916980208364,
+            0.5555721079907746
+          ],
+          "all_no_leak": 64,
+          "per_cell": {
+            "lan_v1": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 7
+            },
+            "lan_v2": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 9
+            },
+            "lan_pad_v1": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 10
+            },
+            "lan_pad_v2": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 11
+            },
+            "lan_padmax_v1": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 10
+            },
+            "lan_padmax_v2": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 9
+            }
+          }
+        },
+        "kfp_rf": {
+          "audits": 120,
+          "any_leak": 0,
+          "any_leak_rate": 0.0,
+          "any_leak_ci": [
+            0.0,
+            0.03101916689287469
+          ],
+          "inconclusive_no_leak": 48,
+          "inconclusive_no_leak_rate": 0.4,
+          "inconclusive_no_leak_ci": [
+            0.31676408059503963,
+            0.4894397527835353
+          ],
+          "all_no_leak": 72,
+          "per_cell": {
+            "lan_v1": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 11
+            },
+            "lan_v2": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 7
+            },
+            "lan_pad_v1": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 4
+            },
+            "lan_pad_v2": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 7
+            },
+            "lan_padmax_v1": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 10
+            },
+            "lan_padmax_v2": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 9
+            }
+          }
+        },
+        "first_request": {
+          "audits": 120,
+          "any_leak": 0,
+          "any_leak_rate": 0.0,
+          "any_leak_ci": [
+            0.0,
+            0.03101916689287469
+          ],
+          "inconclusive_no_leak": 42,
+          "inconclusive_no_leak_rate": 0.35,
+          "inconclusive_no_leak_ci": [
+            0.2705189953289611,
+            0.4387867547389012
+          ],
+          "all_no_leak": 78,
+          "per_cell": {
+            "lan_v1": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 9
+            },
+            "lan_v2": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 10
+            },
+            "lan_pad_v1": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 8
+            },
+            "lan_pad_v2": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 4
+            },
+            "lan_padmax_v1": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 6
+            },
+            "lan_padmax_v2": {
+              "audits": 20,
+              "any_leak": 0,
+              "inconclusive_no_leak": 5
+            }
+          }
+        }
+      }
+    }
+  },
+  "reuse": {
+    "lan_v1/task_type": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_v1/escalated": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_v1/cloud_role": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_v1/audit_null": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_v2/task_type": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_v2/escalated": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_v2/cloud_role": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_v2/audit_null": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_pad_v1/task_type": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_pad_v1/escalated": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_pad_v1/cloud_role": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_pad_v1/audit_null": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_pad_v2/task_type": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_pad_v2/escalated": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_pad_v2/cloud_role": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_pad_v2/audit_null": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_padmax_v1/task_type": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_padmax_v1/escalated": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_padmax_v1/cloud_role": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_padmax_v1/audit_null": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_padmax_v2/task_type": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_padmax_v2/escalated": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_padmax_v2/cloud_role": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    },
+    "lan_padmax_v2/audit_null": {
+      "draws": 20,
+      "shuffles_per_test": 99,
+      "labellings": 2100,
+      "distinct_labellings": 2100,
+      "draw_equal_to_a_shuffle_in_any_test": 0,
+      "draw_equal_to_real_labels": 0
+    }
+  },
+  "escalated_task_type": {
+    "lan_v1": {
+      "classes": {
+        "fault_diagnosis": 250,
+        "procedure_lookup": 250,
+        "sensor_analysis": 250
+      },
+      "groups": 736,
+      "dims": {
+        "all": 195,
+        "timing": 30
+      },
+      "all": {
+        "verdict": "LEAK",
+        "macro_f1": 0.9587774060964124,
+        "ci": [
+          0.9451648235074418,
+          0.9722578183401382
+        ],
+        "p": 0.01,
+        "null_mean": 0.3286351182892719,
+        "null_max": 0.38283455723295345,
+        "chance": 0.3333333333333333,
+        "threshold": 0.3833333333333333,
+        "n": 750,
+        "groups": 736
+      },
+      "timing": {
+        "verdict": "LEAK",
+        "macro_f1": 0.8654423764818467,
+        "ci": [
+          0.8420285966496353,
+          0.8876221066972712
+        ],
+        "p": 0.01,
+        "n": 750,
+        "groups": 736
+      },
+      "attribution": {
+        "sizes": {
+          "macro_f1": 0.9587086608007883,
+          "ci": [
+            0.9450493858098693,
+            0.9729289333358629
+          ],
+          "dims": 139,
+          "all_minus_this": {
+            "diff": 6.874529562406195e-05,
+            "ci_lo": -0.011867099710284249,
+            "ci_hi": 0.012607342816459964
+          },
+          "matches_all": true
+        },
+        "timing": {
+          "macro_f1": 0.8654423764818467,
+          "ci": [
+            0.8420285966496353,
+            0.8876221066972712
+          ],
+          "dims": 30,
+          "all_minus_this": {
+            "diff": 0.09333502961456563,
+            "ci_lo": 0.07127022891648277,
+            "ci_hi": 0.11614088848786044
+          },
+          "matches_all": false
+        },
+        "counts_direction": {
+          "macro_f1": 0.6621112444977991,
+          "ci": [
+            0.6311882899363539,
+            0.6952506699133543
+          ],
+          "dims": 26,
+          "all_minus_this": {
+            "diff": 0.29666616159861325,
+            "ci_lo": 0.26074827588309557,
+            "ci_hi": 0.3294311480052556
+          },
+          "matches_all": false
+        }
+      },
+      "top_family": "sizes"
+    },
+    "lan_v2": {
+      "classes": {
+        "fault_diagnosis": 250,
+        "procedure_lookup": 250,
+        "sensor_analysis": 250
+      },
+      "groups": 736,
+      "dims": {
+        "all": 195,
+        "timing": 30
+      },
+      "all": {
+        "verdict": "LEAK",
+        "macro_f1": 0.9626250045255142,
+        "ci": [
+          0.948011916900035,
+          0.9748693121961269
+        ],
+        "p": 0.01,
+        "null_mean": 0.33168898022892795,
+        "null_max": 0.3977348454170833,
+        "chance": 0.3333333333333333,
+        "threshold": 0.3833333333333333,
+        "n": 750,
+        "groups": 736
+      },
+      "timing": {
+        "verdict": "LEAK",
+        "macro_f1": 0.8654626650379112,
+        "ci": [
+          0.8415748342544873,
+          0.888410590621142
+        ],
+        "p": 0.01,
+        "n": 750,
+        "groups": 736
+      },
+      "attribution": {
+        "sizes": {
+          "macro_f1": 0.9693655329396149,
+          "ci": [
+            0.9571387216150163,
+            0.9813788539294108
+          ],
+          "dims": 139,
+          "all_minus_this": {
+            "diff": -0.006740528414100666,
+            "ci_lo": -0.01646559420001967,
+            "ci_hi": 0.003097409520735352
+          },
+          "matches_all": true
+        },
+        "timing": {
+          "macro_f1": 0.8654626650379112,
+          "ci": [
+            0.8415748342544873,
+            0.888410590621142
+          ],
+          "dims": 30,
+          "all_minus_this": {
+            "diff": 0.097162339487603,
+            "ci_lo": 0.07399193774601392,
+            "ci_hi": 0.12069625913453018
+          },
+          "matches_all": false
+        },
+        "counts_direction": {
+          "macro_f1": 0.6622106572978317,
+          "ci": [
+            0.6297888529384785,
+            0.6956109017645163
+          ],
+          "dims": 26,
+          "all_minus_this": {
+            "diff": 0.30041434722768257,
+            "ci_lo": 0.2660071321749398,
+            "ci_hi": 0.3336251578447516
+          },
+          "matches_all": false
+        }
+      },
+      "top_family": "sizes"
+    },
+    "lan_pad_v1": {
+      "classes": {
+        "fault_diagnosis": 250,
+        "procedure_lookup": 250,
+        "sensor_analysis": 250
+      },
+      "groups": 736,
+      "dims": {
+        "all": 195,
+        "timing": 30
+      },
+      "all": {
+        "verdict": "LEAK",
+        "macro_f1": 0.933399364493948,
+        "ci": [
+          0.9158779858604655,
+          0.951624524122768
+        ],
+        "p": 0.01,
+        "null_mean": 0.3361464824069222,
+        "null_max": 0.39709444528134097,
+        "chance": 0.3333333333333333,
+        "threshold": 0.3833333333333333,
+        "n": 750,
+        "groups": 736
+      },
+      "timing": {
+        "verdict": "LEAK",
+        "macro_f1": 0.850759686457533,
+        "ci": [
+          0.82538949401612,
+          0.8753459316535355
+        ],
+        "p": 0.01,
+        "n": 750,
+        "groups": 736
+      },
+      "attribution": {
+        "sizes": {
+          "macro_f1": 0.9292739821561695,
+          "ci": [
+            0.9102422649165807,
+            0.9466366273825118
+          ],
+          "dims": 139,
+          "all_minus_this": {
+            "diff": 0.004125382337778483,
+            "ci_lo": -0.009152108950030708,
+            "ci_hi": 0.01742326730106205
+          },
+          "matches_all": true
+        },
+        "timing": {
+          "macro_f1": 0.850759686457533,
+          "ci": [
+            0.82538949401612,
+            0.8753459316535355
+          ],
+          "dims": 30,
+          "all_minus_this": {
+            "diff": 0.08263967803641503,
+            "ci_lo": 0.05946824726321932,
+            "ci_hi": 0.10600029036996073
+          },
+          "matches_all": false
+        },
+        "counts_direction": {
+          "macro_f1": 0.6292059451213264,
+          "ci": [
+            0.5960454339406455,
+            0.6604649117143135
+          ],
+          "dims": 26,
+          "all_minus_this": {
+            "diff": 0.30419341937262157,
+            "ci_lo": 0.2680378735142478,
+            "ci_hi": 0.3393514052345917
+          },
+          "matches_all": false
+        }
+      },
+      "top_family": "sizes"
+    },
+    "lan_pad_v2": {
+      "classes": {
+        "fault_diagnosis": 250,
+        "procedure_lookup": 250,
+        "sensor_analysis": 250
+      },
+      "groups": 736,
+      "dims": {
+        "all": 195,
+        "timing": 30
+      },
+      "all": {
+        "verdict": "LEAK",
+        "macro_f1": 0.9467693051116028,
+        "ci": [
+          0.9302381692154905,
+          0.9620050014528599
+        ],
+        "p": 0.01,
+        "null_mean": 0.33515402586700566,
+        "null_max": 0.3831634705436114,
+        "chance": 0.3333333333333333,
+        "threshold": 0.3833333333333333,
+        "n": 750,
+        "groups": 736
+      },
+      "timing": {
+        "verdict": "LEAK",
+        "macro_f1": 0.8520027200979235,
+        "ci": [
+          0.8272926673248254,
+          0.876177744483605
+        ],
+        "p": 0.01,
+        "n": 750,
+        "groups": 736
+      },
+      "attribution": {
+        "sizes": {
+          "macro_f1": 0.9400024320097281,
+          "ci": [
+            0.9234568292075286,
+            0.9554816959282173
+          ],
+          "dims": 139,
+          "all_minus_this": {
+            "diff": 0.0067668731018747375,
+            "ci_lo": -0.002463317115026134,
+            "ci_hi": 0.01632487236262063
+          },
+          "matches_all": true
+        },
+        "timing": {
+          "macro_f1": 0.8520027200979235,
+          "ci": [
+            0.8272926673248254,
+            0.876177744483605
+          ],
+          "dims": 30,
+          "all_minus_this": {
+            "diff": 0.0947665850136793,
+            "ci_lo": 0.07025817949203378,
+            "ci_hi": 0.1189651553879844
+          },
+          "matches_all": false
+        },
+        "counts_direction": {
+          "macro_f1": 0.5922533540286378,
+          "ci": [
+            0.559765209846344,
+            0.6247610305135926
+          ],
+          "dims": 26,
+          "all_minus_this": {
+            "diff": 0.3545159510829651,
+            "ci_lo": 0.31849077730573827,
+            "ci_hi": 0.3873862615894094
+          },
+          "matches_all": false
+        }
+      },
+      "top_family": "sizes"
+    },
+    "lan_padmax_v1": {
+      "classes": {
+        "fault_diagnosis": 250,
+        "procedure_lookup": 250,
+        "sensor_analysis": 250
+      },
+      "groups": 736,
+      "dims": {
+        "all": 195,
+        "timing": 30
+      },
+      "all": {
+        "verdict": "LEAK",
+        "macro_f1": 0.8521425320761044,
+        "ci": [
+          0.8273911203332597,
+          0.8764449242154047
+        ],
+        "p": 0.01,
+        "null_mean": 0.33577492240164175,
+        "null_max": 0.38696274676033876,
+        "chance": 0.3333333333333333,
+        "threshold": 0.3833333333333333,
+        "n": 750,
+        "groups": 736
+      },
+      "timing": {
+        "verdict": "LEAK",
+        "macro_f1": 0.8344402262007952,
+        "ci": [
+          0.8081508912163692,
+          0.8582360683222066
+        ],
+        "p": 0.01,
+        "n": 750,
+        "groups": 736
+      },
+      "attribution": {
+        "sizes": {
+          "macro_f1": 0.8477264645495488,
+          "ci": [
+            0.8220302011804034,
+            0.8741518181870979
+          ],
+          "dims": 139,
+          "all_minus_this": {
+            "diff": 0.004416067526555545,
+            "ci_lo": -0.015502568921082534,
+            "ci_hi": 0.024656338735727704
+          },
+          "matches_all": true
+        },
+        "timing": {
+          "macro_f1": 0.8344402262007952,
+          "ci": [
+            0.8081508912163692,
+            0.8582360683222066
+          ],
+          "dims": 30,
+          "all_minus_this": {
+            "diff": 0.017702305875309188,
+            "ci_lo": -0.005069589737952867,
+            "ci_hi": 0.04000495858159901
+          },
+          "matches_all": true
+        },
+        "counts_direction": {
+          "macro_f1": 0.6021747023785129,
+          "ci": [
+            0.5672933474288403,
+            0.6364557227298394
+          ],
+          "dims": 26,
+          "all_minus_this": {
+            "diff": 0.24996782969759146,
+            "ci_lo": 0.21296159813742668,
+            "ci_hi": 0.29090528616408545
+          },
+          "matches_all": false
+        }
+      },
+      "top_family": "sizes"
+    },
+    "lan_padmax_v2": {
+      "classes": {
+        "fault_diagnosis": 250,
+        "procedure_lookup": 250,
+        "sensor_analysis": 250
+      },
+      "groups": 736,
+      "dims": {
+        "all": 195,
+        "timing": 30
+      },
+      "all": {
+        "verdict": "LEAK",
+        "macro_f1": 0.8424500400267441,
+        "ci": [
+          0.81403762497105,
+          0.8679461987079456
+        ],
+        "p": 0.01,
+        "null_mean": 0.33607106693642863,
+        "null_max": 0.3835612509745767,
+        "chance": 0.3333333333333333,
+        "threshold": 0.3833333333333333,
+        "n": 750,
+        "groups": 736
+      },
+      "timing": {
+        "verdict": "LEAK",
+        "macro_f1": 0.8520027200979235,
+        "ci": [
+          0.8299827379083209,
+          0.874682575243191
+        ],
+        "p": 0.01,
+        "n": 750,
+        "groups": 736
+      },
+      "attribution": {
+        "sizes": {
+          "macro_f1": 0.8319920425393473,
+          "ci": [
+            0.806174043320754,
+            0.8590519594137233
+          ],
+          "dims": 139,
+          "all_minus_this": {
+            "diff": 0.01045799748739673,
+            "ci_lo": -0.006939383961128984,
+            "ci_hi": 0.026995027092735317
+          },
+          "matches_all": true
+        },
+        "timing": {
+          "macro_f1": 0.8520027200979235,
+          "ci": [
+            0.8299827379083209,
+            0.874682575243191
+          ],
+          "dims": 30,
+          "all_minus_this": {
+            "diff": -0.009552680071179487,
+            "ci_lo": -0.034640561930582243,
+            "ci_hi": 0.014372637790437385
+          },
+          "matches_all": true
+        },
+        "counts_direction": {
+          "macro_f1": 0.6005213610485778,
+          "ci": [
+            0.5672681102582583,
+            0.6336862002982162
+          ],
+          "dims": 26,
+          "all_minus_this": {
+            "diff": 0.24192867897816628,
+            "ci_lo": 0.20323006917179218,
+            "ci_hi": 0.2796476267832919
+          },
+          "matches_all": false
+        }
+      },
+      "top_family": "timing"
+    }
+  },
+  "input_size": {
+    "lan_v1": {
+      "population": "escalated=yes",
+      "n": 750,
+      "groups": 736,
+      "first_request_agent": {
+        "diagnostics": 500,
+        "knowledge": 250
+      },
+      "first_request_sizes": {
+        "distinct": 539,
+        "counts": null,
+        "usual": 600.0,
+        "unusual_traces": []
+      },
+      "fitted_per_fold": [
+        {
+          "constant_overhead_c": 520.0,
+          "no_traffic_prediction": 2420.0,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 520.0,
+          "no_traffic_prediction": 2366.5,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 520.0,
+          "no_traffic_prediction": 2435.0,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 520.0,
+          "no_traffic_prediction": 2427.5,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 520.0,
+          "no_traffic_prediction": 2383.0,
+          "train": 600,
+          "test": 150
+        }
+      ],
+      "reproduces_stored_errors": true,
+      "errors": {
+        "constant": {
+          "overall": {
+            "median_abs_error": 0.0,
+            "p90_abs_error": 1.0,
+            "mae": 0.34933333333333333
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 0.0,
+              "p90_abs_error": 0.0
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 1.0,
+              "p90_abs_error": 1.0
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 0.0,
+              "p90_abs_error": 0.0
+            }
+          }
+        },
+        "linear": {
+          "overall": {
+            "median_abs_error": 0.15558091543095998,
+            "p90_abs_error": 0.36915173482225333,
+            "mae": 0.19606590158243914
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 0.1409830632039757,
+              "p90_abs_error": 0.31405092894688097
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 0.1533211701420214,
+              "p90_abs_error": 0.15964035164194001
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 0.27365367618176606,
+              "p90_abs_error": 0.5381902821029598
+            }
+          }
+        },
+        "no_traffic": {
+          "overall": {
+            "median_abs_error": 1794.5,
+            "p90_abs_error": 2361.1,
+            "mae": 1582.5693333333334
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 1263.5,
+              "p90_abs_error": 2413.1
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 2325.0,
+              "p90_abs_error": 2362.5
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 1080.0,
+              "p90_abs_error": 2237.7
+            }
+          }
+        },
+        "per_class_constant": {
+          "overall": {
+            "median_abs_error": 0.0,
+            "p90_abs_error": 0.0,
+            "mae": 0.016
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 0.0,
+              "p90_abs_error": 0.0
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 0.0,
+              "p90_abs_error": 0.0
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 0.0,
+              "p90_abs_error": 0.0
+            }
+          }
+        }
+      },
+      "constant_minus_no_traffic": {
+        "overall": {
+          "median_abs_error": {
+            "diff": -1794.5,
+            "ci_lo": -1943.0,
+            "ci_hi": -1628.5,
+            "significant": true
+          },
+          "mean_abs_error": {
+            "diff": -1582.22,
+            "ci_lo": -1643.1201499999997,
+            "ci_hi": -1525.26662376502,
+            "significant": true
+          }
+        },
+        "per_class": {
+          "fault_diagnosis": {
+            "median_abs_error": {
+              "diff": -1263.5,
+              "ci_lo": -1396.0,
+              "ci_hi": -1111.46875,
+              "significant": true
+            },
+            "mean_abs_error": {
+              "diff": -1280.572,
+              "ci_lo": -1374.5342,
+              "ci_hi": -1187.64955,
+              "significant": true
+            }
+          },
+          "procedure_lookup": {
+            "median_abs_error": {
+              "diff": -2324.0,
+              "ci_lo": -2335.25,
+              "ci_hi": -2320.0,
+              "significant": true
+            },
+            "mean_abs_error": {
+              "diff": -2323.484,
+              "ci_lo": -2327.4843976534185,
+              "ci_hi": -2319.7291136290582,
+              "significant": true
+            }
+          },
+          "sensor_analysis": {
+            "median_abs_error": {
+              "diff": -1080.0,
+              "ci_lo": -1257.0,
+              "ci_hi": -936.9625000000001,
+              "significant": true
+            },
+            "mean_abs_error": {
+              "diff": -1142.604,
+              "ci_lo": -1243.68925,
+              "ci_hi": -1049.92215,
+              "significant": true
+            }
+          }
+        }
+      }
+    },
+    "lan_v2": {
+      "population": "escalated=yes",
+      "n": 750,
+      "groups": 736,
+      "first_request_agent": {
+        "diagnostics": 500,
+        "knowledge": 250
+      },
+      "first_request_sizes": {
+        "distinct": 539,
+        "counts": null,
+        "usual": 600.0,
+        "unusual_traces": []
+      },
+      "fitted_per_fold": [
+        {
+          "constant_overhead_c": 520.0,
+          "no_traffic_prediction": 2420.0,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 520.0,
+          "no_traffic_prediction": 2366.5,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 520.0,
+          "no_traffic_prediction": 2435.0,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 520.0,
+          "no_traffic_prediction": 2427.5,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 520.0,
+          "no_traffic_prediction": 2383.0,
+          "train": 600,
+          "test": 150
+        }
+      ],
+      "reproduces_stored_errors": true,
+      "errors": {
+        "constant": {
+          "overall": {
+            "median_abs_error": 0.0,
+            "p90_abs_error": 1.0,
+            "mae": 0.34933333333333333
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 0.0,
+              "p90_abs_error": 0.0
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 1.0,
+              "p90_abs_error": 1.0
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 0.0,
+              "p90_abs_error": 0.0
+            }
+          }
+        },
+        "linear": {
+          "overall": {
+            "median_abs_error": 0.15558091543095998,
+            "p90_abs_error": 0.36915173482225333,
+            "mae": 0.19606590158243914
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 0.1409830632039757,
+              "p90_abs_error": 0.31405092894688097
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 0.1533211701420214,
+              "p90_abs_error": 0.15964035164194001
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 0.27365367618176606,
+              "p90_abs_error": 0.5381902821029598
+            }
+          }
+        },
+        "no_traffic": {
+          "overall": {
+            "median_abs_error": 1794.5,
+            "p90_abs_error": 2361.1,
+            "mae": 1582.5693333333334
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 1263.5,
+              "p90_abs_error": 2413.1
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 2325.0,
+              "p90_abs_error": 2362.5
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 1080.0,
+              "p90_abs_error": 2237.7
+            }
+          }
+        },
+        "per_class_constant": {
+          "overall": {
+            "median_abs_error": 0.0,
+            "p90_abs_error": 0.0,
+            "mae": 0.016
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 0.0,
+              "p90_abs_error": 0.0
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 0.0,
+              "p90_abs_error": 0.0
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 0.0,
+              "p90_abs_error": 0.0
+            }
+          }
+        }
+      },
+      "constant_minus_no_traffic": {
+        "overall": {
+          "median_abs_error": {
+            "diff": -1794.5,
+            "ci_lo": -1943.0,
+            "ci_hi": -1628.5,
+            "significant": true
+          },
+          "mean_abs_error": {
+            "diff": -1582.22,
+            "ci_lo": -1643.1201499999997,
+            "ci_hi": -1525.26662376502,
+            "significant": true
+          }
+        },
+        "per_class": {
+          "fault_diagnosis": {
+            "median_abs_error": {
+              "diff": -1263.5,
+              "ci_lo": -1396.0,
+              "ci_hi": -1111.46875,
+              "significant": true
+            },
+            "mean_abs_error": {
+              "diff": -1280.572,
+              "ci_lo": -1374.5342,
+              "ci_hi": -1187.64955,
+              "significant": true
+            }
+          },
+          "procedure_lookup": {
+            "median_abs_error": {
+              "diff": -2324.0,
+              "ci_lo": -2335.25,
+              "ci_hi": -2320.0,
+              "significant": true
+            },
+            "mean_abs_error": {
+              "diff": -2323.484,
+              "ci_lo": -2327.4843976534185,
+              "ci_hi": -2319.7291136290582,
+              "significant": true
+            }
+          },
+          "sensor_analysis": {
+            "median_abs_error": {
+              "diff": -1080.0,
+              "ci_lo": -1257.0,
+              "ci_hi": -936.9625000000001,
+              "significant": true
+            },
+            "mean_abs_error": {
+              "diff": -1142.604,
+              "ci_lo": -1243.68925,
+              "ci_hi": -1049.92215,
+              "significant": true
+            }
+          }
+        }
+      }
+    },
+    "lan_pad_v1": {
+      "population": "escalated=yes",
+      "n": 750,
+      "groups": 736,
+      "first_request_agent": {
+        "diagnostics": 500,
+        "knowledge": 250
+      },
+      "first_request_sizes": {
+        "distinct": 4,
+        "counts": {
+          "1320": 262,
+          "2344": 45,
+          "4392": 277,
+          "8488": 166
+        },
+        "usual": 4392.0,
+        "unusual_traces": []
+      },
+      "fitted_per_fold": [
+        {
+          "constant_overhead_c": 1256.0,
+          "no_traffic_prediction": 2420.0,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 1255.0,
+          "no_traffic_prediction": 2366.5,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 1254.5,
+          "no_traffic_prediction": 2435.0,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 1256.0,
+          "no_traffic_prediction": 2427.5,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 1254.0,
+          "no_traffic_prediction": 2383.0,
+          "train": 600,
+          "test": 150
+        }
+      ],
+      "reproduces_stored_errors": true,
+      "errors": {
+        "constant": {
+          "overall": {
+            "median_abs_error": 329.0,
+            "p90_abs_error": 2831.8,
+            "mae": 828.24
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 729.0,
+              "p90_abs_error": 3165.0499999999997
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 15.75,
+              "p90_abs_error": 40.0
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 634.75,
+              "p90_abs_error": 2830.9
+            }
+          }
+        },
+        "linear": {
+          "overall": {
+            "median_abs_error": 412.857420628014,
+            "p90_abs_error": 1061.763718617734,
+            "mae": 518.0552932963176
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 648.0987814916898,
+              "p90_abs_error": 1246.0463057347492
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 404.13251936190426,
+              "p90_abs_error": 424.05761665998176
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 414.6171707491867,
+              "p90_abs_error": 1172.5597075925598
+            }
+          }
+        },
+        "no_traffic": {
+          "overall": {
+            "median_abs_error": 1794.5,
+            "p90_abs_error": 2361.1,
+            "mae": 1582.5693333333334
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 1263.5,
+              "p90_abs_error": 2413.1
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 2325.0,
+              "p90_abs_error": 2362.5
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 1080.0,
+              "p90_abs_error": 2237.7
+            }
+          }
+        },
+        "per_class_constant": {
+          "overall": {
+            "median_abs_error": 495.75,
+            "p90_abs_error": 2213.8,
+            "mae": 775.8613333333333
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 1245.5,
+              "p90_abs_error": 2433.7999999999997
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 12.0,
+              "p90_abs_error": 26.099999999999994
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 786.5,
+              "p90_abs_error": 2459.6
+            }
+          }
+        }
+      },
+      "constant_minus_no_traffic": {
+        "overall": {
+          "median_abs_error": {
+            "diff": -1465.5,
+            "ci_lo": -1664.04375,
+            "ci_hi": -1272.9875,
+            "significant": true
+          },
+          "mean_abs_error": {
+            "diff": -754.3293333333334,
+            "ci_lo": -851.9051065493985,
+            "ci_hi": -653.2464281201779,
+            "significant": true
+          }
+        },
+        "per_class": {
+          "fault_diagnosis": {
+            "median_abs_error": {
+              "diff": -534.5,
+              "ci_lo": -618.0125,
+              "ci_hi": -349.0,
+              "significant": true
+            },
+            "mean_abs_error": {
+              "diff": 122.57200000000012,
+              "ci_lo": 11.899150000000006,
+              "ci_hi": 235.71715000000003,
+              "significant": true
+            }
+          },
+          "procedure_lookup": {
+            "median_abs_error": {
+              "diff": -2309.25,
+              "ci_lo": -2321.0,
+              "ci_hi": -2304.0,
+              "significant": true
+            },
+            "mean_abs_error": {
+              "diff": -2305.384,
+              "ci_lo": -2310.5847056409193,
+              "ci_hi": -2300.5243583282545,
+              "significant": true
+            }
+          },
+          "sensor_analysis": {
+            "median_abs_error": {
+              "diff": -445.25,
+              "ci_lo": -608.025,
+              "ci_hi": -267.20625000000007,
+              "significant": true
+            },
+            "mean_abs_error": {
+              "diff": -80.17599999999993,
+              "ci_lo": -179.02274999999995,
+              "ci_hi": 23.707199999999904,
+              "significant": false
+            }
+          }
+        }
+      }
+    },
+    "lan_pad_v2": {
+      "population": "escalated=yes",
+      "n": 750,
+      "groups": 736,
+      "first_request_agent": {
+        "diagnostics": 500,
+        "knowledge": 250
+      },
+      "first_request_sizes": {
+        "distinct": 4,
+        "counts": {
+          "1320": 262,
+          "2344": 45,
+          "4392": 277,
+          "8488": 166
+        },
+        "usual": 4392.0,
+        "unusual_traces": []
+      },
+      "fitted_per_fold": [
+        {
+          "constant_overhead_c": 1256.0,
+          "no_traffic_prediction": 2420.0,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 1255.0,
+          "no_traffic_prediction": 2366.5,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 1254.5,
+          "no_traffic_prediction": 2435.0,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 1256.0,
+          "no_traffic_prediction": 2427.5,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 1254.0,
+          "no_traffic_prediction": 2383.0,
+          "train": 600,
+          "test": 150
+        }
+      ],
+      "reproduces_stored_errors": true,
+      "errors": {
+        "constant": {
+          "overall": {
+            "median_abs_error": 329.0,
+            "p90_abs_error": 2831.8,
+            "mae": 828.24
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 729.0,
+              "p90_abs_error": 3165.0499999999997
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 15.75,
+              "p90_abs_error": 40.0
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 634.75,
+              "p90_abs_error": 2830.9
+            }
+          }
+        },
+        "linear": {
+          "overall": {
+            "median_abs_error": 412.857420628014,
+            "p90_abs_error": 1061.763718617734,
+            "mae": 518.0552932963176
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 648.0987814916898,
+              "p90_abs_error": 1246.0463057347492
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 404.13251936190426,
+              "p90_abs_error": 424.05761665998176
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 414.6171707491867,
+              "p90_abs_error": 1172.5597075925598
+            }
+          }
+        },
+        "no_traffic": {
+          "overall": {
+            "median_abs_error": 1794.5,
+            "p90_abs_error": 2361.1,
+            "mae": 1582.5693333333334
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 1263.5,
+              "p90_abs_error": 2413.1
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 2325.0,
+              "p90_abs_error": 2362.5
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 1080.0,
+              "p90_abs_error": 2237.7
+            }
+          }
+        },
+        "per_class_constant": {
+          "overall": {
+            "median_abs_error": 495.75,
+            "p90_abs_error": 2213.8,
+            "mae": 775.8613333333333
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 1245.5,
+              "p90_abs_error": 2433.7999999999997
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 12.0,
+              "p90_abs_error": 26.099999999999994
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 786.5,
+              "p90_abs_error": 2459.6
+            }
+          }
+        }
+      },
+      "constant_minus_no_traffic": {
+        "overall": {
+          "median_abs_error": {
+            "diff": -1465.5,
+            "ci_lo": -1664.04375,
+            "ci_hi": -1272.9875,
+            "significant": true
+          },
+          "mean_abs_error": {
+            "diff": -754.3293333333334,
+            "ci_lo": -851.9051065493985,
+            "ci_hi": -653.2464281201779,
+            "significant": true
+          }
+        },
+        "per_class": {
+          "fault_diagnosis": {
+            "median_abs_error": {
+              "diff": -534.5,
+              "ci_lo": -618.0125,
+              "ci_hi": -349.0,
+              "significant": true
+            },
+            "mean_abs_error": {
+              "diff": 122.57200000000012,
+              "ci_lo": 11.899150000000006,
+              "ci_hi": 235.71715000000003,
+              "significant": true
+            }
+          },
+          "procedure_lookup": {
+            "median_abs_error": {
+              "diff": -2309.25,
+              "ci_lo": -2321.0,
+              "ci_hi": -2304.0,
+              "significant": true
+            },
+            "mean_abs_error": {
+              "diff": -2305.384,
+              "ci_lo": -2310.5847056409193,
+              "ci_hi": -2300.5243583282545,
+              "significant": true
+            }
+          },
+          "sensor_analysis": {
+            "median_abs_error": {
+              "diff": -445.25,
+              "ci_lo": -608.025,
+              "ci_hi": -267.20625000000007,
+              "significant": true
+            },
+            "mean_abs_error": {
+              "diff": -80.17599999999993,
+              "ci_lo": -179.02274999999995,
+              "ci_hi": 23.707199999999904,
+              "significant": false
+            }
+          }
+        }
+      }
+    },
+    "lan_padmax_v1": {
+      "population": "escalated=yes",
+      "n": 750,
+      "groups": 736,
+      "first_request_agent": {
+        "diagnostics": 500,
+        "knowledge": 250
+      },
+      "first_request_sizes": {
+        "distinct": 2,
+        "counts": {
+          "8488": 749,
+          "8568": 1
+        },
+        "usual": 8488.0,
+        "unusual_traces": [
+          {
+            "run_id": "sensor_analysis_edge_cloud_274df9",
+            "task_type": "sensor_analysis",
+            "first_request": 8568.0,
+            "minus_usual": 80.0,
+            "agent": "diagnostics"
+          }
+        ]
+      },
+      "fitted_per_fold": [
+        {
+          "constant_overhead_c": 6068.0,
+          "no_traffic_prediction": 2420.0,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 6121.5,
+          "no_traffic_prediction": 2366.5,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 6053.0,
+          "no_traffic_prediction": 2435.0,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 6060.5,
+          "no_traffic_prediction": 2427.5,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 6105.0,
+          "no_traffic_prediction": 2383.0,
+          "train": 600,
+          "test": 150
+        }
+      ],
+      "reproduces_stored_errors": true,
+      "errors": {
+        "constant": {
+          "overall": {
+            "median_abs_error": 1794.5,
+            "p90_abs_error": 2361.1,
+            "mae": 1582.4626666666666
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 1263.5,
+              "p90_abs_error": 2413.1
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 2325.0,
+              "p90_abs_error": 2362.5
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 1080.0,
+              "p90_abs_error": 2237.7
+            }
+          }
+        },
+        "linear": {
+          "overall": {
+            "median_abs_error": 1983.4983305509159,
+            "p90_abs_error": 2298.439732888155,
+            "mae": 1590.3838113522543
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 1479.4075194769077,
+              "p90_abs_error": 2604.223372287149
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 2123.8297161936644,
+              "p90_abs_error": 2150.8297161936644
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 1080.9265442404067,
+              "p90_abs_error": 2433.56076794658
+            }
+          }
+        },
+        "no_traffic": {
+          "overall": {
+            "median_abs_error": 1794.5,
+            "p90_abs_error": 2361.1,
+            "mae": 1582.5693333333334
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 1263.5,
+              "p90_abs_error": 2413.1
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 2325.0,
+              "p90_abs_error": 2362.5
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 1080.0,
+              "p90_abs_error": 2237.7
+            }
+          }
+        },
+        "per_class_constant": {
+          "overall": {
+            "median_abs_error": 410.25,
+            "p90_abs_error": 1564.55,
+            "mae": 608.5026666666666
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 626.0,
+              "p90_abs_error": 1342.6999999999998
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 12.0,
+              "p90_abs_error": 26.099999999999994
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 1060.0,
+              "p90_abs_error": 2080.3
+            }
+          }
+        }
+      },
+      "constant_minus_no_traffic": {
+        "overall": {
+          "median_abs_error": {
+            "diff": 0.0,
+            "ci_lo": 0.0,
+            "ci_hi": 0.0,
+            "significant": false
+          },
+          "mean_abs_error": {
+            "diff": -0.10666666666679703,
+            "ci_lo": -0.3212851405621677,
+            "ci_hi": 0.0,
+            "significant": false
+          }
+        },
+        "per_class": {
+          "fault_diagnosis": {
+            "median_abs_error": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            },
+            "mean_abs_error": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            }
+          },
+          "procedure_lookup": {
+            "median_abs_error": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            },
+            "mean_abs_error": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            }
+          },
+          "sensor_analysis": {
+            "median_abs_error": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            },
+            "mean_abs_error": {
+              "diff": -0.31999999999993634,
+              "ci_lo": -0.9600000000000364,
+              "ci_hi": 0.0,
+              "significant": false
+            }
+          }
+        }
+      }
+    },
+    "lan_padmax_v2": {
+      "population": "escalated=yes",
+      "n": 750,
+      "groups": 736,
+      "first_request_agent": {
+        "diagnostics": 500,
+        "knowledge": 250
+      },
+      "first_request_sizes": {
+        "distinct": 2,
+        "counts": {
+          "8488": 749,
+          "8568": 1
+        },
+        "usual": 8488.0,
+        "unusual_traces": [
+          {
+            "run_id": "sensor_analysis_edge_cloud_274df9",
+            "task_type": "sensor_analysis",
+            "first_request": 8568.0,
+            "minus_usual": 80.0,
+            "agent": "diagnostics"
+          }
+        ]
+      },
+      "fitted_per_fold": [
+        {
+          "constant_overhead_c": 6068.0,
+          "no_traffic_prediction": 2420.0,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 6121.5,
+          "no_traffic_prediction": 2366.5,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 6053.0,
+          "no_traffic_prediction": 2435.0,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 6060.5,
+          "no_traffic_prediction": 2427.5,
+          "train": 600,
+          "test": 150
+        },
+        {
+          "constant_overhead_c": 6105.0,
+          "no_traffic_prediction": 2383.0,
+          "train": 600,
+          "test": 150
+        }
+      ],
+      "reproduces_stored_errors": true,
+      "errors": {
+        "constant": {
+          "overall": {
+            "median_abs_error": 1794.5,
+            "p90_abs_error": 2361.1,
+            "mae": 1582.4626666666666
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 1263.5,
+              "p90_abs_error": 2413.1
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 2325.0,
+              "p90_abs_error": 2362.5
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 1080.0,
+              "p90_abs_error": 2237.7
+            }
+          }
+        },
+        "linear": {
+          "overall": {
+            "median_abs_error": 1983.4983305509159,
+            "p90_abs_error": 2298.439732888155,
+            "mae": 1590.3838113522543
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 1479.4075194769077,
+              "p90_abs_error": 2604.223372287149
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 2123.8297161936644,
+              "p90_abs_error": 2150.8297161936644
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 1080.9265442404067,
+              "p90_abs_error": 2433.56076794658
+            }
+          }
+        },
+        "no_traffic": {
+          "overall": {
+            "median_abs_error": 1794.5,
+            "p90_abs_error": 2361.1,
+            "mae": 1582.5693333333334
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 1263.5,
+              "p90_abs_error": 2413.1
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 2325.0,
+              "p90_abs_error": 2362.5
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 1080.0,
+              "p90_abs_error": 2237.7
+            }
+          }
+        },
+        "per_class_constant": {
+          "overall": {
+            "median_abs_error": 410.25,
+            "p90_abs_error": 1564.55,
+            "mae": 608.5026666666666
+          },
+          "per_class": {
+            "fault_diagnosis": {
+              "n": 250,
+              "median_abs_error": 626.0,
+              "p90_abs_error": 1342.6999999999998
+            },
+            "procedure_lookup": {
+              "n": 250,
+              "median_abs_error": 12.0,
+              "p90_abs_error": 26.099999999999994
+            },
+            "sensor_analysis": {
+              "n": 250,
+              "median_abs_error": 1060.0,
+              "p90_abs_error": 2080.3
+            }
+          }
+        }
+      },
+      "constant_minus_no_traffic": {
+        "overall": {
+          "median_abs_error": {
+            "diff": 0.0,
+            "ci_lo": 0.0,
+            "ci_hi": 0.0,
+            "significant": false
+          },
+          "mean_abs_error": {
+            "diff": -0.10666666666679703,
+            "ci_lo": -0.3212851405621677,
+            "ci_hi": 0.0,
+            "significant": false
+          }
+        },
+        "per_class": {
+          "fault_diagnosis": {
+            "median_abs_error": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            },
+            "mean_abs_error": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            }
+          },
+          "procedure_lookup": {
+            "median_abs_error": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            },
+            "mean_abs_error": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            }
+          },
+          "sensor_analysis": {
+            "median_abs_error": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            },
+            "mean_abs_error": {
+              "diff": -0.31999999999993634,
+              "ci_lo": -0.9600000000000364,
+              "ci_hi": 0.0,
+              "significant": false
+            }
+          }
+        }
+      }
+    }
+  },
+  "matches_all": {
+    "rule": "A feature family matches all features when the 95% cluster-bootstrap CI of the paired difference macro-F1(all features) - macro-F1(family alone) has a lower bound <= 0: both are out-of-fold predictions from the same 5 folds, scored on the same 1,000 resamples of whole prompt groups (seed 42), percentile interval (evaluation/stats.py paired_bootstrap_diff; a2a_leakcheck/analyze.py attribution). It says the family is not shown to fall short of all features; it is not an equivalence test, and a family whose CI lies wholly below 0 (better than all features) also matches.",
+    "padmax_task_type": {
+      "lan_padmax_v1": {
+        "all": {
+          "verdict": "LEAK",
+          "macro_f1": 0.8981009828421784,
+          "ci": [
+            0.8794120464604978,
+            0.9154599868344102
+          ],
+          "p": 0.01,
+          "null_mean": 0.2463770590541862,
+          "null_max": 0.2894497569659779,
+          "chance": 0.25,
+          "threshold": 0.3,
+          "n": 1000,
+          "groups": 982
+        },
+        "families": {
+          "sizes": {
+            "macro_f1": 0.8809535814325731,
+            "ci": [
+              0.8615766541217842,
+              0.8993155363743519
+            ],
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.017147401409605356,
+              "ci_lo": 0.003446108799559444,
+              "ci_hi": 0.03132513738651537
+            },
+            "matches_all": false
+          },
+          "timing": {
+            "macro_f1": 0.8831157644630578,
+            "ci": [
+              0.8652650747269827,
+              0.9002430554097599
+            ],
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.01498521837912059,
+              "ci_lo": -0.0009717135985804592,
+              "ci_hi": 0.030889764156162056
+            },
+            "matches_all": true
+          },
+          "counts_direction": {
+            "macro_f1": 0.6968861690560684,
+            "ci": [
+              0.6721347751891036,
+              0.7224195341555906
+            ],
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.20121481378611006,
+              "ci_lo": 0.17020465961164025,
+              "ci_hi": 0.23006473984936743
+            },
+            "matches_all": false
+          }
+        },
+        "top_family": "timing"
+      },
+      "lan_padmax_v2": {
+        "all": {
+          "verdict": "LEAK",
+          "macro_f1": 0.8890771072739143,
+          "ci": [
+            0.8704734653109865,
+            0.9066358729131296
+          ],
+          "p": 0.01,
+          "null_mean": 0.24431511994202101,
+          "null_max": 0.2831681535125269,
+          "chance": 0.25,
+          "threshold": 0.3,
+          "n": 1000,
+          "groups": 982
+        },
+        "families": {
+          "sizes": {
+            "macro_f1": 0.8749955718405862,
+            "ci": [
+              0.855042792129334,
+              0.8923569768105821
+            ],
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.01408153543332813,
+              "ci_lo": 1.140141649496059e-05,
+              "ci_hi": 0.027841912173379897
+            },
+            "matches_all": false
+          },
+          "timing": {
+            "macro_f1": 0.8921057844231377,
+            "ci": [
+              0.8741491994332331,
+              0.9097557882897487
+            ],
+            "dims": 30,
+            "all_minus_this": {
+              "diff": -0.003028677149223391,
+              "ci_lo": -0.01965521264394129,
+              "ci_hi": 0.014333478027368703
+            },
+            "matches_all": true
+          },
+          "counts_direction": {
+            "macro_f1": 0.7113932834238293,
+            "ci": [
+              0.6850113806060172,
+              0.7365864040025875
+            ],
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.17768382385008497,
+              "ci_lo": 0.1486973303553445,
+              "ci_hi": 0.20538896346234334
+            },
+            "matches_all": false
+          }
+        },
+        "top_family": "timing"
+      }
+    },
+    "pair": {
+      "lan_v1": {
+        "classes": {
+          "fault_diagnosis": 250,
+          "sensor_analysis": 250
+        },
+        "groups": 500,
+        "stored_verdicts": {
+          "all": {
+            "verdict": "LEAK",
+            "macro_f1": 0.9339933993399341,
+            "ci": [
+              0.9119097956307258,
+              0.9540211967423151
+            ],
+            "p": 0.01
+          },
+          "timing": {
+            "verdict": "LEAK",
+            "macro_f1": 0.7819921517174618,
+            "ci": [
+              0.7456326936095723,
+              0.8174713943043641
+            ],
+            "p": 0.01
+          }
+        },
+        "attribution": {
+          "sizes": {
+            "macro_f1": 0.935983611804622,
+            "ci": [
+              0.9157910566327062,
+              0.9576604259956355
+            ],
+            "dims": 139,
+            "all_minus_this": {
+              "diff": -0.0019902124646878905,
+              "ci_lo": -0.018024539564563558,
+              "ci_hi": 0.014018453482299497
+            },
+            "matches_all": true
+          },
+          "timing": {
+            "macro_f1": 0.7819921517174618,
+            "ci": [
+              0.7456326936095723,
+              0.8174713943043641
+            ],
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.15200124762247225,
+              "ci_lo": 0.11429276055798544,
+              "ci_hi": 0.18861297654191925
+            },
+            "matches_all": false
+          },
+          "counts_direction": {
+            "macro_f1": 0.6019856714841734,
+            "ci": [
+              0.5579823190168887,
+              0.6399782545046167
+            ],
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.3320077278557607,
+              "ci_lo": 0.29002385223290167,
+              "ci_hi": 0.37603198599484333
+            },
+            "matches_all": false
+          }
+        },
+        "top_family": "sizes",
+        "reproduces_stored": {
+          "all_macro_f1": true,
+          "all_ci": true,
+          "timing_macro_f1": true,
+          "timing_ci": true,
+          "all": true
+        }
+      },
+      "lan_v2": {
+        "classes": {
+          "fault_diagnosis": 250,
+          "sensor_analysis": 250
+        },
+        "groups": 500,
+        "stored_verdicts": {
+          "all": {
+            "verdict": "LEAK",
+            "macro_f1": 0.9399913587556608,
+            "ci": [
+              0.9197099597752474,
+              0.95995944673165
+            ],
+            "p": 0.01
+          },
+          "timing": {
+            "verdict": "LEAK",
+            "macro_f1": 0.7979927277381986,
+            "ci": [
+              0.762158152734778,
+              0.831407114006814
+            ],
+            "p": 0.01
+          }
+        },
+        "attribution": {
+          "sizes": {
+            "macro_f1": 0.937993799379938,
+            "ci": [
+              0.9178800382540561,
+              0.9598745999166337
+            ],
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.0019975593757227683,
+              "ci_lo": -0.013986735246334685,
+              "ci_hi": 0.01794525621063509
+            },
+            "matches_all": true
+          },
+          "timing": {
+            "macro_f1": 0.7979927277381986,
+            "ci": [
+              0.762158152734778,
+              0.831407114006814
+            ],
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.14199863101746213,
+              "ci_lo": 0.10780858551230872,
+              "ci_hi": 0.17813382048793974
+            },
+            "matches_all": false
+          },
+          "counts_direction": {
+            "macro_f1": 0.601998407993632,
+            "ci": [
+              0.557998231992928,
+              0.6425608817097133
+            ],
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.33799295076202873,
+              "ci_lo": 0.29423550006310345,
+              "ci_hi": 0.38224563835252157
+            },
+            "matches_all": false
+          }
+        },
+        "top_family": "sizes",
+        "reproduces_stored": {
+          "all_macro_f1": true,
+          "all_ci": true,
+          "timing_macro_f1": true,
+          "timing_ci": true,
+          "all": true
+        }
+      },
+      "lan_pad_v1": {
+        "classes": {
+          "fault_diagnosis": 250,
+          "sensor_analysis": 250
+        },
+        "groups": 500,
+        "stored_verdicts": {
+          "all": {
+            "verdict": "LEAK",
+            "macro_f1": 0.9139418246734792,
+            "ci": [
+              0.8899002053700672,
+              0.9398125028910987
+            ],
+            "p": 0.01
+          },
+          "timing": {
+            "verdict": "LEAK",
+            "macro_f1": 0.7839965439447031,
+            "ci": [
+              0.7455881877447428,
+              0.817981798179818
+            ],
+            "p": 0.01
+          }
+        },
+        "attribution": {
+          "sizes": {
+            "macro_f1": 0.8979800040807999,
+            "ci": [
+              0.8734757375091788,
+              0.9237939388105437
+            ],
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.015961820592679254,
+              "ci_lo": -0.00011006730839479001,
+              "ci_hi": 0.03381483402000378
+            },
+            "matches_all": true
+          },
+          "timing": {
+            "macro_f1": 0.7839965439447031,
+            "ci": [
+              0.7455881877447428,
+              0.817981798179818
+            ],
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.1299452807287761,
+              "ci_lo": 0.09260749241686707,
+              "ci_hi": 0.16599644926750506
+            },
+            "matches_all": false
+          },
+          "counts_direction": {
+            "macro_f1": 0.5639930238883822,
+            "ci": [
+              0.5217662389075677,
+              0.6072396158963754
+            ],
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.34994880078509694,
+              "ci_lo": 0.3018833115358536,
+              "ci_hi": 0.3942594193765458
+            },
+            "matches_all": false
+          }
+        },
+        "top_family": "sizes",
+        "reproduces_stored": {
+          "all_macro_f1": true,
+          "all_ci": true,
+          "timing_macro_f1": true,
+          "timing_ci": true,
+          "all": true
+        }
+      },
+      "lan_pad_v2": {
+        "classes": {
+          "fault_diagnosis": 250,
+          "sensor_analysis": 250
+        },
+        "groups": 500,
+        "stored_verdicts": {
+          "all": {
+            "verdict": "LEAK",
+            "macro_f1": 0.9159515881147541,
+            "ci": [
+              0.8899955997553344,
+              0.9419328744028097
+            ],
+            "p": 0.01
+          },
+          "timing": {
+            "verdict": "LEAK",
+            "macro_f1": 0.791996671946751,
+            "ci": [
+              0.7559996095750128,
+              0.8279022480472213
+            ],
+            "p": 0.01
+          }
+        },
+        "attribution": {
+          "sizes": {
+            "macro_f1": 0.9119492827868853,
+            "ci": [
+              0.8872610489751559,
+              0.9379878456177411
+            ],
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.004002305327868827,
+              "ci_lo": -0.010231034186839322,
+              "ci_hi": 0.017964021677762388
+            },
+            "matches_all": true
+          },
+          "timing": {
+            "macro_f1": 0.791996671946751,
+            "ci": [
+              0.7559996095750128,
+              0.8279022480472213
+            ],
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.12395491616800303,
+              "ci_lo": 0.08962052758939555,
+              "ci_hi": 0.16000061731030218
+            },
+            "matches_all": false
+          },
+          "counts_direction": {
+            "macro_f1": 0.5539125668631051,
+            "ci": [
+              0.5118750070583049,
+              0.6018101422706267
+            ],
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.362039021251649,
+              "ci_lo": 0.30998109631258325,
+              "ci_hi": 0.40798580885845287
+            },
+            "matches_all": false
+          }
+        },
+        "top_family": "sizes",
+        "reproduces_stored": {
+          "all_macro_f1": true,
+          "all_ci": true,
+          "timing_macro_f1": true,
+          "timing_ci": true,
+          "all": true
+        }
+      },
+      "lan_padmax_v1": {
+        "classes": {
+          "fault_diagnosis": 250,
+          "sensor_analysis": 250
+        },
+        "groups": 500,
+        "stored_verdicts": {
+          "all": {
+            "verdict": "LEAK",
+            "macro_f1": 0.7739773977397739,
+            "ci": [
+              0.7369641554176688,
+              0.8098714731158263
+            ],
+            "p": 0.01
+          },
+          "timing": {
+            "verdict": "LEAK",
+            "macro_f1": 0.7478991596638656,
+            "ci": [
+              0.7094723710713629,
+              0.7859888826844235
+            ],
+            "p": 0.01
+          }
+        },
+        "attribution": {
+          "sizes": {
+            "macro_f1": 0.745974597459746,
+            "ci": [
+              0.707618851274842,
+              0.7839457269724645
+            ],
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.028002800280027884,
+              "ci_lo": -0.0029844806166970128,
+              "ci_hi": 0.058243171292886364
+            },
+            "matches_all": true
+          },
+          "timing": {
+            "macro_f1": 0.7478991596638656,
+            "ci": [
+              0.7094723710713629,
+              0.7859888826844235
+            ],
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.026078238075908367,
+              "ci_lo": -0.009804302973080593,
+              "ci_hi": 0.06185513521598769
+            },
+            "matches_all": true
+          },
+          "counts_direction": {
+            "macro_f1": 0.6159446960362291,
+            "ci": [
+              0.5727442007517703,
+              0.6584293125890229
+            ],
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.15803270170354478,
+              "ci_lo": 0.10843523376007691,
+              "ci_hi": 0.20824874438119578
+            },
+            "matches_all": false
+          }
+        },
+        "top_family": "timing",
+        "reproduces_stored": {
+          "all_macro_f1": true,
+          "all_ci": true,
+          "timing_macro_f1": true,
+          "timing_ci": true,
+          "all": true
+        }
+      },
+      "lan_padmax_v2": {
+        "classes": {
+          "fault_diagnosis": 250,
+          "sensor_analysis": 250
+        },
+        "groups": 500,
+        "stored_verdicts": {
+          "all": {
+            "verdict": "LEAK",
+            "macro_f1": 0.7879694676033349,
+            "ci": [
+              0.749989199027776,
+              0.822039144786254
+            ],
+            "p": 0.01
+          },
+          "timing": {
+            "verdict": "LEAK",
+            "macro_f1": 0.7839861751152073,
+            "ci": [
+              0.7496364715306559,
+              0.8194443698482106
+            ],
+            "p": 0.01
+          }
+        },
+        "attribution": {
+          "sizes": {
+            "macro_f1": 0.7779920077122776,
+            "ci": [
+              0.7414504260940962,
+              0.8118924775981089
+            ],
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.00997745989105725,
+              "ci_lo": -0.018000958019135614,
+              "ci_hi": 0.03760288450284996
+            },
+            "matches_all": true
+          },
+          "timing": {
+            "macro_f1": 0.7839861751152073,
+            "ci": [
+              0.7496364715306559,
+              0.8194443698482106
+            ],
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.0039832924881275655,
+              "ci_lo": -0.03015532781771615,
+              "ci_hi": 0.033916856826414626
+            },
+            "matches_all": true
+          },
+          "counts_direction": {
+            "macro_f1": 0.6439487286169209,
+            "ci": [
+              0.6011480459860642,
+              0.687921980056847
+            ],
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.144020738986414,
+              "ci_lo": 0.09576911919074273,
+              "ci_hi": 0.191954932577002
+            },
+            "matches_all": false
+          }
+        },
+        "top_family": "timing",
+        "reproduces_stored": {
+          "all_macro_f1": true,
+          "all_ci": true,
+          "timing_macro_f1": true,
+          "timing_ci": true,
+          "all": true
+        }
+      }
+    }
+  },
+  "input_size_views_identical": {
+    "lan": true,
+    "lan_pad": true,
+    "lan_padmax": true
+  },
+  "data": {
+    "C2": {
+      "arms": {
+        "lan": {
+          "traces": 1000,
+          "prompt_groups": 982,
+          "per_task_type": {
+            "alert_triage": {
+              "traces": 250,
+              "distinct_prompts": 246,
+              "prompt_groups": 246,
+              "template_pools": {
+                "alarm templates": 5,
+                "request templates": 3,
+                "asks": 5,
+                "assets": 11,
+                "conditions": 7,
+                "faults": 5,
+                "locations": 9,
+                "complaints": 10
+              }
+            },
+            "fault_diagnosis": {
+              "traces": 250,
+              "distinct_prompts": 250,
+              "prompt_groups": 250,
+              "template_pools": {
+                "device kinds": 6,
+                "fault scenarios": 18,
+                "asks": 5,
+                "sites": 10,
+                "routine log lines": 30
+              }
+            },
+            "procedure_lookup": {
+              "traces": 250,
+              "distinct_prompts": 236,
+              "prompt_groups": 236,
+              "template_pools": {
+                "question templates": 20,
+                "prefixes": 4,
+                "assets": 14,
+                "parts": 9,
+                "sensors": 7,
+                "locations": 8,
+                "tasks": 7,
+                "faults": 5
+              }
+            },
+            "sensor_analysis": {
+              "traces": 250,
+              "distinct_prompts": 250,
+              "prompt_groups": 250,
+              "template_pools": {
+                "equipment kinds": 8,
+                "asks": 6,
+                "sites": 10,
+                "sample intervals": 5,
+                "anomaly patterns": 6
+              }
+            }
+          }
+        },
+        "lan_pad": {
+          "traces": 1000,
+          "prompt_groups": 982,
+          "per_task_type": {
+            "alert_triage": {
+              "traces": 250,
+              "distinct_prompts": 246,
+              "prompt_groups": 246,
+              "template_pools": {
+                "alarm templates": 5,
+                "request templates": 3,
+                "asks": 5,
+                "assets": 11,
+                "conditions": 7,
+                "faults": 5,
+                "locations": 9,
+                "complaints": 10
+              }
+            },
+            "fault_diagnosis": {
+              "traces": 250,
+              "distinct_prompts": 250,
+              "prompt_groups": 250,
+              "template_pools": {
+                "device kinds": 6,
+                "fault scenarios": 18,
+                "asks": 5,
+                "sites": 10,
+                "routine log lines": 30
+              }
+            },
+            "procedure_lookup": {
+              "traces": 250,
+              "distinct_prompts": 236,
+              "prompt_groups": 236,
+              "template_pools": {
+                "question templates": 20,
+                "prefixes": 4,
+                "assets": 14,
+                "parts": 9,
+                "sensors": 7,
+                "locations": 8,
+                "tasks": 7,
+                "faults": 5
+              }
+            },
+            "sensor_analysis": {
+              "traces": 250,
+              "distinct_prompts": 250,
+              "prompt_groups": 250,
+              "template_pools": {
+                "equipment kinds": 8,
+                "asks": 6,
+                "sites": 10,
+                "sample intervals": 5,
+                "anomaly patterns": 6
+              }
+            }
+          }
+        },
+        "lan_padmax": {
+          "traces": 1000,
+          "prompt_groups": 982,
+          "per_task_type": {
+            "alert_triage": {
+              "traces": 250,
+              "distinct_prompts": 246,
+              "prompt_groups": 246,
+              "template_pools": {
+                "alarm templates": 5,
+                "request templates": 3,
+                "asks": 5,
+                "assets": 11,
+                "conditions": 7,
+                "faults": 5,
+                "locations": 9,
+                "complaints": 10
+              }
+            },
+            "fault_diagnosis": {
+              "traces": 250,
+              "distinct_prompts": 250,
+              "prompt_groups": 250,
+              "template_pools": {
+                "device kinds": 6,
+                "fault scenarios": 18,
+                "asks": 5,
+                "sites": 10,
+                "routine log lines": 30
+              }
+            },
+            "procedure_lookup": {
+              "traces": 250,
+              "distinct_prompts": 236,
+              "prompt_groups": 236,
+              "template_pools": {
+                "question templates": 20,
+                "prefixes": 4,
+                "assets": 14,
+                "parts": 9,
+                "sensors": 7,
+                "locations": 8,
+                "tasks": 7,
+                "faults": 5
+              }
+            },
+            "sensor_analysis": {
+              "traces": 250,
+              "distinct_prompts": 250,
+              "prompt_groups": 250,
+              "template_pools": {
+                "equipment kinds": 8,
+                "asks": 6,
+                "sites": 10,
+                "sample intervals": 5,
+                "anomaly patterns": 6
+              }
+            }
+          }
+        }
+      },
+      "arms_share_prompts_per_task_type": {
+        "alert_triage": true,
+        "fault_diagnosis": true,
+        "procedure_lookup": true,
+        "sensor_analysis": true
+      }
+    },
+    "D1": {
+      "tls": {
+        "traces": 432,
+        "prompt_groups": 231,
+        "group_source": "sha1(input_prompt)[:8] (no prompt_group in the sidecars)",
+        "per_workflow": {
+          "code_review": {
+            "traces": 108,
+            "distinct_prompts": 49,
+            "prompt_groups": 49,
+            "pools": {
+              "_CODE_SNIPPETS": 7,
+              "_LARGE_CODE_SNIPPETS": 2,
+              "_REVIEW_ASKS": 8
+            },
+            "possible_distinct_prompts": 72
+          },
+          "data_analysis": {
+            "traces": 108,
+            "distinct_prompts": 69,
+            "prompt_groups": 69,
+            "pools": {
+              "_SMALL_DATASETS": 4,
+              "_DATASETS": 6,
+              "_ANALYSIS_ASKS": 10
+            },
+            "possible_distinct_prompts": 100
+          },
+          "research_retrieval": {
+            "traces": 108,
+            "distinct_prompts": 42,
+            "prompt_groups": 42,
+            "pools": {
+              "_TOPICS": 15,
+              "_QUESTION_TEMPLATES": 5,
+              "_LONG_QUESTIONS": 4
+            },
+            "possible_distinct_prompts": 79
+          },
+          "support_triage": {
+            "traces": 108,
+            "distinct_prompts": 71,
+            "prompt_groups": 71,
+            "pools": {
+              "_TICKETS": 30,
+              "_LONG_TICKETS": 5,
+              "_TRIAGE_ASKS": 5
+            },
+            "possible_distinct_prompts": 175
+          }
+        }
+      },
+      "cleartext": {
+        "traces": 432,
+        "prompt_groups": 231,
+        "group_source": "sha1(input_prompt)[:8] (no prompt_group in the sidecars)",
+        "per_workflow": {
+          "code_review": {
+            "traces": 108,
+            "distinct_prompts": 49,
+            "prompt_groups": 49,
+            "pools": {
+              "_CODE_SNIPPETS": 7,
+              "_LARGE_CODE_SNIPPETS": 2,
+              "_REVIEW_ASKS": 8
+            },
+            "possible_distinct_prompts": 72
+          },
+          "data_analysis": {
+            "traces": 108,
+            "distinct_prompts": 69,
+            "prompt_groups": 69,
+            "pools": {
+              "_SMALL_DATASETS": 4,
+              "_DATASETS": 6,
+              "_ANALYSIS_ASKS": 10
+            },
+            "possible_distinct_prompts": 100
+          },
+          "research_retrieval": {
+            "traces": 108,
+            "distinct_prompts": 42,
+            "prompt_groups": 42,
+            "pools": {
+              "_TOPICS": 15,
+              "_QUESTION_TEMPLATES": 5,
+              "_LONG_QUESTIONS": 4
+            },
+            "possible_distinct_prompts": 79
+          },
+          "support_triage": {
+            "traces": 108,
+            "distinct_prompts": 71,
+            "prompt_groups": 71,
+            "pools": {
+              "_TICKETS": 30,
+              "_LONG_TICKETS": 5,
+              "_TRIAGE_ASKS": 5
+            },
+            "possible_distinct_prompts": 175
+          }
+        }
+      },
+      "arms_share_prompts_per_workflow": {
+        "code_review": true,
+        "data_analysis": true,
+        "research_retrieval": true,
+        "support_triage": true
+      }
+    }
+  },
+  "runtime_s": 700.4650826250436
+}
