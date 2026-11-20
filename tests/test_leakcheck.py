@@ -13,6 +13,7 @@ import pytest
 
 from a2a_leakcheck.analyze import INCONCLUSIVE, LEAK, NO_LEAK, Config, analyze, gbt_min_leaf, verdict
 from a2a_leakcheck.cli import main
+from a2a_leakcheck.report import diff, write_markdown
 from a2a_leakcheck.rules import facts, hints, load_rules
 
 scapy_all = pytest.importorskip("scapy.all")
@@ -218,6 +219,42 @@ def test_repeat_mode_exits_3_on_a_new_leak(leak_report, noleak_report, tmp_path)
     assert main(["diff", str(new), str(old)]) == 3                    # workflow, role: NO LEAK → LEAK
     assert main(["diff", str(new), str(new)]) == 0
     assert main(["diff", str(old), str(new)]) == 0                    # a resolved leak is not a failure
+
+
+def _report(**verdicts):
+    return {"attributes": {k: {"verdict": v} for k, v in verdicts.items()}}
+
+
+def test_diff_lists_leak_to_inconclusive_for_review_not_as_resolved():
+    old = _report(a=LEAK, b=LEAK, c=NO_LEAK, d=INCONCLUSIVE, e=LEAK)
+    new = _report(a=INCONCLUSIVE, b=NO_LEAK, c=INCONCLUSIVE, d=LEAK, e=LEAK, f=LEAK)
+    d = diff(new, old, "old.json")
+    assert d["needs_review"] == ["a"]                 # LEAK → INCONCLUSIVE
+    assert d["resolved"] == ["b"]                     # LEAK → NO LEAK
+    assert d["new_leaks"] == ["d", "f"]               # INCONCLUSIVE → LEAK, absent → LEAK
+    assert {x["attribute"] for x in d["changes"]} == {"a", "b", "c", "d", "f"}
+
+
+def test_leak_to_inconclusive_does_not_fail_and_is_reported(tmp_path, capsys):
+    old, new = tmp_path / "old.json", tmp_path / "new.json"
+    old.write_text(json.dumps(_report(workflow=LEAK, role=LEAK)))
+    new.write_text(json.dumps(_report(workflow=INCONCLUSIVE, role=LEAK)))
+    assert main(["diff", str(new), str(old)]) == 0                    # INCONCLUSIVE never fails a run
+    out = capsys.readouterr().out
+    assert "workflow: LEAK → INCONCLUSIVE" in out
+    assert "needs review (LEAK → INCONCLUSIVE): workflow" in out
+
+
+def test_report_lists_needs_review_against_the_baseline(leak_report, tmp_path):
+    report = json.loads(json.dumps(leak_report[1]))
+    base = json.loads(json.dumps(report))
+    report["attributes"]["workflow"]["verdict"] = INCONCLUSIVE
+    report["diff"] = diff(report, base, "base.json")
+    write_markdown(report, tmp_path / "report.md")
+    md = (tmp_path / "report.md").read_text()
+    assert "- workflow: LEAK → INCONCLUSIVE" in md
+    assert "**Needs review** (LEAK in the baseline, INCONCLUSIVE now: the leak is not shown to be gone): workflow" in md
+    assert "Resolved" not in md
 
 
 def test_rules_file_is_configurable(tmp_path, leak_report):

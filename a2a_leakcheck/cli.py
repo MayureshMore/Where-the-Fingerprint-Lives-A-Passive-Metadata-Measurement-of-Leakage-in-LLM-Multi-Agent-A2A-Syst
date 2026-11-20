@@ -6,6 +6,8 @@ leakcheck command line.
 
 Exit codes: 0 done; 1 error; 2 a LEAK (with --fail-on-leak); 3 a new LEAK against --baseline
 (run) or against the baseline report (diff). Runs in CI as: run ... --baseline last/report.json.
+INCONCLUSIVE never fails a run: a LEAK that is now INCONCLUSIVE is listed for review
+(needs_review), and only a LEAK that is now NO LEAK is listed as resolved.
 """
 
 from __future__ import annotations
@@ -201,6 +203,9 @@ def run(a: argparse.Namespace) -> int:
     print(f"{', '.join(f'{k}: {r['verdict']}' for k, r in results.items())} → {out}/report.md")
     if report.get("diff", {}).get("new_leaks"):
         print("new LEAK against the baseline: " + ", ".join(report["diff"]["new_leaks"]))
+    if report.get("diff", {}).get("needs_review"):
+        print("needs review against the baseline (LEAK → INCONCLUSIVE): "
+              + ", ".join(report["diff"]["needs_review"]))
     return code
 
 
@@ -211,6 +216,8 @@ def diff_cmd(a: argparse.Namespace) -> int:
         print(f"{x['attribute']}: {x['before']} → {x['after']}")
     if not d["changes"]:
         print("no verdict changed")
+    if d["needs_review"]:
+        print("needs review (LEAK → INCONCLUSIVE): " + ", ".join(d["needs_review"]))
     if d["new_leaks"]:
         print("new LEAK: " + ", ".join(d["new_leaks"]))
         return 3
@@ -259,9 +266,11 @@ def parser() -> argparse.ArgumentParser:
                    help="observer view from the sidecars' vantages (e.g. v1, v2): keep only the flows of "
                         "the endpoints it sees; a trace with none in view stays, with all-zero features")
     r.add_argument("--baseline", type=Path, default=None,
-                   help="previous report.json; exit 3 if an attribute is newly LEAK")
+                   help="previous report.json; exit 3 if an attribute is newly LEAK; a LEAK that is now "
+                        "INCONCLUSIVE is listed for review (exit 0)")
     r.add_argument("--fail-on-leak", action="store_true", dest="fail_on_leak", help="exit 2 on any LEAK")
-    d = sub.add_parser("diff", help="compare two reports; exit 3 on a new LEAK")
+    d = sub.add_parser("diff", help="compare two reports; exit 3 on a new LEAK; list a LEAK that is now "
+                       "INCONCLUSIVE for review")
     d.add_argument("new")
     d.add_argument("baseline")
     return p

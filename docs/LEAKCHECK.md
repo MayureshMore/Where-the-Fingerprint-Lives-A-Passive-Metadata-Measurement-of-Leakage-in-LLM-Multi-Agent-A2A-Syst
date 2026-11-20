@@ -22,13 +22,19 @@ python -m a2a_leakcheck diff NEW/report.json OLD/report.json
 | Prioritization | effect size = (macro-F1 − chance) / (1 − chance); severity high ≥ 0.6, medium ≥ 0.3, else low (thresholds in `rules.yaml`) | `analyze.py` |
 | Attribution | the same CV on each feature family alone (sizes; timing; counts and direction) and on one request-size feature alone, each paired against all features | `analyze.py` |
 | Report | `report.json` (everything), `report.md`, `report.html` with `--html`; mitigation hints from `rules.yaml`; runtime per stage and peak memory | `report.py`, `rules.py` |
-| Repeat | `--baseline` (or `diff`) compares verdicts with a previous report | `report.py` |
+| Repeat | `--baseline` (or `diff`) compares verdicts with a previous report: `new_leaks` (LEAK now, not LEAK before), `needs_review` (LEAK before, INCONCLUSIVE now), `resolved` (LEAK before, NO LEAK now) and every change | `report.py` |
 
 All cross-validations of an attribute (the model on all features, on each family, on the single
 feature, and the permutations) run in parallel worker processes: `--jobs` (default one per core).
 
 Exit codes: 0 done; 1 error; 2 any LEAK, with `--fail-on-leak`; 3 an attribute that is LEAK now
 and was not in the baseline.
+
+INCONCLUSIVE never fails a run, with or without a baseline. Against a baseline, a LEAK that is
+now INCONCLUSIVE is listed for review (`needs_review` in the report's `diff`, a "Needs review"
+line in `report.md`, and a line on the terminal). It does not count as resolved, because the
+audit no longer shows the leak but has not shown it gone. Only a LEAK that is now NO LEAK is
+listed under `resolved`.
 
 ## Input
 

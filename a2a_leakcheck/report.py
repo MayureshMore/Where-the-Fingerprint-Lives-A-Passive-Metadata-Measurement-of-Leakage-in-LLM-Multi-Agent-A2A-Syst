@@ -6,7 +6,7 @@ import html
 import json
 from pathlib import Path
 
-from a2a_leakcheck.analyze import LEAK
+from a2a_leakcheck.analyze import LEAK, NO_LEAK
 
 
 def write_json(report: dict, path: Path) -> None:
@@ -157,6 +157,11 @@ def write_markdown(report: dict, path: Path) -> None:
         L += [f"- {x['attribute']}: {x['before']} → {x['after']}" for x in d["changes"]] or ["- no verdict changed"]
         if d["new_leaks"]:
             L += ["", "**New LEAK: " + ", ".join(d["new_leaks"]) + "**"]
+        if d.get("needs_review"):
+            L += ["", "**Needs review** (LEAK in the baseline, INCONCLUSIVE now: the leak is not shown "
+                      "to be gone): " + ", ".join(d["needs_review"])]
+        if d.get("resolved"):
+            L += ["", "Resolved (LEAK in the baseline, NO LEAK now): " + ", ".join(d["resolved"])]
     L += ["", "## Runtime", "",
           f"{rt['total_s']:.1f} s in all (" + ", ".join(f"{k} {v:.1f} s" for k, v in rt["stages_s"].items())
           + f"); peak memory {rt['peak_rss_mb']:.0f} MB in the main process, up to "
@@ -227,8 +232,11 @@ def write_html(report: dict, path: Path) -> None:
 
 def diff(new: dict, old: dict, baseline: str) -> dict:
     """Verdict changes against a previous report. A new LEAK is an attribute that is LEAK now
-    and was not LEAK in the baseline (including attributes the baseline did not have)."""
-    changes, new_leaks, resolved = [], [], []
+    and was not LEAK in the baseline (including attributes the baseline did not have); it is the
+    only change that fails a run. A LEAK that is now INCONCLUSIVE is listed for review, not as
+    resolved: the audit no longer shows the leak but has not shown it gone. Only a LEAK that is
+    now NO LEAK is listed as resolved."""
+    changes, new_leaks, needs_review, resolved = [], [], [], []
     for name, r in new["attributes"].items():
         before = old.get("attributes", {}).get(name, {}).get("verdict", "absent")
         after = r["verdict"]
@@ -236,6 +244,7 @@ def diff(new: dict, old: dict, baseline: str) -> dict:
             changes.append({"attribute": name, "before": before, "after": after})
         if after == LEAK and before != LEAK:
             new_leaks.append(name)
-        if before == LEAK and after != LEAK:
-            resolved.append(name)
-    return {"baseline": baseline, "changes": changes, "new_leaks": new_leaks, "resolved": resolved}
+        elif before == LEAK and after != LEAK:
+            (resolved if after == NO_LEAK else needs_review).append(name)
+    return {"baseline": baseline, "changes": changes, "new_leaks": new_leaks,
+            "needs_review": needs_review, "resolved": resolved}
