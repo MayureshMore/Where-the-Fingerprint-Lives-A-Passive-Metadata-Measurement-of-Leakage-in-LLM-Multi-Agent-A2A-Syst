@@ -167,6 +167,14 @@ C2 ran from Nov 12, 21:43:54 to Nov 13, 03:28:37 (Pacific time). The collector,
 The edge agent ran on the Pi 5 with llama3.2:1b. The cloud agents ran on the Mac's alias
 172.30.0.100 with llama3.2:3b. Ollama listened on localhost on each machine.
 
+Versions:
+- a2a-sdk 0.3.26 on both machines. The agents call each other with JSON-RPC 2.0 `message/stream`
+  over HTTP/1.1 POST, answered with server-sent events.
+- Ollama 0.40.15 on the Mac, from its server log (the server was started on Nov 8 and ran through
+  the collection).
+- Ollama 0.40.16 on the Pi. This is the client version, read on Nov 19. The Pi's Ollama service was
+  stopped after the collection, so the server's version during the run was not read.
+
 All 3,000 tasks succeeded on the first try: 1,000 per arm, 250 of each task type, five balanced
 rounds, 0 failures. The median time per trace was 7.03 s. The Pi stayed between 51.6 and 69.7 °C and
 never throttled.
