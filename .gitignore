@@ -84,6 +84,8 @@ CLAUDE.md
 *.log
 logs/
 logs_matched/
+# the SafeIoT tree's committed example run (safeiot/README.md)
+!safeiot/4_analysis_output/a2a-leakcheck/example/example_run.log
 
 # ── Coverage ──────────────────────────────────────────────────────────────────
 .coverage

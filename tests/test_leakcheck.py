@@ -13,8 +13,9 @@ import pytest
 
 from a2a_leakcheck.analyze import INCONCLUSIVE, LEAK, NO_LEAK, Config, analyze, gbt_min_leaf, verdict
 from a2a_leakcheck.cli import main
-from a2a_leakcheck.report import diff, write_markdown
+from a2a_leakcheck.report import compatibility, diff, release_policy, write_markdown
 from a2a_leakcheck.rules import facts, hints, load_rules
+from scripts.compare_reports import compare
 
 scapy_all = pytest.importorskip("scapy.all")
 Ether, IP, TCP, Raw, wrpcap = (scapy_all.Ether, scapy_all.IP, scapy_all.TCP, scapy_all.Raw,
@@ -214,47 +215,159 @@ def test_payload_captures_are_refused_without_strip(tmp_path):
         main(["run", str(d), "--out", str(tmp_path / "o"), "--attributes", "workflow", *FAST])
 
 
-def test_repeat_mode_exits_3_on_a_new_leak(leak_report, noleak_report, tmp_path):
-    new, old = leak_report[2] / "report.json", noleak_report[2] / "report.json"
-    assert main(["diff", str(new), str(old)]) == 3                    # workflow, role: NO LEAK → LEAK
+def _with_verdict(report, **verdicts):
+    r = json.loads(json.dumps(report))
+    for k, v in verdicts.items():
+        r["attributes"][k]["verdict"] = v
+    r["summary"] = {v: [k for k, x in r["attributes"].items() if x["verdict"] == v] for v in (LEAK, NO_LEAK, INCONCLUSIVE)}
+    return r
+
+
+def test_repeat_mode_exits_3_on_a_new_leak(leak_report, tmp_path):
+    new, old = tmp_path / "new.json", tmp_path / "old.json"
+    new.write_text(json.dumps(leak_report[1]))
+    old.write_text(json.dumps(_with_verdict(leak_report[1], workflow=NO_LEAK)))
+    assert main(["diff", str(new), str(old)]) == 3                    # workflow: NO LEAK → LEAK
     assert main(["diff", str(new), str(new)]) == 0
     assert main(["diff", str(old), str(new)]) == 0                    # a resolved leak is not a failure
 
 
+def test_repeat_mode_refuses_reports_that_are_not_comparable(leak_report, noleak_report, capsys):
+    new, old = leak_report[2] / "report.json", noleak_report[2] / "report.json"
+    assert main(["diff", str(new), str(old)]) == 4                    # margin 0.05 vs 0.15
+    out = capsys.readouterr().out
+    assert "not comparable" in out and "parameters.margin 0.05 vs 0.15" in out
+    d = diff(leak_report[1], noleak_report[1], "old.json")
+    assert not d["compatible"] and d["changes"] == [] and d["new_leaks"] == []
+
+
 def _report(**verdicts):
-    return {"attributes": {k: {"verdict": v} for k, v in verdicts.items()}}
+    return {"attributes": {k: {"verdict": v} for k, v in verdicts.items()},
+            "summary": {v: [k for k, x in verdicts.items() if x == v] for v in (LEAK, NO_LEAK, INCONCLUSIVE)}}
 
 
 def test_diff_lists_leak_to_inconclusive_for_review_not_as_resolved():
     old = _report(a=LEAK, b=LEAK, c=NO_LEAK, d=INCONCLUSIVE, e=LEAK)
     new = _report(a=INCONCLUSIVE, b=NO_LEAK, c=INCONCLUSIVE, d=LEAK, e=LEAK, f=LEAK)
     d = diff(new, old, "old.json")
-    assert d["needs_review"] == ["a"]                 # LEAK → INCONCLUSIVE
+    assert d["needs_review"] == [{"attribute": "a", "before": LEAK, "after": INCONCLUSIVE, "reason": "inconclusive"}]
     assert d["resolved"] == ["b"]                     # LEAK → NO LEAK
     assert d["new_leaks"] == ["d", "f"]               # INCONCLUSIVE → LEAK, absent → LEAK
     assert {x["attribute"] for x in d["changes"]} == {"a", "b", "c", "d", "f"}
+
+
+def test_diff_lists_a_missing_leak_for_review():
+    old = _report(a=LEAK, b=NO_LEAK, c=INCONCLUSIVE, d=LEAK)
+    new = _report(d=LEAK)
+    d = diff(new, old, "old.json")
+    assert d["needs_review"] == [{"attribute": "a", "before": LEAK, "after": "absent", "reason": "missing"}]
+    assert {(x["attribute"], x["after"]) for x in d["changes"]} == {("a", "absent"), ("b", "absent"), ("c", "absent")}
+    assert d["new_leaks"] == [] and d["resolved"] == []
+    st = release_policy(new, d)
+    assert st["release_policy"]["exit_code"] == 0                      # listed for review, not a failure
+    assert st["for_review"] == [{"attribute": "a", "reason": "missing; LEAK in the baseline"}]
 
 
 def test_leak_to_inconclusive_does_not_fail_and_is_reported(tmp_path, capsys):
     old, new = tmp_path / "old.json", tmp_path / "new.json"
     old.write_text(json.dumps(_report(workflow=LEAK, role=LEAK)))
     new.write_text(json.dumps(_report(workflow=INCONCLUSIVE, role=LEAK)))
-    assert main(["diff", str(new), str(old)]) == 0                    # INCONCLUSIVE never fails a run
+    assert main(["diff", str(new), str(old)]) == 0                    # INCONCLUSIVE never fails a run by default
     out = capsys.readouterr().out
     assert "workflow: LEAK → INCONCLUSIVE" in out
-    assert "needs review (LEAK → INCONCLUSIVE): workflow" in out
+    assert "needs review: workflow (LEAK → INCONCLUSIVE, inconclusive)" in out
+    assert main(["diff", str(new), str(old), "--strict"]) == 5        # unless the policy is strict
+    assert main(["diff", str(new), str(old), "--require", "role"]) == 0
+    assert main(["diff", str(new), str(old), "--require", "workflow"]) == 5
+    assert main(["diff", str(new), str(old), "--require", "topology"]) == 5
 
 
 def test_report_lists_needs_review_against_the_baseline(leak_report, tmp_path):
-    report = json.loads(json.dumps(leak_report[1]))
-    base = json.loads(json.dumps(report))
-    report["attributes"]["workflow"]["verdict"] = INCONCLUSIVE
-    report["diff"] = diff(report, base, "base.json")
+    report = _with_verdict(leak_report[1], workflow=INCONCLUSIVE)
+    report["diff"] = diff(report, leak_report[1], "base.json")
+    report["status"] = release_policy(report, report["diff"])
     write_markdown(report, tmp_path / "report.md")
     md = (tmp_path / "report.md").read_text()
     assert "- workflow: LEAK → INCONCLUSIVE" in md
-    assert "**Needs review** (LEAK in the baseline, INCONCLUSIVE now: the leak is not shown to be gone): workflow" in md
+    assert "**Needs review**: workflow (LEAK in the baseline, INCONCLUSIVE now: the leak is not shown to be gone)." in md
     assert "Resolved" not in md
+    assert "**Release policy satisfied** (baseline); exit 0." in md
+    assert "**For review**: " in md and "workflow (INCONCLUSIVE; LEAK in the baseline)" in md
+
+
+def _params(**kw):
+    p = {"margin": 0.05, "alpha": 0.05, "permutations": 99, "null_model": "rf-light", "model": "gbt", "folds": 5,
+         "n_boot": 1000, "min_per_class": 20, "seed": 42, "jobs": -1}
+    return {**p, **kw}
+
+
+def _full(params=None, vantage="v2", classes=("x", "y"), extraction=None):
+    return {"parameters": params or _params(), "input": {"vantage": vantage},
+            "extraction": extraction or {"schema_version": 1, "trace_dims": 195, "role_dims": 35,
+                                         "measurement": "own", "retransmissions": "dropped"},
+            "attributes": {"t": {"verdict": LEAK, "classes": list(classes)}}}
+
+
+def test_compatibility_names_each_field_that_differs():
+    base = _full()
+    assert compatibility(_full(_params(seed=7, jobs=4)), base) == []       # seed and workers do not matter
+    assert compatibility(_full(classes=("y", "x")), base) == []            # class order does not matter
+    fields = [x["field"] for x in compatibility(_full(_params(margin=0.1, null_model="gbt"), "v1", ("x", "z")), base)]
+    assert fields == ["parameters.margin", "parameters.null_model", "input.vantage", "attributes.t.classes"]
+    other = _full(extraction={"schema_version": 2, "trace_dims": 195, "role_dims": 35,
+                              "measurement": "own", "retransmissions": "dropped"})
+    assert [x["field"] for x in compatibility(other, base)] == ["features.schema_version"]
+    old = _full(extraction={"trace_dims": 195, "role_dims": 35, "measurement": "own", "retransmissions": "dropped"})
+    assert compatibility(old, base) == []                                  # 0.1.x reports: schema 1
+
+
+def test_release_policy_exit_codes_and_precedence():
+    r = _report(a=LEAK, b=INCONCLUSIVE)
+    code = lambda **kw: release_policy(r, **kw)["release_policy"]["exit_code"]   # noqa: E731
+    assert code() == 0 and not release_policy(r)["release_policy"]["configured"]
+    assert code(fail_on_leak=True) == 2
+    assert code(strict=True) == 5
+    assert code(require=["a"]) == 0 and code(require=["b"]) == 5 and code(require=["c"]) == 5
+    assert code(fail_on_leak=True, strict=True) == 2                       # a LEAK outranks an INCONCLUSIVE
+    new_leak = diff(r, _report(a=NO_LEAK, b=INCONCLUSIVE), "old")
+    assert code(d=new_leak, fail_on_leak=True, strict=True) == 3
+    refused = {**new_leak, "compatible": False, "incompatible": [{"field": "parameters.margin", "new": 0.05, "baseline": 0.1}]}
+    assert code(d=refused, fail_on_leak=True) == 4
+    st = release_policy(r, strict=True)
+    assert st["audit_completed"] and not st["release_policy"]["satisfied"]
+    assert st["release_policy"]["failures"] == [{"check": "strict", "exit": 5, "reason": "INCONCLUSIVE: b"}]
+
+
+def test_strict_and_require_in_a_run(tmp_path):
+    d = make_dataset(tmp_path / "small", 12)
+    args = ["run", str(d), "--strip", "--attributes", "workflow", *FAST]
+    assert main([*args, "--out", str(tmp_path / "a")]) == 0                # INCONCLUSIVE: too few samples
+    assert main([*args, "--out", str(tmp_path / "b"), "--strict"]) == 5
+    assert main([*args, "--out", str(tmp_path / "c"), "--require", "topology"]) == 5
+    r = json.loads((tmp_path / "c" / "report.json").read_text())
+    assert [f["reason"] for f in r["status"]["release_policy"]["failures"]] == ["required, missing: topology"]
+    md = (tmp_path / "b" / "report.md").read_text()
+    assert "**Audit completed**: 1 attributes, 0 LEAK, 0 NO LEAK, 1 INCONCLUSIVE." in md
+    assert "**Release policy not satisfied**, exit 5: INCONCLUSIVE: workflow." in md
+    assert "**Release policy**: none configured" in (tmp_path / "a" / "report.md").read_text()
+
+
+def test_extract_then_run_gives_the_same_report(tmp_path):
+    d = make_dataset(tmp_path / "data", 40, leak=True)
+    common = ["--attributes", "role,workflow", "--strip"]
+    assert main(["run", str(d), "--out", str(tmp_path / "once"), *common, *FAST]) == 0
+    assert main(["extract", str(d), "--out", str(tmp_path / "features"), *common]) == 0
+    assert main(["run", str(tmp_path / "features"), "--out", str(tmp_path / "split"), *FAST]) == 0
+    a = json.loads((tmp_path / "split" / "report.json").read_text())
+    b = json.loads((tmp_path / "once" / "report.json").read_text())
+    c = compare(a, b)
+    assert c["same"], c["differences"][:5]
+    assert a["input"]["features"] == str(tmp_path / "features") and a["input"]["folder"] == str(d)
+    assert a["parameters"]["strip"] is True and a["extraction"]["schema_version"] == 1
+    with pytest.raises(SystemExit, match="other settings"):
+        main(["run", str(tmp_path / "features"), "--out", str(tmp_path / "x"), "--keep-retransmissions", *FAST])
+    with pytest.raises(SystemExit, match="not extracted: topology"):
+        main(["run", str(tmp_path / "features"), "--out", str(tmp_path / "x"), "--attributes", "topology", *FAST])
 
 
 def test_rules_file_is_configurable(tmp_path, leak_report):

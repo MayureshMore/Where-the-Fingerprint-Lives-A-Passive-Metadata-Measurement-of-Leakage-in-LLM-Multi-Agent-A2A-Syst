@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from pathlib import Path
 
 from a2a_leakcheck.analyze import LEAK, NO_LEAK
@@ -99,12 +100,32 @@ def _visible_md(c: dict) -> list[str]:
     return L + [""]
 
 
+def diff_lines(d: dict) -> list[str]:
+    L = ["## Against the baseline", "", f"Baseline: `{d['baseline']}`.", ""]
+    if d.get("compatible") is False:
+        return L + ["**Not comparable**: the verdicts were not compared because these differ (new vs baseline):", ""] + [
+            f"- `{x['field']}`: {x['new']} vs {x['baseline']}" for x in d["incompatible"]]
+    L += [f"- {x['attribute']}: {x['before']} → {x['after']}" for x in d["changes"]] or ["- no verdict changed"]
+    if d["new_leaks"]:
+        L += ["", "**New LEAK: " + ", ".join(d["new_leaks"]) + "**"]
+    for x in d.get("needs_review", []):
+        if isinstance(x, str):                       # reports from 0.1.x listed names only
+            x = {"attribute": x, "after": "INCONCLUSIVE", "reason": "inconclusive"}
+        why = ("missing from this report" if x["reason"] == "missing" else
+               "INCONCLUSIVE now: the leak is not shown to be gone")
+        L += ["", f"**Needs review**: {x['attribute']} (LEAK in the baseline, {why})."]
+    if d.get("resolved"):
+        L += ["", "Resolved (LEAK in the baseline, NO LEAK now): " + ", ".join(d["resolved"])]
+    return L
+
+
 def write_markdown(report: dict, path: Path) -> None:
     c, rt, p = report["collection"], report["runtime"], report["parameters"]
     L = [f"# Leak check: {report['input']['label'] or report['input']['folder']}", "",
          f"{c['traces']} traces from {c['pcaps']} captures in `{c['folder']}` "
          f"({len(c['skipped'])} skipped, {c['stripped_copies']} analysed as stripped copies). "
          f"a2a-leakcheck {report['version']}, {report['created']}.", "",
+         *status_lines(report),
          *_vantage_md(report),
          f"Verdict: LEAK if the 95% CI lower bound of macro-F1 is above chance + {p['margin']}; NO LEAK "
          f"if the upper bound is at most chance + {p['margin']}; INCONCLUSIVE otherwise, or when "
@@ -152,16 +173,7 @@ def write_markdown(report: dict, path: Path) -> None:
         for note in role_notes(report, name, r):
             L += ["", note]
     if report.get("diff"):
-        d = report["diff"]
-        L += ["", "## Against the baseline", "", f"Baseline: `{d['baseline']}`.", ""]
-        L += [f"- {x['attribute']}: {x['before']} → {x['after']}" for x in d["changes"]] or ["- no verdict changed"]
-        if d["new_leaks"]:
-            L += ["", "**New LEAK: " + ", ".join(d["new_leaks"]) + "**"]
-        if d.get("needs_review"):
-            L += ["", "**Needs review** (LEAK in the baseline, INCONCLUSIVE now: the leak is not shown "
-                      "to be gone): " + ", ".join(d["needs_review"])]
-        if d.get("resolved"):
-            L += ["", "Resolved (LEAK in the baseline, NO LEAK now): " + ", ".join(d["resolved"])]
+        L += ["", *diff_lines(report["diff"])]
     L += ["", "## Runtime", "",
           f"{rt['total_s']:.1f} s in all (" + ", ".join(f"{k} {v:.1f} s" for k, v in rt["stages_s"].items())
           + f"); peak memory {rt['peak_rss_mb']:.0f} MB in the main process, up to "
@@ -215,13 +227,15 @@ def write_html(report: dict, path: Path) -> None:
         + "</tbody></table></div><p class='meta'>Traces in which each listed agent carries traffic; "
           "an agent never seen gives no role samples.</p>")
     title = e(report["input"]["label"] or Path(report["input"]["folder"]).name)
+    status_html = "".join("<p>" + re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", e(x)) + "</p>"
+                          for x in status_lines(report) if x)
     path.write_text(f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Leak check: {title}</title><style>{_CSS}</style></head><body>
 <h1>Leak check: {title}</h1>
 <p class="meta">{c['traces']} traces from {c['pcaps']} captures · a2a-leakcheck {e(report['version'])} ·
 {e(report['created'])} · {rt['total_s']:.1f} s · peak memory {rt['peak_rss_mb']:.0f} MB</p>
-<div class="wrap"><table><thead><tr><th>Attribute</th><th>Verdict</th><th>Severity</th><th>macro-F1 [95% CI]</th>
+{status_html}<div class="wrap"><table><thead><tr><th>Attribute</th><th>Verdict</th><th>Severity</th><th>macro-F1 [95% CI]</th>
 <th>Chance + margin</th><th>Permutation p</th><th>False positives (permuted)</th><th>Carried by</th><th>Why, and what to do</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></div>
 {vis_html}
@@ -230,21 +244,153 @@ def write_html(report: dict, path: Path) -> None:
 """)
 
 
+ABSENT = "absent"
+
+# Exit codes. A run that fails several checks exits with the first of PRECEDENCE that applies.
+EXIT_OK, EXIT_ERROR, EXIT_LEAK, EXIT_NEW_LEAK, EXIT_INCOMPATIBLE, EXIT_POLICY = 0, 1, 2, 3, 4, 5
+PRECEDENCE = (EXIT_INCOMPATIBLE, EXIT_NEW_LEAK, EXIT_LEAK, EXIT_POLICY)
+
+# What two reports must share before their verdicts can be compared: the verdict rule, the observer
+# view, the features and, per attribute present in both, its definition (class set, topology).
+VERDICT_RULE = ("margin", "alpha", "permutations", "null_model", "model", "folds", "n_boot", "min_per_class")
+FEATURE_FIELDS = ("schema_version", "trace_dims", "role_dims", "measurement", "retransmissions")
+
+
+def feature_schema(report: dict) -> dict:
+    """The feature definition a report was computed with. Reports from before the schema version was
+    recorded (0.1.x) used schema 1 when their vectors have the schema-1 sizes (195 trace, 35 role)."""
+    e = report.get("extraction", {})
+    s = {k: e.get(k) for k in FEATURE_FIELDS}
+    if s["schema_version"] is None and (s["trace_dims"], s["role_dims"]) == (195, 35):
+        s["schema_version"] = 1
+    s["cleartext"] = bool(report.get("parameters", {}).get("cleartext", False))
+    return s
+
+
+def compatibility(new: dict, old: dict) -> list[dict]:
+    """Every field that differs between the two reports' verdict rule, view, features or attribute
+    definitions; empty when the verdicts can be compared. The seed, the worker count and the rules
+    file are not compared: they do not change what a verdict means."""
+    out = []
+    pn, po = new.get("parameters", {}), old.get("parameters", {})
+    for k in VERDICT_RULE:
+        if pn.get(k) != po.get(k):
+            out.append({"field": f"parameters.{k}", "new": pn.get(k), "baseline": po.get(k)})
+    vn, vo = new.get("input", {}).get("vantage"), old.get("input", {}).get("vantage")
+    if vn != vo:
+        out.append({"field": "input.vantage", "new": vn, "baseline": vo})
+    fn, fo = feature_schema(new), feature_schema(old)
+    for k in fn:
+        if fn[k] != fo[k]:
+            out.append({"field": f"features.{k}", "new": fn[k], "baseline": fo[k]})
+    an, ao = new.get("attributes", {}), old.get("attributes", {})
+    for name in [n for n in an if n in ao]:
+        for k in ("classes", "within_topology"):
+            x, y = an[name].get(k), ao[name].get(k)
+            if k == "classes":
+                x, y = sorted(x or []), sorted(y or [])
+            if x != y:
+                out.append({"field": f"attributes.{name}.{k}", "new": x, "baseline": y})
+    return out
+
+
 def diff(new: dict, old: dict, baseline: str) -> dict:
-    """Verdict changes against a previous report. A new LEAK is an attribute that is LEAK now
-    and was not LEAK in the baseline (including attributes the baseline did not have); it is the
-    only change that fails a run. A LEAK that is now INCONCLUSIVE is listed for review, not as
-    resolved: the audit no longer shows the leak but has not shown it gone. Only a LEAK that is
-    now NO LEAK is listed as resolved."""
-    changes, new_leaks, needs_review, resolved = [], [], [], []
-    for name, r in new["attributes"].items():
-        before = old.get("attributes", {}).get(name, {}).get("verdict", "absent")
-        after = r["verdict"]
+    """Verdict changes against a previous report.
+
+    The reports must be comparable first (compatibility()); if they are not, nothing is compared and
+    `compatible` is false. A new LEAK is an attribute that is LEAK now and was not LEAK in the baseline
+    (including attributes the baseline did not have). A LEAK that is now INCONCLUSIVE, or that is
+    missing from the new report, is listed under `needs_review` (reason inconclusive or missing), not
+    as resolved: the audit no longer shows the leak but has not shown it gone. Only a LEAK that is now
+    NO LEAK is listed as resolved. Every verdict change is listed under `changes`, a missing
+    attribute with after = "absent"."""
+    incompatible = compatibility(new, old)
+    out = {"baseline": baseline, "compatible": not incompatible, "incompatible": incompatible,
+           "changes": [], "new_leaks": [], "needs_review": [], "resolved": []}
+    if incompatible:
+        return out
+    an, ao = new["attributes"], old.get("attributes", {})
+    for name in list(an) + [n for n in ao if n not in an]:
+        before = ao.get(name, {}).get("verdict", ABSENT)
+        after = an.get(name, {}).get("verdict", ABSENT)
         if before != after:
-            changes.append({"attribute": name, "before": before, "after": after})
+            out["changes"].append({"attribute": name, "before": before, "after": after})
         if after == LEAK and before != LEAK:
-            new_leaks.append(name)
+            out["new_leaks"].append(name)
+        elif before == LEAK and after == NO_LEAK:
+            out["resolved"].append(name)
         elif before == LEAK and after != LEAK:
-            (resolved if after == NO_LEAK else needs_review).append(name)
-    return {"baseline": baseline, "changes": changes, "new_leaks": new_leaks,
-            "needs_review": needs_review, "resolved": resolved}
+            out["needs_review"].append({"attribute": name, "before": before, "after": after,
+                                        "reason": "missing" if after == ABSENT else "inconclusive"})
+    return out
+
+
+def release_policy(report: dict, d: dict | None = None, fail_on_leak: bool = False, strict: bool = False,
+                   require: list[str] | tuple = ()) -> dict:
+    """Whether the release policy the run was given is satisfied, separately from whether the audit
+    completed. The default policy (no flag) checks nothing and exits 0 whatever the verdicts.
+
+        --baseline       exit 4 if the baseline is not comparable; exit 3 on a new LEAK
+        --fail-on-leak   exit 2 on any LEAK
+        --strict         exit 5 on any INCONCLUSIVE
+        --require A,B    exit 5 if A or B is missing or INCONCLUSIVE (it must be LEAK or NO LEAK)
+    """
+    attrs, s = report["attributes"], report["summary"]
+    failures = []
+    if d is not None:
+        if not d["compatible"]:
+            failures.append({"check": "baseline", "exit": EXIT_INCOMPATIBLE, "reason": "the baseline is not comparable ("
+                             + ", ".join(f"{x['field']}: {x['new']} vs {x['baseline']}" for x in d["incompatible"]) + ")"})
+        elif d["new_leaks"]:
+            failures.append({"check": "baseline", "exit": EXIT_NEW_LEAK,
+                             "reason": "new LEAK against the baseline: " + ", ".join(d["new_leaks"])})
+    if fail_on_leak and s["LEAK"]:
+        failures.append({"check": "fail_on_leak", "exit": EXIT_LEAK, "reason": "LEAK: " + ", ".join(s["LEAK"])})
+    if strict and s["INCONCLUSIVE"]:
+        failures.append({"check": "strict", "exit": EXIT_POLICY, "reason": "INCONCLUSIVE: " + ", ".join(s["INCONCLUSIVE"])})
+    missing = [x for x in require if x not in attrs]
+    undecided = [x for x in require if x in attrs and attrs[x]["verdict"] not in (LEAK, NO_LEAK)]
+    if missing:
+        failures.append({"check": "require", "exit": EXIT_POLICY, "reason": "required, missing: " + ", ".join(missing)})
+    if undecided:
+        failures.append({"check": "require", "exit": EXIT_POLICY,
+                         "reason": "required, INCONCLUSIVE: " + ", ".join(undecided)})
+    codes = {f["exit"] for f in failures}
+    lost = {x["attribute"]: x for x in (d or {}).get("needs_review", [])} if d is not None and d["compatible"] else {}
+    review = [{"attribute": x, "reason": "INCONCLUSIVE" + ("; LEAK in the baseline" if x in lost else "")}
+              for x in s["INCONCLUSIVE"]]
+    review += [{"attribute": x, "reason": "missing; LEAK in the baseline"}
+               for x, v in lost.items() if v["reason"] == "missing"]
+    return {
+        "audit_completed": True,
+        "verdicts": {v: len(s[v]) for v in (LEAK, NO_LEAK, "INCONCLUSIVE")},
+        "release_policy": {
+            "configured": d is not None or fail_on_leak or strict or bool(require),
+            "checks": {"baseline": d["baseline"] if d is not None else None, "fail_on_leak": fail_on_leak,
+                       "strict": strict, "require": list(require)},
+            "satisfied": not failures, "failures": failures,
+            "exit_code": next((c for c in PRECEDENCE if c in codes), EXIT_OK)},
+        "for_review": review,
+    }
+
+
+def status_lines(report: dict) -> list[str]:
+    """Header lines: whether the audit completed, and (separately) whether the release policy holds."""
+    st = report.get("status")
+    if not st:
+        return []
+    v, rp = st["verdicts"], st["release_policy"]
+    L = [f"**Audit completed**: {sum(v.values())} attributes, {v['LEAK']} LEAK, {v['NO LEAK']} NO LEAK, "
+         f"{v['INCONCLUSIVE']} INCONCLUSIVE."]
+    if not rp["configured"]:
+        L.append("**Release policy**: none configured, so the run exits 0 whatever the verdicts (gate a release "
+                 "with --baseline, --fail-on-leak, --strict or --require).")
+    elif rp["satisfied"]:
+        on = [k for k, x in rp["checks"].items() if x]
+        L.append(f"**Release policy satisfied** ({', '.join(on)}); exit 0.")
+    else:
+        L.append(f"**Release policy not satisfied**, exit {rp['exit_code']}: "
+                 + "; ".join(f["reason"] for f in rp["failures"]) + ".")
+    if st["for_review"]:
+        L.append("**For review**: " + ", ".join(f"{x['attribute']} ({x['reason']})" for x in st["for_review"]) + ".")
+    return [x for line in L for x in (line, "")]

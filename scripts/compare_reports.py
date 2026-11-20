@@ -28,7 +28,7 @@ import json
 import sys
 from pathlib import Path
 
-NOT_COMPARED = {"parameters": {"jobs", "rules"}, "collection": {"folder"}, "input": {"folder", "label"}}
+NOT_COMPARED = {"parameters": {"jobs", "rules"}, "collection": {"folder"}, "input": {"folder", "label", "features"}}
 
 
 def walk(a, b, path: str, tol: float, skip: set[str], out: list) -> None:
@@ -51,11 +51,20 @@ def walk(a, b, path: str, tol: float, skip: set[str], out: list) -> None:
         out.append({"field": path, "a": a, "b": b})
 
 
+def _schema(r: dict) -> dict:
+    """The extraction section with the feature schema version filled in for reports from before it was
+    recorded (0.1.x: schema 1 when the vectors have the schema-1 sizes; a2a_leakcheck.report.feature_schema)."""
+    e = dict(r.get("extraction", {}))
+    if "schema_version" not in e and (e.get("trace_dims"), e.get("role_dims")) == (195, 35):
+        e["schema_version"] = 1
+    return e
+
+
 def compare(a: dict, b: dict, tol: float = 0.0, ignore_hints: bool = False) -> dict:
     diffs: list = []
     skip = {"mitigations"} if ignore_hints else set()
     for section in ("attributes", "summary", "extraction", "collection", "parameters", "input"):
-        x, y = a.get(section, {}), b.get(section, {})
+        x, y = (_schema(a), _schema(b)) if section == "extraction" else (a.get(section, {}), b.get(section, {}))
         if section in NOT_COMPARED:
             x = {k: v for k, v in x.items() if k not in NOT_COMPARED[section]}
             y = {k: v for k, v in y.items() if k not in NOT_COMPARED[section]}

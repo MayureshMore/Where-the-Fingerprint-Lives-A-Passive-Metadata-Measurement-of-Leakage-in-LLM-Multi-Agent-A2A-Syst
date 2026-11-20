@@ -27,7 +27,9 @@ observer sees nothing is the observation.
 
 from __future__ import annotations
 
+import json
 import logging
+from pathlib import Path
 
 import numpy as np
 
@@ -36,6 +38,13 @@ from features.first_request import FIRST_REQUEST_SEQ_DEF, first_request_seq_byte
 from features.roles import role_vectors
 
 logger = logging.getLogger(__name__)
+
+# Bump when a feature's definition or the vector layout changes: reports with different schema versions
+# are not compared (report.compatibility). 1: the 195-dim trace vector, 35-dim role vector and the
+# first-request size in TCP sequence space (first_request_seq), as of a2a-leakcheck 0.1.0.
+FEATURE_SCHEMA_VERSION = 1
+FEATURES_NPZ, FEATURES_JSON = "features.npz", "features.json"
+ARRAYS = ("trace_X", "first_request", "role_X", "role_y", "role_trace")
 
 
 def extract(traces: list, legacy: bool = False, keep_empty: bool = False, dedup: bool = True) -> dict:
@@ -87,7 +96,8 @@ def extract(traces: list, legacy: bool = False, keep_empty: bool = False, dedup:
         "role_y": np.array(role_y),
         "role_trace": np.array(role_trace, dtype=int),   # into the extracted traces
         "visible_roles": visible,                    # per extracted trace
-        "summary": {"traces": len(rows), "failed": failed, "role_samples": len(role_rows),
+        "summary": {"schema_version": FEATURE_SCHEMA_VERSION, "traces": len(rows), "failed": failed,
+                    "role_samples": len(role_rows),
                     "empty_traces": empty, "trace_dims": int(dims), "role_dims": 35,
                     "measurement": "all connections on the agent ports (legacy)" if legacy else
                                    "own connections: only TCP connections whose SYN is in the capture",
@@ -98,3 +108,40 @@ def extract(traces: list, legacy: bool = False, keep_empty: bool = False, dedup:
                                                    "at the first client byte"}
                        if (n := sum(not getattr(t, "tls", True) for t in traces)) else {})},
     }
+
+
+def save_features(folder: Path, col: dict, ext: dict, traces: list, meta: dict) -> None:
+    """Stage 2's output (`leakcheck extract`): the feature arrays (features.npz) and what the analysis
+    needs besides them (features.json): per trace its run id, group, topology, labels and the padding
+    facts the rules read, which agents carry traffic, and the collection and extraction summaries."""
+    folder = Path(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(folder / FEATURES_NPZ, **{k: ext[k] for k in ARRAYS})
+    rows = [{"run_id": t.run_id, "group": t.group, "group_source": t.group_source, "topology": t.topology,
+             "labels": t.labels, "padded": t.padded, "unpadded_in_view": list(t.unpadded_in_view), "tls": t.tls}
+            for t in traces]
+    (folder / FEATURES_JSON).write_text(json.dumps({
+        **meta, "schema_version": FEATURE_SCHEMA_VERSION, "collection": col["summary"],
+        "extraction": ext["summary"], "visible_roles": ext["visible_roles"], "traces": rows}, indent=1))
+
+
+def is_features(folder: Path) -> bool:
+    return (Path(folder) / FEATURES_JSON).exists() and (Path(folder) / FEATURES_NPZ).exists()
+
+
+def load_features(folder: Path) -> tuple[dict, dict, list, dict]:
+    """(collection summary, extraction dict as extract() returns it, traces, metadata) from save_features()."""
+    from a2a_leakcheck.collect import Trace
+    folder = Path(folder)
+    meta = json.loads((folder / FEATURES_JSON).read_text())
+    if meta.get("schema_version") != FEATURE_SCHEMA_VERSION:
+        raise SystemExit(f"{folder}: feature schema {meta.get('schema_version')}, this a2a-leakcheck reads "
+                         f"{FEATURE_SCHEMA_VERSION}: extract the captures again")
+    with np.load(folder / FEATURES_NPZ, allow_pickle=False) as z:
+        ext = {k: z[k] for k in ARRAYS}
+    traces = [Trace(run_id=r["run_id"], pcap=Path(r["run_id"]), port_role={}, labels=r["labels"],
+                    group=r["group"], group_source=r["group_source"], topology=r["topology"],
+                    padded=r["padded"], unpadded_in_view=tuple(r["unpadded_in_view"]), tls=r["tls"])
+              for r in meta["traces"]]
+    ext.update(trace_index=list(range(len(traces))), visible_roles=meta["visible_roles"], summary=meta["extraction"])
+    return meta["collection"], ext, traces, meta

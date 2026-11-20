@@ -7,7 +7,10 @@ attribute with LEAK, NO LEAK or INCONCLUSIVE, from packet headers alone.
 ```bash
 python -m a2a_leakcheck run CAPTURE_DIR --out REPORT_DIR [--html]
 python -m a2a_leakcheck run CAPTURE_DIR --out REPORT_DIR --baseline LAST/report.json   # CI
+python -m a2a_leakcheck run CAPTURE_DIR --out REPORT_DIR --baseline LAST/report.json --strict
 python -m a2a_leakcheck diff NEW/report.json OLD/report.json
+python -m a2a_leakcheck extract CAPTURE_DIR --out FEATURES_DIR      # stage 2 only: check and features
+python -m a2a_leakcheck run FEATURES_DIR --out REPORT_DIR           # stage 3 on saved features
 ```
 
 ## Pipeline
@@ -22,19 +25,53 @@ python -m a2a_leakcheck diff NEW/report.json OLD/report.json
 | Prioritization | effect size = (macro-F1 − chance) / (1 − chance); severity high ≥ 0.6, medium ≥ 0.3, else low (thresholds in `rules.yaml`) | `analyze.py` |
 | Attribution | the same CV on each feature family alone (sizes; timing; counts and direction) and on one request-size feature alone, each paired against all features | `analyze.py` |
 | Report | `report.json` (everything), `report.md`, `report.html` with `--html`; mitigation hints from `rules.yaml`; runtime per stage and peak memory | `report.py`, `rules.py` |
-| Repeat | `--baseline` (or `diff`) compares verdicts with a previous report: `new_leaks` (LEAK now, not LEAK before), `needs_review` (LEAK before, INCONCLUSIVE now), `resolved` (LEAK before, NO LEAK now) and every change | `report.py` |
+| Repeat | `--baseline` (or `diff`) first checks that the two reports are comparable, then compares verdicts: `new_leaks` (LEAK now, not LEAK before), `needs_review` (LEAK before, INCONCLUSIVE or missing now), `resolved` (LEAK before, NO LEAK now) and every change | `report.py` |
+| Policy | the report's `status` keeps "audit completed" apart from "release policy satisfied": which checks were asked for (`--baseline`, `--fail-on-leak`, `--strict`, `--require`), which failed, the exit code, and what is left for review | `report.py` |
 
 All cross-validations of an attribute (the model on all features, on each family, on the single
 feature, and the permutations) run in parallel worker processes: `--jobs` (default one per core).
 
-Exit codes: 0 done; 1 error; 2 any LEAK, with `--fail-on-leak`; 3 an attribute that is LEAK now
-and was not in the baseline.
+`leakcheck extract` runs collection and extraction alone and writes `features.npz` (the feature arrays)
+and `features.json` (per trace its group, labels and topology; the collection and extraction
+summaries; the feature schema version). `leakcheck run` on that folder analyses it and gives the same
+report as a run on the captures; it refuses options that would need another extraction (another
+`--vantage`, `--keep-retransmissions`, ...) or attributes that were not extracted.
 
-INCONCLUSIVE never fails a run, with or without a baseline. Against a baseline, a LEAK that is
-now INCONCLUSIVE is listed for review (`needs_review` in the report's `diff`, a "Needs review"
-line in `report.md`, and a line on the terminal). It does not count as resolved, because the
-audit no longer shows the leak but has not shown it gone. Only a LEAK that is now NO LEAK is
-listed under `resolved`.
+### Exit codes and the release policy
+
+| Code | Meaning |
+|---|---|
+| 0 | the audit completed and the release policy, if one was given, is satisfied |
+| 1 | error (no usable capture, a capture with payload bytes without `--strip`, bad options) |
+| 2 | any LEAK, with `--fail-on-leak` |
+| 3 | an attribute that is LEAK now and was not LEAK in the baseline (`--baseline`, `diff`) |
+| 4 | the baseline is not comparable, so no verdict was compared (`--baseline`, `diff`) |
+| 5 | `--strict`: an attribute is INCONCLUSIVE; `--require A,B`: A or B is missing or INCONCLUSIVE |
+
+When several apply, the run exits with the first of 4, 3, 2, 5. Codes 0 to 3 mean what they meant in
+0.1.x; 4 and 5 are new in 0.2.0. Without any of these options the run exits 0 whatever the verdicts:
+the report's header then says "Release policy: none configured". With options, it says whether the
+policy is satisfied and, if not, why. Either way it lists what is left for review (every
+INCONCLUSIVE, and a LEAK in the baseline that is now INCONCLUSIVE or missing).
+
+**Comparable reports.** Before comparing verdicts, `--baseline` and `diff` check that both reports use
+the same verdict rule (`margin`, `alpha`, `permutations`, `null_model`, `model`, `folds`, `n_boot`,
+`min_per_class`), the same observer view (`--vantage`), the same features (schema version, vector
+sizes, own-connection measurement, retransmissions, cleartext) and, for every attribute in both, the
+same class set and topology (`--role-within`). If any differs, nothing is compared: the run exits 4
+and the report and the terminal name each differing field with both values. The seed, `--jobs` and
+the rules file are not compared, as they do not change what a verdict means. Reports from 0.1.x,
+which do not record the feature schema, count as schema 1 when their vectors have its sizes (195
+trace, 35 role dimensions).
+
+**Review, not failure.** By default INCONCLUSIVE never fails a run, with or without a baseline.
+Against a baseline, a LEAK that is now INCONCLUSIVE, or that is missing from the new report, is
+listed under `needs_review` (reason `inconclusive` or `missing`), with a "Needs review" line in
+`report.md` and on the terminal. It does not count as resolved: the audit no longer shows the leak
+but has not shown it gone. Only a LEAK that is now NO LEAK is listed under `resolved`. A missing
+attribute that was not LEAK is listed among the changes (after: `absent`). To make an INCONCLUSIVE
+fail a release, add `--strict` (every attribute) or `--require ATTR,...` (the listed ones, which must
+also be present).
 
 ## Input
 

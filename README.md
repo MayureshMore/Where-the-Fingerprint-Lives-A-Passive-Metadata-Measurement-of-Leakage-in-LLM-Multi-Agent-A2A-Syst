@@ -70,7 +70,13 @@ PYTHON=venv-leakcheck/bin/python bash scripts/demo_paper2.sh
 ```
 
 `demo_paper2.sh` audits the C2 examples without and with padding, writes the HTML reports and
-shows the CI gate (exit code 3 on a new LEAK).
+shows the CI gate (exit code 3 on a new LEAK; exit codes and `--strict` in
+[docs/LEAKCHECK.md](docs/LEAKCHECK.md#exit-codes-and-the-release-policy)).
+
+**SafeIoT pipeline:** [safeiot/](safeiot/README.md) holds the tool laid out as the
+[safeiot-vuln-pipeline](https://github.com/systemsecurity-uiuc/safeiot-vuln-pipeline) expects (stages
+1 to 4 and a harness); `pipeline_harness/a2a-leakcheck/run.sh` goes from a fresh clone of that
+repository to a report in about 4 minutes.
 
 **Headline numbers** (`paper2_tool_eval_c2.json` for C2, `paper2_tool_eval.json` for D1; every
 number in the paper and its file: [docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md)):
@@ -162,6 +168,8 @@ evaluation/         Closed-world / open-world drivers, metrics, cluster-bootstra
 scripts/            Every runnable entry point: collect, extract, train, evaluate, reproduce
 a2a_leakcheck/      Leak audit tool: header-only captures in, LEAK / NO LEAK / INCONCLUSIVE per
                     attribute out (docs/LEAKCHECK.md)
+safeiot/            a2a-leakcheck as a SafeIoT pipeline contribution: stages 1-4 and a harness, with
+                    a copy of the tool's code (scripts/sync_safeiot.py)
 examples/           Five small leakcheck inputs with their expected reports: the TLS control's
                     leaky and permuted sets, and C2's c2_lan, c2_lan_padmax and c2_ci_baseline
 baselines/          Standard TLS scanners (sslyze, testssl.sh) against the C2 endpoints; k-FP and
