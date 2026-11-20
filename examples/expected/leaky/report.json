@@ -1,8 +1,8 @@
 {
   "tool": "a2a-leakcheck",
-  "version": "0.1.0",
-  "created": "2026-11-14T14:16:39-0800",
-  "git_commit": "56849f020219ad42802c136bf554d7314783db3e",
+  "version": "0.3.0",
+  "created": "2026-11-20T07:52:13-0800",
+  "git_commit": "b53e9859eaf6cedd9b0771f86ac0503e27a1ca2a",
   "git_dirty": false,
   "input": {
     "folder": "examples/leaky",
@@ -26,6 +26,13 @@
     "model": "gbt",
     "null_model": "rf-light",
     "jobs": -1,
+    "perm_unit": "group",
+    "perm_max": 0,
+    "perm_window": [
+      0.02,
+      0.2
+    ],
+    "match_margin": 0.05,
     "rules": "default",
     "strip": false,
     "legacy_all_connections": false,
@@ -69,6 +76,7 @@
     }
   },
   "extraction": {
+    "schema_version": 1,
     "traces": 40,
     "failed": [],
     "role_samples": 120,
@@ -111,16 +119,22 @@
           "permutations": 99,
           "alpha": 0.05,
           "null_model": "rf-light",
+          "unit": "group",
+          "groups": {
+            "groups": 40,
+            "within_groups": 40
+          },
+          "permutations_run": 99,
           "observed_macro_f1": 0.9833333333333334,
           "p_value": 0.01,
-          "null_mean": 0.3279758940568921,
-          "null_max": 0.4583553297904373,
+          "null_mean": 0.32831390683189354,
+          "null_max": 0.4850653594771242,
           "null_verdicts": {
-            "LEAK": 0,
-            "NO LEAK": 38,
-            "INCONCLUSIVE": 61
+            "LEAK": 2,
+            "NO LEAK": 37,
+            "INCONCLUSIVE": 60
           },
-          "false_positive_rate": 0.0
+          "false_positive_rate": 0.020202020202020204
         }
       },
       "analysis": {
@@ -138,6 +152,11 @@
         "severity": "high"
       },
       "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
         "families": {
           "sizes": {
             "macro_f1": 0.9333333333333332,
@@ -150,7 +169,9 @@
               "ci_lo": 0.024996088252923432,
               "ci_hi": 0.10015125599827268,
               "significant": true
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": false
           },
           "timing": {
             "macro_f1": 0.9500989737979891,
@@ -163,7 +184,9 @@
               "ci_lo": 0.008334635620149022,
               "ci_hi": 0.09136109336466625,
               "significant": true
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": false
           },
           "counts_direction": {
             "macro_f1": 0.6159775854224618,
@@ -176,11 +199,14 @@
               "ci_lo": 0.27826228348592197,
               "ci_hi": 0.48761375083224884,
               "significant": true
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": false
           }
         },
         "top_family": "timing",
         "top_family_matches_all": false,
+        "top_family_no_detected_deficit": false,
         "single_request_size": {
           "feature": "bytes_in",
           "macro_f1": 0.5049761020151559,
@@ -193,7 +219,8 @@
             "ci_hi": 0.5635939988532278,
             "significant": true
           },
-          "matches_all": false
+          "matches_all": false,
+          "no_detected_deficit": false
         }
       },
       "mitigations": [
@@ -235,16 +262,22 @@
           "permutations": 99,
           "alpha": 0.05,
           "null_model": "rf-light",
+          "unit": "group",
+          "groups": {
+            "groups": 40,
+            "within_groups": 0
+          },
+          "permutations_run": 99,
           "observed_macro_f1": 0.7248280175109443,
           "p_value": 0.01,
-          "null_mean": 0.4892941425048033,
-          "null_max": 0.696969696969697,
+          "null_mean": 0.5050783014771772,
+          "null_max": 0.7206349206349206,
           "null_verdicts": {
-            "LEAK": 0,
-            "NO LEAK": 20,
-            "INCONCLUSIVE": 79
+            "LEAK": 1,
+            "NO LEAK": 13,
+            "INCONCLUSIVE": 85
           },
-          "false_positive_rate": 0.0
+          "false_positive_rate": 0.010101010101010102
         }
       },
       "analysis": {
@@ -262,6 +295,11 @@
         "severity": "none"
       },
       "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
         "families": {
           "sizes": {
             "macro_f1": 0.7442455242966752,
@@ -274,7 +312,9 @@
               "ci_lo": -0.25875759905787254,
               "ci_hi": -0.04961779448621551,
               "significant": true
-            }
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
           },
           "timing": {
             "macro_f1": 0.6747967479674797,
@@ -287,7 +327,9 @@
               "ci_lo": -0.22453997974193812,
               "ci_hi": 0.06486040217087131,
               "significant": false
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
           },
           "counts_direction": {
             "macro_f1": 0.4373401534526854,
@@ -300,11 +342,14 @@
               "ci_lo": -0.04877897722730844,
               "ci_hi": 0.3662286558099873,
               "significant": false
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
           }
         },
         "top_family": "sizes",
         "top_family_matches_all": true,
+        "top_family_no_detected_deficit": true,
         "single_request_size": {
           "feature": "first_request_bytes",
           "macro_f1": 0.899749373433584,
@@ -317,7 +362,8 @@
             "ci_hi": -0.17472511517064754,
             "significant": true
           },
-          "matches_all": true
+          "matches_all": true,
+          "no_detected_deficit": true
         }
       },
       "mitigations": [
@@ -355,16 +401,22 @@
           "permutations": 99,
           "alpha": 0.05,
           "null_model": "rf-light",
+          "unit": "group",
+          "groups": {
+            "groups": 40,
+            "within_groups": 0
+          },
+          "permutations_run": 99,
           "observed_macro_f1": 1.0,
           "p_value": 0.01,
-          "null_mean": 0.5001704418475241,
-          "null_max": 0.7248280175109443,
+          "null_mean": 0.5234865677218258,
+          "null_max": 0.75,
           "null_verdicts": {
-            "LEAK": 1,
-            "NO LEAK": 19,
-            "INCONCLUSIVE": 79
+            "LEAK": 2,
+            "NO LEAK": 12,
+            "INCONCLUSIVE": 85
           },
-          "false_positive_rate": 0.010101010101010102
+          "false_positive_rate": 0.020202020202020204
         }
       },
       "analysis": {
@@ -382,6 +434,11 @@
         "severity": "high"
       },
       "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
         "families": {
           "sizes": {
             "macro_f1": 1.0,
@@ -394,7 +451,9 @@
               "ci_lo": 0.0,
               "ci_hi": 0.0,
               "significant": false
-            }
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
           },
           "timing": {
             "macro_f1": 1.0,
@@ -407,7 +466,9 @@
               "ci_lo": 0.0,
               "ci_hi": 0.0,
               "significant": false
-            }
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
           },
           "counts_direction": {
             "macro_f1": 1.0,
@@ -420,11 +481,14 @@
               "ci_lo": 0.0,
               "ci_hi": 0.0,
               "significant": false
-            }
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
           }
         },
         "top_family": "sizes",
         "top_family_matches_all": true,
+        "top_family_no_detected_deficit": true,
         "single_request_size": {
           "feature": "first_request_bytes",
           "macro_f1": 0.3483709273182957,
@@ -437,7 +501,8 @@
             "ci_hi": 0.8000501253132832,
             "significant": true
           },
-          "matches_all": false
+          "matches_all": false,
+          "no_detected_deficit": false
         }
       },
       "mitigations": [
@@ -462,40 +527,66 @@
       "workflow"
     ]
   },
+  "status": {
+    "audit_completed": true,
+    "verdicts": {
+      "LEAK": 2,
+      "NO LEAK": 0,
+      "INCONCLUSIVE": 1
+    },
+    "release_policy": {
+      "configured": false,
+      "checks": {
+        "baseline": null,
+        "fail_on_leak": false,
+        "strict": false,
+        "require": []
+      },
+      "satisfied": true,
+      "failures": [],
+      "exit_code": 0
+    },
+    "for_review": [
+      {
+        "attribute": "workflow",
+        "reason": "INCONCLUSIVE"
+      }
+    ]
+  },
   "runtime": {
-    "total_s": 53.66761058301199,
+    "total_s": 61.391922958078794,
     "stages_s": {
-      "collection": 0.03246183303417638,
-      "extraction": 2.730009582999628,
-      "analysis": 50.8565198329743
+      "collection": 0.01959258399438113,
+      "extraction": 2.942955708014779,
+      "analysis": 58.374359625042416
     },
     "analysis_by_attribute_s": {
-      "role": 17.813552499981597,
-      "workflow": 16.274735792016145,
-      "topology": 16.043065792007837
+      "role": 20.123430042061955,
+      "workflow": 20.04112458403688,
+      "topology": 17.395188833936118
     },
     "peak_rss_by_stage_mb": {
       "collection": {
-        "main_mb": 170.296875
+        "main_mb": 170.140625
       },
       "extraction": {
-        "main_mb": 246.484375
+        "main_mb": 244.8125
       },
       "analysis:role": {
-        "main_mb": 248.515625,
-        "worker_mb": 181.75
+        "main_mb": 246.65625,
+        "worker_mb": 180.5
       },
       "analysis:workflow": {
-        "main_mb": 249.109375,
-        "worker_mb": 199.1875
+        "main_mb": 247.125,
+        "worker_mb": 196.28125
       },
       "analysis:topology": {
-        "main_mb": 249.1875,
-        "worker_mb": 199.1875
+        "main_mb": 247.125,
+        "worker_mb": 198.90625
       }
     },
-    "peak_rss_mb": 249.1875,
-    "peak_rss_children_mb": 199.1875,
+    "peak_rss_mb": 247.125,
+    "peak_rss_children_mb": 198.90625,
     "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"

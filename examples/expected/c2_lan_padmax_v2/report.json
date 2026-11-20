@@ -1,8 +1,8 @@
 {
   "tool": "a2a-leakcheck",
-  "version": "0.1.0",
-  "created": "2026-11-14T12:30:04-0800",
-  "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+  "version": "0.3.0",
+  "created": "2026-11-20T07:53:57-0800",
+  "git_commit": "b53e9859eaf6cedd9b0771f86ac0503e27a1ca2a",
   "git_dirty": false,
   "input": {
     "folder": "examples/c2_lan_padmax",
@@ -24,6 +24,13 @@
     "model": "gbt",
     "null_model": "rf-light",
     "jobs": -1,
+    "perm_unit": "group",
+    "perm_max": 0,
+    "perm_window": [
+      0.02,
+      0.2
+    ],
+    "match_margin": 0.05,
     "rules": "default",
     "strip": false,
     "legacy_all_connections": false,
@@ -53,6 +60,7 @@
     }
   },
   "extraction": {
+    "schema_version": 1,
     "traces": 40,
     "failed": [],
     "role_samples": 40,
@@ -92,16 +100,22 @@
           "permutations": 99,
           "alpha": 0.05,
           "null_model": "rf-light",
-          "observed_macro_f1": 0.7737272155876807,
-          "p_value": 0.01,
-          "null_mean": 0.48387352254389787,
-          "null_max": 0.6747967479674797,
-          "null_verdicts": {
-            "LEAK": 0,
-            "NO LEAK": 22,
-            "INCONCLUSIVE": 77
+          "unit": "group",
+          "groups": {
+            "groups": 40,
+            "within_groups": 0
           },
-          "false_positive_rate": 0.0
+          "permutations_run": 99,
+          "observed_macro_f1": 0.7737272155876807,
+          "p_value": 0.02,
+          "null_mean": 0.49342795847374143,
+          "null_max": 0.8248905565978737,
+          "null_verdicts": {
+            "LEAK": 3,
+            "NO LEAK": 20,
+            "INCONCLUSIVE": 76
+          },
+          "false_positive_rate": 0.030303030303030304
         }
       },
       "analysis": {
@@ -119,6 +133,11 @@
         "severity": "medium"
       },
       "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
         "families": {
           "sizes": {
             "macro_f1": 0.6698412698412699,
@@ -131,7 +150,9 @@
               "ci_lo": -0.051006527134277384,
               "ci_hi": 0.2066065544373692,
               "significant": false
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
           },
           "timing": {
             "macro_f1": 0.6698412698412699,
@@ -144,7 +165,9 @@
               "ci_lo": -0.09168813131313143,
               "ci_hi": 0.24479055888283396,
               "significant": false
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
           },
           "counts_direction": {
             "macro_f1": 0.696969696969697,
@@ -157,11 +180,14 @@
               "ci_lo": -0.10231838511199756,
               "ci_hi": 0.20714595207371123,
               "significant": false
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
           }
         },
         "top_family": "counts_direction",
-        "top_family_matches_all": true,
+        "top_family_matches_all": false,
+        "top_family_no_detected_deficit": true,
         "single_request_size": {
           "feature": "first_request_bytes",
           "macro_f1": 0.3333333333333333,
@@ -174,7 +200,8 @@
             "ci_hi": 0.550351443686215,
             "significant": true
           },
-          "matches_all": false
+          "matches_all": false,
+          "no_detected_deficit": false
         }
       },
       "mitigations": [
@@ -192,30 +219,51 @@
     "NO LEAK": [],
     "INCONCLUSIVE": []
   },
+  "status": {
+    "audit_completed": true,
+    "verdicts": {
+      "LEAK": 1,
+      "NO LEAK": 0,
+      "INCONCLUSIVE": 0
+    },
+    "release_policy": {
+      "configured": false,
+      "checks": {
+        "baseline": null,
+        "fail_on_leak": false,
+        "strict": false,
+        "require": []
+      },
+      "satisfied": true,
+      "failures": [],
+      "exit_code": 0
+    },
+    "for_review": []
+  },
   "runtime": {
-    "total_s": 16.877577708975878,
+    "total_s": 18.499018875067122,
     "stages_s": {
-      "collection": 0.021187208010815084,
-      "extraction": 1.5057172499946319,
-      "analysis": 15.305564999987837
+      "collection": 0.021359040983952582,
+      "extraction": 1.541860125027597,
+      "analysis": 16.87777483300306
     },
     "analysis_by_attribute_s": {
-      "task_type": 15.050664666981902
+      "task_type": 16.624975500046276
     },
     "peak_rss_by_stage_mb": {
       "collection": {
-        "main_mb": 168.75
+        "main_mb": 170.203125
       },
       "extraction": {
-        "main_mb": 238.328125
+        "main_mb": 240.90625
       },
       "analysis:task_type": {
-        "main_mb": 240.765625,
-        "worker_mb": 193.125
+        "main_mb": 242.984375,
+        "worker_mb": 197.234375
       }
     },
-    "peak_rss_mb": 240.765625,
-    "peak_rss_children_mb": 193.125,
+    "peak_rss_mb": 242.984375,
+    "peak_rss_children_mb": 197.234375,
     "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"

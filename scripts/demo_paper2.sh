@@ -56,12 +56,13 @@ for name, path in zip(("no padding", "padded to 8 KB"), sys.argv[1:3]):
     r = json.load(open(path))
     for attr, a in r["attributes"].items():
         an, at = a["analysis"] or {}, a.get("attribution") or {}
-        fams = at.get("families") or {}
-        carried = [f for f, v in fams.items() if v["all_minus_this"]["ci_lo"] <= 0]
-        single = (at.get("single_request_size") or {}).get("matches_all")
+        top, single = at.get("top_family"), at.get("single_request_size") or {}
+        carried = "—"                                  # as the report's "carried by" column
+        if top and a["verdict"] == "LEAK":
+            carried = ("first request alone" if single.get("matches_all") else
+                       top.replace("_", " and ") + (" (alone matches all)" if at.get("top_family_matches_all") else ""))
         rows.append((name, attr, a["verdict"], f"{an.get('macro_f1', 0):.2f} [{an.get('ci_lo', 0):.2f}, {an.get('ci_hi', 0):.2f}]",
-                     f"{a['validation']['permutation']['p_value']:.2f}",
-                     "first request alone" if single else ", ".join(carried) or "—",
+                     f"{a['validation']['permutation']['p_value']:.2f}", carried,
                      ", ".join(m["id"] for m in a["mitigations"]) or "—"))
 head = ("arm", "attribute", "verdict", "macro-F1 [95% CI]", "p", "carried by", "hint")
 w = [max(len(str(x[i])) for x in rows + [head]) for i in range(len(head))]

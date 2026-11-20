@@ -1,0 +1,224 @@
+"""
+Per-system features — aggregate statistics across all flows in one trace.
+
+These capture the multi-party collaboration structure that single-flow
+features miss: the number of distinct host pairs communicating, the
+coordination timing between parallel delegations, etc.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+import numpy as np
+
+from .burst import Burst
+from .per_flow import PerFlowFeatures
+
+
+@dataclass
+class PerSystemFeatures:
+    # Flow-count statistics
+    n_flows: int = 0
+    n_unique_src_hosts: int = 0
+    n_unique_dst_hosts: int = 0
+    n_unique_host_pairs: int = 0
+
+    # Total traffic volume
+    total_bytes: int = 0
+    total_packets: int = 0
+    total_duration_s: float = 0.0
+
+    # Cross-flow coordination (timing of parallel delegations)
+    # Std of per-flow start times relative to trace start
+    flow_start_spread_s: float = 0.0
+    # Std of per-flow end times
+    flow_end_spread_s: float = 0.0
+    # Max simultaneous open flows (proxy for fan-out degree)
+    max_concurrent_flows: int = 0
+
+    # Burst-level cross-flow features
+    total_bursts: int = 0
+    mean_burst_rate_per_s: float = 0.0
+    # Directionality ratio across all flows
+    bytes_out_ratio: float = 0.0
+
+    # Traffic-distribution features (workflow discriminators)
+    # Which agent did the most work?  Low cv = balanced (star); high = chain/mesh.
+    heaviest_flow_bytes_frac: float = 0.0   # max(flow_bytes) / total_bytes
+    flow_bytes_cv: float = 0.0              # std / mean of per-flow byte counts
+    n_response_heavy_flows: int = 0         # flows where bytes_in > bytes_out
+    mean_flow_response_ratio: float = 0.0   # mean(bytes_in / flow_bytes) across flows
+
+    # Request-body size discrimination: captures which flow is request-heavy vs
+    # response-heavy. High max = one flow sends lots of data TO an agent (DA: CSV
+    # payload to executor). Low min = one flow receives lots of data FROM an agent
+    # (RR: retriever sends back large results). max_first_burst_bytes proxies the
+    # initial HTTP POST body size (the CSV data) without reading payload content.
+    max_flow_bytes_out_ratio: float = 0.0   # max(bytes_out/total) across flows
+    min_flow_bytes_out_ratio: float = 0.0   # min(bytes_out/total) across flows
+    max_flow_bytes_in: float = 0.0          # max(bytes_in) across flows — large for DA (CSV payload)
+
+    # Per-flow feature statistics (mean and std of each per-flow dimension)
+    pf_mean: np.ndarray = field(default_factory=lambda: np.zeros(35, dtype=np.float32))
+    pf_std: np.ndarray = field(default_factory=lambda: np.zeros(35, dtype=np.float32))
+
+    def to_vector(self) -> np.ndarray:
+        scalar = np.array(
+            [
+                self.n_flows,
+                self.n_unique_src_hosts,
+                self.n_unique_dst_hosts,
+                self.n_unique_host_pairs,
+                self.total_bytes,
+                self.total_packets,
+                self.total_duration_s,
+                self.flow_start_spread_s,
+                self.flow_end_spread_s,
+                self.max_concurrent_flows,
+                self.total_bursts,
+                self.mean_burst_rate_per_s,
+                self.bytes_out_ratio,
+                self.heaviest_flow_bytes_frac,
+                self.flow_bytes_cv,
+                self.n_response_heavy_flows,
+                self.mean_flow_response_ratio,
+                self.max_flow_bytes_out_ratio,
+                self.min_flow_bytes_out_ratio,
+                self.max_flow_bytes_in,
+            ],
+            dtype=np.float32,
+        )
+        return np.concatenate([scalar, self.pf_mean, self.pf_std])  # 90-dim
+
+    @staticmethod
+    def FEATURE_NAMES() -> list[str]:
+        from .per_flow import PerFlowFeatures
+        scalar_names = [
+            "n_flows", "n_src_hosts", "n_dst_hosts", "n_host_pairs",
+            "total_bytes", "total_packets", "total_duration_s",
+            "flow_start_spread", "flow_end_spread", "max_concurrent_flows",
+            "total_bursts", "mean_burst_rate", "bytes_out_ratio",
+            "heaviest_flow_bytes_frac", "flow_bytes_cv",
+            "n_response_heavy_flows", "mean_flow_response_ratio",
+            "max_flow_bytes_out_ratio", "min_flow_bytes_out_ratio",
+            "max_flow_bytes_in",
+        ]
+        pf_names = PerFlowFeatures.FEATURE_NAMES()
+        pf_mean_names = [f"pf_mean_{n}" for n in pf_names]
+        pf_std_names = [f"pf_std_{n}" for n in pf_names]
+        return scalar_names + pf_mean_names + pf_std_names  # 20+35+35 = 90 names
+
+
+def compute_per_system(
+    per_flow_features: list[PerFlowFeatures],
+    flow_bursts: dict[str, list[Burst]],
+    flow_time_ranges: dict[str, tuple[float, float]],  # flow_key → (start, end)
+) -> PerSystemFeatures:
+    """
+    Aggregate per-flow features and burst data into a single per-system
+    feature vector for a complete trace.
+    """
+    feat = PerSystemFeatures()
+
+    if not per_flow_features:
+        return feat
+
+    feat.n_flows = len(per_flow_features)
+
+    # Host-pair counting from flow keys ("srcip:srcport→dstip:dstport")
+    src_hosts: set[str] = set()
+    dst_hosts: set[str] = set()
+    host_pairs: set[str] = set()
+    for fk in flow_time_ranges:
+        parts = fk.split("→")
+        if len(parts) == 2:
+            src_host = parts[0].rsplit(":", 1)[0]
+            dst_host = parts[1].rsplit(":", 1)[0]
+            src_hosts.add(src_host)
+            dst_hosts.add(dst_host)
+            host_pairs.add(f"{src_host}→{dst_host}")  # host-level pair, not 5-tuple
+    feat.n_unique_src_hosts = len(src_hosts)
+    feat.n_unique_dst_hosts = len(dst_hosts)
+    feat.n_unique_host_pairs = len(host_pairs)
+
+    # Volume
+    feat.total_bytes = sum(pf.total_bytes_out + pf.total_bytes_in for pf in per_flow_features)
+    feat.total_packets = sum(pf.n_packets_out + pf.n_packets_in for pf in per_flow_features)
+
+    # Duration (wall-clock span across all flows)
+    if flow_time_ranges:
+        all_starts = [s for s, _ in flow_time_ranges.values()]
+        all_ends = [e for _, e in flow_time_ranges.values()]
+        trace_start = min(all_starts)
+        trace_end = max(all_ends)
+        feat.total_duration_s = trace_end - trace_start
+        feat.flow_start_spread_s = float(np.std([s - trace_start for s in all_starts]))
+        feat.flow_end_spread_s = float(np.std([e - trace_start for e in all_ends]))
+
+        # Max concurrent flows: sweep line over start/end events
+        events = [(t, +1) for t in all_starts] + [(t, -1) for t in all_ends]
+        events.sort()
+        concurrent = max_concurrent = 0
+        for _, delta in events:
+            concurrent += delta
+            max_concurrent = max(max_concurrent, concurrent)
+        feat.max_concurrent_flows = max_concurrent
+
+    # Burst stats
+    all_bursts = [b for bl in flow_bursts.values() for b in bl]
+    feat.total_bursts = len(all_bursts)
+    if all_bursts and feat.total_duration_s > 0:
+        feat.mean_burst_rate_per_s = feat.total_bursts / feat.total_duration_s
+
+    if feat.total_bytes > 0:
+        total_out = sum(pf.total_bytes_out for pf in per_flow_features)
+        feat.bytes_out_ratio = total_out / feat.total_bytes
+
+    # Traffic distribution across flows — workflow discriminator.
+    # research_retrieval: retriever flow dominates.
+    # code_review: validator flow dominates.
+    # data_analysis: executor flow dominates.
+    # support_triage: balanced (all flows small).
+    flow_bytes = np.array(
+        [pf.total_bytes_out + pf.total_bytes_in for pf in per_flow_features],
+        dtype=np.float32,
+    )
+    if feat.total_bytes > 0 and len(flow_bytes) > 0:
+        feat.heaviest_flow_bytes_frac = float(flow_bytes.max()) / feat.total_bytes
+        mean_fb = float(flow_bytes.mean())
+        feat.flow_bytes_cv = float(flow_bytes.std()) / (mean_fb + 1e-8)
+    feat.n_response_heavy_flows = sum(
+        1 for pf in per_flow_features if pf.total_bytes_in > pf.total_bytes_out
+    )
+    if per_flow_features:
+        ratios = [
+            pf.total_bytes_in / (pf.total_bytes_out + pf.total_bytes_in + 1e-8)
+            for pf in per_flow_features
+        ]
+        feat.mean_flow_response_ratio = float(np.mean(ratios))
+
+    # Request-body size features: bytes_out / total per flow.
+    # bytes_out = agent→client (responses); bytes_in = client→agent (requests).
+    # DA executor-bound flow: large bytes_in (CSV request) → low bytes_out_ratio.
+    # RR retriever-bound flow: large bytes_out (retrieval response) → high ratio.
+    if per_flow_features:
+        out_ratios = [
+            pf.total_bytes_out / (pf.total_bytes_out + pf.total_bytes_in + 1e-8)
+            for pf in per_flow_features
+        ]
+        feat.max_flow_bytes_out_ratio = float(max(out_ratios))
+        feat.min_flow_bytes_out_ratio = float(min(out_ratios))
+
+    # Max inbound bytes across all flows: large for DA (CSV payload sent to executor)
+    # and small for RR (only query text). First-burst bytes cannot be used because
+    # the burst segmenter always produces a SYN-only first burst (68B).
+    if per_flow_features:
+        feat.max_flow_bytes_in = float(max(pf.total_bytes_in for pf in per_flow_features))
+
+    # Per-flow feature matrix → mean and std across flows
+    pf_matrix = np.stack([pf.to_vector() for pf in per_flow_features], axis=0)
+    feat.pf_mean = pf_matrix.mean(axis=0)
+    feat.pf_std = pf_matrix.std(axis=0) if len(per_flow_features) > 1 else np.zeros_like(feat.pf_mean)
+
+    return feat

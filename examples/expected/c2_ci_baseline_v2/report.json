@@ -1,8 +1,8 @@
 {
   "tool": "a2a-leakcheck",
-  "version": "0.1.0",
-  "created": "2026-11-14T12:30:06-0800",
-  "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+  "version": "0.3.0",
+  "created": "2026-11-20T07:53:59-0800",
+  "git_commit": "b53e9859eaf6cedd9b0771f86ac0503e27a1ca2a",
   "git_dirty": false,
   "input": {
     "folder": "examples/c2_ci_baseline",
@@ -24,6 +24,13 @@
     "model": "gbt",
     "null_model": "rf-light",
     "jobs": -1,
+    "perm_unit": "group",
+    "perm_max": 0,
+    "perm_window": [
+      0.02,
+      0.2
+    ],
+    "match_margin": 0.05,
     "rules": "default",
     "strip": false,
     "legacy_all_connections": false,
@@ -53,6 +60,7 @@
     }
   },
   "extraction": {
+    "schema_version": 1,
     "traces": 20,
     "failed": [],
     "role_samples": 20,
@@ -115,30 +123,56 @@
       "task_type"
     ]
   },
+  "status": {
+    "audit_completed": true,
+    "verdicts": {
+      "LEAK": 0,
+      "NO LEAK": 0,
+      "INCONCLUSIVE": 1
+    },
+    "release_policy": {
+      "configured": false,
+      "checks": {
+        "baseline": null,
+        "fail_on_leak": false,
+        "strict": false,
+        "require": []
+      },
+      "satisfied": true,
+      "failures": [],
+      "exit_code": 0
+    },
+    "for_review": [
+      {
+        "attribute": "task_type",
+        "reason": "INCONCLUSIVE"
+      }
+    ]
+  },
   "runtime": {
-    "total_s": 0.9819254580070265,
+    "total_s": 1.0260732079623267,
     "stages_s": {
-      "collection": 0.011275875032879412,
-      "extraction": 0.9096432500518858,
-      "analysis": 0.006310958007816225
+      "collection": 0.01118958299048245,
+      "extraction": 0.9595055829267949,
+      "analysis": 0.005976459011435509
     },
     "analysis_by_attribute_s": {
-      "task_type": 0.00018737500067800283
+      "task_type": 0.00022245908621698618
     },
     "peak_rss_by_stage_mb": {
       "collection": {
-        "main_mb": 166.4375
+        "main_mb": 168.984375
       },
       "extraction": {
-        "main_mb": 233.5625
+        "main_mb": 238.421875
       },
       "analysis:task_type": {
-        "main_mb": 233.828125,
+        "main_mb": 238.640625,
         "worker_mb": 0.0
       }
     },
-    "peak_rss_mb": 233.984375,
-    "peak_rss_children_mb": 5.734375,
+    "peak_rss_mb": 238.734375,
+    "peak_rss_children_mb": 5.90625,
     "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"

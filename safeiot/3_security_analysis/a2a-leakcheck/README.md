@@ -26,10 +26,13 @@ runs `python -m a2a_leakcheck run` on each arm and view's features from
    NO LEAK if its upper bound is at most chance + 0.05; INCONCLUSIVE otherwise.
 4. **Validation.** At least 20 samples per class in at least 5 groups, else INCONCLUSIVE. A
    label-permutation test (99 permutations, scored with a light random forest that also scores the
-   real labels): a LEAK with p > 0.05, or a NO LEAK with p ≤ 0.05, becomes INCONCLUSIVE.
+   real labels): a LEAK with p > 0.05, or a NO LEAK with p ≤ 0.05, becomes INCONCLUSIVE. Labels are
+   permuted by prompt group, as the cross-validation splits: whole groups exchange labels, and
+   where a group's labels differ (the agents of one task, for role) they are shuffled within it.
 5. **Attribution.** The same cross-validation on each feature family alone (sizes; timing; counts
    and direction) and on the first-request size alone, each paired against all features over the
-   same folds and resamples: what carries a leak.
+   same folds and resamples: what carries a leak. A family alone matches all features when the
+   upper bound of the paired 95% interval of all − family is at most 0.05 (non-inferiority).
 6. **Hints.** Mitigation hints from `src/a2a_leakcheck/rules.yaml` (editable), e.g. pad responses as
    well as requests when sizes still carry the leak.
 
@@ -48,7 +51,7 @@ runs `python -m a2a_leakcheck run` on each arm and view's features from
 a2a-leakcheck lives in its authors' research repository, which also holds two papers' experiments.
 It is not a pip package, and the modules it needs have generic top-level names (`features`,
 `models`, `evaluation`) that should not be installed into a shared environment. So this folder holds
-a copy of exactly the 25 files an audit loads (about 3,500 lines), as the pipeline keeps each tool's
+a copy of exactly the 25 files an audit loads (about 4,000 lines), as the pipeline keeps each tool's
 code under its own folder. The copy is made by the repository's `scripts/sync_safeiot.py` from a
 clean commit, which it records in `SOURCE.json`; the repository's tests fail if the copy and the
 repository drift apart. Every report names the commit (`git_commit`) and whether any copied file

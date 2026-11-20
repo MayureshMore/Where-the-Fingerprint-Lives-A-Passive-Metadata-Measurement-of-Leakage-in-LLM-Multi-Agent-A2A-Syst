@@ -45,7 +45,7 @@ the traffic's shape.
 | Set | Traces | Expected verdict for task_type at V2 |
 |---|---|---|
 | `c2_lan/` | 20 sensor_analysis + 20 fault_diagnosis tasks, no padding (`data/raw_c2`) | LEAK, macro-F1 0.77 [0.64, 0.90], p = 0.01 |
-| `c2_lan_padmax/` | the same 40 tasks (same prompts) with every cloud request padded to 8 KB (`data/raw_c2_padmax`) | LEAK, 0.75 [0.60, 0.87], p = 0.01 |
+| `c2_lan_padmax/` | the same 40 tasks (same prompts) with every cloud request padded to 8 KB (`data/raw_c2_padmax`) | LEAK, 0.75 [0.60, 0.87], p = 0.02 |
 | `c2_ci_baseline/` | the first 10 tasks of each type in `c2_lan/` | INCONCLUSIVE: too few traces per class |
 
 ```bash
@@ -59,7 +59,8 @@ bash scripts/demo_paper2.sh        # all three, with a verdict table: under a mi
 What they show:
 
 - **c2_lan**: the task type leaks to an observer who sees only the encrypted calls to one cloud
-  agent. Message sizes carry it (counts and direction match them).
+  agent. Message sizes score best on their own; with 40 tasks no single family is shown to come
+  within 0.05 of all features, so the report names sizes without "(alone matches all)".
 - **c2_lan_padmax**: padding every request to 8 KB hides the task input's size (paper 2, the
   first-request estimator), yet the task type still leaks: the report names what still carries it
   and what to try next. On all of C2 this holds at both views

@@ -1,8 +1,8 @@
 {
   "tool": "a2a-leakcheck",
-  "version": "0.1.0",
-  "created": "2026-11-14T14:17:34-0800",
-  "git_commit": "56849f020219ad42802c136bf554d7314783db3e",
+  "version": "0.3.0",
+  "created": "2026-11-20T07:53:14-0800",
+  "git_commit": "b53e9859eaf6cedd9b0771f86ac0503e27a1ca2a",
   "git_dirty": false,
   "input": {
     "folder": "examples/permuted",
@@ -26,6 +26,13 @@
     "model": "gbt",
     "null_model": "rf-light",
     "jobs": -1,
+    "perm_unit": "group",
+    "perm_max": 0,
+    "perm_window": [
+      0.02,
+      0.2
+    ],
+    "match_margin": 0.05,
     "rules": "default",
     "strip": false,
     "legacy_all_connections": false,
@@ -65,6 +72,7 @@
     }
   },
   "extraction": {
+    "schema_version": 1,
     "traces": 40,
     "failed": [],
     "role_samples": 120,
@@ -110,16 +118,22 @@
           "permutations": 99,
           "alpha": 0.05,
           "null_model": "rf-light",
-          "observed_macro_f1": 0.17157409749744684,
-          "p_value": 0.93,
-          "null_mean": 0.24772998848920705,
-          "null_max": 0.37422200611280915,
-          "null_verdicts": {
-            "LEAK": 0,
-            "NO LEAK": 37,
-            "INCONCLUSIVE": 62
+          "unit": "group",
+          "groups": {
+            "groups": 40,
+            "within_groups": 40
           },
-          "false_positive_rate": 0.0
+          "permutations_run": 99,
+          "observed_macro_f1": 0.17157409749744684,
+          "p_value": 0.92,
+          "null_mean": 0.2479694237651583,
+          "null_max": 0.417745293075806,
+          "null_verdicts": {
+            "LEAK": 1,
+            "NO LEAK": 34,
+            "INCONCLUSIVE": 64
+          },
+          "false_positive_rate": 0.010101010101010102
         }
       },
       "analysis": {
@@ -137,6 +151,11 @@
         "severity": "none"
       },
       "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
         "families": {
           "sizes": {
             "macro_f1": 0.10393492769744161,
@@ -149,7 +168,9 @@
               "ci_lo": 0.004285939468256046,
               "ci_hi": 0.15111168308447484,
               "significant": true
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": false
           },
           "timing": {
             "macro_f1": 0.2180605398658137,
@@ -162,7 +183,9 @@
               "ci_lo": -0.14161304824013443,
               "ci_hi": 0.06843719844392429,
               "significant": false
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
           },
           "counts_direction": {
             "macro_f1": 0.17333333333333334,
@@ -175,11 +198,14 @@
               "ci_lo": -0.06850644946928512,
               "ci_hi": 0.09295826756535885,
               "significant": false
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
           }
         },
         "top_family": "timing",
-        "top_family_matches_all": true,
+        "top_family_matches_all": false,
+        "top_family_no_detected_deficit": true,
         "single_request_size": {
           "feature": "bytes_in",
           "macro_f1": 0.215877747025288,
@@ -192,7 +218,8 @@
             "ci_hi": 0.05286934639485853,
             "significant": false
           },
-          "matches_all": true
+          "matches_all": false,
+          "no_detected_deficit": true
         }
       },
       "mitigations": []
@@ -225,16 +252,22 @@
           "permutations": 99,
           "alpha": 0.05,
           "null_model": "rf-light",
-          "observed_macro_f1": 0.47203016970458833,
-          "p_value": 0.68,
-          "null_mean": 0.5069710067973973,
-          "null_max": 0.7,
-          "null_verdicts": {
-            "LEAK": 1,
-            "NO LEAK": 16,
-            "INCONCLUSIVE": 82
+          "unit": "group",
+          "groups": {
+            "groups": 40,
+            "within_groups": 0
           },
-          "false_positive_rate": 0.010101010101010102
+          "permutations_run": 99,
+          "observed_macro_f1": 0.47203016970458833,
+          "p_value": 0.65,
+          "null_mean": 0.4930530469934424,
+          "null_max": 0.696969696969697,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 18,
+            "INCONCLUSIVE": 81
+          },
+          "false_positive_rate": 0.0
         }
       },
       "analysis": {
@@ -252,6 +285,11 @@
         "severity": "none"
       },
       "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
         "families": {
           "sizes": {
             "macro_f1": 0.41587301587301584,
@@ -264,7 +302,9 @@
               "ci_lo": -0.21767262158486575,
               "ci_hi": 0.08525144431449282,
               "significant": false
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
           },
           "timing": {
             "macro_f1": 0.4987468671679198,
@@ -277,7 +317,9 @@
               "ci_lo": -0.32974474330695375,
               "ci_hi": 0.04357629399637835,
               "significant": false
-            }
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
           },
           "counts_direction": {
             "macro_f1": 0.6247654784240151,
@@ -290,11 +332,14 @@
               "ci_lo": -0.44986310697130305,
               "ci_hi": -0.10051278834099542,
               "significant": true
-            }
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
           }
         },
         "top_family": "counts_direction",
         "top_family_matches_all": true,
+        "top_family_no_detected_deficit": true,
         "single_request_size": {
           "feature": "first_request_bytes",
           "macro_f1": 0.3483709273182957,
@@ -307,7 +352,8 @@
             "ci_hi": 0.19704816476675552,
             "significant": false
           },
-          "matches_all": true
+          "matches_all": false,
+          "no_detected_deficit": true
         }
       },
       "mitigations": []
@@ -340,16 +386,22 @@
           "permutations": 99,
           "alpha": 0.05,
           "null_model": "rf-light",
-          "observed_macro_f1": 0.3552546744036106,
-          "p_value": 0.88,
-          "null_mean": 0.48072981869847103,
-          "null_max": 0.7493734335839599,
-          "null_verdicts": {
-            "LEAK": 1,
-            "NO LEAK": 22,
-            "INCONCLUSIVE": 76
+          "unit": "group",
+          "groups": {
+            "groups": 40,
+            "within_groups": 0
           },
-          "false_positive_rate": 0.010101010101010102
+          "permutations_run": 99,
+          "observed_macro_f1": 0.3552546744036106,
+          "p_value": 0.93,
+          "null_mean": 0.5194007139951983,
+          "null_max": 0.8,
+          "null_verdicts": {
+            "LEAK": 2,
+            "NO LEAK": 15,
+            "INCONCLUSIVE": 82
+          },
+          "false_positive_rate": 0.020202020202020204
         }
       },
       "analysis": {
@@ -367,6 +419,11 @@
         "severity": "none"
       },
       "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
         "families": {
           "sizes": {
             "macro_f1": 0.5223130106851037,
@@ -379,7 +436,9 @@
               "ci_lo": -0.21334463172761048,
               "ci_hi": 0.03429394871057391,
               "significant": false
-            }
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
           },
           "timing": {
             "macro_f1": 0.32291666666666663,
@@ -392,7 +451,9 @@
               "ci_lo": -0.0662759144963283,
               "ci_hi": 0.29214533161928824,
               "significant": false
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
           },
           "counts_direction": {
             "macro_f1": 0.32291666666666663,
@@ -405,11 +466,14 @@
               "ci_lo": -0.07223624470578037,
               "ci_hi": 0.298084863997518,
               "significant": false
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
           }
         },
         "top_family": "sizes",
         "top_family_matches_all": true,
+        "top_family_no_detected_deficit": true,
         "single_request_size": {
           "feature": "first_request_bytes",
           "macro_f1": 0.3939393939393939,
@@ -422,7 +486,8 @@
             "ci_hi": 0.2539917104172423,
             "significant": false
           },
-          "matches_all": true
+          "matches_all": false,
+          "no_detected_deficit": true
         }
       },
       "mitigations": [
@@ -443,40 +508,66 @@
       "topology"
     ]
   },
+  "status": {
+    "audit_completed": true,
+    "verdicts": {
+      "LEAK": 0,
+      "NO LEAK": 2,
+      "INCONCLUSIVE": 1
+    },
+    "release_policy": {
+      "configured": false,
+      "checks": {
+        "baseline": null,
+        "fail_on_leak": false,
+        "strict": false,
+        "require": []
+      },
+      "satisfied": true,
+      "failures": [],
+      "exit_code": 0
+    },
+    "for_review": [
+      {
+        "attribute": "topology",
+        "reason": "INCONCLUSIVE"
+      }
+    ]
+  },
   "runtime": {
-    "total_s": 53.68198424996808,
+    "total_s": 60.63875745900441,
     "stages_s": {
-      "collection": 0.03085224999813363,
-      "extraction": 2.727842000022065,
-      "analysis": 50.872104041976854
+      "collection": 0.030540707986801863,
+      "extraction": 2.8755804169923067,
+      "analysis": 57.6733360409271
     },
     "analysis_by_attribute_s": {
-      "role": 18.034077165997587,
-      "workflow": 16.205662583000958,
-      "topology": 15.929256875009742
+      "role": 20.925578165915795,
+      "workflow": 18.212691250024363,
+      "topology": 17.610396709060296
     },
     "peak_rss_by_stage_mb": {
       "collection": {
-        "main_mb": 169.78125
+        "main_mb": 169.8125
       },
       "extraction": {
-        "main_mb": 243.765625
+        "main_mb": 245.09375
       },
       "analysis:role": {
-        "main_mb": 246.0,
-        "worker_mb": 186.09375
+        "main_mb": 247.359375,
+        "worker_mb": 184.8125
       },
       "analysis:workflow": {
-        "main_mb": 246.5,
-        "worker_mb": 197.59375
+        "main_mb": 247.78125,
+        "worker_mb": 197.890625
       },
       "analysis:topology": {
-        "main_mb": 246.625,
-        "worker_mb": 199.109375
+        "main_mb": 247.875,
+        "worker_mb": 197.890625
       }
     },
-    "peak_rss_mb": 246.625,
-    "peak_rss_children_mb": 199.109375,
+    "peak_rss_mb": 247.875,
+    "peak_rss_children_mb": 197.890625,
     "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"

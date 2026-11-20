@@ -1,8 +1,8 @@
 {
   "tool": "a2a-leakcheck",
-  "version": "0.1.0",
-  "created": "2026-11-14T12:29:46-0800",
-  "git_commit": "2c1f3ef19281eaac0bdd772623f3a4a34a383937",
+  "version": "0.3.0",
+  "created": "2026-11-20T07:53:37-0800",
+  "git_commit": "b53e9859eaf6cedd9b0771f86ac0503e27a1ca2a",
   "git_dirty": false,
   "input": {
     "folder": "examples/c2_lan",
@@ -24,6 +24,13 @@
     "model": "gbt",
     "null_model": "rf-light",
     "jobs": -1,
+    "perm_unit": "group",
+    "perm_max": 0,
+    "perm_window": [
+      0.02,
+      0.2
+    ],
+    "match_margin": 0.05,
     "rules": "default",
     "strip": false,
     "legacy_all_connections": false,
@@ -53,6 +60,7 @@
     }
   },
   "extraction": {
+    "schema_version": 1,
     "traces": 40,
     "failed": [],
     "role_samples": 40,
@@ -92,14 +100,20 @@
           "permutations": 99,
           "alpha": 0.05,
           "null_model": "rf-light",
+          "unit": "group",
+          "groups": {
+            "groups": 40,
+            "within_groups": 0
+          },
+          "permutations_run": 99,
           "observed_macro_f1": 0.8749218261413383,
           "p_value": 0.01,
-          "null_mean": 0.5063308938658089,
-          "null_max": 0.75,
+          "null_mean": 0.5038008024439758,
+          "null_max": 0.7,
           "null_verdicts": {
             "LEAK": 1,
-            "NO LEAK": 19,
-            "INCONCLUSIVE": 79
+            "NO LEAK": 18,
+            "INCONCLUSIVE": 80
           },
           "false_positive_rate": 0.010101010101010102
         }
@@ -119,6 +133,11 @@
         "severity": "medium"
       },
       "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
         "families": {
           "sizes": {
             "macro_f1": 0.7994987468671679,
@@ -131,7 +150,9 @@
               "ci_lo": -0.1219342359767891,
               "ci_hi": 0.06411863483194184,
               "significant": false
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
           },
           "timing": {
             "macro_f1": 0.5223130106851037,
@@ -144,7 +165,9 @@
               "ci_lo": 0.10055780557616541,
               "ci_hi": 0.4121638196155762,
               "significant": true
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": false
           },
           "counts_direction": {
             "macro_f1": 0.7234443746071653,
@@ -157,11 +180,14 @@
               "ci_lo": -0.10642504875365877,
               "ci_hi": 0.22180034583005548,
               "significant": false
-            }
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
           }
         },
         "top_family": "sizes",
-        "top_family_matches_all": true,
+        "top_family_matches_all": false,
+        "top_family_no_detected_deficit": true,
         "single_request_size": {
           "feature": "first_request_bytes",
           "macro_f1": 0.47203016970458833,
@@ -174,7 +200,8 @@
             "ci_hi": 0.5052543673820269,
             "significant": true
           },
-          "matches_all": false
+          "matches_all": false,
+          "no_detected_deficit": false
         }
       },
       "mitigations": [
@@ -192,30 +219,51 @@
     "NO LEAK": [],
     "INCONCLUSIVE": []
   },
+  "status": {
+    "audit_completed": true,
+    "verdicts": {
+      "LEAK": 1,
+      "NO LEAK": 0,
+      "INCONCLUSIVE": 0
+    },
+    "release_policy": {
+      "configured": false,
+      "checks": {
+        "baseline": null,
+        "fail_on_leak": false,
+        "strict": false,
+        "require": []
+      },
+      "satisfied": true,
+      "failures": [],
+      "exit_code": 0
+    },
+    "for_review": []
+  },
   "runtime": {
-    "total_s": 17.172104874975048,
+    "total_s": 21.1469300420722,
     "stages_s": {
-      "collection": 0.02125545800663531,
-      "extraction": 1.55491908401018,
-      "analysis": 15.550447625049856
+      "collection": 0.022880917065776885,
+      "extraction": 1.927390749915503,
+      "analysis": 19.137026417069137
     },
     "analysis_by_attribute_s": {
-      "task_type": 15.32718575000763
+      "task_type": 18.886166875017807
     },
     "peak_rss_by_stage_mb": {
       "collection": {
-        "main_mb": 167.90625
+        "main_mb": 170.0
       },
       "extraction": {
-        "main_mb": 239.234375
+        "main_mb": 239.8125
       },
       "analysis:task_type": {
-        "main_mb": 241.1875,
-        "worker_mb": 191.421875
+        "main_mb": 241.3125,
+        "worker_mb": 196.6875
       }
     },
-    "peak_rss_mb": 241.1875,
-    "peak_rss_children_mb": 191.421875,
+    "peak_rss_mb": 241.3125,
+    "peak_rss_children_mb": 196.6875,
     "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"

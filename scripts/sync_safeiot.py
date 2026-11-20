@@ -5,7 +5,7 @@ Copy a2a-leakcheck's code into the SafeIoT pipeline tree (safeiot/3_security_ana
 The SafeIoT pipeline (github.com/systemsecurity-uiuc/safeiot-vuln-pipeline) keeps each tool's code
 inside its stage-3 folder, and a contribution only adds files under folders named after the tool.
 a2a-leakcheck is not a pip package and its modules have generic top-level names (features, models,
-evaluation), so the tree carries a copy of exactly the files an audit loads (VENDOR, about 3,500
+evaluation), so the tree carries a copy of exactly the files an audit loads (VENDOR, about 4,000
 lines; tests/test_safeiot.py checks the list against what a run imports), plus SOURCE.json: the
 commit they were copied from and each file's sha256. A run from the copy reports that commit, and
 `git_dirty: true` if a copied file has changed since (a2a_leakcheck.cli._git).
