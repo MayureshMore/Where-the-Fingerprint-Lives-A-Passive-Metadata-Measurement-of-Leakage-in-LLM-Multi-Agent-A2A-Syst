@@ -1,10 +1,14 @@
 """scripts/paper2_round2.py and features/timestamps.py on small inputs (no model is run)."""
 
+import json
+
 import numpy as np
+import pytest
 
 from features.families import family_columns
 from features.timestamps import FLOW_NAMES, N_FLOWS, names, timestamp_vector
-from scripts.paper2_round2 import ATTRS, METHODS, accounting, carried, template_factors, timing_columns, why
+from scripts.paper2_round2 import (ATTRS, METHODS, accounting, carried, cloud_role_inconclusive, inconclusive_by_attribute, merge,
+                                   template_factors, timing_columns, why)
 
 
 def _packets(sizes=(100, 9000), directions=(1, -1)):
@@ -82,3 +86,50 @@ def test_accounting_keeps_learned_rows_apart_from_structural_checks():
     rb = acc["release_blocking"]["leakcheck"]
     assert rb["audits"] == 4 and rb["any_leak"] == 2 and rb["inconclusive_no_leak"] == 0
     assert len(ATTRS) == 4
+
+
+def test_inconclusive_by_attribute_reads_headroom_and_width_per_sample():
+    def attr(classes, n, half, f1s):
+        thr = 1 / len(classes) + 0.05
+        runs = [{"verdict": v, "ci_verdict": v, "macro_f1": f, "ci": [f - half, f + half], "n": n, "p": 0.5}
+                for f in f1s for v in ["INCONCLUSIVE" if f + half > thr else "NO LEAK"]]
+        return {"classes": classes, "groups": n - 10, "groups_per_class": {c: k - 5 for c, k in classes.items()},
+                "permuted": {m: runs for m in METHODS}}
+    four = {"a": 250, "b": 250, "c": 250, "d": 250}
+    cell = {"attributes": {"task_type": attr(four, 1000, 0.026, [0.24, 0.25, 0.26, 0.28]),
+                           "escalated": attr({"no": 250, "yes": 750}, 1000, 0.030, [0.49, 0.50, 0.51, 0.52]),
+                           "cloud_role": attr({"diagnostics": 500, "knowledge": 250}, 750, 0.030 * (1000 / 750) ** 0.5,
+                                              [0.49, 0.50, 0.51, 0.52]),
+                           "audit_null": attr(four, 1000, 0.026, [0.25] * 4)}}
+    a4 = {"cells": {"x": cell, "y": cell}}
+    by = inconclusive_by_attribute(a4)
+    cr, esc = by["leakcheck"]["cloud_role"], by["leakcheck"]["escalated"]
+    assert cr["draws"] == 8 and cr["n"] == 750 and abs(cr["minority_share"] - 1 / 3) < 1e-9 and cr["groups_min"] == 740
+    assert abs(cr["half_width_x_sqrt_n"] - esc["half_width_x_sqrt_n"]) < 1e-9     # a wider CI from n alone
+    assert abs(cr["headroom"] - (0.55 - 0.505 - cr["ci_half_width_median"])) < 1e-9
+    assert cr["inconclusive"] == cr["ci_straddles"] == 2 and esc["inconclusive"] == 0
+    assert by["kfp_rf"]["audit_null"]["predicted_ci_inconclusive"] is None          # no spread, no prediction
+    note = cloud_role_inconclusive(a4, by)
+    assert note["reference"] == "escalated" and abs(note["half_width_from_reference_by_sqrt_n"] - note["half_width"]) < 1e-9
+    assert note["both_inconclusive"] == 2 and note["only_leakcheck"] == note["only_kfp_rf"] == 0
+
+
+def test_merge_takes_parts_that_differ_only_in_cells(tmp_path):
+    params = {"cells": ["lan_v1", "lan_padmax_v2"], "draws": 20, "a10_sizes": [50], "a10_draws": 10, "permutations": 99,
+              "perm_max": 999, "n_boot": 1000, "perm_unit": "group", "match_margin": 0.05}
+
+    def part(name, sections, commit="abc", **change):
+        p = tmp_path / f"{name}.json"
+        p.write_text(json.dumps({"git_commit": commit, "git_dirty": False, "parameters": {**params, **change},
+                                 "sections": {**sections, "seconds": {k: 1.0 for k in sections}}}))
+        return p
+    a5 = part("a5", {"a5": {"x": 1}}, cells=["lan_v1", "lan_v2"])
+    a7 = part("a7", {"a7": {"y": 2}})
+    res = merge([a5, a7])                                   # each part's seconds no longer collide
+    assert res["sections"] == {"a5": {"x": 1}, "a7": {"y": 2}}
+    assert [q["cells"] for q in res["parts"]] == [["lan_v1", "lan_v2"], ["lan_v1", "lan_padmax_v2"]]
+    assert res["parts"][0]["sections"] == ["a5"] and res["parts"][0]["seconds"] == {"a5": 1.0}
+    with pytest.raises(SystemExit, match="different parameters"):
+        merge([a5, part("a8", {"a8": {}}, draws=10)])
+    with pytest.raises(SystemExit, match="one clean commit"):
+        merge([a5, part("a9", {"a9": {}}, commit="def")])

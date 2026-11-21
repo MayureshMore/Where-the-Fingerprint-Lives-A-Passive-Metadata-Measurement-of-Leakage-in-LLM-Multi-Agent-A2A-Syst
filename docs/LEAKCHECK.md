@@ -131,6 +131,24 @@ traces that have them.
 - **NO LEAK** says the observer, with these features and this much data, stays within the margin
   of chance. It is not a proof that no other attack would work.
 - **INCONCLUSIVE** says to collect more data, or that the permutation test did not back a LEAK.
+  Most INCONCLUSIVEs on attributes that do not leak come from the interval: the CI's upper bound
+  crosses chance + margin. Its half-width shrinks as 1/√n, so an attribute labelled on fewer
+  samples draws more of them (C2's cloud_role, labelled on the 750 escalated traces only: 28 of
+  120 permuted draws against 9–13 for the attributes with 1,000; paper 2 round 2, A11).
+
+Two settings of the permutation test are worth changing for a purpose; the defaults (`rf-light`,
+99 permutations) stay:
+
+- `--null-model gbt` when reports from different machines are compared (a `--baseline` made on
+  another platform, or the Pi against the Mac): the light forest's fit differs across platforms and
+  moves p with it (C2 lan V1 audit_null: 0.22 on the Pi, 0.07 on the Mac), while the GBT gave the same
+  value at every stage on both. Each test takes 6 to 10 times as long on the Mac and 40 times on a Pi.
+- `--perm-max 999` when the exact p near 0.05 matters: it extends only p-values in [0.02, 0.20]
+  after the first 99. In round 2 it extended 10 of 42 tests, changed no verdict, and made the tests
+  it extended 5 to 9 times as long.
+
+A p-value also moves with the seed (C2 lan V1 audit_null: 0.07 to 0.89 over seeds 42–51 with one
+data set), so compare reports made with the same `--seed`.
 
 The verdict only covers what the captures contain: one deployment, one vantage point, one
 period. Re-run when any of them changes; `--baseline` makes that a CI step. A role verdict holds
@@ -151,10 +169,10 @@ core, with the Pi's agents stopped so that they do not compete for the cores:
 # login user come from configs/c2_network.conf
 . configs/c2_network.conf
 git rev-parse HEAD > COMMIT
-rsync -a --exclude data --exclude venv --exclude 'venv-*' --exclude .git --exclude dist ./ "$C2_PI_USER@$C2_PI:a2a/"
+rsync -a --exclude data --exclude venv --exclude 'venv-*' --exclude .git --exclude dist ./ "$C2_PI_USER@${C2_PI}:a2a/"
 rm COMMIT
-rsync -a data/raw_c2 "$C2_PI_USER@$C2_PI:a2a/data/"
-rsync -aR data/results/leakcheck/c2_lan_v1 "$C2_PI_USER@$C2_PI:a2a/"      # the Mac's report
+rsync -a data/raw_c2 "$C2_PI_USER@${C2_PI}:a2a/data/"
+rsync -aR data/results/leakcheck/c2_lan_v1 "$C2_PI_USER@${C2_PI}:a2a/"      # the Mac's report
 
 # on the Pi
 sudo apt install -y time                        # GNU time, for -v

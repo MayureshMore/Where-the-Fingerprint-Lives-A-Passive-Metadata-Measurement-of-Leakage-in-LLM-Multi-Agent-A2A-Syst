@@ -25,16 +25,20 @@ of sections, each run from a clean commit:
   a10  review burden: INCONCLUSIVE per attribute and per audit on permuted draws, and on the audit_null
        controls, at 50/100/150/200 traces per task type (and all, from a4).
   a11  a2a-leakcheck against k-FP: runtime, a plain k-FP pipeline, verdict agreement, and where each
-       method's INCONCLUSIVEs come from (from a4).
+       method's INCONCLUSIVEs come from (from a4): per attribute, the sample size, classes and groups
+       per class, the CI's half-width, and the headroom between the permuted draws' macro-F1 and
+       chance + margin, with the INCONCLUSIVE count that headroom predicts.
   a12  accounting: the learned rows (task_type, sensor vs fault, escalated-only) as the main table; the
        structural checks (escalated, cloud_role) apart; the known non-leaks; all-zero V2 windows (from a4).
 
 Usage (each part from a clean checkout, nothing else running; data/round2_parts is gitignored):
     python scripts/paper2_round2.py --sections a3,a8,a9 --out data/round2_parts/fast
-    python scripts/paper2_round2.py --sections a4 --out data/round2_parts/a4            # about 11 h
-    python scripts/paper2_round2.py --sections a5,a7 --out data/round2_parts/a5a7       # about 3 h
-    python scripts/paper2_round2.py --sections a10,a11 --out data/round2_parts/a10a11   # about 5 h
+    python scripts/paper2_round2.py --sections a4 --out data/round2_parts/a4            # 9.7 h on the Mac
+    python scripts/paper2_round2.py --sections a5,a7 --out data/round2_parts/a5a7       # 5.9 h
+    python scripts/paper2_round2.py --sections a10,a11 --out data/round2_parts/a10a11   # a10 about 1.2 h per cell
     python scripts/paper2_round2.py --merge data/round2_parts/*.json --out data/results/paper2_round2
+A part may run on fewer cells (--cells; for example a10 on two); the merge accepts parts whose
+parameters differ only in their cells, lists each part's cells, and records the commit it ran from.
 """
 
 from __future__ import annotations
@@ -43,6 +47,7 @@ import argparse
 import hashlib
 import importlib
 import json
+import math
 import random
 import subprocess
 import sys
@@ -602,8 +607,67 @@ def accounting(a4: dict) -> dict:
             "all_zero_windows": {cell: c["all_zero_windows"] for cell, c in a4["cells"].items()}}
 
 
+def _phi(z: float) -> float:
+    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
+
+
+def inconclusive_by_attribute(a4: dict) -> dict:
+    """Why one attribute draws more INCONCLUSIVEs than another on permuted labels. NO LEAK needs the CI's
+    upper bound at most chance + margin (chance = 1/k), so a permuted draw is INCONCLUSIVE from its interval
+    about as often as its macro-F1 lands more than headroom = chance + margin − (mean + half-width) above the
+    permuted draws' mean: predicted count draws · (1 − Φ(headroom / sd)). The half-width shrinks as 1/√n, so
+    half_width_x_sqrt_n is alike for attributes with as many classes when n alone sets the width; the class
+    balance and the groups per class are listed next to it."""
+    margin = Config().margin
+    cells = list(a4["cells"].values())
+    out: dict = {}
+    for m in METHODS:
+        out[m] = {}
+        for attr in ATTRS:
+            info = [c["attributes"][attr] for c in cells]
+            runs = [x for c in cells for x in c["attributes"][attr]["permuted"][m]]
+            classes = info[0]["classes"]
+            chance = 1.0 / len(classes)
+            f1 = np.array([x["macro_f1"] for x in runs])
+            half = float(np.median([(x["ci"][1] - x["ci"][0]) / 2 for x in runs if x["ci"][0] is not None]))
+            n = int(np.median([x["n"] for x in runs]))
+            mean, sd = float(f1.mean()), float(f1.std())
+            head = chance + margin - mean - half
+            inc = [x for x in runs if x["verdict"] == INCONCLUSIVE]
+            out[m][attr] = {
+                "draws": len(runs), "n": n, "classes": classes, "same_classes_in_every_cell": all(i["classes"] == classes for i in info),
+                "minority_share": min(classes.values()) / sum(classes.values()), "chance": chance, "threshold": chance + margin,
+                "groups_min": min(i["groups"] for i in info),
+                "groups_per_class_min": {c: min(i["groups_per_class"][c] for i in info) for c in classes},
+                "inconclusive": len(inc), "inconclusive_why": {w: sum(why(x) == w for x in inc) for w in sorted({why(x) for x in inc})},
+                "ci_straddles": sum(why(x) == "CI straddles the threshold" for x in inc),
+                "macro_f1_mean_minus_chance": mean - chance, "macro_f1_sd": sd, "ci_half_width_median": half,
+                "half_width_x_sqrt_n": half * math.sqrt(n), "headroom": head, "headroom_sd": head / sd if sd > 0 else None,
+                "predicted_ci_inconclusive": len(runs) * (1.0 - _phi(head / sd)) if sd > 0 else None}
+    return out
+
+
+def cloud_role_inconclusive(a4: dict, by: dict) -> dict:
+    """cloud_role against the other two-class attribute (escalated), and a2a-leakcheck against k-FP on its draws."""
+    lc = by["leakcheck"]
+    ref = max((t for t in ATTRS if t != "cloud_role" and len(lc[t]["classes"]) == 2), key=lambda t: lc[t]["n"])
+    pairs = [(x, y) for c in a4["cells"].values()
+             for x, y in zip(c["attributes"]["cloud_role"]["permuted"]["leakcheck"], c["attributes"]["cloud_role"]["permuted"]["kfp_rf"])]
+    only_lc = [x for x, y in pairs if x["verdict"] == INCONCLUSIVE != y["verdict"]]
+    cr = lc["cloud_role"]
+    return {"reference": ref, "n": cr["n"], "n_reference": lc[ref]["n"],
+            "half_width": cr["ci_half_width_median"], "half_width_reference": lc[ref]["ci_half_width_median"],
+            "half_width_from_reference_by_sqrt_n": lc[ref]["ci_half_width_median"] * math.sqrt(lc[ref]["n"] / cr["n"]),
+            "minority_share": cr["minority_share"], "minority_share_reference": lc[ref]["minority_share"],
+            "draws": len(pairs), "both_inconclusive": sum(x["verdict"] == y["verdict"] == INCONCLUSIVE for x, y in pairs),
+            "only_leakcheck": len(only_lc), "only_leakcheck_why": {w: sum(why(x) == w for x in only_lc) for w in sorted({why(x) for x in only_lc})},
+            "only_kfp_rf": sum(y["verdict"] == INCONCLUSIVE != x["verdict"] for x, y in pairs)}
+
+
 def a11_summary(a4: dict, plain: dict | None) -> dict:
     out = {"methods": {}, "agreement": {}}
+    out["by_attribute"] = inconclusive_by_attribute(a4)
+    out["cloud_role"] = cloud_role_inconclusive(a4, out["by_attribute"])
     for m in METHODS:
         perm = [x for c in a4["cells"].values() for attr in ATTRS for x in c["attributes"][attr]["permuted"][m]]
         inc = [x for x in perm if x["verdict"] == INCONCLUSIVE]
@@ -682,7 +746,8 @@ def _c(c: dict) -> str:
 def markdown(s: dict) -> str:
     S = s["sections"]
     L = ["# Paper 2, round 2: the reviewers' checks", "",
-         f"Commit `{(s['git_commit'] or '')[:8]}` (clean: {s['git_dirty'] is False}); seed {SEED}; a2a-leakcheck 0.3.0 defaults "
+         f"Parts from commit `{(s['git_commit'] or '')[:8]}` (clean: {s['git_dirty'] is False}), merged at commit "
+         f"`{(s.get('merge_commit') or '')[:8]}` (clean: {s.get('merge_dirty') is False}); seed {SEED}; a2a-leakcheck 0.3.0 defaults "
          "(permutation test by prompt group; a feature set matches all features when the upper bound of the paired 95% CI "
          "of F1(all) − F1(set) is at most 0.05). Verdict counts are LEAK / INCONCLUSIVE / NO LEAK.", ""]
     if "a12" in S:
@@ -786,6 +851,7 @@ def markdown(s: dict) -> str:
         L.append("")
     if "a10" in S:
         L += ["## A10. Review burden against traces per task type (a2a-leakcheck, permuted draws)", "",
+              f"Cells: {', '.join(S.get('a10_cells', []))}; the all row is A4's six cells.", "",
               "| Traces per task type | Audits | INCONCLUSIVE per attribute | Audits with one | audit_null (real) |", "|---|---|---|---|---|"]
         for n, v in S["a10"].items():
             L.append(f"| {n} | {v['audits']} | {_f(v['inconclusive_rate'])} | {v['audits_with_inconclusive']} ({_f(v['audit_rate'])}) "
@@ -802,6 +868,29 @@ def markdown(s: dict) -> str:
             L.append(f"\nAgreement with {m}: real labels {v['real_labels']['same_verdict']}/{v['real_labels']['cells']}; permuted "
                      f"{v['permuted']['same_verdict']}/{v['permuted']['draws']} (both INCONCLUSIVE {v['permuted']['both_inconclusive']}, "
                      f"only a2a-leakcheck {v['permuted']['only_leakcheck_inconclusive']}, only {m} {v['permuted']['only_other_inconclusive']}).")
+        if "by_attribute" in a11_:
+            L += ["", "### INCONCLUSIVE on permuted draws, by attribute", "",
+                  "NO LEAK needs the CI's upper bound at most chance + margin (chance = 1/k, margin 0.05). Headroom is that "
+                  "threshold minus the permuted draws' mean macro-F1 and the CI's median half-width; the predicted count is "
+                  "draws · (1 − Φ(headroom / sd)).", "",
+                  "| Attribute | Method | n | Classes | Groups (fewest per class) | INCONCLUSIVE | from the CI | predicted | "
+                  "CI half-width | half-width · √n | sd of macro-F1 | headroom (sd) |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+            for attr in ATTRS:
+                for m in METHODS:
+                    v = a11_["by_attribute"][m][attr]
+                    gpc = ", ".join(f"{c} {k}" for c, k in v["groups_per_class_min"].items())
+                    cls = " / ".join(str(k) for k in v["classes"].values())
+                    L.append(f"| {attr} | {m} | {v['n']} | {cls} | {v['groups_min']} ({gpc}) | {v['inconclusive']}/{v['draws']} | "
+                             f"{v['ci_straddles']} | {_f(v['predicted_ci_inconclusive'], 1)} | {_f(v['ci_half_width_median'])} | "
+                             f"{_f(v['half_width_x_sqrt_n'], 2)} | {_f(v['macro_f1_sd'])} | {_f(v['headroom'])} ({_f(v['headroom_sd'], 2)}) |")
+            cr, ref = a11_["cloud_role"], a11_["cloud_role"]["reference"]
+            L.append(f"\ncloud_role is labelled on escalated traces only (n = {cr['n']}, minority share {_f(cr['minority_share'], 2)}); "
+                     f"{ref} has two classes too (n = {cr['n_reference']}, minority share {_f(cr['minority_share_reference'], 2)}). "
+                     f"Median CI half-width {_f(cr['half_width'])} against {_f(cr['half_width_reference'])}; {ref}'s scaled by "
+                     f"√({cr['n_reference']}/{cr['n']}) is {_f(cr['half_width_from_reference_by_sqrt_n'])}. On its {cr['draws']} permuted draws, "
+                     f"a2a-leakcheck and k-FP are both INCONCLUSIVE on {cr['both_inconclusive']}, a2a-leakcheck alone on "
+                     f"{cr['only_leakcheck']} (" + (", ".join(f"{k} {n}" for k, n in cr["only_leakcheck_why"].items()) or "none")
+                     + f"), k-FP alone on {cr['only_kfp_rf']}.")
         if a11_.get("plain_kfp"):
             L += ["", "| Cell | plain k-FP task_type macro-F1 | its time (s) | a2a-leakcheck task_type test (s) |", "|---|---|---|---|"]
             for cell, v in a11_["plain_kfp"].items():
@@ -849,11 +938,14 @@ def merge(paths: list[Path], allow_dirty: bool = False) -> dict:
     commits = {p["git_commit"] for p in parts}
     if len(commits) != 1 or (any(p["git_dirty"] is not False for p in parts) and not allow_dirty):
         raise SystemExit(f"the parts must come from one clean commit: {[(str(p), q['git_commit'], q['git_dirty']) for p, q in zip(paths, parts)]}")
-    if len({json.dumps(p["parameters"], sort_keys=True) for p in parts}) != 1:
-        raise SystemExit("the parts were run with different parameters")
+    core = lambda q: {k: v for k, v in q["parameters"].items() if k != "cells"}  # noqa: E731
+    if len({json.dumps(core(p), sort_keys=True) for p in parts}) != 1:
+        raise SystemExit("the parts were run with different parameters (other than their cells)")
     raw: dict = {}
     for p in parts:
         for k, v in p["sections"].items():
+            if k == "seconds":
+                continue
             if k in raw:
                 raise SystemExit(f"section {k} is in two parts")
             raw[k] = v
@@ -867,10 +959,13 @@ def merge(paths: list[Path], allow_dirty: bool = False) -> dict:
         sec["a11"] = a11_summary(a4, raw.get("a11_plain"))
     if "a10" in raw:
         sec["a10"] = a10_summary(raw["a10"], a4)
+        sec["a10_cells"] = list(raw["a10"]["cells"])
         sec["a10_draws"] = raw["a10"]
+    base = next((q for q in parts if "a4" in q["sections"]), parts[0])
     return {"paper": "P2", "collection_id": "C2", "round": 2, "seed": SEED, "git_commit": commits.pop(),
-            "git_dirty": any(p["git_dirty"] is not False for p in parts), "parameters": parts[0]["parameters"],
-            "parts": [{"file": str(p), "sections": list(q["sections"]), "seconds": q["sections"].get("seconds")} for p, q in zip(paths, parts)],
+            "git_dirty": any(p["git_dirty"] is not False for p in parts), "parameters": base["parameters"],
+            "parts": [{"file": str(p), "sections": [k for k in q["sections"] if k != "seconds"], "cells": q["parameters"]["cells"],
+                       "seconds": q["sections"].get("seconds")} for p, q in zip(paths, parts)],
             "sections": sec}
 
 
@@ -894,7 +989,11 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"{out.with_suffix('.json')} exists: committed results are not overwritten")
     out.parent.mkdir(parents=True, exist_ok=True)
     if a.merge:
+        git = _git()
+        if git["git_dirty"] is not False and not a.allow_dirty:
+            raise SystemExit("uncommitted code: commit first (or --allow-dirty for a test run)")
         res = merge(a.merge, a.allow_dirty)
+        res["merge_commit"], res["merge_dirty"] = git["git_commit"], git["git_dirty"]
         out.with_suffix(".json").write_text(json.dumps(res, indent=1, default=str))
         out.with_suffix(".md").write_text(markdown(res))
         print(f"→ {out}.json, {out}.md")
