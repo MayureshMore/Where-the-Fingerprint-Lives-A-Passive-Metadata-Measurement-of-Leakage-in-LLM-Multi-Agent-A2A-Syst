@@ -1,0 +1,233 @@
+{
+ "a": {
+  "git_commit": "b53e9859eaf6cedd9b0771f86ac0503e27a1ca2a",
+  "git_dirty": null,
+  "source": "COMMIT file (rsync copy)",
+  "python": "3.13.5",
+  "platform": "Linux-6.18.50+rpt-rpi-2712-aarch64-with-glibc2.41",
+  "machine": "aarch64",
+  "cpu_count": 4,
+  "packages": {
+   "numpy": "2.4.6",
+   "scipy": "1.17.1",
+   "scikit-learn": "1.9.0",
+   "joblib": "1.5.3",
+   "threadpoolctl": "3.6.0",
+   "narwhals": "2.22.1",
+   "PyYAML": "6.0.3",
+   "scapy": "2.7.0"
+  },
+  "env": {
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "MKL_NUM_THREADS": null,
+   "VECLIB_MAXIMUM_THREADS": null,
+   "LOKY_MAX_CPU_COUNT": null
+  },
+  "threadpools": [
+   {
+    "user_api": "blas",
+    "internal_api": "openblas",
+    "num_threads": 4,
+    "prefix": "libscipy_openblas",
+    "version": "0.3.31.188.0",
+    "threading_layer": "pthreads",
+    "architecture": "armv8"
+   },
+   {
+    "user_api": "blas",
+    "internal_api": "openblas",
+    "num_threads": 4,
+    "prefix": "libscipy_openblas",
+    "version": "0.3.30",
+    "threading_layer": "pthreads",
+    "architecture": "armv8"
+   },
+   {
+    "user_api": "openmp",
+    "internal_api": "openmp",
+    "num_threads": 4,
+    "prefix": "libgomp",
+    "version": null
+   }
+  ]
+ },
+ "b": {
+  "git_commit": "b53e9859eaf6cedd9b0771f86ac0503e27a1ca2a",
+  "git_dirty": false,
+  "python": "3.12.1",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "machine": "arm64",
+  "cpu_count": 14,
+  "packages": {
+   "numpy": "2.4.6",
+   "scipy": "1.17.1",
+   "scikit-learn": "1.9.0",
+   "joblib": "1.5.3",
+   "threadpoolctl": "3.6.0",
+   "narwhals": "2.22.1",
+   "PyYAML": "6.0.3",
+   "scapy": "2.7.0"
+  },
+  "env": {
+   "OMP_NUM_THREADS": null,
+   "OPENBLAS_NUM_THREADS": null,
+   "MKL_NUM_THREADS": null,
+   "VECLIB_MAXIMUM_THREADS": null,
+   "LOKY_MAX_CPU_COUNT": null
+  },
+  "threadpools": [
+   {
+    "user_api": "openmp",
+    "internal_api": "openmp",
+    "num_threads": 14,
+    "prefix": "libomp",
+    "version": null
+   }
+  ]
+ },
+ "first_difference": "sample/rf-light: null model on the real labels",
+ "stages": [
+  {
+   "stage": "input X",
+   "same": true
+  },
+  {
+   "stage": "input y",
+   "same": true
+  },
+  {
+   "stage": "input g",
+   "same": true
+  },
+  {
+   "stage": "sample/rf-light: folds",
+   "same": true
+  },
+  {
+   "stage": "sample/rf-light: permuted labels",
+   "same": true
+  },
+  {
+   "stage": "sample/rf-light: GBT out-of-fold predictions",
+   "same": true
+  },
+  {
+   "stage": "sample/rf-light: null model on the real labels",
+   "same": false,
+   "detail": {
+    "observed": [
+     0.2616061323930031,
+     0.27035555297972863
+    ]
+   }
+  },
+  {
+   "stage": "sample/rf-light: permuted runs' macro-F1",
+   "same": false,
+   "detail": {
+    "differ": 99,
+    "max_abs": 0.015857213088594835
+   }
+  },
+  {
+   "stage": "sample/rf-light: p",
+   "same": false,
+   "detail": {
+    "p": [
+     0.22,
+     0.07
+    ]
+   }
+  },
+  {
+   "stage": "sample/gbt: folds",
+   "same": true
+  },
+  {
+   "stage": "sample/gbt: permuted labels",
+   "same": true
+  },
+  {
+   "stage": "sample/gbt: GBT out-of-fold predictions",
+   "same": true
+  },
+  {
+   "stage": "sample/gbt: null model on the real labels",
+   "same": true
+  },
+  {
+   "stage": "sample/gbt: permuted runs' macro-F1",
+   "same": true
+  },
+  {
+   "stage": "sample/gbt: p",
+   "same": true
+  },
+  {
+   "stage": "group/rf-light: folds",
+   "same": true
+  },
+  {
+   "stage": "group/rf-light: permuted labels",
+   "same": true
+  },
+  {
+   "stage": "group/rf-light: GBT out-of-fold predictions",
+   "same": true
+  },
+  {
+   "stage": "group/rf-light: null model on the real labels",
+   "same": false,
+   "detail": {
+    "observed": [
+     0.2616061323930031,
+     0.27035555297972863
+    ]
+   }
+  },
+  {
+   "stage": "group/rf-light: permuted runs' macro-F1",
+   "same": false,
+   "detail": {
+    "differ": 99,
+    "max_abs": 0.015890040087517404
+   }
+  },
+  {
+   "stage": "group/rf-light: p",
+   "same": false,
+   "detail": {
+    "p": [
+     0.2,
+     0.08
+    ]
+   }
+  },
+  {
+   "stage": "group/gbt: folds",
+   "same": true
+  },
+  {
+   "stage": "group/gbt: permuted labels",
+   "same": true
+  },
+  {
+   "stage": "group/gbt: GBT out-of-fold predictions",
+   "same": true
+  },
+  {
+   "stage": "group/gbt: null model on the real labels",
+   "same": true
+  },
+  {
+   "stage": "group/gbt: permuted runs' macro-F1",
+   "same": true
+  },
+  {
+   "stage": "group/gbt: p",
+   "same": true
+  }
+ ],
+ "packages_differ": {}
+}
