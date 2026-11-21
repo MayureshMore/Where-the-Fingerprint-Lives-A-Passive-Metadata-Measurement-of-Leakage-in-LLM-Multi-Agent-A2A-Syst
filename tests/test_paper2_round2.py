@@ -7,7 +7,7 @@ import pytest
 
 from features.families import family_columns
 from features.timestamps import FLOW_NAMES, N_FLOWS, names, timestamp_vector
-from scripts.paper2_round2 import (ATTRS, METHODS, accounting, carried, cloud_role_inconclusive, inconclusive_by_attribute, merge,
+from scripts.paper2_round2 import (ARMS, ATTRS, D1_RAW, METHODS, accounting, carried, cloud_role_inconclusive, inconclusive_by_attribute, merge,
                                    template_factors, timing_columns, why)
 
 
@@ -127,6 +127,7 @@ def test_merge_takes_parts_that_differ_only_in_cells(tmp_path):
     a7 = part("a7", {"a7": {"y": 2}})
     res = merge([a5, a7])                                   # each part's seconds no longer collide
     assert res["sections"] == {"a5": {"x": 1}, "a7": {"y": 2}}
+    assert res["data_dir"] == ARMS and res["d1_data_dir"] == D1_RAW and res["collection_id"] == "C2" and res["git_commit"] == "abc"
     assert [q["cells"] for q in res["parts"]] == [["lan_v1", "lan_v2"], ["lan_v1", "lan_padmax_v2"]]
     assert res["parts"][0]["sections"] == ["a5"] and res["parts"][0]["seconds"] == {"a5": 1.0}
     with pytest.raises(SystemExit, match="different parameters"):

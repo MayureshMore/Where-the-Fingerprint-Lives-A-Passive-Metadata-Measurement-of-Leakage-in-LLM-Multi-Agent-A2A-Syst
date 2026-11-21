@@ -963,7 +963,9 @@ def merge(paths: list[Path], allow_dirty: bool = False) -> dict:
         sec["a10_draws"] = raw["a10"]
     base = next((q for q in parts if "a4" in q["sections"]), parts[0])
     return {"paper": "P2", "collection_id": "C2", "round": 2, "seed": SEED, "git_commit": commits.pop(),
-            "git_dirty": any(p["git_dirty"] is not False for p in parts), "parameters": base["parameters"],
+            "git_dirty": any(p["git_dirty"] is not False for p in parts),
+            "created": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "data_dir": dict(ARMS), "d1_data_dir": dict(D1_RAW),
+            "source": {"round1_accounting": "data/results/paper2_review.json"}, "parameters": base["parameters"],
             "parts": [{"file": str(p), "sections": [k for k in q["sections"] if k != "seconds"], "cells": q["parameters"]["cells"],
                        "seconds": q["sections"].get("seconds")} for p, q in zip(paths, parts)],
             "sections": sec}
