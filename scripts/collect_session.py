@@ -55,6 +55,25 @@ Arms are given as --arm name=...,deployment=...,model=...,tls=on|off,defense=...
   * pad_expect=8192     with pad=: every first request of the arm is meant to land in this one
                         bucket (C2's lan_padmax); scripts/check_session_design.py [c] then fails
                         unless all of them do
+  * shape=2048/14/128/0.05/truncate
+                        reply shaping (edge-cloud; defense/shaping.py): the cloud agents of this arm
+                        release every reply 14 s after its request, as 2048/128 = 16 events of one
+                        size (bytes on the wire) 0.05 s apart, a reply over 2,048 JSON-encoded bytes
+                        cut (serve_cloud.py --shape BASE=SPEC); the collector checks that both cloud
+                        agents' cards say so before the arm runs
+  * jitter=4/1.8        reply jitter (edge-cloud): the arm's cloud agents delay every SSE event by a
+                        normal draw (mean ms/sd ms, clipped at 0), in order (serve_cloud.py --jitter
+                        BASE=SPEC; the card must say so). The request side is netem on the Pi
+                        (scripts/wan_emulation_pi.sh jitter; data/results/b2_wan_jitter.json)
+  * load=2              server load (edge-cloud): during each task of this arm, 2 concurrent
+                        generations on the Mac's Ollama (scripts/ollama_load.py; localhost, not on the
+                        observed path), started before the capture and stopped after it, so other
+                        arms never run under load; Ollama must serve requests in parallel
+                        (OLLAMA_NUM_PARALLEL; checked at the start)
+
+With --reply-log DIR (where serve_cloud.py --reply-log writes), each sidecar of a shaped or jittered
+arm gets the cloud agents' record of the task (cloud_replies: bytes, cut, overrun, release time,
+delays) and session_meta.json counts the cut and overrun replies per arm (reply_tally).
   * host=ADDR           the specialists run on another machine (docs/LAN_SETUP.md): this
                         collector neither starts nor restarts them, it waits until they answer
                         at ADDR on the arm's ports (scripts/serve_agents.py --ports-base there),
@@ -105,7 +124,7 @@ from workflows import WORKFLOW_REGISTRY, WORKFLOW_SETS, WorkflowClass, prompt_se
 from workflows.base import TopologyType  # noqa: E402
 from agents.edge import (  # noqa: E402
     CLOUD_PORTS, PADDED_ENDPOINTS, ROUTES, TRIGGER_PORT, VANTAGES, c2_network, endpoints as edge_endpoints,
-    require,
+    require, wan_target as arm_wan_target,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -131,6 +150,9 @@ class Arm:
     host: str | None = None                         # remote specialists (LAN); None = local
     pad: list[int] = field(default_factory=list)    # input-padding buckets; empty = off
     pad_expect: int | None = None                   # the one bucket every first request should land in
+    shape: str = ""                                 # reply shaping at the cloud agents (defense/shaping.py)
+    jitter: str = ""                                # reply jitter at the cloud agents (MEAN_MS/SD_MS[/SEED])
+    load: int = 0                                   # concurrent Ollama generations during this arm's tasks
     sets: dict = field(default_factory=dict)        # topology → (agents, tasks)
 
     @property
@@ -194,7 +216,7 @@ def parse_arm(spec: str, k: int, placement: str = "local") -> Arm:
         if kv["tls"].lower() not in ("on", "1", "true", "yes") or "host" in kv or kv.get("defense", "none") != "none":
             raise SystemExit(f"bad --arm {spec!r}: edge-cloud arms are TLS on, without host= or defense=")
     unknown = set(kv) - {"name", "deployment", "model", "tls", "defense", "out", "ports", "pad", "host",
-                         "pad_expect"}
+                         "pad_expect", "shape", "jitter", "load"}
     if unknown or not {"name", "deployment", "out"} <= set(kv):
         raise SystemExit(f"bad --arm {spec!r}: needs name, deployment, out; unknown keys {sorted(unknown)}")
     if kv["deployment"] not in DEPLOYMENTS and not (placement == "edge-cloud" and kv["deployment"] == EDGE_CLOUD):
@@ -203,12 +225,33 @@ def parse_arm(spec: str, k: int, placement: str = "local") -> Arm:
     expect = int(kv["pad_expect"]) if kv.get("pad_expect") else None
     if expect is not None and expect not in pad:
         raise SystemExit(f"bad --arm {spec!r}: pad_expect must be one of the pad buckets")
+    shape = kv.get("shape", "")
+    if shape:
+        from defense.shaping import ShapeConfig
+        if placement != "edge-cloud":
+            raise SystemExit(f"bad --arm {spec!r}: shape= is for edge-cloud arms (the cloud agents shape)")
+        try:
+            shape = ShapeConfig.parse(shape.replace(":", "/")).spec()
+        except ValueError as exc:
+            raise SystemExit(f"bad --arm {spec!r}: {exc}") from exc
+    jitter, load = kv.get("jitter", ""), int(kv.get("load", 0) or 0)
+    if (jitter or load) and placement != "edge-cloud":
+        raise SystemExit(f"bad --arm {spec!r}: jitter= and load= are for edge-cloud arms")
+    if jitter:
+        from defense.shaping import JitterConfig
+        try:
+            JitterConfig.parse(jitter.replace(":", "/"))
+        except ValueError as exc:
+            raise SystemExit(f"bad --arm {spec!r}: {exc}") from exc
+        jitter = jitter.replace(":", "/")
+    if load < 0:
+        raise SystemExit(f"bad --arm {spec!r}: load must be >= 0")
     return Arm(name=kv["name"], deployment=kv["deployment"],
                model=kv.get("model") or DEPLOYMENTS[kv["deployment"]]["default_model"],
                tls=kv.get("tls", "off").lower() in ("on", "1", "true", "yes"),
                defense=kv.get("defense", "none"), out=Path(kv["out"]),
                ports_base=int(kv.get("ports", 8100 + 100 * k)), host=kv.get("host") or None,
-               pad=pad, pad_expect=expect)
+               pad=pad, pad_expect=expect, shape=shape, jitter=jitter, load=load)
 
 
 class _DownstreamFailures(logging.Handler):
@@ -351,9 +394,60 @@ async def start_edge(arm: Arm, a: argparse.Namespace) -> dict:
     eps = edge_endpoints(arm.ports_base, a.cloud_host, a.ticket_host)
     async with httpx.AsyncClient(timeout=30, verify=tls.client_verify()) as c:
         for role in CLOUD_PORTS:
-            await _ready(c, "GET", f"https://{eps[role]}/.well-known/agent-card.json")
+            card = await _ready(c, "GET", f"https://{eps[role]}/.well-known/agent-card.json")
+            says = advertised(card.get("description", ""), "shaped reply")
+            if says != arm.shape:
+                raise SystemExit(f"arm {arm.name}: the {role} agent at {eps[role]} shapes {says or 'nothing'}, the arm "
+                                 f"expects {arm.shape or 'nothing'} (serve_cloud.py --shape {arm.ports_base}=...)")
+            says = advertised(card.get("description", ""), "reply jitter")
+            if same_jitter(says) != same_jitter(arm.jitter):
+                raise SystemExit(f"arm {arm.name}: the {role} agent at {eps[role]} jitters {says or 'nothing'}, the arm "
+                                 f"expects {arm.jitter or 'nothing'} (serve_cloud.py --jitter {arm.ports_base}=...)")
         await _ready(c, "GET", f"https://{eps['ticket']}/health")
         return await _ready(c, "POST", f"{edge_url(arm, a)}/prepare", timeout=300)
+
+
+def advertised(description: str, what: str) -> str:
+    """What an agent card advertises as "[WHAT SPEC]" (agents/base.py agent_card: shaped reply,
+    reply jitter), or ""."""
+    tag = f"[{what} "
+    return description[description.index(tag) + len(tag):].split("]", 1)[0] if tag in description else ""
+
+
+def same_jitter(spec: str) -> tuple | None:
+    """(mean ms, sd ms) of a jitter spec, the seed left out; None for none."""
+    if not spec:
+        return None
+    from defense.shaping import JitterConfig
+    c = JitterConfig.parse(spec)
+    return (c.mean_ms, c.sd_ms)
+
+
+class ReplyLog:
+    """The cloud agents' JSON lines (serve_cloud.py --reply-log DIR: replies_PORT.jsonl), read as they
+    grow: after each task, the lines its cloud agents wrote during it."""
+
+    def __init__(self, folder: str | None):
+        self.dir = Path(folder) if folder else None
+        self.pos: dict[Path, int] = {}
+
+    def mark(self, ports: list[int]) -> None:
+        """Skip what is there now (before a task)."""
+        for port in ports:
+            f = self.dir / f"replies_{port}.jsonl"
+            self.pos[f] = f.stat().st_size if f.exists() else 0
+
+    def new(self, ports: list[int]) -> list[dict]:
+        out = []
+        for port in ports:
+            f = self.dir / f"replies_{port}.jsonl"
+            if not f.exists():
+                continue
+            with open(f) as fh:
+                fh.seek(self.pos.get(f, 0))
+                out += [json.loads(x) for x in fh.read().splitlines() if x.strip()]
+                self.pos[f] = fh.tell()
+        return out
 
 
 def edge_url(arm: Arm, a: argparse.Namespace) -> str:
@@ -443,7 +537,23 @@ async def main(a: argparse.Namespace) -> None:
     arms = [parse_arm(s, k, a.placement) for k, s in enumerate(a.arm)]
     if edge and a.topology:
         raise SystemExit("--topology does not apply to --placement edge-cloud")
-    wan_target = json.loads(Path(a.wan_target).read_text())["target_rtt_ms"] if a.wan_target else None
+    wan_json = json.loads(Path(a.wan_target).read_text()) if a.wan_target else None
+    wan_targets = {arm.ports_base: arm_wan_target(wan_json, arm.ports_base, a.wan_tolerance)["target_rtt_ms"]
+                   for arm in arms} if wan_json else {}
+    replies = ReplyLog(a.reply_log)
+    if any(arm.shape or arm.jitter for arm in arms) and not a.reply_log:
+        raise SystemExit("shaped or jittered arms need --reply-log DIR (serve_cloud.py --reply-log writes there)")
+    loads, parallel = {}, None
+    if any(arm.load for arm in arms):
+        from scripts.ollama_load import OllamaLoad, check_parallel
+        parallel = await check_parallel(a.ollama_url, next(arm.model for arm in arms if arm.load))
+        logger.info("  Ollama parallel check: %s", parallel["detail"])
+        if not parallel["ok"]:
+            raise SystemExit("load= needs Ollama to serve requests in parallel, with the model wholly in GPU memory: "
+                             + parallel["detail"])
+        loads = {arm.name: OllamaLoad(a.ollama_url, arm.model, arm.load, seed=a.seed_offset + k,
+                                      warmup_s=a.load_warmup, cooldown_s=a.load_cooldown)
+                 for k, arm in enumerate(arms) if arm.load}
     network = None
     if edge and not a.edge_host.startswith("127."):          # before each session: the Mac and the Pi's route
         from scripts.check_c2_network import check_network
@@ -485,7 +595,13 @@ async def main(a: argparse.Namespace) -> None:
                       "is failed and retried once; models warmed up outside capture",
             "arms": [{"name": x.name, "deployment": x.deployment, "model": x.model, "tls": x.tls,
                       "defense": x.defense, "out": str(x.out), "ports_base": x.ports_base,
-                      "host": x.host, "pad_buckets": x.pad, "pad_expect": x.pad_expect} for x in arms],
+                      "host": x.host, "pad_buckets": x.pad, "pad_expect": x.pad_expect, "shape": x.shape or None,
+                      "jitter": x.jitter or None, "load": x.load or None,
+                      "wan_target_rtt_ms": wan_targets.get(x.ports_base)}
+                     for x in arms],
+            "wan_target_file": a.wan_target, "reply_log": a.reply_log,
+            "load": {"warmup_s": a.load_warmup, "cooldown_s": a.load_cooldown, "parallel_check": parallel}
+                    if any(x.load for x in arms) else None,
             "interface": a.interface, "ollama_url": a.ollama_url,
             "num_predict": num_predict, "n_per_condition": a.n, "rounds": a.rounds,
             "seed_offset": a.seed_offset, "order_seed": SEED, "topologies": topologies,
@@ -532,7 +648,8 @@ async def main(a: argparse.Namespace) -> None:
             for arm in arms:
                 if edge:
                     meta.setdefault("edge", {})[arm.name] = await start_edge(arm, a)
-                    if wan_target is not None:
+                    if wan_targets:
+                        wan_target = wan_targets[arm.ports_base]
                         probe = {"round": rnd, **await wan_probe(arm, a, wan_target)}
                         meta.setdefault("wan_probes", []).append(probe)
                         save()
@@ -571,9 +688,17 @@ async def main(a: argparse.Namespace) -> None:
                     if arm.model != last_model:
                         await warm_up(arm.model, a.ollama_url)
                         last_model = arm.model
+                    cloud_ports = [arm.ports_base + off for off in CLOUD_PORTS.values()] if edge else []
                     for attempt in (1, 2):
-                        run = (await collectors[(arm.name, t, w)].collect([prompts[(t, w)][i]],
-                                                                          inter_run_delay=0.5))[0]
+                        if a.reply_log:
+                            replies.mark(cloud_ports)
+                        load_stats = await loads[arm.name].start() if arm.name in loads else None
+                        try:
+                            run = (await collectors[(arm.name, t, w)].collect([prompts[(t, w)][i]],
+                                                                              inter_run_delay=0.5))[0]
+                        finally:
+                            if arm.name in loads:
+                                load_stats = await loads[arm.name].stop()
                         position += 1
                         entry = {"item": item, "arm": arm.name, "round": rnd, "position": position,
                                  "run_id": run.run_id, "success": run.success, "attempt": attempt,
@@ -588,10 +713,25 @@ async def main(a: argparse.Namespace) -> None:
                                        "position": position, "seed_offset": a.seed_offset,
                                        "model": arm.model, "tls": arm.tls, "defense": arm.defense,
                                        "agent_host": arm.host, "pad_buckets": arm.pad,
-                                       "pad_expect": arm.pad_expect})
+                                       "pad_expect": arm.pad_expect, "shape": arm.shape or None,
+                                       "jitter": arm.jitter or None, "load": load_stats})
                             if edge:
                                 sc.update(edge_sidecar(w, prompts[(t, w)][i], a, last))
                                 entry["pi_throttled"] = sc["pi_throttled"]
+                            if a.reply_log and (arm.shape or arm.jitter):
+                                sc["cloud_replies"] = got = replies.new(cloud_ports)
+                                tally = meta.setdefault("reply_tally", {}).setdefault(
+                                    arm.name, {"replies": 0, "truncated": 0, "overrun": 0, "failed": 0})
+                                for r in got:
+                                    sh = r.get("shaping") or {}
+                                    tally["replies"] += 1
+                                    tally["truncated"] += bool(sh.get("truncated"))
+                                    tally["overrun"] += bool(sh.get("overrun"))
+                                    tally["failed"] += "failed" in sh
+                                    if sh.get("truncated") or sh.get("overrun"):
+                                        logger.warning("  %s %s: cloud reply %s (%s B encoded, cap %s)", arm.name,
+                                                       run.run_id, "CUT" if sh.get("truncated") else "LATE",
+                                                       sh.get("bytes"), arm.shape)
                             sidecar.write_text(json.dumps(sc, indent=2))
                         if run.success:
                             done.add((item, arm.name))
@@ -615,6 +755,9 @@ async def main(a: argparse.Namespace) -> None:
     meta["pace"] = pace(meta)
     if edge:
         meta["throttled_traces"] = sum(1 for e in meta["schedule"] if e.get("pi_throttled"))
+    for name, tally in (meta.get("reply_tally") or {}).items():
+        print(f"{name}: {tally['replies']} cloud replies logged, {tally['truncated']} cut, {tally['overrun']} past the "
+              f"deadline, {tally['failed']} failed")
     planned = a.n * len(topologies) * len(workflows)
     meta["complete_items"] = sum(1 for t in topologies for w in workflows for i in range(a.n)
                                  if all((f"{t}/{w}/{i}", arm.name) in done for arm in arms))
@@ -631,7 +774,8 @@ def _parse() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Collect one or more arms in one session, one trace at a time")
     p.add_argument("--arm", action="append", required=True,
                    help="name=...,deployment=a|b|langgraph,model=...,tls=on|off,defense=none|pad|rate|both,"
-                        "out=DIR[,ports=BASE][,pad=B1/B2/...[,pad_expect=B]][,host=ADDR]  (repeat for more arms)")
+                        "out=DIR[,ports=BASE][,pad=B1/B2/...[,pad_expect=B]][,shape=SPEC][,jitter=MEAN/SD][,load=N]"
+                        "[,host=ADDR]  (repeat for more arms)")
     p.add_argument("--ollama-url", default=OLLAMA, dest="ollama_url",
                    help="Ollama for the model warm-up and the agents this process runs")
     p.add_argument("--interface", default=None,
@@ -653,8 +797,14 @@ def _parse() -> argparse.Namespace:
     p.add_argument("--ticket-host", default=None, dest="ticket_host",
                    help="edge-cloud: the Mac, running the ticket service (default C2_MAC)")
     p.add_argument("--wan-target", default=None, dest="wan_target",
-                   help="edge-cloud: data/c2_wan_emulation.json; each round checks the emulated round trip")
+                   help="edge-cloud: data/results/c2_wan_emulation.json, or a round-2 plan (scripts/round2_wan_plan.py) whose arms have their own targets; each round checks the emulated round trip")
     p.add_argument("--wan-tolerance", type=float, default=0.20, dest="wan_tolerance")
+    p.add_argument("--reply-log", default=None, dest="reply_log",
+                   help="edge-cloud: the folder serve_cloud.py --reply-log writes; its records go into the sidecars")
+    p.add_argument("--load-warmup", type=float, default=3.0, dest="load_warmup",
+                   help="load=: seconds the load runs before the task (at most, once every stream generates)")
+    p.add_argument("--load-cooldown", type=float, default=1.0, dest="load_cooldown",
+                   help="load=: seconds after the load stops before the next task")
     p.add_argument("--wan-probes", type=int, default=10, dest="wan_probes")
     p.add_argument("--workflows", default="classic",
                    help=f"workflow set ({', '.join(WORKFLOW_SETS)}; classic = every collection up to C1, iot = C2) "

@@ -55,9 +55,13 @@ their pool is large: 4,000 seeds give 4,000 distinct sensor_analysis and fault_d
 | TLS control (`raw_tlspair_*`) | 1000 | 36 pairs | `collect_tls_session.py` |
 | **C1** (`raw_c1`) | **10000** | 50 | `collect_session.py` |
 | C1 pilot (`raw_c1_pilot`) | 10000 | 1 per topology | `collect_session.py --pilot` |
-| **C2** edge-cloud: edge agent on the Raspberry Pi, cloud agents and ticket service on the Mac (`raw_c2`, `raw_c2_pad`, `raw_c2_padmax`; arms: no mitigation, pow2 input padding, input padding to one 8 KB bucket), **IoT set**, one condition per task type | **30000** | 150 | `collect_session.py --placement edge-cloud --workflows iot` (docs/LAN_SETUP.md) |
+| **C2** edge-cloud: edge agent on the Raspberry Pi, cloud agents and ticket service on the Mac (`raw_c2`, `raw_c2_pad`, `raw_c2_padmax`; arms: no mitigation, pow2 input padding, input padding to one 8 KB bucket), **IoT set**, one condition per task type | **30000** | 250 (planned 150; `session_meta.json`: `--n 250`) | `collect_session.py --placement edge-cloud --workflows iot` (docs/LAN_SETUP.md) |
 | C2 pilot (`raw_c2_pilot`, `raw_c2_pad_pilot`, `raw_c2_padmax_pilot`) | 30000 | 1 hour (`--deadline-hours 1`) | as C2 |
 | C2 smoke test (Mac only, loopback, discarded) | 30000 | 3 per task type (items 0–2) | as C2, `--n 3 --rounds 1` |
+| **C2B1** round 2, reply shaping (`raw_c2b1_padmax`, `raw_c2b1_shaped`), IoT set | **31000** | 125 | as C2 (docs/ROUND2_SESSIONS.md) |
+| **C2B2** round 2, jitter and server load (`raw_c2b2_lan`, `raw_c2b2_jl`), IoT set | **32000** | 125 | as C2 (docs/ROUND2_SESSIONS.md) |
+| **C2B3** round 2, a second day of `lan` (`raw_c2b3_lan`), IoT set | **33000** | 250 | as C2 (docs/ROUND2_SESSIONS.md) |
+| Round-2 loopback dry run (stand-in Ollama, discarded) | 99000 | 2 per task type | as C2, `--n 2 --rounds 1` |
 | *Superseded C2 design* (orchestrator on the Mac, specialists on the Pi; never collected) | 20000 | — | only two discarded loopback smoke tests (Nov 6) used it |
 
 ## C1 overlap (measured before collection)
@@ -89,6 +93,18 @@ C2 draws 150 prompts per task type (seed offset 30000; one condition per task ty
 | alert_triage | 150 | 153 | 124 | 185 |
 
 None of these prompts occurs in any earlier collection (checked against the sidecars of all
-`data/raw*` folders). Eleven procedure_lookup questions also occur in the offset-20000 draw of the
+`data/raw*` folders).
+
+Round 2 (measured before collection, against C2's draw and the sidecars of all `data/raw*`
+folders): sensor_analysis and fault_diagnosis prompts occur nowhere else. The small
+procedure_lookup and alert_triage pools repeat a few:
+
+| Session (offset, per type) | procedure_lookup: distinct, also in C2 | alert_triage: distinct, also in C2 |
+|---|---|---|
+| C2B1 (31000, 125) | 123, 18 | 125, 2 |
+| C2B2 (32000, 125) | 118, 14 | 125, 3 |
+| C2B3 (33000, 250) | 234, 23 | 244, 4 |
+
+`scripts/evaluate_cross_session.py` drops the B3 test traces whose prompt also occurs in C2. Eleven procedure_lookup questions also occur in the offset-20000 draw of the
 superseded design, which was never collected (only its discarded smoke tests used items 0 of each
 condition).

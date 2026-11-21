@@ -196,7 +196,7 @@ From the Mac, in the repo (this copies `configs/c2_network.conf` too; copy it ag
 changes):
 ```bash
 . configs/c2_network.conf
-rsync -a --exclude data --exclude venv --exclude 'venv-*' --exclude .git --exclude dist ./ "$C2_PI_USER@$C2_PI:a2a/"
+rsync -a --exclude data --exclude venv --exclude 'venv-*' --exclude .git --exclude dist ./ "$C2_PI_USER@${C2_PI}:a2a/"
 ```
 On the Pi, install what the edge agent needs, at the Mac's versions (requirements-lock.txt):
 ```bash
@@ -215,7 +215,7 @@ only the CA:
 . configs/c2_network.conf
 bash scripts/make_tls_certs.sh data/tls_lan "$C2_CLOUD" "$C2_MAC"
 ssh "$C2_PI_USER@$C2_PI" mkdir -p a2a/data/tls_lan
-scp data/tls_lan/ca.pem "$C2_PI_USER@$C2_PI:a2a/data/tls_lan/"
+scp data/tls_lan/ca.pem "$C2_PI_USER@${C2_PI}:a2a/data/tls_lan/"
 ```
 This replaces the earlier `data/tls_lan`, CA included: copy `ca.pem` to the Pi again. Make the
 certificate again whenever `C2_CLOUD` or `C2_MAC` changes. `data/` is gitignored.
@@ -319,7 +319,7 @@ netem on the Pi's Wi-Fi egress to the cloud alias, delay = median, jitter = half
 `u32` filter on the cloud alias:
 ```bash
 ssh "$C2_PI_USER@$C2_PI" mkdir -p a2a/data/results
-scp data/results/c2_wan_emulation.json "$C2_PI_USER@$C2_PI:a2a/data/results/"
+scp data/results/c2_wan_emulation.json "$C2_PI_USER@${C2_PI}:a2a/data/results/"
 # on the Pi:
 sudo bash scripts/wan_emulation_pi.sh on data/results/c2_wan_emulation.json
 # on the Mac:
@@ -381,13 +381,13 @@ and 1,200 traces (two arms) would take. **If 1,800 traces do not fit in about 30
 
 Checks on the raw (not yet stripped) pilot captures:
 ```bash
-P="data/raw_c2_pilot data/raw_c2_pad_pilot data/raw_c2_padmax_pilot"
-venv/bin/python scripts/check_lan_capture.py $P --json data/raw_c2_pilot/lan_check.json
-for d in $P; do
+P=(data/raw_c2_pilot data/raw_c2_pad_pilot data/raw_c2_padmax_pilot)
+venv/bin/python scripts/check_lan_capture.py "${P[@]}" --json data/raw_c2_pilot/lan_check.json
+for d in "${P[@]}"; do
   venv/bin/python scripts/check_tls_capture.py $d --expect tls --json $d/tls_check.json
   venv/bin/python scripts/check_stream_integrity.py $d --json $d/stream_integrity.json
 done
-venv/bin/python scripts/check_session_design.py $P --json data/raw_c2_pilot/design_check.json
+venv/bin/python scripts/check_session_design.py "${P[@]}" --json data/raw_c2_pilot/design_check.json
 venv/bin/python scripts/check_wan_emulation.py --json data/raw_c2_pilot/wan_check.json
 bash baselines/run_tls_scanners.sh                   # sslyze and testssl.sh on the nine TLS endpoints
 ```
@@ -461,6 +461,9 @@ venv/bin/python scripts/evaluate_leakcheck.py --name paper2_tool_eval_c2 --merge
     data/c2_tool_eval_parts/c2_part_lan.json data/c2_tool_eval_parts/c2_part_lan_pad.json \
     data/c2_tool_eval_parts/c2_part_lan_padmax.json
 ```
+
+Paper 2's round-2 sessions on this testbed (reply shaping, jitter and server load, a second day of
+`lan`) have their own commands: [ROUND2_SESSIONS.md](ROUND2_SESSIONS.md).
 
 ### If a check fails
 

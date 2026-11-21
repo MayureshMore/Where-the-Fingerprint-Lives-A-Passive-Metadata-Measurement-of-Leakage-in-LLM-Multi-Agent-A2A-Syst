@@ -5,9 +5,11 @@ start and then every --every traces (all arms together) it checks:
 
   1. pipes      both dummynet pipes exist with the measured one-way delay (6 ms), no bandwidth
                 limit and no loss rate, as scripts/wan_watch.py (root) last read them from the
-                kernel; that reading must be at most --max-age seconds old
+                kernel; that reading must be at most --max-age seconds old (a round-2 plan from
+                scripts/round2_wan_plan.py lists its pipes: B2 adds pipes 3 and 4 at 2 ms)
   2. rules      pf is enabled, and anchor com.apple/c2-wan sends the Pi's packets to the cloud
-                alias into pipe 1 and the alias's packets to the Pi into pipe 2
+                alias into pipe 1 and the alias's packets to the Pi into pipe 2 (with a plan: each
+                arm's pipes)
   3. port lock  every C2 port on the Mac's two addresses has a pass rule for the Pi before a block
                 rule for any other host
   4. connect    in the traces since the last check, the Pi's TCP connect time to the cloud alias
@@ -17,7 +19,9 @@ start and then every --every traces (all arms together) it checks:
                 Pi and captured on the Mac: median Pi time minus median capture time); the
                 capture's SYN to SYN-ACK, the two dummynet delays, has a median within
                 ±--tolerance of 12 ms and no handshake under its lower bound (a missing pipe halves
-                it); the ticket service on the Mac's own address stays undelayed
+                it); the ticket service on the Mac's own address stays undelayed. With a plan whose
+                arms differ (B2), per arm, from that arm's traces and targets (agents/edge.py
+                wan_target: ±--tolerance, at least ±2 ms)
 
 If any check fails, it stops the collection (SIGINT to collect_session.py, which --resume
 continues), marks every trace since the last good check as suspect, and exits 2. The record is
@@ -45,6 +49,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from agents.edge import wan_target  # noqa: E402
 from features.kfp import tcp_records  # noqa: E402
 
 TRACE = re.compile(r"_edge_cloud_[0-9a-f]{6}$")
@@ -58,8 +63,10 @@ def traces(dirs: list[Path]) -> list[Path]:
     return sorted(out, key=lambda j: (j.stat().st_mtime, str(j)))
 
 
-def handshakes(pcap: Path, cloud: set[int], ticket: set[int]) -> dict[str, list[tuple[float, float]]]:
-    """Per server kind: (SYN → SYN-ACK, SYN → the Pi's ACK) in ms, at the capture."""
+def handshakes(pcap: Path, cloud: set[int], ticket: set[int], base_of: dict[int, int] | None = None
+               ) -> dict[str, list[tuple[float, float]]]:
+    """Per server kind: (SYN → SYN-ACK, SYN → the Pi's ACK) in ms, at the capture; with base_of,
+    the cloud ones also under cloud:BASE."""
     syn, synack, out = {}, {}, {"cloud": [], "ticket": []}
     for ts, sp, dp, _, _, fl, _ in tcp_records(pcap):
         if fl & (SYN | ACK) == SYN and (dp in cloud or dp in ticket):
@@ -70,7 +77,10 @@ def handshakes(pcap: Path, cloud: set[int], ticket: set[int]) -> dict[str, list[
         elif fl & (SYN | ACK) == ACK and (sp, dp) in synack:
             t0 = syn.pop((sp, dp))
             kind = "cloud" if dp in cloud else "ticket"
-            out[kind].append(((synack.pop((sp, dp)) - t0) * 1000, (ts - t0) * 1000))
+            x = ((synack.pop((sp, dp)) - t0) * 1000, (ts - t0) * 1000)
+            out[kind].append(x)
+            if base_of and kind == "cloud":
+                out.setdefault(f"cloud:{base_of[dp]}", []).append(x)
     return out
 
 
@@ -82,11 +92,17 @@ class Guard:
         self.pi, self.cloud_ip, self.mac, self.iface = e["pi"], e["cloud"], e["mac"], e["iface"]
         self.one_way, self.rtt, self.delay = float(e["one_way_ms"]), float(t["target_rtt_ms"]), float(t["delay_ms"])
         self.cloud = {b + o for b in e["bases"] for o in CLOUD_OFFSETS}
+        self.base_of = {b + o: b for b in e["bases"] for o in CLOUD_OFFSETS}
+        self.per_arm = bool(t.get("arms"))          # a round-2 plan: each arm its own targets
+        self.arms = {b: wan_target(t, b, a.tolerance) for b in e["bases"]}
+        self.pipes = {int(n): int(ms) for n, ms in (e.get("pipes") or [[1, self.one_way], [2, self.one_way]])}
         self.ticket = {b + TICKET_OFFSET for b in e["bases"]}
         self.lock_ports = sorted(self.cloud | self.ticket)
         self.dirs = [Path(d) for d in a.dirs]
         self.record = {"paper": "P2", "collection_id": "C2", "every": a.every, "tolerance": a.tolerance,
-                       "target": {"target_rtt_ms": self.rtt, "dummynet_ms": self.delay, "one_way_ms": self.one_way},
+                       "target": {"target_rtt_ms": self.rtt, "dummynet_ms": self.delay, "one_way_ms": self.one_way,
+                                  "file": a.target, "pipes": self.pipes,
+                                  "arms": {str(b): x for b, x in self.arms.items()} if self.per_arm else None},
                        "pi_overhead_ms": a.pi_overhead_ms,
                        "calibration": json.loads(a.calibration) if a.calibration else None,
                        "guard_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -105,28 +121,31 @@ class Guard:
         age = time.time() - s.get("time", 0)
         d = s.get("dummynet", {})
         pipes = {p["pipe"]: p for p in d.get("pipes", [])}
-        want = int(round(self.one_way))
         bad = [f"pipe {n}: " + ("missing" if n not in pipes else
                                 f"{pipes[n]['delay_ms']} ms, bandwidth {pipes[n]['bandwidth']}, plr {pipes[n]['plr']}")
-               for n in (1, 2) if n not in pipes or (pipes[n]["delay_ms"], pipes[n]["bandwidth"], pipes[n]["plr"]) != (want, 0, 0)]
+               for n, want in self.pipes.items()
+               if n not in pipes or (pipes[n]["delay_ms"], pipes[n]["bandwidth"], pipes[n]["plr"]) != (want, 0, 0)]
+        listed = ", ".join(f"{n} at {ms} ms" for n, ms in self.pipes.items())
         drops = {n: pipes[n].get("drops", 0) for n in pipes}
         new_drops = {n: v - self.drops.get(n, 0) for n, v in drops.items() if v != self.drops.get(n, 0)}
         self.drops = drops
         out.append({"check": "1. pipes", "ok": d.get("ok", False) and not bad and age <= a.max_age,
                     "detail": (f"reading {age:.0f} s old; " if age > a.max_age else "") +
-                              ("; ".join(bad) or f"pipes 1 and 2 at {want} ms") +
+                              ("; ".join(bad) or f"pipes {listed}") +
                               ("" if d.get("ok") else f"; reader: {d.get('error', 'records do not walk to the end')}"),
                     "packets": {n: p.get("pkts") for n, p in pipes.items()}, "drops": drops, "new_drops": new_drops,
                     "dnctl_list_pipes": [x.split(":")[0] for x in s.get("dnctl_list", []) if re.match(r"^\d{5}:", x)],
                     "reading_at": s.get("at")})
-        ins = any(re.search(rf"dummynet in\b.*\bon {self.iface}\b.*from {re.escape(self.pi)} to {re.escape(self.cloud_ip)}\b.*\bpipe 1\b", x)
-                  for x in s.get("anchor_dummynet", []))
-        outs = any(re.search(rf"dummynet out\b.*\bon {self.iface}\b.*from {re.escape(self.cloud_ip)} to {re.escape(self.pi)}\b.*\bpipe 2\b", x)
-                   for x in s.get("anchor_dummynet", []))
         enabled = "Enabled" in s.get("pf_status", "")
-        out.append({"check": "2. rules", "ok": ins and outs and enabled,
-                    "detail": f"pf {'enabled' if enabled else 'NOT enabled'}; Pi → alias into pipe 1: {ins}; "
-                              f"alias → Pi into pipe 2: {outs}"})
+        found = {}
+        for pin, pout in sorted({tuple(x["pipes"]) for x in self.arms.values()}):
+            found[pin] = any(re.search(rf"dummynet in\b.*\bon {self.iface}\b.*from {re.escape(self.pi)} to "
+                                       rf"{re.escape(self.cloud_ip)}\b.*\bpipe {pin}\b", x) for x in s.get("anchor_dummynet", []))
+            found[pout] = any(re.search(rf"dummynet out\b.*\bon {self.iface}\b.*from {re.escape(self.cloud_ip)}\b.* to "
+                                        rf"{re.escape(self.pi)}\b.*\bpipe {pout}\b", x) for x in s.get("anchor_dummynet", []))
+        out.append({"check": "2. rules", "ok": all(found.values()) and enabled,
+                    "detail": f"pf {'enabled' if enabled else 'NOT enabled'}; " +
+                              "; ".join(f"pipe {n} {'in' if i % 2 == 0 else 'out'}: {v}" for i, (n, v) in enumerate(found.items()))})
         missing = self.port_lock(s.get("anchor_rules", []))
         out.append({"check": "3. port lock", "ok": not missing,
                     "detail": f"pass from {self.pi}, then block, for {len(self.lock_ports)} ports on {self.mac} and "
@@ -158,16 +177,25 @@ class Guard:
 
     # ---- check 4: the traces themselves
     def connect(self, window: list[Path]) -> dict:
-        tol = self.a.tolerance
-        lo_c, hi_c = self.rtt * (1 - tol), self.rtt * (1 + tol)
-        lo_d, hi_d = self.delay * (1 - tol), self.delay * (1 + tol)
+        """Check 4 on a window: pooled over the arms (C2), or per arm (a plan whose arms differ)."""
+        hs = {j: handshakes(j.with_suffix(".pcap"), self.cloud, self.ticket, self.base_of) for j in window}
+        if not self.per_arm:
+            return self._connect(window, hs, "cloud", self.arms[min(self.arms)], "4. connect")
+        rows = [self._connect(window, hs, f"cloud:{b}", x, f"4. connect {b}") for b, x in self.arms.items()]
+        return {"check": "4. connect", "ok": all(r["ok"] for r in rows), "arms": rows,
+                "detail": " | ".join(f"{b}: " + r["detail"] for b, r in zip(self.arms, rows))}
+
+    def _connect(self, window: list[Path], hs: dict, key: str, target: dict, name: str) -> dict:
+        rtt, delay = target["target_rtt_ms"], target["delay_ms"]
+        lo_c, hi_c = target["target_rtt_band"]
+        lo_d, hi_d = target["delay_band"]
         small = max(2.0, 0.2 * self.rtt)
         cloud, ticket, low = [], [], []
         for j in window:
-            hs = handshakes(j.with_suffix(".pcap"), self.cloud, self.ticket)
-            cloud += hs["cloud"]
-            ticket += hs["ticket"]
-            if any(d < lo_d for d, _ in hs["cloud"]):
+            mine = hs[j].get(key, [])
+            cloud += mine
+            ticket += hs[j]["ticket"]
+            if any(d < lo_d for d, _ in mine):
                 low.append(j.stem)
         med = lambda xs: statistics.median(xs) if xs else None          # noqa: E731
         c_cap, c_dn, t_dn = med([c for _, c in cloud]), med([d for d, _ in cloud]), med([d for d, _ in ticket])
@@ -175,13 +203,13 @@ class Guard:
         ok = (c_conn is not None and lo_c <= c_conn <= hi_c and lo_d <= c_dn <= hi_d and not low
               and (t_dn is None or t_dn < small))
         fmt = lambda v: "—" if v is None else f"{v:.1f} ms"              # noqa: E731
-        return {"check": "4. connect", "ok": ok, "traces": len(window), "handshakes": len(cloud),
+        return {"check": name, "ok": ok, "traces": len(window), "handshakes": len(cloud),
                 "pi_connect_median_ms": c_conn, "capture_connect_median_ms": c_cap,
                 "dummynet_median_ms": c_dn, "ticket_median_ms": t_dn,
                 "min_dummynet_ms": min((d for d, _ in cloud), default=None), "under_bound": low,
                 "detail": f"Pi → alias connect {fmt(c_conn)} ({fmt(c_cap)} at the capture + "
-                          f"{self.a.pi_overhead_ms:.1f}; target {self.rtt:.1f} ±{tol:.0%}); SYN → SYN-ACK "
-                          f"{fmt(c_dn)} ({self.delay:g} ±{tol:.0%}), {len(low)} trace(s) under {lo_d:.1f} ms; "
+                          f"{self.a.pi_overhead_ms:.1f}; target {rtt:.1f} [{lo_c:.1f}, {hi_c:.1f}]); SYN → SYN-ACK "
+                          f"{fmt(c_dn)} ({delay:g} [{lo_d:.1f}, {hi_d:.1f}]), {len(low)} trace(s) under {lo_d:.1f} ms; "
                           f"ticket {fmt(t_dn)} (under {small:.1f}); {len(cloud)} handshakes in {len(window)} traces"}
 
     def check(self, window: list[Path], with_status: bool = True) -> bool:

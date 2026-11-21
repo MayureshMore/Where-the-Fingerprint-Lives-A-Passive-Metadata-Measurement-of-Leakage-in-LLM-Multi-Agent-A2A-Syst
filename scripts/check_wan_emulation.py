@@ -43,13 +43,13 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agents.edge import CLOUD_PORTS, TICKET_PORT, TRIGGER_PORT, c2_network, require  # noqa: E402
+from agents.edge import CLOUD_PORTS, TICKET_PORT, TRIGGER_PORT, c2_network, require, wan_target  # noqa: E402
 from scripts.check_c2_network import check_network  # noqa: E402
 from features.kfp import tcp_packets  # noqa: E402
 
 
 def handshakes(pcap: Path, ports: dict[int, str]) -> dict[str, list[float]]:
-    """SYN → SYN-ACK times (ms) at the capture, per server port's name."""
+    """SYN → SYN-ACK times (ms) at the capture, per server port's name (kind, or kind:base)."""
     syn, out = {}, {name: [] for name in ports.values()}
     for ts, sp, dp, _, _, flags in tcp_packets(pcap):
         if flags & 0x12 == 0x02 and dp in ports:                  # SYN from the Pi
@@ -85,8 +85,9 @@ def main(a: argparse.Namespace) -> int:
     rtt = float(target["target_rtt_ms"])                         # what the Pi should see to the cloud alias
     delay = float(target["fallback_pi_netem"]["delay_ms"] if a.fallback_pi else target["delay_ms"])   # dummynet
     bases = [int(b) for b in (a.bases or net["C2_BASES"] or "8100,8200,8300").split(",")]
+    arms = {b: wan_target(target, b, a.tolerance) for b in bases}  # a round-2 plan's arms may differ
     network = check_network(net, bases, a.edge_host)
-    ports = {b + CLOUD_PORTS["diagnostics"]: "cloud" for b in bases} | {b + TICKET_PORT: "ticket" for b in bases}
+    ports = {b + CLOUD_PORTS["diagnostics"]: f"cloud:{b}" for b in bases} | {b + TICKET_PORT: "ticket" for b in bases}
     cap, pcap = None, None
     if iface:
         pcap = Path(tempfile.mkdtemp(prefix="wancheck_")) / "probe.pcap"
@@ -106,35 +107,38 @@ def main(a: argparse.Namespace) -> int:
         time.sleep(1.0)
         cap.terminate()
         cap.wait(timeout=10)
-    lo, hi = rtt * (1 - a.tolerance), rtt * (1 + a.tolerance)
     checks = [{"check": "0. network", "edge": "all", "ok": network["ok"], "value": None,
                "detail": "; ".join(c["detail"] for c in network["checks"] if not c["ok"]) or
                          "Mac address, cloud alias and the Pi's route via the Mac"}]
     for r in rows:
         b, inet, cloud, ticket = r["base"], r["internet"], r["cloud"], r["ticket"]
         ok_c, ok_t = "median_ms" in cloud, "median_ms" in ticket
+        (lo, hi), rtt_b = arms[b]["target_rtt_band"], arms[b]["target_rtt_ms"]
+        delay_b = delay if a.fallback_pi else arms[b]["delay_ms"]
         checks.append({"check": "a. internet", "edge": b, "ok": "median_ms" in inet,
                        "value": inet.get("median_ms"), "detail": inet.get("error", "1.1.1.1:443 reachable")})
         checks.append({"check": "b. cloud (end to end)", "edge": b, "ok": ok_c and lo <= cloud["median_ms"] <= hi,
-                       "value": cloud.get("median_ms"), "detail": f"target {rtt:.1f} ms ±{a.tolerance:.0%}"})
+                       "value": cloud.get("median_ms"), "detail": f"target {rtt_b:.1f} ms [{lo:.1f}, {hi:.1f}]"})
         gap = cloud["median_ms"] - ticket["median_ms"] if ok_c and ok_t else None
         checks.append({"check": "c. Mac address (base)", "edge": b,
-                       "ok": gap is not None and (delay == 0 or gap >= delay / 2), "value": ticket.get("median_ms"),
+                       "ok": gap is not None and (delay_b == 0 or gap >= delay_b / 2), "value": ticket.get("median_ms"),
                        "detail": f"faster than the cloud alias by {gap if gap is not None else float('nan'):.1f} ms "
-                                 f"(at least {delay / 2:.1f}: not delayed)"})
+                                 f"(at least {delay_b / 2:.1f}: not delayed)"})
     capture = None
     if pcap:
         hs = handshakes(pcap, ports)
         capture = {k: {"n": len(v), "median_ms": statistics.median(v) if v else None} for k, v in hs.items()}
-        cm, tm = capture["cloud"]["median_ms"], capture["ticket"]["median_ms"]
-        dlo, dhi = delay * (1 - a.tolerance), delay * (1 + a.tolerance)
+        tm = capture["ticket"]["median_ms"]
         small = max(2.0, 0.2 * rtt)                               # an undelayed handshake at the capture
-        if a.fallback_pi or delay == 0:
-            ok_cloud, want = cm is not None and cm < small, f"under {small:.1f} ms (no delay at the capture)"
-        else:
-            ok_cloud, want = cm is not None and dlo <= cm <= dhi, f"the dummynet delay {delay:g} ms ±{a.tolerance:.0%}"
-        checks.append({"check": "b. cloud at the capture", "edge": "all", "ok": ok_cloud, "value": cm,
-                       "detail": f"SYN → SYN-ACK; {want}"})
+        for b in bases:                                           # per arm: B2's jitter arm has its own pipes
+            cm = capture[f"cloud:{b}"]["median_ms"]
+            (dlo, dhi), delay_b = arms[b]["delay_band"], arms[b]["delay_ms"]
+            if a.fallback_pi or delay_b == 0:
+                ok_cloud, want = cm is not None and cm < small, f"under {small:.1f} ms (no delay at the capture)"
+            else:
+                ok_cloud, want = cm is not None and dlo <= cm <= dhi, f"the dummynet delay {delay_b:g} ms [{dlo:.1f}, {dhi:.1f}]"
+            checks.append({"check": "b. cloud at the capture", "edge": b, "ok": ok_cloud, "value": cm,
+                           "detail": f"SYN → SYN-ACK; {want}"})
         checks.append({"check": "c. Mac at the capture", "edge": "all", "ok": tm is not None and tm < small,
                        "value": tm, "detail": f"SYN → SYN-ACK under {small:.1f} ms"})
     base_ms = [x for r in rows for x in (r["ticket"].get("connect_ms") or [])]
@@ -148,6 +152,7 @@ def main(a: argparse.Namespace) -> int:
         print(f"base Wi-Fi round trip Pi <-> Mac: median {base_rtt['median_ms']:.1f} ms, IQR {base_rtt['iqr_ms']:.1f} ms "
               f"({base_rtt['n']} connects)")
     out = {"target": {k: target.get(k) for k in ("endpoint", "target_rtt_ms", "total_delay_ms", "delay_ms", "jitter_ms")},
+           "arm_targets": {str(b): v for b, v in arms.items()},
            "emulation": "fallback netem on the Pi" if a.fallback_pi else "dummynet on the Mac",
            "tolerance": a.tolerance, "network": network, "base_rtt_probes": base_rtt, "probes": rows,
            "capture": capture, "checks": checks, "pass": all(x["ok"] for x in checks)}

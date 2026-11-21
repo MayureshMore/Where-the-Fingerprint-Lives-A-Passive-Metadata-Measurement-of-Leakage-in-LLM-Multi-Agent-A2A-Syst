@@ -8,11 +8,17 @@
 # fallback the capture sits on the cloud side of the delay.
 #
 #   sudo bash scripts/wan_emulation_pi.sh on   [data/results/c2_wan_emulation.json]
+#   sudo bash scripts/wan_emulation_pi.sh jitter data/results/b2_wan_jitter.json
 #   sudo bash scripts/wan_emulation_pi.sh off  [DEV]
 #        bash scripts/wan_emulation_pi.sh show [DEV]
 #
 # Then, from the Mac, scripts/check_wan_emulation.py checks the edge agent's connect time to the
 # cloud alias against the target (±20%).
+#
+# jitter (paper 2 round 2, B2; not a fallback): the request side of the jitter arm's emulated WAN,
+# beside the Mac's dummynet: netem with a normal delay and a rate (so packets keep their order) on
+# the Pi's packets to the jitter arm's cloud ports only (jitter.pi_netem.tc_commands, written by
+# scripts/round2_wan_plan.py). off removes it.
 set -euo pipefail
 
 CONF="$(cd "$(dirname "$0")/.." && pwd)/configs/c2_network.conf"
@@ -31,6 +37,18 @@ for c in json.load(open(sys.argv[1]))["fallback_pi_netem"]["tc_commands"]:
     print(c)
 PY
         ;;
+    jitter)
+        JSON="${2:-data/results/b2_wan_jitter.json}"
+        [ -f "$JSON" ] || { echo "no $JSON: run scripts/round2_wan_plan.py on the Mac and copy it here" >&2; exit 1; }
+        python3 - "$JSON" <<'PY' | while IFS= read -r line; do echo "+ $line"; sh -c "$line"; done
+import json, sys
+for c in json.load(open(sys.argv[1]))["jitter"]["pi_netem"]["tc_commands"]:
+    print(c)
+PY
+        DEV="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["jitter"]["pi_netem"]["dev"])' "$JSON")"
+        tc qdisc show dev "$DEV"
+        tc filter show dev "$DEV"
+        ;;
     off)
         DEV="${2:-$DEV_DEFAULT}"
         tc qdisc del dev "$DEV" root 2>/dev/null || true
@@ -42,5 +60,5 @@ PY
         tc filter show dev "$DEV"
         ;;
     *)
-        echo "usage: $0 on [JSON] | off [DEV] | show [DEV]" >&2; exit 2 ;;
+        echo "usage: $0 on [JSON] | jitter [JSON] | off [DEV] | show [DEV]" >&2; exit 2 ;;
 esac

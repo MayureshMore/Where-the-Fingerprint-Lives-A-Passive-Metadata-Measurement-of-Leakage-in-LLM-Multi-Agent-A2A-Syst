@@ -22,9 +22,11 @@ capture layer (snaplen 96).
 
 from __future__ import annotations
 
+import asyncio
 import enum
 import json
 import logging
+import time
 import uuid
 from typing import Awaitable, Callable
 
@@ -41,6 +43,7 @@ from a2a.types import (
     AgentCapabilities,
     AgentCard,
     AgentSkill,
+    Artifact,
     Message,
     MessageSendParams,
     Part,
@@ -164,6 +167,16 @@ class AgentConfig(BaseModel):
     pad_buckets: list[int] = []
     # Serve HTTPS: True/False, or None for the process-wide default (agents/tls.py)
     tls: bool | None = None
+    # Reply shaping (defense/shaping.py): REPLY_BYTES/DEADLINE_S[/CHUNK_BYTES[/INTERVAL_S[/OVERRUN]]],
+    # e.g. "2048/14/128/0.05/truncate"; empty = off. Every reply then leaves DEADLINE_S after its request
+    # as REPLY_BYTES / CHUNK_BYTES events of one size, INTERVAL_S apart, and a final artifact of one size
+    # (sizes in bytes on the wire, after JSON encoding).
+    shape: str = ""
+    # Reply jitter (defense/shaping.py JitterConfig): MEAN_MS/SD_MS[/SEED], e.g. "4/1.8"; empty = off.
+    # Every SSE event waits an extra normal delay, in order (the reply side of B2's emulated WAN jitter).
+    jitter: str = ""
+    # With shape or jitter: one JSON line per task to this file (what was cut, overruns, delays).
+    reply_log: str = ""
 
     def base_url(self) -> str:
         from agents import tls
@@ -367,9 +380,14 @@ class BaseA2AAgent:
 
     def agent_card(self) -> AgentCard:
         role = self.config.role.value
+        desc = self.config.description or f"A2A {role} agent"
+        if self.config.shape:                  # the collector checks these before the arm runs
+            desc += f" [shaped reply {self.config.shape}]"
+        if self.config.jitter:
+            desc += f" [reply jitter {self.config.jitter}]"
         return AgentCard(
             name=self.config.name or role,
-            description=self.config.description or f"A2A {role} agent",
+            description=desc,
             url=self.config.base_url(),
             version="1.0.0",
             default_input_modes=["text/plain"],
@@ -446,6 +464,46 @@ class BaseA2AAgent:
             await self._http_client.aclose()
 
 
+class _FixedTimeUpdater(TaskUpdater):
+    """Status timestamps always with microseconds: isoformat() drops them when they are 0, which
+    makes that one event 7 bytes shorter (shaped replies keep every event one size)."""
+
+    async def update_status(self, state, message=None, final=False, timestamp=None, metadata=None) -> None:
+        from datetime import datetime, timezone
+        await super().update_status(state, message=message, final=final, metadata=metadata,
+                                    timestamp=timestamp or datetime.now(timezone.utc).isoformat(timespec="microseconds"))
+
+
+class _JitterQueue:
+    """The SDK's event queue behind a per-event delay (defense/shaping.py Jitter): events leave in
+    order, each at max(the previous departure, its ready time + its delay). drain() before the
+    executor returns, so the stream does not end with events still waiting."""
+
+    def __init__(self, queue: EventQueue, jitter) -> None:
+        self._queue, self._jitter = queue, jitter
+        self._pending: asyncio.Queue = asyncio.Queue()
+        self.delays_ms: list[float] = []
+        self._sender = asyncio.ensure_future(self._send())
+
+    async def enqueue_event(self, event) -> None:
+        await self._pending.put((time.monotonic(), event))
+
+    async def _send(self) -> None:
+        while (item := await self._pending.get()) is not None:
+            ready, event = item
+            depart = self._jitter.departure(ready)
+            self.delays_ms.append((depart - ready) * 1000)
+            await asyncio.sleep(max(0.0, depart - time.monotonic()))
+            await self._queue.enqueue_event(event)
+
+    async def drain(self) -> None:
+        await self._pending.put(None)
+        await self._sender
+
+    def __getattr__(self, name):
+        return getattr(self._queue, name)
+
+
 class _RoleExecutor(AgentExecutor):
     """Adapts a :class:`BaseA2AAgent` to the SDK's AgentExecutor interface.
 
@@ -457,14 +515,46 @@ class _RoleExecutor(AgentExecutor):
         self.agent = agent
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
+        t0 = time.monotonic()                  # the request has arrived
+        cfg = self.agent.config
+        if not (cfg.shape or cfg.jitter):
+            await self._execute(context, event_queue, TaskUpdater, t0, {})
+            return
+        from defense.shaping import Jitter, JitterConfig
+        record: dict = {"time": time.time(), "port": cfg.port, "role": cfg.role.value}
+        queue = event_queue
+        if cfg.jitter:
+            self._n = getattr(self, "_n", 0) + 1
+            queue = _JitterQueue(event_queue, Jitter(JitterConfig.parse(cfg.jitter), stream=f"{cfg.port}:{self._n}"))
+        try:
+            await self._execute(context, queue, _FixedTimeUpdater if cfg.shape else TaskUpdater, t0, record)
+        finally:
+            if cfg.jitter:
+                await queue.drain()
+                d = queue.delays_ms
+                record["jitter"] = {"spec": cfg.jitter, "events": len(d), "mean_ms": sum(d) / len(d) if d else None,
+                                    "max_ms": max(d) if d else None}
+            if cfg.reply_log:
+                with open(cfg.reply_log, "a") as f:
+                    f.write(json.dumps(record) + "\n")
+            self.agent.last_reply = record
+
+    async def _execute(self, context: RequestContext, event_queue, updater_cls, t0: float, record: dict) -> None:
         text = context.get_user_input()
         task_id = context.task_id or uuid.uuid4().hex
         context_id = context.context_id or uuid.uuid4().hex
-        updater = TaskUpdater(event_queue, task_id, context_id)
+        updater = updater_cls(event_queue, task_id, context_id)
+        record.update({"task_id": task_id, "context_id": context_id})
 
         if not context.current_task:
             await updater.submit()
         await updater.start_work()
+
+        if self.agent.config.shape:
+            from defense.shaping import ShapeConfig
+            await self._shaped(updater, task_id, context_id, text, ShapeConfig.parse(self.agent.config.shape), t0,
+                               record)
+            return
 
         # C4 "pad" size-defense: cell-pad every SSE event (status chunks AND the
         # final artifact) up to the next cell multiple via metadata (not the
@@ -501,6 +591,71 @@ class _RoleExecutor(AgentExecutor):
             [Part(root=TextPart(text=output))], name="result", metadata=art_meta
         )
         await updater.complete()
+
+    async def _shaped(self, updater: TaskUpdater, task_id: str, context_id: str, text: str, shape, t0: float,
+                      record: dict) -> None:
+        """Reply shaping (defense/shaping.py): generate the whole reply first, then release it at the
+        deadline as fixed-size events at a fixed rate, and a fixed-size artifact. Sizes are UTF-8 bytes
+        of the JSON the SDK sends."""
+        from defense.shaping import MAX_SLACK, pad_to, split_reply, wire_bytes
+        buf: list[str] = []
+
+        async def keep(chunk: str) -> None:
+            buf.append(chunk)
+
+        job = asyncio.ensure_future(self.agent.handle_task(task_id, text, keep))
+        deadline = t0 + shape.deadline_s
+        overrun = False
+        try:
+            output = await asyncio.wait_for(asyncio.shield(job), timeout=max(0.0, deadline - time.monotonic()))
+        except asyncio.TimeoutError:
+            overrun = True
+            if shape.overrun == "late":
+                output = await job
+            else:
+                job.cancel()
+                output = "".join(buf)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("handle_task failed")
+            record["shaping"] = {"spec": shape.spec(), "failed": str(exc)[:200]}
+            await updater.failed(message=new_agent_text_message(str(exc), context_id, task_id))
+            return
+        generated_s = time.monotonic() - t0
+        role = self.agent.config.role.value
+        if overrun:
+            logger.warning("[%s] task %s: reply not done by the %.1f s deadline (%s)", role, task_id,
+                           shape.deadline_s, shape.overrun)
+        chunks, fit = split_reply(output, shape)
+        reply = "".join(chunks)
+        if fit["truncated"]:
+            logger.warning("[%s] task %s: TRUNCATED reply of %d B (JSON-encoded, %d characters) cut to %d B by the "
+                           "%d B cap", role, task_id, fit["bytes"], fit["chars"], fit["sent_bytes"], shape.reply_bytes)
+
+        def message(chunk: str):
+            return new_agent_text_message(chunk, context_id, task_id)
+
+        probe = message("x" * (shape.chunk_bytes + MAX_SLACK))
+        probe.metadata = {"_pad": ""}
+        event_size = wire_bytes(probe)
+        await asyncio.sleep(max(0.0, deadline - time.monotonic()))
+        released = time.monotonic() - t0
+        for i, chunk in enumerate(chunks):
+            msg = message(chunk)
+            pad_to(lambda: wire_bytes(msg), lambda f: setattr(msg, "metadata", {"_pad": f}), event_size)
+            await asyncio.sleep(max(0.0, deadline + i * shape.interval_s - time.monotonic()))
+            await updater.update_status(TaskState.working, message=msg)
+
+        def artifact(body: str, meta: dict, aid: str) -> Artifact:
+            return Artifact(artifact_id=aid, name="result", parts=[Part(root=TextPart(text=body))], metadata=meta)
+        aid = str(uuid.uuid4())
+        art_size = wire_bytes(artifact("x" * shape.reply_bytes, {"_pad": ""}, aid))
+        meta: dict = {}
+        pad_to(lambda: wire_bytes(artifact(reply, meta, aid)), lambda f: meta.update({"_pad": f}), art_size)
+        await updater.add_artifact([Part(root=TextPart(text=reply))], artifact_id=aid, name="result", metadata=meta)
+        await updater.complete()
+        record["shaping"] = {"spec": shape.spec(), **fit, "overrun": overrun, "generated_s": generated_s,
+                             "released_s": released, "event_bytes": event_size, "artifact_bytes": art_size}
+        self.agent.last_shaping = record["shaping"]
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
         raise NotImplementedError("cancel not supported in the testbed")

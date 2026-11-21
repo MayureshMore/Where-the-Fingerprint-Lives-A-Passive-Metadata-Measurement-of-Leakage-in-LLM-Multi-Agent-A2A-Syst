@@ -81,6 +81,22 @@ def c2_network(path: Path | None = None) -> dict[str, str]:
     return net
 
 
+def wan_target(target: dict, base: int, tolerance: float = 0.20, floor_ms: float = 2.0) -> dict:
+    """One arm's targets in an emulated-WAN JSON (C2's data/results/c2_wan_emulation.json, or a
+    round-2 plan from scripts/round2_wan_plan.py whose arms differ): target_rtt_ms, the Pi's TCP
+    connect time to the cloud alias; delay_ms, SYN → SYN-ACK at the capture (the two dummynet
+    delays); the dummynet pipes. Each with its band: ±tolerance, at least ±floor_ms (in C2 dummynet
+    added up to 1.3 ms to its 12 ms, a third of B2's 4 ms; a missing pipe is caught by c2_guard's
+    checks 1 and 2)."""
+    arm = (target.get("arms") or {}).get(str(base), {})
+    out = {"base": base, "target_rtt_ms": float(arm.get("target_rtt_ms", target["target_rtt_ms"])),
+           "delay_ms": float(arm.get("delay_ms", target["delay_ms"])), "pipes": arm.get("pipes", [1, 2])}
+    for k in ("target_rtt_ms", "delay_ms"):
+        w = max(out[k] * tolerance, floor_ms)
+        out[k.replace("_ms", "_band")] = (out[k] - w, out[k] + w)
+    return out
+
+
 def require(value: str | None, what: str) -> str:
     """value, or stop with a pointer to the network config."""
     if not value:
