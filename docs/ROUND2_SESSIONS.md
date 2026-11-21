@@ -1,4 +1,4 @@
-# Paper 2, round 2: sessions B1–B3 (Nov 21–23)
+# Paper 2, round 2: sessions B1–B3 (Nov 21–22)
 
 Three collections on C2's testbed ([LAN_SETUP.md](LAN_SETUP.md): the Pi's edge agents, the Mac's
 cloud agents and ticket services, dummynet on the Mac, capture on `C2_IFACE`). Each one runs
@@ -13,13 +13,19 @@ it copies into a local directory instead of the Pi.
 | Session | Date | Arms (port base) | Traces | Seed offset | Ollama on the Mac | Hours |
 |---|---|---|---|---|---|---|
 | B1 reply shaping | Nov 21 | `lan_padmax` (8300), `lan_shaped` (8400) | 500 + 500 | 31000 | `OLLAMA_NUM_PARALLEL` 1, context 128k, as in C2 | about 2.9 |
-| B2 jitter and load | Nov 22 | `lan` (8100), `lan_jl` (8500) | 500 + 500 | 32000 | `OLLAMA_NUM_PARALLEL` 4, context 32k | about 2.5 |
-| B3 second day | Nov 23 | `lan` (8100) | 1,000 | 33000 | 1, context 128k, as in C2 | about 1.9 |
+| B3 second day | Nov 22, morning | `lan` (8100) | 1,000 | 33000 | 1, context 128k, as in C2 | about 1.9 |
+| B2 jitter and load | Nov 22, after B3 | `lan` (8100), `lan_jl` (8500) | 500 + 500 | 32000 | `OLLAMA_NUM_PARALLEL` 4, context 32k | about 2.5 |
 
 The hours come from C2's pace (6.9 s per trace): a shaped escalated task takes C2's time with
 its cloud call replaced by the 14.75 s release. For `lan_jl`, the cloud's answers are assumed
 1.6 times slower under load, plus about 1.3 s per task to start and stop the load. The first
 round's pace line settles it. Add about 20 minutes of setup per session.
+
+Before each full session, a pilot on the real testbed: one short round per arm (`--n 5 --rounds 1`,
+20 traces per arm), into `data/pilot_c2b1/` or `data/pilot_c2b2/`, never into the raw data folders,
+with the session's checks run on it. The full session starts only if they pass. B2 runs after B3, so
+B3 keeps C2's Ollama settings; B2's full session runs only if its pilot passes, and goes to paper 3
+otherwise.
 
 - **B1** `lan_shaped`: requests padded to 8 KB, as in `lan_padmax`. Every reply is released
   14 s after its request as 16 events of one size, 0.05 s apart, then an artifact of one size. A
@@ -40,7 +46,7 @@ round's pace line settles it. Add about 20 minutes of setup per session.
 ## 0. Before Nov 21 (once)
 
 1. **Code and plans.** Commit Phase B. Then, from that clean commit, write the WAN plans and the
-   shaping calibration, which are committed results:
+   shaping calibration, which are committed results (neither script writes over an existing file):
    ```bash
    venv/bin/python scripts/round2_wan_plan.py
    venv/bin/python scripts/b1_shape_calibration.py --out data/results/b1_shape_calibration
@@ -89,20 +95,64 @@ After B2, also run `sudo bash scripts/wan_emulation_pi.sh off` on the Pi.
 
 ## B1: reply shaping (Nov 21)
 
+The pilot and the full run share the Pi's edge agents and the WAN; the cloud agents, `wan_watch.py`
+and the guard are restarted between them with the full run's folders.
+
 **Pi** (`tmux`):
 ```bash
 cd ~/a2a
 venv/bin/python scripts/serve_edge.py --bases 8300,8400 --tls-dir data/tls_lan --model llama3.2:1b --num-predict 128
 ```
+**Mac**, window 2: the WAN (C2's, for these two bases), for the pilot and the full run:
+```bash
+mkdir -p data/pilot_c2b1/padmax data/raw_c2b1_padmax
+sudo C2_BASES=8300,8400 bash scripts/wan_emulation.sh on data/results/b1_wan.json
+```
+
+### B1 pilot
+
+**Mac**, window 1 (`tmux`): the cloud agents, logging into the pilot's folder:
+```bash
+venv/bin/python scripts/serve_cloud.py --bases 8300,8400 --shape 8400=2048/14/128/0.05/truncate \
+    --reply-log data/pilot_c2b1/replies --tls-dir data/tls_lan
+```
+**Mac**, window 2: the WAN check, then (window 3, root) the kernel's pipes:
+```bash
+C2_BASES=8300,8400 venv/bin/python scripts/check_wan_emulation.py --target data/results/b1_wan.json \
+    --json data/pilot_c2b1/padmax/wan_check_start.json
+sudo venv/bin/python scripts/wan_watch.py --out data/pilot_c2b1/padmax/wan_status.json --log data/pilot_c2b1/padmax/wan_watch.jsonl
+```
+**Mac**, window 2: the pilot, about 8 minutes:
+```bash
+caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2B1-pilot \
+    --n 5 --rounds 1 --seed-offset 31000 --workflows iot --tls-dir data/tls_lan \
+    --wan-target data/results/b1_wan.json --reply-log data/pilot_c2b1/replies \
+    --arm name=lan_padmax,ports=8300,pad=8192/16384,pad_expect=8192,out=data/pilot_c2b1/padmax \
+    --arm name=lan_shaped,ports=8400,pad=8192/16384,pad_expect=8192,shape=2048/14/128/0.05/truncate,out=data/pilot_c2b1/shaped
+```
+**Mac**, window 4, once it has started: the guard on the pilot's folders:
+```bash
+venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
+    --target data/results/b1_wan.json --status data/pilot_c2b1/padmax/wan_status.json --pi-overhead-ms 3.31 \
+    --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
+    --json data/pilot_c2b1/padmax/wan_guard.json data/pilot_c2b1/padmax data/pilot_c2b1/shaped
+```
+The collector must end with `lan_shaped: 15 cloud replies logged, 0 cut, 0 past the deadline, 0
+failed`. Then the WAN check again, and the checks below on `P=(data/pilot_c2b1/padmax
+data/pilot_c2b1/shaped)`, the shaping check with `data/pilot_c2b1/shaped --control
+data/pilot_c2b1/padmax`. `check_shaping.py` passes when every shaped reply has one size on the wire,
+every release time is within 50 ms of 14.75 s plus the 12 ms round trip, and nothing was cut or
+overran. Stop `serve_cloud.py`, `wan_watch.py` and the guard; the WAN stays on.
+
+### B1 full run
+
 **Mac**, window 1 (`tmux`): the cloud agents, which shape the 8400 arm and log every reply:
 ```bash
 venv/bin/python scripts/serve_cloud.py --bases 8300,8400 --shape 8400=2048/14/128/0.05/truncate \
     --reply-log data/raw_c2b1_replies --tls-dir data/tls_lan
 ```
-**Mac**, window 2: the WAN (C2's, for these two bases) and its check:
+**Mac**, window 2: the WAN check:
 ```bash
-mkdir -p data/raw_c2b1_padmax
-sudo C2_BASES=8300,8400 bash scripts/wan_emulation.sh on data/results/b1_wan.json
 C2_BASES=8300,8400 venv/bin/python scripts/check_wan_emulation.py --target data/results/b1_wan.json \
     --json data/raw_c2b1_padmax/wan_check_start.json
 ```
@@ -140,11 +190,13 @@ for d in "${P[@]}"; do
   venv/bin/python scripts/check_stream_integrity.py $d --json $d/stream_integrity.json
 done
 venv/bin/python scripts/check_session_design.py "${P[@]}" --json data/raw_c2b1_padmax/design_check.json
+venv/bin/python scripts/check_shaping.py data/raw_c2b1_shaped --control data/raw_c2b1_padmax \
+    --json data/raw_c2b1_shaped/shaping_check.json
 C2_BASES=8300,8400 venv/bin/python scripts/check_wan_emulation.py --target data/results/b1_wan.json \
     --json data/raw_c2b1_padmax/wan_check_after.json
 ```
 
-## B2: jitter and server load (Nov 22)
+## B2: jitter and server load (Nov 22, after B3)
 
 **Mac, first:** Ollama with parallel requests and a context that fits them, then the load check:
 ```bash
@@ -229,9 +281,9 @@ venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/
 control's plus 0.5 percentage points. The Wi-Fi reorders some packets on its own: in C2, 0.06% of
 `lan`'s request segments.
 
-## B3: a second day of `lan` (Nov 23)
+## B3: a second day of `lan` (Nov 22, morning)
 
-`OLLAMA_NUM_PARALLEL` must be 1 and the context length 128k again, as in C2.
+`OLLAMA_NUM_PARALLEL` must be 1 and the context length 128k, as in C2 and B1 (B3 runs before B2).
 
 **Pi:**
 ```bash
@@ -262,7 +314,8 @@ window 3 (root), the guard in window 4 once the collection has started.
 
 The audits and the cross-session transfer. Each session writes its own results JSON with commit,
 seed and data folders; nothing heavy runs beside them.
-- **B1:** `a2a_leakcheck` per arm and view.
+- **B1:** `a2a_leakcheck` per arm and view; `check_shaping.py --out data/results/b1_shaping_overhead`
+  (per task type, bytes and seconds against `lan_padmax`).
 - **B2:** the same, per arm and view.
 - **B3:** `evaluate_cross_session.py --train` on C2's `lan` features, `--test` on B3's, at V1
   and V2.

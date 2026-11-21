@@ -59,6 +59,7 @@ their pool is large: 4,000 seeds give 4,000 distinct sensor_analysis and fault_d
 | C2 pilot (`raw_c2_pilot`, `raw_c2_pad_pilot`, `raw_c2_padmax_pilot`) | 30000 | 1 hour (`--deadline-hours 1`) | as C2 |
 | C2 smoke test (Mac only, loopback, discarded) | 30000 | 3 per task type (items 0–2) | as C2, `--n 3 --rounds 1` |
 | **C2B1** round 2, reply shaping (`raw_c2b1_padmax`, `raw_c2b1_shaped`), IoT set | **31000** | 125 | as C2 (docs/ROUND2_SESSIONS.md) |
+| C2B1 pilot (`pilot_c2b1/padmax`, `pilot_c2b1/shaped`; checks only, not analysed) | 31000 | 5 per task type (items 0–4), `--n 5 --rounds 1` | as C2B1 |
 | **C2B2** round 2, jitter and server load (`raw_c2b2_lan`, `raw_c2b2_jl`), IoT set | **32000** | 125 | as C2 (docs/ROUND2_SESSIONS.md) |
 | **C2B3** round 2, a second day of `lan` (`raw_c2b3_lan`), IoT set | **33000** | 250 | as C2 (docs/ROUND2_SESSIONS.md) |
 | Round-2 loopback dry run (stand-in Ollama, discarded) | 99000 | 2 per task type | as C2, `--n 2 --rounds 1` |

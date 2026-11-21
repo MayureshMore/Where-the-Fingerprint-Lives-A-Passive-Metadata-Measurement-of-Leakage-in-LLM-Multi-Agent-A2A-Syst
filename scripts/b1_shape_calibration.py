@@ -33,6 +33,7 @@ import statistics
 import struct
 import subprocess
 import sys
+import time
 import uuid
 from collections import defaultdict
 from pathlib import Path
@@ -150,6 +151,9 @@ def main(argv: list[str] | None = None) -> int:
     git = _git()
     if git["git_dirty"] and not a.allow_dirty:
         raise SystemExit("uncommitted code: commit first (or --allow-dirty for a dry run)")
+    for ext in (".json", ".md"):
+        if Path(a.out + ext).exists():
+            raise SystemExit(f"{a.out + ext} exists: results are never written over")
     shape = ShapeConfig.parse(a.shape)
     oh = overhead(shape)
     rows, answers = [], []
@@ -177,8 +181,9 @@ def main(argv: list[str] | None = None) -> int:
         by_type[tt] = {"n": len(sub), "bytes_max": max(sub), "bytes_p99": pct(sub, 0.99), "bytes_median": statistics.median(sub),
                        "cut": sum(e > shape.reply_bytes for e in sub), "answer_s_max": max(st),
                        "late": sum(s > shape.deadline_s for s in st)}
-    res = {"paper": "P2", "round": 2, "check": "B1 reply shaping against C2", **git, "shape": shape.spec(),
-           "release_s": shape.release_s(), "arms": a.arms.split(","),
+    res = {"paper": "P2", "round": 2, "check": "B1 reply shaping against C2", "collection_id": "C2",
+           "data_dir": a.arms.split(","), **git, "created": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "seed": None,
+           "shape": shape.spec(), "release_s": shape.release_s(), "arms": a.arms.split(","),
            "replies": {"n": len(rows), "exact": sum(r["exact"] for r in rows), "bytes_max": max(E),
                        "bytes_p99": pct(E, 0.99), "bytes_median": statistics.median(E),
                        "chars_max": max(r["chars"] for r in rows),

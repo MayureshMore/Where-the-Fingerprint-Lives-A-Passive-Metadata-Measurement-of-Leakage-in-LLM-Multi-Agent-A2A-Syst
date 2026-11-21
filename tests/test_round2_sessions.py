@@ -236,3 +236,78 @@ def test_the_calibration_s_sizes_are_the_wire_s():
     assert oh["events"] == 16 and oh["event_record"] == record(oh["event_json"])
     assert oh["reply_record_bytes"] == 16 * oh["event_record"] + oh["artifact_record"]
     assert oh["filler_const"] - 2 * 2048 >= 0                               # a full reply still has non-negative filler
+
+
+def _shaped_trace(d: Path, stem: str, *, reply_segments, t0=100.0, release=14.762, edge_port=41000, retransmit=False,
+                  arm="lan_shaped", shaping=True, cut=False):
+    """One escalated trace: the edge's connection to the cloud agent on 8401, its 2 KB request in two
+    segments, the reply as reply_segments (sizes), its last byte release seconds after the request's."""
+    mac = dict(src="02:00:00:00:00:01", dst="02:00:00:00:00:02")
+    e, c = Ether(**mac) / IP(src=PI, dst=CLOUD), Ether(**mac) / IP(src=CLOUD, dst=PI)
+    a = dict(sport=edge_port, dport=8401)
+    b = dict(sport=8401, dport=edge_port)
+    pkts = [e / TCP(flags="S", seq=1000, **a), c / TCP(flags="SA", seq=5000, **b), e / TCP(flags="A", seq=1001, **a)]
+    times = [t0, t0 + 0.012, t0 + 0.013]
+    pkts += [e / TCP(flags="PA", seq=1001, **a) / (b"x" * 1448), e / TCP(flags="PA", seq=2449, **a) / (b"x" * 600)]
+    times += [t0 + 0.02, t0 + 0.021]
+    seq, n = 5001, len(reply_segments)
+    for i, size in enumerate(reply_segments):
+        pkts.append(c / TCP(flags="PA", seq=seq, **b) / (b"y" * size))
+        times.append(t0 + 0.021 + (release * (i + 1) / n))
+        if retransmit and i == 0:
+            pkts.append(c / TCP(flags="PA", seq=seq, **b) / (b"y" * size))
+            times.append(times[-1] + 0.2)
+        seq += size
+    for p, t in zip(pkts, times):
+        p.time = t
+    wrpcap(str(d / f"{stem}.pcap"), pkts)
+    rec = {"port": 8401, "role": "diagnostics", "shaping": {"spec": "2048/14/128/0.05/truncate", "truncated": cut,
+                                                            "overrun": False, "generated_s": 5.0, "released_s": 14.0}}
+    (d / f"{stem}.json").write_text(json.dumps({
+        "success": True, "arm": arm, "round": 0, "task_type": "fault_diagnosis", "start_ts": t0, "end_ts": t0 + 15.0,
+        "agent_endpoints": {"diagnostics": f"{CLOUD}:8401"},
+        "edge_report": {"escalated": True, "cloud_role": "diagnostics", "seconds": {"answer": 14.8}},
+        "cloud_replies": [rec] if shaping else []}))
+
+
+def test_check_shaping_counts_bytes_by_sequence_and_times_the_release(tmp_path):
+    from scripts.check_shaping import checks, measure, overhead, summary
+    d = tmp_path / "shaped"
+    d.mkdir()
+    _shaped_trace(d, "fault_diagnosis_edge_cloud_000001", reply_segments=[1000, 2000, 3000])
+    _shaped_trace(d, "fault_diagnosis_edge_cloud_000002", reply_segments=[3000, 3000], t0=200.0, release=14.770)
+    _shaped_trace(d, "fault_diagnosis_edge_cloud_000003", reply_segments=[6000], t0=300.0, retransmit=True)
+    rows = measure(d)
+    assert [r["reply_bytes"] for r in rows] == [6000, 6000, 6000] and {r["request_bytes"] for r in rows} == {2048}
+    assert all(abs(r["release_s"] - 14.762) < 0.02 for r in rows)            # the retransmission is not the end
+    res = checks(rows, "2048/14/128/0.05/truncate", wan_ms=12, tol_ms=50)
+    assert res["ok"] and res["identical"]["reply_bytes"] == [6000] and res["release"]["spread_ms"] < 10
+    _shaped_trace(d, "fault_diagnosis_edge_cloud_000004", reply_segments=[6001], t0=400.0, cut=True)
+    res = checks(measure(d), "2048/14/128/0.05/truncate", wan_ms=12, tol_ms=50)
+    assert not res["identical"]["ok"] and res["cut_overrun"]["cut"] == 1 and not res["ok"]
+    late = tmp_path / "late"
+    late.mkdir()
+    _shaped_trace(late, "fault_diagnosis_edge_cloud_000005", reply_segments=[6000], release=15.5, shaping=False)
+    res = checks(measure(late), "2048/14/128/0.05/truncate", wan_ms=12, tol_ms=50)
+    assert not res["release"]["ok"] and res["cut_overrun"]["missing_or_other_spec"] == ["fault_diagnosis_edge_cloud_000005"]
+    ctl = tmp_path / "control"
+    ctl.mkdir()
+    _shaped_trace(ctl, "fault_diagnosis_edge_cloud_000006", reply_segments=[30000] * 3, release=6.0, arm="lan_padmax")
+    o = overhead(summary(rows), summary(measure(ctl)))["fault_diagnosis"]
+    assert o["reply_bytes"] == 6000 - 90000 and abs(o["release_s"] - 8.762) < 0.02
+
+
+def test_results_are_never_written_over(tmp_path):
+    from scripts import b1_shape_calibration, round2_wan_plan
+    from scripts.check_shaping import main as shaping_main
+    assert round2_wan_plan.main(["--out-dir", str(tmp_path), "--allow-dirty"]) == 0
+    plan = json.loads((tmp_path / "b1_wan.json").read_text())
+    assert plan["collection_id"] == "C2B1" and plan["measurement_collection_id"] == "C2" and plan["created"]
+    with pytest.raises(SystemExit, match="never written over"):
+        round2_wan_plan.main(["--out-dir", str(tmp_path), "--allow-dirty"])
+    (tmp_path / "cal.md").write_text("")
+    with pytest.raises(SystemExit, match="never written over"):
+        b1_shape_calibration.main(["--out", str(tmp_path / "cal"), "--allow-dirty"])
+    (tmp_path / "ovh.json").write_text("")
+    with pytest.raises(SystemExit, match="never written over"):
+        shaping_main([str(tmp_path), "--out", str(tmp_path / "ovh"), "--allow-dirty"])

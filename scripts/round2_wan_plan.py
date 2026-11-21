@@ -25,6 +25,9 @@ instead of 6. Its handshakes are therefore 4 ms shorter than the control's, for 
 per-arm targets below say what the checks expect.
 
     python scripts/round2_wan_plan.py            # → data/results/b1_wan.json, b2_wan_jitter.json
+
+Each plan records the session's collection_id, the measurement it comes from, the commit, and when it
+was written; an existing plan is never written over.
 """
 
 from __future__ import annotations
@@ -34,6 +37,7 @@ import json
 import math
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -103,13 +107,13 @@ def plans(c2: dict) -> dict[str, dict]:
     e = c2["emulation"]
     one_way, rtt, delay = int(e["one_way_ms"]), float(c2["target_rtt_ms"]), float(c2["delay_ms"])
     common = {k: c2[k] for k in ("endpoint", "cloud_rtt", "base_rtt", "total_delay_ms", "target_rtt_ms", "delay_ms")}
-    src = {"measurement": "data/results/c2_wan_emulation.json", "measured_at": c2["measured_at"],
-           "measurement_commit": c2.get("git_commit")}
+    src = {"measurement": "data/results/c2_wan_emulation.json", "measurement_collection_id": c2.get("collection_id"),
+           "measured_at": c2["measured_at"], "measurement_commit": c2.get("git_commit"), "seed": None}
     dev = c2["fallback_pi_netem"]["dev"]
 
     b1_bases = [8300, 8400]
     b1_rules = rules(e, b1_bases, [])
-    b1 = {"paper": "P2", "round": 2, "session": "B1", "purpose": "reply shaping: lan_shaped against lan_padmax on C2's WAN",
+    b1 = {"paper": "P2", "round": 2, "session": "B1", "collection_id": "C2B1", "purpose": "reply shaping: lan_shaped against lan_padmax on C2's WAN",
           **src, **common, "jitter_ms": 0,
           "arms": {"8300": {"name": "lan_padmax", "target_rtt_ms": rtt, "delay_ms": delay, "pipes": [1, 2]},
                    "8400": {"name": "lan_shaped", "target_rtt_ms": rtt, "delay_ms": delay, "pipes": [1, 2],
@@ -149,7 +153,7 @@ def plans(c2: dict) -> dict[str, dict]:
                        "reply_other_packets": DUMMYNET_JITTER_ARM_MS, "control": one_way},
         "pi_netem": {"dev": dev, "tc_commands": pi_commands(dev, e["cloud"], jports)},
     }
-    b2 = {"paper": "P2", "round": 2, "session": "B2",
+    b2 = {"paper": "P2", "round": 2, "session": "B2", "collection_id": "C2B2",
           "purpose": "jitter and server load: lan_jl (both) against lan (neither), interleaved", **src, **common,
           "jitter_ms": JITTER_SD_MS, "jitter": jitter,
           "load": {"where": "the Mac's Ollama, localhost (never on the observed path), during every lan_jl task only",
@@ -178,10 +182,15 @@ def main(argv: list[str] | None = None) -> int:
     git = _git()
     if git["git_dirty"] and not a.allow_dirty:
         raise SystemExit("uncommitted code: commit first (or --allow-dirty for a dry run)")
-    for name, plan in plans(json.loads(Path(a.c2).read_text())).items():
+    todo = plans(json.loads(Path(a.c2).read_text()))
+    for name in todo:
+        if (Path(a.out_dir) / name).exists():
+            raise SystemExit(f"{Path(a.out_dir) / name} exists: results are never written over")
+    created = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+    for name, plan in todo.items():
         out = Path(a.out_dir) / name
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps({**plan, **git}, indent=2))
+        out.write_text(json.dumps({**plan, **git, "created": created}, indent=2))
         print(f"→ {out}")
     return 0
 
