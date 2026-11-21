@@ -22,13 +22,14 @@ its cloud call replaced by the 14.75 s release. For `lan_jl`, the cloud's answer
 round's pace line settles it. Add about 20 minutes of setup per session.
 
 Before each full session, a pilot on the real testbed: one short round per arm (`--n 5 --rounds 1`,
-20 traces per arm), into `data/pilot_c2b1/` or `data/pilot_c2b2/`, never into the raw data folders,
+20 traces per arm), into `data/pilot2_c2b1/` (B1, second pilot) or `data/pilot_c2b2/`, never into the raw data folders,
 with the session's checks run on it. The full session starts only if they pass. B2 runs after B3, so
 B3 keeps C2's Ollama settings; B2's full session runs only if its pilot passes, and goes to paper 3
 otherwise.
 
 - **B1** `lan_shaped`: requests padded to 8 KB, as in `lan_padmax`. Every reply is released
-  14 s after its request as 16 events of one size, 0.05 s apart, then an artifact of one size. A
+  14 s after its request as 16 events of one size, 0.05 s apart, then an artifact of one size, on
+  connections with TCP_NODELAY (the other arms keep uvicorn's default, Nagle on, as in C2). A
   reply over 2,048 JSON-encoded bytes is cut. In C2 none would have been: the largest reply is
   1,515 B and the longest cloud call 9.9 s (`data/results/b1_shape_calibration.json`).
 - **B2** `lan_jl`: both directions jittered, normal with mean 4 ms and sd 1.8 ms, plus 2 ms of
@@ -105,42 +106,51 @@ venv/bin/python scripts/serve_edge.py --bases 8300,8400 --tls-dir data/tls_lan -
 ```
 **Mac**, window 2: the WAN (C2's, for these two bases), for the pilot and the full run:
 ```bash
-mkdir -p data/pilot_c2b1/padmax data/raw_c2b1_padmax
+mkdir -p data/pilot2_c2b1/padmax data/raw_c2b1_padmax
 sudo C2_BASES=8300,8400 bash scripts/wan_emulation.sh on data/results/b1_wan.json
 ```
 
 ### B1 pilot
 
+The first pilot (`data/pilot_c2b1`, Nov 21) passed every check but the release time. Every shaped
+reply was 16,902 B on the wire and its events and artifact left on time (14.766 to 14.770 s after the
+request), but its last 351 B (the completed event and the end of the chunked stream) left 12 ms after
+the Pi's ACK of the artifact. uvicorn leaves Nagle's algorithm on, so the stream ended 14.787 to
+14.886 s after the request, as the Wi-Fi's ACKs came. The shaping agents now set TCP_NODELAY and
+their cards say `[tcp nodelay on]`; the collector refuses a shaped arm whose agents do not, and an
+unshaped arm whose agents do (`lan_padmax` stays as in C2). The second pilot runs into
+`data/pilot2_c2b1`; start the guard as soon as the collector has started.
+
 **Mac**, window 1 (`tmux`): the cloud agents, logging into the pilot's folder:
 ```bash
 venv/bin/python scripts/serve_cloud.py --bases 8300,8400 --shape 8400=2048/14/128/0.05/truncate \
-    --reply-log data/pilot_c2b1/replies --tls-dir data/tls_lan
+    --reply-log data/pilot2_c2b1/replies --tls-dir data/tls_lan
 ```
 **Mac**, window 2: the WAN check, then (window 3, root) the kernel's pipes:
 ```bash
 C2_BASES=8300,8400 venv/bin/python scripts/check_wan_emulation.py --target data/results/b1_wan.json \
-    --json data/pilot_c2b1/padmax/wan_check_start.json
-sudo venv/bin/python scripts/wan_watch.py --out data/pilot_c2b1/padmax/wan_status.json --log data/pilot_c2b1/padmax/wan_watch.jsonl
+    --json data/pilot2_c2b1/padmax/wan_check_start.json
+sudo venv/bin/python scripts/wan_watch.py --out data/pilot2_c2b1/padmax/wan_status.json --log data/pilot2_c2b1/padmax/wan_watch.jsonl
 ```
 **Mac**, window 2: the pilot, about 8 minutes:
 ```bash
-caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2B1-pilot \
+caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2B1-pilot2 \
     --n 5 --rounds 1 --seed-offset 31000 --workflows iot --tls-dir data/tls_lan \
-    --wan-target data/results/b1_wan.json --reply-log data/pilot_c2b1/replies \
-    --arm name=lan_padmax,ports=8300,pad=8192/16384,pad_expect=8192,out=data/pilot_c2b1/padmax \
-    --arm name=lan_shaped,ports=8400,pad=8192/16384,pad_expect=8192,shape=2048/14/128/0.05/truncate,out=data/pilot_c2b1/shaped
+    --wan-target data/results/b1_wan.json --reply-log data/pilot2_c2b1/replies \
+    --arm name=lan_padmax,ports=8300,pad=8192/16384,pad_expect=8192,out=data/pilot2_c2b1/padmax \
+    --arm name=lan_shaped,ports=8400,pad=8192/16384,pad_expect=8192,shape=2048/14/128/0.05/truncate,out=data/pilot2_c2b1/shaped
 ```
 **Mac**, window 4, once it has started: the guard on the pilot's folders:
 ```bash
 venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
-    --target data/results/b1_wan.json --status data/pilot_c2b1/padmax/wan_status.json --pi-overhead-ms 3.31 \
+    --target data/results/b1_wan.json --status data/pilot2_c2b1/padmax/wan_status.json --pi-overhead-ms 3.31 \
     --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
-    --json data/pilot_c2b1/padmax/wan_guard.json data/pilot_c2b1/padmax data/pilot_c2b1/shaped
+    --json data/pilot2_c2b1/padmax/wan_guard.json data/pilot2_c2b1/padmax data/pilot2_c2b1/shaped
 ```
 The collector must end with `lan_shaped: 15 cloud replies logged, 0 cut, 0 past the deadline, 0
-failed`. Then the WAN check again, and the checks below on `P=(data/pilot_c2b1/padmax
-data/pilot_c2b1/shaped)`, the shaping check with `data/pilot_c2b1/shaped --control
-data/pilot_c2b1/padmax`. `check_shaping.py` passes when every shaped reply has one size on the wire,
+failed`. Then the WAN check again, and the checks below on `P=(data/pilot2_c2b1/padmax
+data/pilot2_c2b1/shaped)`, the shaping check with `data/pilot2_c2b1/shaped --control
+data/pilot2_c2b1/padmax`. `check_shaping.py` passes when every shaped reply has one size on the wire,
 every release time is within 50 ms of 14.75 s plus the 12 ms round trip, and nothing was cut or
 overran. Stop `serve_cloud.py`, `wan_watch.py` and the guard; the WAN stays on.
 

@@ -26,6 +26,7 @@ import asyncio
 import enum
 import json
 import logging
+import socket
 import time
 import uuid
 from typing import Awaitable, Callable
@@ -140,6 +141,28 @@ def _new_http_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=httpx.Timeout(180.0), verify=tls.client_verify())
 
 
+def nodelay_http_protocol() -> type:
+    """uvicorn's HTTP protocol with TCP_NODELAY set on every connection it serves.
+
+    uvicorn leaves Nagle's algorithm on: it binds its own listening socket, whose accepted sockets
+    asyncio does not switch to TCP_NODELAY (base_events._set_nodelay skips sockets made with proto 0).
+    With Nagle on, a write while earlier bytes are unacknowledged waits for the peer's ACK: in B1's first
+    pilot every shaped reply's last 351 B (the completed event and the end of the chunked stream) left
+    12 ms after the Pi's ACK of the artifact, so the stream ended 14.787 to 14.886 s after its request
+    instead of at one time. The shaping agents set TCP_NODELAY; every other agent keeps uvicorn's
+    default, as in C2."""
+    from uvicorn.protocols.http.auto import AutoHTTPProtocol
+
+    class NoDelayHTTPProtocol(AutoHTTPProtocol):
+        def connection_made(self, transport) -> None:
+            sock = transport.get_extra_info("socket")
+            if sock is not None:
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            super().connection_made(transport)
+
+    return NoDelayHTTPProtocol
+
+
 class AgentConfig(BaseModel):
     role: AgentRole
     host: str = "0.0.0.0"
@@ -170,7 +193,8 @@ class AgentConfig(BaseModel):
     # Reply shaping (defense/shaping.py): REPLY_BYTES/DEADLINE_S[/CHUNK_BYTES[/INTERVAL_S[/OVERRUN]]],
     # e.g. "2048/14/128/0.05/truncate"; empty = off. Every reply then leaves DEADLINE_S after its request
     # as REPLY_BYTES / CHUNK_BYTES events of one size, INTERVAL_S apart, and a final artifact of one size
-    # (sizes in bytes on the wire, after JSON encoding).
+    # (sizes in bytes on the wire, after JSON encoding). A shaping agent also sets TCP_NODELAY on every
+    # connection (nodelay_http_protocol), so its last bytes do not wait for the peer's ACK.
     shape: str = ""
     # Reply jitter (defense/shaping.py JitterConfig): MEAN_MS/SD_MS[/SEED], e.g. "4/1.8"; empty = off.
     # Every SSE event waits an extra normal delay, in order (the reply side of B2's emulated WAN jitter).
@@ -382,7 +406,7 @@ class BaseA2AAgent:
         role = self.config.role.value
         desc = self.config.description or f"A2A {role} agent"
         if self.config.shape:                  # the collector checks these before the arm runs
-            desc += f" [shaped reply {self.config.shape}]"
+            desc += f" [shaped reply {self.config.shape}] [tcp nodelay on]"
         if self.config.jitter:
             desc += f" [reply jitter {self.config.jitter}]"
         return AgentCard(
@@ -420,14 +444,15 @@ class BaseA2AAgent:
 
         app = self.build_app()
         from agents import tls
+        extra = {"http": nodelay_http_protocol()} if self.config.shape else {}
         config = uvicorn.Config(
             app, host=self.config.host, port=self.config.port, log_level="warning",
-            **tls.server_kwargs(self.config.tls),
+            **tls.server_kwargs(self.config.tls), **extra,
         )
         self._server = uvicorn.Server(config)
         logger.info(
-            "Starting %s agent (a2a-sdk) on %s:%d",
-            self.config.role.value, self.config.host, self.config.port,
+            "Starting %s agent (a2a-sdk) on %s:%d%s",
+            self.config.role.value, self.config.host, self.config.port, ", TCP_NODELAY on" if extra else "",
         )
         try:
             await self._server.serve()

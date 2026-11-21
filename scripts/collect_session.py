@@ -399,6 +399,10 @@ async def start_edge(arm: Arm, a: argparse.Namespace) -> dict:
             if says != arm.shape:
                 raise SystemExit(f"arm {arm.name}: the {role} agent at {eps[role]} shapes {says or 'nothing'}, the arm "
                                  f"expects {arm.shape or 'nothing'} (serve_cloud.py --shape {arm.ports_base}=...)")
+            says = advertised(card.get("description", ""), "tcp nodelay")
+            if says != ("on" if arm.shape else ""):
+                raise SystemExit(f"arm {arm.name}: the {role} agent at {eps[role]} has TCP_NODELAY {says or 'off'}, the arm "
+                                 f"expects {'on (shaped arms)' if arm.shape else 'off (as in C2)'}")
             says = advertised(card.get("description", ""), "reply jitter")
             if same_jitter(says) != same_jitter(arm.jitter):
                 raise SystemExit(f"arm {arm.name}: the {role} agent at {eps[role]} jitters {says or 'nothing'}, the arm "
@@ -409,7 +413,7 @@ async def start_edge(arm: Arm, a: argparse.Namespace) -> dict:
 
 def advertised(description: str, what: str) -> str:
     """What an agent card advertises as "[WHAT SPEC]" (agents/base.py agent_card: shaped reply,
-    reply jitter), or ""."""
+    tcp nodelay, reply jitter), or ""."""
     tag = f"[{what} "
     return description[description.index(tag) + len(tag):].split("]", 1)[0] if tag in description else ""
 

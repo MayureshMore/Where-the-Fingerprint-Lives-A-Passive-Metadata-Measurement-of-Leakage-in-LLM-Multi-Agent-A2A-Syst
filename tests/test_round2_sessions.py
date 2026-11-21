@@ -218,8 +218,8 @@ def test_arm_options_and_card_checks(tmp_path):
     for bad in ("name=a,deployment=a,jitter=4/1.8,out=z", "name=j,jitter=4,out=z", "name=l,load=-1,out=z"):
         with pytest.raises(SystemExit):
             parse_arm(bad, 0, "edge-cloud" if "deployment" not in bad else "local")
-    desc = "A2A diagnostics agent [shaped reply 2048/14/128/0.05/truncate] [reply jitter 4/1.8/1]"
-    assert advertised(desc, "shaped reply") == "2048/14/128/0.05/truncate"
+    desc = "A2A diagnostics agent [shaped reply 2048/14/128/0.05/truncate] [tcp nodelay on] [reply jitter 4/1.8/1]"
+    assert advertised(desc, "shaped reply") == "2048/14/128/0.05/truncate" and advertised(desc, "tcp nodelay") == "on"
     assert same_jitter(advertised(desc, "reply jitter")) == same_jitter("4/1.8") == (4.0, 1.8)
     assert advertised("A2A agent", "reply jitter") == "" and same_jitter("") is None
     log = ReplyLog(str(tmp_path))
@@ -311,3 +311,62 @@ def test_results_are_never_written_over(tmp_path):
     (tmp_path / "ovh.json").write_text("")
     with pytest.raises(SystemExit, match="never written over"):
         shaping_main([str(tmp_path), "--out", str(tmp_path / "ovh"), "--allow-dirty"])
+
+
+def _free_port() -> int:
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+
+def test_shaping_agents_serve_with_tcp_nodelay_and_say_so():
+    """B1's first pilot: with Nagle on, the last 351 B of every shaped reply waited for the Pi's ACK.
+    A shaping agent sets TCP_NODELAY on every connection and its card says so; the others keep
+    uvicorn's default (off), as in C2."""
+    import gc
+
+    import httpx
+    from agents.base import AgentConfig, AgentRole
+    from agents.cloud import CLOUD_AGENTS
+
+    def nodelay_by_port() -> dict[int, bool]:
+        out = {}
+        for o in gc.get_objects():
+            if not isinstance(o, asyncio.Protocol):        # uvicorn's HTTP protocol, one per connection
+                continue
+            t = getattr(o, "transport", None)
+            sock = t.get_extra_info("socket") if t is not None and not t.is_closing() else None
+            if sock is not None:
+                out[sock.getsockname()[1]] = bool(sock.getsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY))  # macOS: 4
+        return out
+
+    async def run() -> tuple[dict, dict]:
+        ports = {"shaped": _free_port(), "plain": _free_port()}
+        agents = {k: CLOUD_AGENTS["diagnostics"](AgentConfig(role=AgentRole("diagnostics"), host="127.0.0.1", port=p,
+                                                              tls=False, shape="2048/14/128/0.05/truncate" if k == "shaped" else ""))
+                  for k, p in ports.items()}
+        tasks = [asyncio.create_task(a.run()) for a in agents.values()]
+        try:
+            cards = {}
+            async with httpx.AsyncClient() as c:
+                for k, p in ports.items():
+                    for _ in range(50):
+                        try:
+                            cards[k] = (await c.get(f"http://127.0.0.1:{p}/.well-known/agent-card.json")).json()
+                            break
+                        except httpx.ConnectError:
+                            await asyncio.sleep(0.1)
+                seen = nodelay_by_port()                   # while the client's keep-alive connections are open
+            return cards, {k: seen.get(p) for k, p in ports.items()}
+        finally:
+            for a in agents.values():
+                a._server.should_exit = True
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    cards, nodelay = asyncio.run(run())
+    assert nodelay == {"shaped": True, "plain": False}
+    assert advertised(cards["shaped"]["description"], "tcp nodelay") == "on"
+    assert advertised(cards["plain"]["description"], "tcp nodelay") == ""
+    assert advertised(cards["shaped"]["description"], "shaped reply") == "2048/14/128/0.05/truncate"
