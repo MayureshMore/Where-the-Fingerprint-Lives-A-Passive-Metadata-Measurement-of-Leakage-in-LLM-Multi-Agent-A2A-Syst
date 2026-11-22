@@ -25,8 +25,11 @@ start and then every --every traces (all arms together) it checks:
 
 If any check fails, it stops the collection (SIGINT to collect_session.py, which --resume
 continues), marks every trace since the last good check as suspect, and exits 2. The record is
---json: every check, the dummynet drop counters, and the suspect traces. A trace is complete when
-its sidecar JSON is written; traces are ordered by that time.
+--json: every check, the dummynet drop counters, and the suspect traces, with the collection id read
+from the folders' session_meta.json (a list if they differ; null until the collector writes it) and
+the commit with whether the code had uncommitted changes. --json is never written over: a guard
+restarted for a resumed session writes a new file (wan_guard_resume1.json). A trace is complete
+when its sidecar JSON is written; traces are ordered by that time.
 
     python scripts/c2_guard.py --collector-pid PID --status data/raw_c2/wan_status.json \
         --json data/raw_c2/wan_guard.json data/raw_c2 data/raw_c2_pad data/raw_c2_padmax
@@ -49,12 +52,25 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from a2a_leakcheck.cli import _git as git_state  # noqa: E402
 from agents.edge import wan_target  # noqa: E402
 from features.kfp import tcp_records  # noqa: E402
 
 TRACE = re.compile(r"_edge_cloud_[0-9a-f]{6}$")
 CLOUD_OFFSETS, TICKET_OFFSET = (1, 2), 5          # agents/edge.py: CLOUD_PORTS, TICKET_PORT
 SYN, ACK = 0x02, 0x10
+
+
+def collection_ids(dirs: list[Path]) -> str | list[str] | None:
+    """The collection id in the folders' session_meta.json: one id, a sorted list if they differ, None
+    if no folder has one yet (the collector writes it after its first WAN probe)."""
+    ids = set()
+    for d in dirs:
+        try:
+            ids.add(json.loads((d / "session_meta.json").read_text())["collection_id"])
+        except (OSError, ValueError, KeyError):
+            pass
+    return None if not ids else ids.pop() if len(ids) == 1 else sorted(ids)
 
 
 def traces(dirs: list[Path]) -> list[Path]:
@@ -99,7 +115,7 @@ class Guard:
         self.ticket = {b + TICKET_OFFSET for b in e["bases"]}
         self.lock_ports = sorted(self.cloud | self.ticket)
         self.dirs = [Path(d) for d in a.dirs]
-        self.record = {"paper": "P2", "collection_id": "C2", "every": a.every, "tolerance": a.tolerance,
+        self.record = {"paper": "P2", "collection_id": collection_ids(self.dirs), "every": a.every, "tolerance": a.tolerance,
                        "target": {"target_rtt_ms": self.rtt, "dummynet_ms": self.delay, "one_way_ms": self.one_way,
                                   "file": a.target, "pipes": self.pipes,
                                   "arms": {str(b): x for b, x in self.arms.items()} if self.per_arm else None},
@@ -107,7 +123,7 @@ class Guard:
                        "calibration": json.loads(a.calibration) if a.calibration else None,
                        "guard_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                        "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "checks": [], "suspect": [],
-                       "stopped": False, "git_commit": _git("rev-parse", "HEAD")}
+                       "stopped": False, **git_state()}
         self.covered: set[str] = set()           # traces a passing check covered
         self.drops: dict[int, int] = {}
 
@@ -225,6 +241,8 @@ class Guard:
         return ok
 
     def save(self) -> None:
+        if self.record["collection_id"] is None:
+            self.record["collection_id"] = collection_ids(self.dirs)
         if self.a.json:
             p = Path(self.a.json)
             tmp = p.with_suffix(".tmp")
@@ -320,10 +338,6 @@ def _git_free_run(*cmd: str) -> str:
     return subprocess.run(list(cmd), capture_output=True, text=True).stdout
 
 
-def _git(*args: str) -> str | None:
-    return _git_free_run("git", *args).strip() or None
-
-
 def replay(a: argparse.Namespace) -> int:
     """Check 4 on finished traces, in windows of --every (a pilot, or C2 afterwards)."""
     g = Guard(a)
@@ -353,4 +367,6 @@ if __name__ == "__main__":
     p.add_argument("--json", default=None)
     p.add_argument("--replay", action="store_true", help="check 4 only, on finished traces; no collector")
     a = p.parse_args()
+    if a.json and Path(a.json).exists():
+        raise SystemExit(f"{a.json} exists: give the guard a new file (a resumed session: wan_guard_resume1.json)")
     sys.exit(replay(a) if a.replay else Guard(a).run())

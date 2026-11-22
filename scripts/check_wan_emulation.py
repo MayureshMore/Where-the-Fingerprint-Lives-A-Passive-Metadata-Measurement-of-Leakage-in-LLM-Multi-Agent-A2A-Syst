@@ -22,7 +22,9 @@ Pi's SYN is captured before the delay, the SYN-ACK after it: the capture sits wh
 router would) and close to zero to the ticket service (no Wi-Fi between). With the netem fallback
 on the Pi the capture sees the SYN after the delay, so the cloud handshake looks undelayed there:
 pass --fallback-pi to expect that. The base round trip seen in the probes is printed and kept in
---json. Exit 1 if any check fails. Addresses and the interface come from configs/c2_network.conf.
+--json, which is never written over. Exit 1 if any check fails. The probe capture is stopped and
+deleted whatever happens, a probe that cannot reach an edge agent included. Addresses and the
+interface come from configs/c2_network.conf.
 
 Usage (Mac, with scripts/serve_edge.py and scripts/serve_cloud.py running):
     python scripts/check_wan_emulation.py --json data/raw_c2_pilot/wan_check.json
@@ -32,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import statistics
 import subprocess
 import sys
@@ -64,6 +67,18 @@ def probe(c: httpx.Client, url: str, target: str, n: int) -> dict:
     return r.json() if r.status_code == 200 else {"target": target, "error": r.json().get("error", r.text)}
 
 
+def stop_capture(cap: subprocess.Popen | None) -> None:
+    """Stop the probe capture if it is still running (SIGTERM, then SIGKILL after 10 s)."""
+    if cap is None or cap.poll() is not None:
+        return
+    cap.terminate()
+    try:
+        cap.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        cap.kill()
+        cap.wait(timeout=5)
+
+
 def _quartiles(ms: list[float]) -> dict:
     q1, med, q3 = statistics.quantiles(ms, n=4) if len(ms) > 1 else (ms[0],) * 3
     return {"n": len(ms), "median_ms": med, "q1_ms": q1, "q3_ms": q3, "iqr_ms": q3 - q1,
@@ -78,6 +93,8 @@ def _git() -> dict:
 
 
 def main(a: argparse.Namespace) -> int:
+    if a.json and Path(a.json).exists():
+        raise SystemExit(f"{a.json} exists: give the check a new file (a resumed session: wan_check_resume1.json)")
     net = c2_network()
     a.edge_host = require(a.edge_host or net["C2_PI"], "the Pi's address (C2_PI)")
     iface = None if a.no_capture else (a.interface or require(net["C2_IFACE"], "the capture interface (C2_IFACE)"))
@@ -88,25 +105,30 @@ def main(a: argparse.Namespace) -> int:
     arms = {b: wan_target(target, b, a.tolerance) for b in bases}  # a round-2 plan's arms may differ
     network = check_network(net, bases, a.edge_host)
     ports = {b + CLOUD_PORTS["diagnostics"]: f"cloud:{b}" for b in bases} | {b + TICKET_PORT: "ticket" for b in bases}
-    cap, pcap = None, None
-    if iface:
-        pcap = Path(tempfile.mkdtemp(prefix="wancheck_")) / "probe.pcap"
-        flt = f"tcp and host {a.edge_host} and (" + " or ".join(f"port {p}" for p in ports) + ")"
-        cap = subprocess.Popen(["tcpdump", "-i", iface, "-p", "-n", "-s", "96", "-w", str(pcap), flt],
-                               stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        time.sleep(1.5)
-        if cap.poll() is not None:
-            raise SystemExit(f"tcpdump on {iface}: {cap.stderr.read().decode().strip()}")
-    rows = []
-    with httpx.Client(timeout=300) as c:
-        for base in bases:
-            url = f"http://{a.edge_host}:{base + TRIGGER_PORT}/probe"
-            rows.append({"base": base, **{t: probe(c, url, t, a.n if t != "internet" else 3)
-                                          for t in ("internet", "ticket", "cloud")}})
-    if cap:
-        time.sleep(1.0)
-        cap.terminate()
-        cap.wait(timeout=10)
+    cap, pcap, hs = None, None, None
+    try:
+        if iface:
+            pcap = Path(tempfile.mkdtemp(prefix="wancheck_")) / "probe.pcap"
+            flt = f"tcp and host {a.edge_host} and (" + " or ".join(f"port {p}" for p in ports) + ")"
+            cap = subprocess.Popen(["tcpdump", "-i", iface, "-p", "-n", "-s", "96", "-w", str(pcap), flt],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            time.sleep(1.5)
+            if cap.poll() is not None:
+                raise SystemExit(f"tcpdump on {iface}: {cap.stderr.read().decode().strip()}")
+        rows = []
+        with httpx.Client(timeout=300) as c:
+            for base in bases:
+                url = f"http://{a.edge_host}:{base + TRIGGER_PORT}/probe"
+                rows.append({"base": base, **{t: probe(c, url, t, a.n if t != "internet" else 3)
+                                              for t in ("internet", "ticket", "cloud")}})
+        if cap:
+            time.sleep(1.0)
+            stop_capture(cap)
+            hs = handshakes(pcap, ports)
+    finally:                                   # a probe that raised (an edge agent down) leaves no tcpdump behind
+        stop_capture(cap)
+        if pcap is not None:
+            shutil.rmtree(pcap.parent, ignore_errors=True)
     checks = [{"check": "0. network", "edge": "all", "ok": network["ok"], "value": None,
                "detail": "; ".join(c["detail"] for c in network["checks"] if not c["ok"]) or
                          "Mac address, cloud alias and the Pi's route via the Mac"}]
@@ -125,8 +147,7 @@ def main(a: argparse.Namespace) -> int:
                        "detail": f"faster than the cloud alias by {gap if gap is not None else float('nan'):.1f} ms "
                                  f"(at least {delay_b / 2:.1f}: not delayed)"})
     capture = None
-    if pcap:
-        hs = handshakes(pcap, ports)
+    if hs is not None:
         capture = {k: {"n": len(v), "median_ms": statistics.median(v) if v else None} for k, v in hs.items()}
         tm = capture["ticket"]["median_ms"]
         small = max(2.0, 0.2 * rtt)                               # an undelayed handshake at the capture

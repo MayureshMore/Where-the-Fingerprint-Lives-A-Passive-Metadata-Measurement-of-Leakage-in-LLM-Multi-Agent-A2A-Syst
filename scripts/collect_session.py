@@ -32,7 +32,13 @@ support_triage; every collection up to C1) or iot (sensor_analysis, fault_diagno
 procedure_lookup, alert_triage; C2), or a comma-separated list from one set. Prompt seeds are
 workflows.prompt_seed: topology_index × 4 + the workflow's index in its set + 100 + seed_offset, so
 classic prompts are what they were. session_meta.json records the template pools and how many
-distinct prompts were drawn per workflow.
+distinct prompts were drawn per workflow. A condition's prompts are the first n of its seeded
+sequence; with --prompt-start K and --exclude-prompts DIR,DIR,... they are the next n from position
+K on with every prompt found in those folders' sidecars, and every repeat, skipped (C2B1X continues
+B1's sequence, seed offset 31000 from position 125, with none of C2's or B1's prompts). The
+selection (positions, skips, a hash of the prompts) is in session_meta.json, and --resume refuses
+options that would select other prompts. Every start and resume adds the commit to session_meta.json
+(git), with whether the code had uncommitted changes.
 
 Edge-cloud placement (--placement edge-cloud; C2, docs/LAN_SETUP.md): the agent that runs the task
 is the edge agent on the IoT gateway (scripts/serve_edge.py on the Raspberry Pi); it answers
@@ -112,6 +118,7 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from a2a_leakcheck.cli import _git as git_state  # noqa: E402
 from agents import tls  # noqa: E402
 from capture.automation import TraceCollector  # noqa: E402
 from capture.recorder import PacketRecorder  # noqa: E402
@@ -202,6 +209,64 @@ def prompt_pool(prompts: dict, topologies: list[str], workflows: list[str]) -> d
         out[w] = {"template_pools": WORKFLOW_REGISTRY[WorkflowClass(w)].template_pools,
                   "drawn": len(drawn), "distinct": len(set(drawn))}
     return out
+
+
+def read_prompts(dirs: list[str]) -> tuple[set[str], list[dict]]:
+    """Every input_prompt in these folders' trace sidecars, and per folder its collection ids and
+    how many distinct prompts it holds."""
+    seen, info = set(), []
+    for d in dirs:
+        if not Path(d).is_dir():
+            raise SystemExit(f"--exclude-prompts: {d} is not a folder")
+        got, ids = set(), set()
+        for f in Path(d).glob("*.json"):
+            try:
+                sc = json.loads(f.read_text())
+            except ValueError:
+                continue
+            if isinstance(sc, dict) and sc.get("input_prompt") and f.name != "session_meta.json":
+                got.add(sc["input_prompt"])
+                ids.add(sc.get("collection_id") or "")
+        if not got:
+            raise SystemExit(f"--exclude-prompts: no trace sidecar with an input_prompt in {d}")
+        seen |= got
+        info.append({"dir": d, "collection_ids": sorted(ids - {""}), "prompts": len(got)})
+    return seen, info
+
+
+def select_prompts(workflow_cls, n: int, seed: int, start: int = 0, exclude: set[str] | frozenset = frozenset(),
+                   limit: int = 1_000_000) -> tuple[list[str], dict | None]:
+    """A condition's n prompts. Without start or exclude, the first n of its seeded sequence (every
+    collection up to B1). Otherwise the sequence from position start on, skipping every prompt in
+    exclude and every repeat, until n are taken; with the positions, the skips and a hash of the list.
+    sample_prompts draws one prompt at a time from a reseeded generator, so a longer sample begins
+    with the shorter one: position i is the same prompt whatever the length drawn."""
+    if not start and not exclude:
+        return workflow_cls().sample_prompts(n=n, seed=seed), None
+    m = max(2 * (start + n), 64)
+    while True:
+        seq = workflow_cls().sample_prompts(n=m, seed=seed)
+        taken, seen, skipped_excluded, skipped_repeat = [], set(), 0, 0
+        for i in range(start, m):
+            if seq[i] in exclude:
+                skipped_excluded += 1
+            elif seq[i] in seen:
+                skipped_repeat += 1
+            else:
+                seen.add(seq[i])
+                taken.append(seq[i])
+                if len(taken) == n:
+                    return taken, {"first_position": start, "last_position": i, "skipped_excluded": skipped_excluded,
+                                   "skipped_repeat": skipped_repeat,
+                                   "sha1": hashlib.sha1("\x1f".join(taken).encode()).hexdigest()}
+        if m >= limit:
+            raise SystemExit(f"{workflow_cls.__name__}: fewer than {n} new prompts in the first {m} of seed {seed}")
+        m = min(4 * m, limit)
+
+
+def selection_key(sel: dict | None) -> dict | None:
+    """What --resume compares: the start and each condition's prompt hash."""
+    return None if not sel else {"start": sel["start"], "sha1": {k: v["sha1"] for k, v in sel["conditions"].items()}}
 
 
 EDGE_CLOUD = "edge_cloud"
@@ -583,11 +648,28 @@ async def main(a: argparse.Namespace) -> None:
         raise SystemExit(f"--placement edge-cloud routes only {sorted(ROUTES)} (--workflows iot)")
     meta_paths = [arm.out / "session_meta.json" for arm in arms]
     meta = json.loads(meta_paths[0].read_text()) if a.resume and meta_paths[0].exists() else None
+    resumed = meta is not None
     if meta is not None and meta["workflows"] != workflows:
         raise SystemExit(f"--resume: the session collected {meta['workflows']}, not {workflows}")
-    prompts = {(t, w): WORKFLOW_REGISTRY[WorkflowClass(w)]().sample_prompts(
-                   n=a.n, seed=prompt_seed(0 if t == EDGE_CLOUD else TOPOLOGIES.index(t), w, a.seed_offset))
-               for t in (topologies if edge else TOPOLOGIES) for w in workflows}
+    excl_dirs = [d.strip() for d in (a.exclude_prompts or "").split(",") if d.strip()]
+    if {Path(d).resolve() for d in excl_dirs} & {arm.out.resolve() for arm in arms}:
+        raise SystemExit("--exclude-prompts lists an output folder of this session")
+    exclude, excluded = read_prompts(excl_dirs) if excl_dirs else (set(), [])
+    prompts, chosen = {}, {}
+    for t in (topologies if edge else TOPOLOGIES):
+        for w in workflows:
+            seed = prompt_seed(0 if t == EDGE_CLOUD else TOPOLOGIES.index(t), w, a.seed_offset)
+            prompts[(t, w)], chosen[f"{t}/{w}"] = select_prompts(WORKFLOW_REGISTRY[WorkflowClass(w)], a.n, seed,
+                                                                 a.prompt_start, exclude)
+    selection = {"start": a.prompt_start, "exclude": excluded, "conditions": chosen} \
+        if (a.prompt_start or exclude) else None
+    if meta is not None and selection_key(meta.get("prompt_selection")) != selection_key(selection):
+        raise SystemExit("--resume: --prompt-start/--exclude-prompts select other prompts than the session's "
+                         "(session_meta.json prompt_selection)")
+    for k, v in chosen.items():
+        if v:
+            logger.info("  prompts %s: positions %d-%d, %d skipped as used before, %d as repeats", k,
+                        v["first_position"], v["last_position"], v["skipped_excluded"], v["skipped_repeat"])
     if meta is None:
         meta = {
             "collection_id": a.collection_id,
@@ -613,6 +695,7 @@ async def main(a: argparse.Namespace) -> None:
             "prompt_seed": "topology_index × 4 + index of the workflow in its set + 100 + seed_offset "
                            "(workflows.prompt_seed)",
             "prompt_pool": prompt_pool(prompts, topologies, workflows),
+            "prompt_selection": selection,
             "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
             "schedule": [], "failures": 0, "tls_params": {},
             "placement": a.placement,
@@ -622,6 +705,11 @@ async def main(a: argparse.Namespace) -> None:
 
     if network is not None:                                   # one per session (a --resume adds one)
         meta.setdefault("network_checks", []).append({"at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), **network})
+    code = {"at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "resume": resumed, **git_state()}
+    meta.setdefault("git", []).append(code)                  # every start and resume: the commit it ran from
+    if code["git_dirty"] is not False:
+        logger.warning("  the code at %s has uncommitted changes (git status); session_meta.json records it",
+                       code["git_commit"])
 
     def save() -> None:
         for p in meta_paths:
@@ -790,6 +878,12 @@ def _parse() -> argparse.Namespace:
     p.add_argument("--rounds", type=int, default=5)
     p.add_argument("--seed-offset", type=int, required=True, dest="seed_offset",
                    help="prompt seed offset; register it in docs/PROMPT_REGISTRY.md")
+    p.add_argument("--prompt-start", type=int, default=0, dest="prompt_start",
+                   help="take each condition's prompts from this position of its seeded sequence on (C2B1X: 125, "
+                        "after B1's)")
+    p.add_argument("--exclude-prompts", default="", dest="exclude_prompts", metavar="DIR[,DIR...]",
+                   help="skip every prompt found in these folders' trace sidecars, and every repeat (C2B1X: C2's "
+                        "and B1's folders)")
     p.add_argument("--num-predict", type=int, default=DEFAULT_NUM_PREDICT, dest="num_predict")
     p.add_argument("--topology", choices=TOPOLOGIES, default=None)
     p.add_argument("--placement", choices=["local", "edge-cloud"], default="local",
