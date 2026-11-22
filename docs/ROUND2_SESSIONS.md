@@ -270,39 +270,50 @@ Ollama as in B1: `OLLAMA_NUM_PARALLEL` 1, context 128k. Start by 22:00 to finish
 cd ~/a2a
 venv/bin/python scripts/serve_edge.py --bases 8400 --tls-dir data/tls_lan --model llama3.2:1b --num-predict 128
 ```
-**Mac**, window 2: the WAN for base 8400 (after B3, `sudo bash scripts/wan_emulation.sh off` first):
+**Mac**, window 2: B1's WAN, whole (after B3, `sudo bash scripts/wan_emulation.sh off` first).
+`wan_emulation.sh` sets up a plan only with `C2_BASES` equal to the plan's bases, 8300 and 8400 for
+`b1_wan.json`; its rules and pipes do not depend on them, so the WAN is B1's, and nothing listens on
+8300's ports. The WAN checks probe 8400 only (`C2_BASES=8400` on them), and the guard reads
+connect times on 8400 only (`--bases 8400`) while checking the whole plan's pipes, rules and port
+lock.
 ```bash
-mkdir -p data/pilot_c2b1x/shaped data/raw_c2b1x_shaped
-sudo C2_BASES=8400 bash scripts/wan_emulation.sh on data/results/b1_wan.json
+mkdir -p data/pilot2_c2b1x/shaped data/raw_c2b1x_shaped
+sudo C2_BASES=8300,8400 bash scripts/wan_emulation.sh on data/results/b1_wan.json
 ```
 
 ### C2B1X pilot (about 6 minutes)
 
+The first pilot (`data/pilot_c2b1x`, Nov 22 00:59) ran with the WAN off: the command above had
+`C2_BASES=8400`, which `wan_emulation.sh` refuses for this plan, so it set up nothing. The opening
+WAN check failed (12.4 ms end to end against 22.6), and the guard stopped the collector at the start
+(no pipes, no rules), before any trace. Its files stay as they are; the pilot runs again into
+`data/pilot2_c2b1x`.
+
 **Mac**, window 1 (`tmux`):
 ```bash
 venv/bin/python scripts/serve_cloud.py --bases 8400 --shape 8400=2048/14/128/0.05/truncate \
-    --reply-log data/pilot_c2b1x/replies --tls-dir data/tls_lan
+    --reply-log data/pilot2_c2b1x/replies --tls-dir data/tls_lan
 ```
 **Mac**, window 2, then window 3 (root):
 ```bash
 C2_BASES=8400 venv/bin/python scripts/check_wan_emulation.py --target data/results/b1_wan.json \
-    --json data/pilot_c2b1x/shaped/wan_check_start.json
-sudo venv/bin/python scripts/wan_watch.py --out data/pilot_c2b1x/shaped/wan_status.json --log data/pilot_c2b1x/shaped/wan_watch.jsonl
+    --json data/pilot2_c2b1x/shaped/wan_check_start.json
+sudo venv/bin/python scripts/wan_watch.py --out data/pilot2_c2b1x/shaped/wan_status.json --log data/pilot2_c2b1x/shaped/wan_watch.jsonl
 ```
 **Mac**, window 2: the pilot:
 ```bash
 caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2B1X-pilot \
     --n 5 --rounds 1 --seed-offset 31000 --prompt-start 125 \
     --exclude-prompts data/raw_c2,data/raw_c2_pad,data/raw_c2_padmax,data/raw_c2b1_padmax,data/raw_c2b1_shaped \
-    --workflows iot --tls-dir data/tls_lan --wan-target data/results/b1_wan.json --reply-log data/pilot_c2b1x/replies \
-    --arm name=lan_shaped,ports=8400,pad=8192/16384,pad_expect=8192,shape=2048/14/128/0.05/truncate,out=data/pilot_c2b1x/shaped
+    --workflows iot --tls-dir data/tls_lan --wan-target data/results/b1_wan.json --reply-log data/pilot2_c2b1x/replies \
+    --arm name=lan_shaped,ports=8400,pad=8192/16384,pad_expect=8192,shape=2048/14/128/0.05/truncate,out=data/pilot2_c2b1x/shaped
 ```
 **Mac**, window 4, as soon as it has started:
 ```bash
 venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
-    --target data/results/b1_wan.json --status data/pilot_c2b1x/shaped/wan_status.json --pi-overhead-ms 3.31 \
+    --target data/results/b1_wan.json --bases 8400 --status data/pilot2_c2b1x/shaped/wan_status.json --pi-overhead-ms 3.31 \
     --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
-    --json data/pilot_c2b1x/shaped/wan_guard.json data/pilot_c2b1x/shaped
+    --json data/pilot2_c2b1x/shaped/wan_guard.json data/pilot2_c2b1x/shaped
 ```
 The pilot passes with all of these:
 
@@ -310,9 +321,9 @@ The pilot passes with all of these:
   0 failed`.
 - Prompt lines from position 125.
 - The guard OK.
-- The closing WAN check (`--json data/pilot_c2b1x/shaped/wan_check_after.json`, run while
+- The closing WAN check (`--json data/pilot2_c2b1x/shaped/wan_check_after.json`, run while
   `serve_cloud.py` still runs).
-- The checks below on `P=(data/pilot_c2b1x/shaped)`.
+- The checks below on `P=(data/pilot2_c2b1x/shaped)`.
 
 ### C2B1X full run
 
@@ -338,7 +349,7 @@ caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cl
 **Mac**, window 4, as soon as it has started:
 ```bash
 venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
-    --target data/results/b1_wan.json --status data/raw_c2b1x_shaped/wan_status.json --pi-overhead-ms 3.31 \
+    --target data/results/b1_wan.json --bases 8400 --status data/raw_c2b1x_shaped/wan_status.json --pi-overhead-ms 3.31 \
     --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
     --json data/raw_c2b1x_shaped/wan_guard.json data/raw_c2b1x_shaped
 ```

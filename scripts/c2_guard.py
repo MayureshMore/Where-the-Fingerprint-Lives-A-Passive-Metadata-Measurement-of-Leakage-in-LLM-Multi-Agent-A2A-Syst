@@ -21,7 +21,10 @@ start and then every --every traces (all arms together) it checks:
                 ±--tolerance of 12 ms and no handshake under its lower bound (a missing pipe halves
                 it); the ticket service on the Mac's own address stays undelayed. With a plan whose
                 arms differ (B2), per arm, from that arm's traces and targets (agents/edge.py
-                wan_target: ±--tolerance, at least ±2 ms)
+                wan_target: ±--tolerance, at least ±2 ms). --bases limits check 4 to some of the
+                plan's bases, for a session that runs only some of its arms (C2B1X: 8400 of
+                b1_wan.json's 8300 and 8400); checks 1 to 3 still cover the whole plan, which
+                scripts/wan_emulation.sh sets up whole (C2_BASES must be the plan's bases)
 
 If any check fails, it stops the collection (SIGINT to collect_session.py, which --resume
 continues), marks every trace since the last good check as suspect, and exits 2. The record is
@@ -107,17 +110,21 @@ class Guard:
         e = t["emulation"]
         self.pi, self.cloud_ip, self.mac, self.iface = e["pi"], e["cloud"], e["mac"], e["iface"]
         self.one_way, self.rtt, self.delay = float(e["one_way_ms"]), float(t["target_rtt_ms"]), float(t["delay_ms"])
-        self.cloud = {b + o for b in e["bases"] for o in CLOUD_OFFSETS}
-        self.base_of = {b + o: b for b in e["bases"] for o in CLOUD_OFFSETS}
+        plan = [int(b) for b in e["bases"]]
+        bases = [int(b) for b in a.bases.split(",") if b] if getattr(a, "bases", None) else plan
+        if not bases or set(bases) - set(plan):
+            raise SystemExit(f"--bases {a.bases}: not among {a.target}'s bases {plan}")
+        self.cloud = {b + o for b in bases for o in CLOUD_OFFSETS}
+        self.base_of = {b + o: b for b in bases for o in CLOUD_OFFSETS}
         self.per_arm = bool(t.get("arms"))          # a round-2 plan: each arm its own targets
-        self.arms = {b: wan_target(t, b, a.tolerance) for b in e["bases"]}
+        self.arms = {b: wan_target(t, b, a.tolerance) for b in bases}
         self.pipes = {int(n): int(ms) for n, ms in (e.get("pipes") or [[1, self.one_way], [2, self.one_way]])}
-        self.ticket = {b + TICKET_OFFSET for b in e["bases"]}
-        self.lock_ports = sorted(self.cloud | self.ticket)
+        self.ticket = {b + TICKET_OFFSET for b in bases}
+        self.lock_ports = sorted({b + o for b in plan for o in (*CLOUD_OFFSETS, TICKET_OFFSET)})   # the plan's rules
         self.dirs = [Path(d) for d in a.dirs]
         self.record = {"paper": "P2", "collection_id": collection_ids(self.dirs), "every": a.every, "tolerance": a.tolerance,
                        "target": {"target_rtt_ms": self.rtt, "dummynet_ms": self.delay, "one_way_ms": self.one_way,
-                                  "file": a.target, "pipes": self.pipes,
+                                  "file": a.target, "pipes": self.pipes, "plan_bases": plan, "checked_bases": bases,
                                   "arms": {str(b): x for b, x in self.arms.items()} if self.per_arm else None},
                        "pi_overhead_ms": a.pi_overhead_ms,
                        "calibration": json.loads(a.calibration) if a.calibration else None,
@@ -356,6 +363,8 @@ if __name__ == "__main__":
     p.add_argument("--collector-pid", type=int, default=None, dest="collector_pid")
     p.add_argument("--status", default="data/raw_c2/wan_status.json", help="scripts/wan_watch.py --out")
     p.add_argument("--target", default="data/results/c2_wan_emulation.json")
+    p.add_argument("--bases", default=None,
+                   help="the bases whose traces check 4 reads, some of the plan's (default: all); checks 1-3 cover the plan")
     p.add_argument("--every", type=int, default=50)
     p.add_argument("--tolerance", type=float, default=0.20)
     p.add_argument("--max-age", type=float, default=120.0, dest="max_age")

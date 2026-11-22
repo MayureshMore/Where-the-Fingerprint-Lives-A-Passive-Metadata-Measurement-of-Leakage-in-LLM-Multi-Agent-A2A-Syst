@@ -179,3 +179,33 @@ def test_audits_are_never_written_over(tmp_path, monkeypatch):
     (tmp_path / "res.json").write_text("{}")
     with pytest.raises(SystemExit, match="not written over"):
         b1_audits.main(["--arm", f"x={tmp_path / 'raw'}", "--prefix", "t", "--out", str(tmp_path / "res"), "--allow-dirty"])
+
+
+def test_the_guard_checks_connect_times_on_the_bases_given_and_the_port_lock_on_the_whole_plan(tmp_path, monkeypatch):
+    import scripts.c2_guard as guard
+    plan = tmp_path / "plan.json"
+    plan.write_text(json.dumps({"target_rtt_ms": 22.6, "delay_ms": 12, "arms": {
+        str(b): {"target_rtt_ms": 22.6, "delay_ms": 12, "pipes": [1, 2]} for b in (8300, 8400)}, "emulation": {
+        "pi": "10.0.0.171", "cloud": "172.30.0.100", "mac": "10.0.0.228", "iface": "en0",
+        "bases": [8300, 8400], "one_way_ms": 6, "pipes": [[1, 6], [2, 6]]}}))
+    out = tmp_path / "shaped"
+    _sidecar(out, "sensor_analysis_edge_cloud_000001", "sensor_analysis", "p", "C2B1X")
+    window = [out / "sensor_analysis_edge_cloud_000001.json"]
+    seen = {}
+
+    def fake_handshakes(pcap, cloud, ticket, base_of=None):     # 8400's handshakes only, as in C2B1X
+        seen["cloud"] = cloud
+        return {"cloud": [(12.4, 19.0)], "ticket": [(0.6, 1.0)], "cloud:8400": [(12.4, 19.0)]}
+
+    monkeypatch.setattr(guard, "handshakes", fake_handshakes)
+    a = lambda bases: argparse.Namespace(dirs=[str(out)], collector_pid=None, status="none", target=str(plan),  # noqa: E731
+                                         every=50, tolerance=0.2, max_age=120, poll=1, grace=1, json=None,
+                                         replay=False, pi_overhead_ms=3.31, calibration=None, bases=bases)
+    whole = guard.Guard(a(None))
+    assert not whole.connect(window)["ok"]                     # 8300 has no handshakes
+    only = guard.Guard(a("8400"))
+    assert only.connect(window)["ok"] and seen["cloud"] == {8401, 8402}
+    assert only.lock_ports == whole.lock_ports == [8301, 8302, 8305, 8401, 8402, 8405]
+    assert only.record["target"]["checked_bases"] == [8400] and only.record["target"]["plan_bases"] == [8300, 8400]
+    with pytest.raises(SystemExit, match="not among"):
+        guard.Guard(a("8100"))
