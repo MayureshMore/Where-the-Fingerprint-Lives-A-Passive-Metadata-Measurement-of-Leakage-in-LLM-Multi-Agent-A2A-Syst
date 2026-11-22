@@ -1,0 +1,1342 @@
+{
+ "paper": "P2",
+ "purpose": "B1 power: permuted sensor vs fault at B1's size",
+ "collection_id": "C2",
+ "data_dir": {
+  "lan_padmax": "data/raw_c2_padmax"
+ },
+ "cell": "lan_padmax_v2",
+ "seed": 42,
+ "git_commit": "dd9320b5b962ab684d0ae11393a2ec335ca93a63",
+ "git_dirty": false,
+ "created": "2026-11-21T23:29:14-0800",
+ "parameters": {
+  "sizes_per_class": [
+   125,
+   250
+  ],
+  "draws": 20,
+  "margin": 0.05,
+  "permutations": 99,
+  "n_boot": 1000,
+  "perm_unit": "group",
+  "streams": [
+   22,
+   23
+  ]
+ },
+ "measured": {
+  "125": {
+   "draws": 20,
+   "verdicts": {
+    "LEAK": 0,
+    "INCONCLUSIVE": 12,
+    "NO LEAK": 8
+   },
+   "ci_verdicts": {
+    "LEAK": 0,
+    "INCONCLUSIVE": 12,
+    "NO LEAK": 8
+   },
+   "why": {
+    "-": 8,
+    "CI straddles the threshold": 12
+   },
+   "threshold": 0.55,
+   "ci_hi_median": 0.5679319020876719,
+   "ci_hi_min": 0.4554778846592549,
+   "ci_hi_max": 0.6350306084741097,
+   "macro_f1_median": 0.5079291417964187,
+   "upper_half_width_median": 0.05999436460273844,
+   "p_under_0_05": 2,
+   "seconds_median": 11.928811541991308,
+   "rows": [
+    {
+     "verdict": "NO LEAK",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.45093701405921865,
+     "ci": [
+      0.3924910281787605,
+      0.51171875
+     ],
+     "p": 0.44,
+     "null_mean": 0.49858014403639883,
+     "permutations_run": 99,
+     "seconds": 13.494649625034072,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5275161765648023,
+     "ci": [
+      0.46622298738190404,
+      0.5888296942537504
+     ],
+     "p": 0.02,
+     "null_mean": 0.49646889609330597,
+     "permutations_run": 99,
+     "seconds": 11.763845833018422,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5759728622631849,
+     "ci": [
+      0.5158063225290116,
+      0.6350306084741097
+     ],
+     "p": 0.2,
+     "null_mean": 0.5001411141976879,
+     "permutations_run": 99,
+     "seconds": 11.921559792011976,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.4794669741815619,
+     "ci": [
+      0.4158392305493439,
+      0.539115096377525
+     ],
+     "p": 0.28,
+     "null_mean": 0.5037033252672471,
+     "permutations_run": 99,
+     "seconds": 11.882287541986443,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.4799667178699437,
+     "ci": [
+      0.4166109575275139,
+      0.5391254178774381
+     ],
+     "p": 0.33,
+     "null_mean": 0.5104638702940175,
+     "permutations_run": 99,
+     "seconds": 12.033949624979869,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5479927678842862,
+     "ci": [
+      0.48392238110139,
+      0.608019184941253
+     ],
+     "p": 0.23,
+     "null_mean": 0.4926904163190419,
+     "permutations_run": 99,
+     "seconds": 12.177682167035528,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5119687660010241,
+     "ci": [
+      0.44709911616161613,
+      0.5755701353554893
+     ],
+     "p": 0.04,
+     "null_mean": 0.49650861672616414,
+     "permutations_run": 99,
+     "seconds": 11.769395124982111,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5558223289315727,
+     "ci": [
+      0.4906111923509898,
+      0.6162134436908994
+     ],
+     "p": 0.32,
+     "null_mean": 0.4931230206931339,
+     "permutations_run": 99,
+     "seconds": 11.866973916999996,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.4073931706067012,
+     "ci": [
+      0.3469249616442737,
+      0.46315477715163933
+     ],
+     "p": 0.74,
+     "null_mean": 0.5038068419299934,
+     "permutations_run": 99,
+     "seconds": 11.941547041991726,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.447434172592735,
+     "ci": [
+      0.38717039426814537,
+      0.507992127874046
+     ],
+     "p": 0.85,
+     "null_mean": 0.5038991009950463,
+     "permutations_run": 99,
+     "seconds": 11.744679042021744,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5079291417964187,
+     "ci": [
+      0.44671873977442006,
+      0.5678914539449288
+     ],
+     "p": 0.13,
+     "null_mean": 0.4988586116237072,
+     "permutations_run": 99,
+     "seconds": 12.270545416045934,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5319325982941543,
+     "ci": [
+      0.4675757609598986,
+      0.5941336537822509
+     ],
+     "p": 0.38,
+     "null_mean": 0.4914640960347884,
+     "permutations_run": 99,
+     "seconds": 11.757245457964018,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5319325982941543,
+     "ci": [
+      0.47069786851566514,
+      0.5917681232748042
+     ],
+     "p": 0.26,
+     "null_mean": 0.4940186685894717,
+     "permutations_run": 99,
+     "seconds": 11.843588583986275,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.4755888616675473,
+     "ci": [
+      0.4119115505573979,
+      0.5394089666405802
+     ],
+     "p": 0.34,
+     "null_mean": 0.501520038803048,
+     "permutations_run": 99,
+     "seconds": 11.7758846670622,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5079291417964187,
+     "ci": [
+      0.43995698511589987,
+      0.5679723502304148
+     ],
+     "p": 0.24,
+     "null_mean": 0.507094398409878,
+     "permutations_run": 99,
+     "seconds": 11.93606329197064,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.3959903358453735,
+     "ci": [
+      0.33560986686022226,
+      0.4554778846592549
+     ],
+     "p": 0.97,
+     "null_mean": 0.49398664571276707,
+     "permutations_run": 99,
+     "seconds": 11.833877749973908,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.47599161586585387,
+     "ci": [
+      0.41594859034268605,
+      0.5387616606623504
+     ],
+     "p": 0.81,
+     "null_mean": 0.5009864939361253,
+     "permutations_run": 99,
+     "seconds": 11.957073249970563,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5519713261648745,
+     "ci": [
+      0.4879647715160704,
+      0.6076025779701694
+     ],
+     "p": 0.17,
+     "null_mean": 0.5044426879319904,
+     "permutations_run": 99,
+     "seconds": 12.489983582985587,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5479349026259781,
+     "ci": [
+      0.49198699304038807,
+      0.607101672509873
+     ],
+     "p": 0.26,
+     "null_mean": 0.4947614340375631,
+     "permutations_run": 99,
+     "seconds": 12.761110750027001,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 250,
+     "groups": 250,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5076139693519719,
+     "ci": [
+      0.4436887455523645,
+      0.56527588598551
+     ],
+     "p": 0.7,
+     "null_mean": 0.5024473067467216,
+     "permutations_run": 99,
+     "seconds": 12.672736624954268,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 125,
+      "sensor_analysis": 125
+     }
+    }
+   ]
+  },
+  "250": {
+   "draws": 20,
+   "verdicts": {
+    "LEAK": 0,
+    "INCONCLUSIVE": 11,
+    "NO LEAK": 9
+   },
+   "ci_verdicts": {
+    "LEAK": 0,
+    "INCONCLUSIVE": 11,
+    "NO LEAK": 9
+   },
+   "why": {
+    "-": 9,
+    "CI straddles the threshold": 11
+   },
+   "threshold": 0.55,
+   "ci_hi_median": 0.5521707637024431,
+   "ci_hi_min": 0.507992127874046,
+   "ci_hi_max": 0.5976449570483545,
+   "macro_f1_median": 0.5106001540414429,
+   "upper_half_width_median": 0.042407865513076626,
+   "p_under_0_05": 1,
+   "seconds_median": 16.948865082929842,
+   "rows": [
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5099823593649371,
+     "ci": [
+      0.4639907806113224,
+      0.5518307979777601
+     ],
+     "p": 0.1,
+     "null_mean": 0.5002143674848225,
+     "permutations_run": 99,
+     "seconds": 17.0802972499514,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.541998167992672,
+     "ci": [
+      0.4978232183965454,
+      0.5847890175807166
+     ],
+     "p": 0.01,
+     "null_mean": 0.49748755411279244,
+     "permutations_run": 99,
+     "seconds": 18.678522250032984,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5459836554115949,
+     "ci": [
+      0.5037115566329413,
+      0.5877002227133524
+     ],
+     "p": 0.3,
+     "null_mean": 0.4990552441803669,
+     "permutations_run": 99,
+     "seconds": 18.53676558297593,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.47192395704981516,
+     "ci": [
+      0.4276703381147541,
+      0.5155067852265944
+     ],
+     "p": 0.62,
+     "null_mean": 0.5008853078233264,
+     "permutations_run": 99,
+     "seconds": 18.07587954204064,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5458528563254494,
+     "ci": [
+      0.501378246901879,
+      0.5884178783242785
+     ],
+     "p": 0.19,
+     "null_mean": 0.49858411525953517,
+     "permutations_run": 99,
+     "seconds": 29.38105670805089,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.48799180786892593,
+     "ci": [
+      0.4397671619099302,
+      0.5267429868125818
+     ],
+     "p": 0.61,
+     "null_mean": 0.5014510053988974,
+     "permutations_run": 99,
+     "seconds": 17.594477999955416,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.48998163933901623,
+     "ci": [
+      0.44599645425284373,
+      0.5279323147273376
+     ],
+     "p": 0.79,
+     "null_mean": 0.49942520831011344,
+     "permutations_run": 99,
+     "seconds": 16.847301582922228,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.46974335578419957,
+     "ci": [
+      0.4266606567161303,
+      0.5131411810433605
+     ],
+     "p": 0.76,
+     "null_mean": 0.503974292387434,
+     "permutations_run": 99,
+     "seconds": 17.050428582937457,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5239923838781421,
+     "ci": [
+      0.47992177940450154,
+      0.5716710390808935
+     ],
+     "p": 0.59,
+     "null_mean": 0.5001405588405513,
+     "permutations_run": 99,
+     "seconds": 16.029482833924703,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5339832233960422,
+     "ci": [
+      0.4871751711313102,
+      0.5760338819409699
+     ],
+     "p": 0.6,
+     "null_mean": 0.5012589574735974,
+     "permutations_run": 99,
+     "seconds": 16.515589791932143,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.4759664618535586,
+     "ci": [
+      0.43394339433943396,
+      0.520036169812303
+     ],
+     "p": 0.38,
+     "null_mean": 0.4945294955091885,
+     "permutations_run": 99,
+     "seconds": 16.688591709011234,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.525846374225249,
+     "ci": [
+      0.4839669738863287,
+      0.5657940111180628
+     ],
+     "p": 0.44,
+     "null_mean": 0.5031817709958628,
+     "permutations_run": 99,
+     "seconds": 16.53429370804224,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.48198135132864783,
+     "ci": [
+      0.4339352376103636,
+      0.5275214714334692
+     ],
+     "p": 0.7,
+     "null_mean": 0.5012149053943223,
+     "permutations_run": 99,
+     "seconds": 17.129286083974876,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5112179487179487,
+     "ci": [
+      0.465997863991456,
+      0.5525107294271262
+     ],
+     "p": 0.27,
+     "null_mean": 0.4976265233095557,
+     "permutations_run": 99,
+     "seconds": 17.396610834053718,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.553998215992864,
+     "ci": [
+      0.5119283509326464,
+      0.5976449570483545
+     ],
+     "p": 0.06,
+     "null_mean": 0.5001070065063665,
+     "permutations_run": 99,
+     "seconds": 16.528280041064136,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.4657414188467218,
+     "ci": [
+      0.42096138748172063,
+      0.507992127874046
+     ],
+     "p": 0.69,
+     "null_mean": 0.49776413407019154,
+     "permutations_run": 99,
+     "seconds": 16.200606083031744,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5239695340501792,
+     "ci": [
+      0.4834545072839558,
+      0.5654977153589549
+     ],
+     "p": 0.26,
+     "null_mean": 0.5026052087711054,
+     "permutations_run": 99,
+     "seconds": 16.030609083012678,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "INCONCLUSIVE",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "INCONCLUSIVE",
+     "macro_f1": 0.5119687660010241,
+     "ci": [
+      0.4671182693826978,
+      0.559877236223022
+     ],
+     "p": 0.38,
+     "null_mean": 0.5045124251159837,
+     "permutations_run": 99,
+     "seconds": 16.094886790961027,
+     "why": "CI straddles the threshold",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.5059980239920959,
+     "ci": [
+      0.4619431805415906,
+      0.5479710701484894
+     ],
+     "p": 0.52,
+     "null_mean": 0.5033680138028439,
+     "permutations_run": 99,
+     "seconds": 16.19905091705732,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    },
+    {
+     "verdict": "NO LEAK",
+     "n": 500,
+     "groups": 500,
+     "ci_verdict": "NO LEAK",
+     "macro_f1": 0.48733558692064916,
+     "ci": [
+      0.4419908867823216,
+      0.5299830793908581
+     ],
+     "p": 0.47,
+     "null_mean": 0.4990111862656192,
+     "permutations_run": 99,
+     "seconds": 17.2990854580421,
+     "why": "-",
+     "per_class": {
+      "fault_diagnosis": 250,
+      "sensor_analysis": 250
+     }
+    }
+   ]
+  }
+ },
+ "predicted": {
+  "375": {
+   "from_per_class": 250,
+   "scale": 0.816496580927726,
+   "ci_no_leak": 12,
+   "draws": 20,
+   "ci_hi_median": 0.5425972501874332,
+   "ci_hi_max": 0.5797267735748162,
+   "note": "CI verdicts only; the permutation test turns about 1 in 20 null draws INCONCLUSIVE on its own (p < 0.05)"
+  },
+  "500": {
+   "from_per_class": 250,
+   "scale": 0.7071067811865476,
+   "ci_no_leak": 14,
+   "draws": 20,
+   "ci_hi_median": 0.5368903007936785,
+   "ci_hi_max": 0.5690454112775607,
+   "note": "CI verdicts only; the permutation test turns about 1 in 20 null draws INCONCLUSIVE on its own (p < 0.05)"
+  }
+ },
+ "pooled_check": {
+  "arms": [
+   "lan_padmax",
+   "lan_pad"
+  ],
+  "data_dir": {
+   "lan_padmax": "data/raw_c2_padmax",
+   "lan_pad": "data/raw_c2_pad"
+  },
+  "per_class": 375,
+  "groups": 500,
+  "draws": 20,
+  "verdicts": {
+   "LEAK": 0,
+   "INCONCLUSIVE": 5,
+   "NO LEAK": 15
+  },
+  "ci_verdicts": {
+   "LEAK": 0,
+   "INCONCLUSIVE": 5,
+   "NO LEAK": 15
+  },
+  "why": {
+   "-": 15,
+   "CI straddles the threshold": 5
+  },
+  "threshold": 0.55,
+  "ci_hi_median": 0.5341225932019265,
+  "ci_hi_min": 0.48063772929943305,
+  "ci_hi_max": 0.590029712745308,
+  "macro_f1_median": 0.4991976925861742,
+  "upper_half_width_median": 0.035641036970668394,
+  "p_under_0_05": 1,
+  "seconds_median": 20.225953833025414,
+  "rows": [
+   {
+    "verdict": "INCONCLUSIVE",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "INCONCLUSIVE",
+    "macro_f1": 0.5196584237680129,
+    "ci": [
+     0.48295581194302295,
+     0.5563377731782178
+    ],
+    "p": 0.63,
+    "null_mean": 0.5001858946503179,
+    "permutations_run": 99,
+    "seconds": 20.579246749985032,
+    "why": "CI straddles the threshold",
+    "per_class": {
+     "fault_diagnosis": 375,
+     "sensor_analysis": 375
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.46528675386833696,
+    "ci": [
+     0.4280892438865512,
+     0.49944562411312143
+    ],
+    "p": 0.67,
+    "null_mean": 0.5040208025355849,
+    "permutations_run": 99,
+    "seconds": 20.887762875063345,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 375,
+     "sensor_analysis": 375
+    }
+   },
+   {
+    "verdict": "INCONCLUSIVE",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "INCONCLUSIVE",
+    "macro_f1": 0.5226123505607749,
+    "ci": [
+     0.487462952748546,
+     0.5578950171888665
+    ],
+    "p": 0.07,
+    "null_mean": 0.5001548228576967,
+    "permutations_run": 99,
+    "seconds": 19.86377891700249,
+    "why": "CI straddles the threshold",
+    "per_class": {
+     "fault_diagnosis": 376,
+     "sensor_analysis": 374
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.5133117027423442,
+    "ci": [
+     0.4751942449991623,
+     0.5493051298143474
+    ],
+    "p": 0.12,
+    "null_mean": 0.5015561733564422,
+    "permutations_run": 99,
+    "seconds": 20.242911832989193,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 375,
+     "sensor_analysis": 375
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.5022764514045679,
+    "ci": [
+     0.4631284429579354,
+     0.5373360032603989
+    ],
+    "p": 0.67,
+    "null_mean": 0.5053225754569163,
+    "permutations_run": 99,
+    "seconds": 19.287837208015844,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 375,
+     "sensor_analysis": 375
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.49974297905946347,
+    "ci": [
+     0.46149147863447065,
+     0.5382859779162181
+    ],
+    "p": 0.06,
+    "null_mean": 0.5008994010054532,
+    "permutations_run": 99,
+    "seconds": 19.44857920904178,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 374,
+     "sensor_analysis": 376
+    }
+   },
+   {
+    "verdict": "INCONCLUSIVE",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "INCONCLUSIVE",
+    "macro_f1": 0.5519203413940256,
+    "ci": [
+     0.5159203173287449,
+     0.590029712745308
+    ],
+    "p": 0.03,
+    "null_mean": 0.501450560927021,
+    "permutations_run": 99,
+    "seconds": 20.50741854205262,
+    "why": "CI straddles the threshold",
+    "per_class": {
+     "fault_diagnosis": 376,
+     "sensor_analysis": 374
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.47330992488555046,
+    "ci": [
+     0.44069344232658725,
+     0.5066118456237906
+    ],
+    "p": 0.67,
+    "null_mean": 0.5000703564939875,
+    "permutations_run": 99,
+    "seconds": 19.225420832983218,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 374,
+     "sensor_analysis": 376
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.49865240611288497,
+    "ci": [
+     0.46337406438121975,
+     0.5343104119569745
+    ],
+    "p": 0.8,
+    "null_mean": 0.5002946452590796,
+    "permutations_run": 99,
+    "seconds": 19.656538750045,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 374,
+     "sensor_analysis": 376
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.48266298782569117,
+    "ci": [
+     0.44612058047555897,
+     0.5186456154254214
+    ],
+    "p": 0.29,
+    "null_mean": 0.49901296911146903,
+    "permutations_run": 99,
+    "seconds": 20.262423750013113,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 375,
+     "sensor_analysis": 375
+    }
+   },
+   {
+    "verdict": "INCONCLUSIVE",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "INCONCLUSIVE",
+    "macro_f1": 0.5172784103435769,
+    "ci": [
+     0.4813217149362062,
+     0.5516899703981949
+    ],
+    "p": 0.14,
+    "null_mean": 0.5000091456211555,
+    "permutations_run": 99,
+    "seconds": 21.82555395795498,
+    "why": "CI straddles the threshold",
+    "per_class": {
+     "fault_diagnosis": 375,
+     "sensor_analysis": 375
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.4532983444273767,
+    "ci": [
+     0.4177073163209547,
+     0.4892320087477156
+    ],
+    "p": 0.97,
+    "null_mean": 0.5026836523090412,
+    "permutations_run": 99,
+    "seconds": 20.064997958019376,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 375,
+     "sensor_analysis": 375
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.48461500117497097,
+    "ci": [
+     0.44796156033256473,
+     0.5206268519623493
+    ],
+    "p": 0.85,
+    "null_mean": 0.50103299576352,
+    "permutations_run": 99,
+    "seconds": 19.65450804203283,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 374,
+     "sensor_analysis": 376
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.47696139476961397,
+    "ci": [
+     0.4409730334249852,
+     0.5117962801472243
+    ],
+    "p": 0.76,
+    "null_mean": 0.49466615702682876,
+    "permutations_run": 99,
+    "seconds": 19.849086625035852,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 375,
+     "sensor_analysis": 375
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.4626198548851367,
+    "ci": [
+     0.42736044982865334,
+     0.49860593767857453
+    ],
+    "p": 0.95,
+    "null_mean": 0.5011265199808345,
+    "permutations_run": 99,
+    "seconds": 19.666147582931444,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 374,
+     "sensor_analysis": 376
+    }
+   },
+   {
+    "verdict": "INCONCLUSIVE",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "INCONCLUSIVE",
+    "macro_f1": 0.5222555941467859,
+    "ci": [
+     0.48561346259012167,
+     0.558414916846222
+    ],
+    "p": 0.28,
+    "null_mean": 0.503774955966991,
+    "permutations_run": 99,
+    "seconds": 20.208995833061635,
+    "why": "CI straddles the threshold",
+    "per_class": {
+     "fault_diagnosis": 374,
+     "sensor_analysis": 376
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.4706205518347376,
+    "ci": [
+     0.43529000662520057,
+     0.5050236079941934
+    ],
+    "p": 0.5,
+    "null_mean": 0.5006779995007322,
+    "permutations_run": 99,
+    "seconds": 22.488360583083704,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 375,
+     "sensor_analysis": 375
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.5158545411865965,
+    "ci": [
+     0.48194193743646224,
+     0.5490861370083158
+    ],
+    "p": 0.09,
+    "null_mean": 0.4999853127173249,
+    "permutations_run": 99,
+    "seconds": 21.973354750080034,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 375,
+     "sensor_analysis": 375
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.4450136612021858,
+    "ci": [
+     0.4087233259797436,
+     0.48063772929943305
+    ],
+    "p": 0.94,
+    "null_mean": 0.4991702471840826,
+    "permutations_run": 99,
+    "seconds": 21.198028124985285,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 376,
+     "sensor_analysis": 374
+    }
+   },
+   {
+    "verdict": "NO LEAK",
+    "n": 750,
+    "groups": 376,
+    "ci_verdict": "NO LEAK",
+    "macro_f1": 0.49999199987199794,
+    "ci": [
+     0.46504871011038745,
+     0.5339347744468785
+    ],
+    "p": 0.38,
+    "null_mean": 0.497402723242297,
+    "permutations_run": 99,
+    "seconds": 20.336506541934796,
+    "why": "-",
+    "per_class": {
+     "fault_diagnosis": 375,
+     "sensor_analysis": 375
+    }
+   }
+  ]
+ },
+ "runtime_s": 1092.6939830000047
+}
