@@ -13,7 +13,7 @@ it copies into a local directory instead of the Pi.
 | Session | Date | Arms (port base) | Traces | Seed offset | Ollama on the Mac | Hours |
 |---|---|---|---|---|---|---|
 | B1 reply shaping | Nov 21 (done) | `lan_padmax` (8300), `lan_shaped` (8400) | 500 + 500 | 31000 | `OLLAMA_NUM_PARALLEL` 1, context 128k, as in C2 | 2.9 measured, plus a 4.3 h pause |
-| B3 second day | Nov 22, by day (Wi-Fi permitting) | `lan` (8100) | 1,000 | 33000 | 1, context 128k, as in C2 | about 1.9 |
+| B3 second day | Nov 22, from 22:00 | `lan` (8100) | 1,000 | 33000 | 1, context 128k, as in C2 | about 1.9 |
 | C2B1X more shaped traces | Nov 22 (done) | `lan_shaped` (8400) | 2,000 | 31000, from position 125 | 1, context 128k, as in B1 | 7.7 measured, plus a 4.0 h pause |
 | B2 jitter and load (paper 3) | later | `lan` (8100), `lan_jl` (8500) | 500 + 500 | 32000 | `OLLAMA_NUM_PARALLEL` 4, context 32k | about 2.5 |
 
@@ -23,7 +23,7 @@ its cloud call replaced by the 14.75 s release. For `lan_jl`, the cloud's answer
 round's pace line settles it. Add about 20 minutes of setup per session.
 
 Before each full session, a pilot on the real testbed: one short round per arm (`--n 5 --rounds 1`,
-20 traces per arm), into `data/pilot2_c2b1/` (B1, second pilot) or `data/pilot_c2b2/`, never into the raw data folders,
+20 traces per arm), into `data/pilot2_c2b1/` (B1, second pilot), `data/pilot_c2b3/` or `data/pilot_c2b2/`, never into the raw data folders,
 with the session's checks run on it. The full session starts only if they pass. B2 moved to paper 3
 (Nov 21); its section below stays for that collection. C2B1X ([below](#c2b1x-more-shaped-traces-for-sensor-vs-fault-nov-22-overnight))
 adds shaped traces so that sensor vs fault can come out NO LEAK if the shaping removes the signal.
@@ -534,34 +534,96 @@ venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/
 control's plus 0.5 percentage points. The Wi-Fi reorders some packets on its own: in C2, 0.06% of
 `lan`'s request segments.
 
-## B3: a second day of `lan` (Nov 22, morning)
+## B3: a second day of `lan` (Nov 22, from 22:00)
 
-`OLLAMA_NUM_PARALLEL` must be 1 and the context length 128k, as in C2 and B1.
+C2's `lan` arm (8100) again, with new prompts (seed offset 33000), on C2's WAN plan
+(`data/results/c2_wan_emulation.json`, bases 8100, 8200 and 8300). `OLLAMA_NUM_PARALLEL` 1 and
+context 128k, as in C2 and B1. Start with "Every session", the Pi's power save on, then off,
+included. `wan_emulation.sh on` sets up the whole plan: pipes 1 and 2, and the port lock on the
+three bases' ports. Only 8100 runs, so the WAN checks probe 8100 (`--bases 8100`) and the guard
+reads connect times on 8100 only (`--bases 8100`) while checking the plan's pipes, rules and port
+lock, as for C2B1X. A pilot first, into `data/pilot_c2b3/lan`.
 
-**Pi:**
+**Pi** (`tmux`, a window of its own; other Pi commands in a second window):
 ```bash
 cd ~/a2a
 venv/bin/python scripts/serve_edge.py --bases 8100 --tls-dir data/tls_lan --model llama3.2:1b --num-predict 128
 ```
-**Mac:** C2's WAN and services, unchanged:
+**Mac**, window 1: the cloud agents (no shaping; Nagle on, as in C2), for the pilot and the full run:
 ```bash
 venv/bin/python scripts/serve_cloud.py --bases 8100 --tls-dir data/tls_lan
-mkdir -p data/raw_c2b3_lan
+```
+**Mac**, window 2: C2's WAN, for the pilot and the full run:
+```bash
+mkdir -p data/pilot_c2b3/lan data/raw_c2b3_lan
 sudo bash scripts/wan_emulation.sh on
+```
+
+### B3 pilot (about 3 minutes)
+
+**Mac**, window 2: the WAN check, alone. Go on only if it ends with `PASS`:
+```bash
+venv/bin/python scripts/check_wan_emulation.py --bases 8100 --json data/pilot_c2b3/lan/wan_check_start.json
+```
+**Mac**, window 3 (root):
+```bash
+sudo venv/bin/python scripts/wan_watch.py --out data/pilot_c2b3/lan/wan_status.json --log data/pilot_c2b3/lan/wan_watch.jsonl
+```
+**Mac**, window 2: the pilot:
+```bash
+caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2B3-pilot \
+    --n 5 --rounds 1 --seed-offset 33000 --workflows iot --tls-dir data/tls_lan \
+    --wan-target data/results/c2_wan_emulation.json --arm name=lan,ports=8100,out=data/pilot_c2b3/lan
+```
+**Mac**, window 4, once the collector has printed its `network ... ok` lines:
+```bash
+venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
+    --bases 8100 --status data/pilot_c2b3/lan/wan_status.json --pi-overhead-ms 3.31 \
+    --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
+    --json data/pilot_c2b3/lan/wan_guard.json data/pilot_c2b3/lan
+```
+The pilot passes with 20 of 20 traces and 0 failed, the guard OK, the closing WAN check and the
+checks below with `D=data/pilot_c2b3/lan`. Then stop `wan_watch.py` (Ctrl-C) and start it again for
+the full run's folder; the WAN, `serve_cloud.py` and `serve_edge.py` stay.
+
+### B3 full run (about 1.9 h)
+
+**Mac**, window 2: the WAN check, alone. Go on only if it ends with `PASS`:
+```bash
 venv/bin/python scripts/check_wan_emulation.py --bases 8100 --json data/raw_c2b3_lan/wan_check_start.json
+```
+**Mac**, window 3 (root):
+```bash
 sudo venv/bin/python scripts/wan_watch.py --out data/raw_c2b3_lan/wan_status.json --log data/raw_c2b3_lan/wan_watch.jsonl
+```
+**Mac**, window 2: the collection:
+```bash
 caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2B3 \
     --n 250 --rounds 5 --seed-offset 33000 --workflows iot --tls-dir data/tls_lan \
     --wan-target data/results/c2_wan_emulation.json --arm name=lan,ports=8100,out=data/raw_c2b3_lan
+```
+**Mac**, window 4, once the collector has printed its `network ... ok` lines:
+```bash
 venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
-    --status data/raw_c2b3_lan/wan_status.json --pi-overhead-ms 3.31 \
+    --bases 8100 --status data/raw_c2b3_lan/wan_status.json --pi-overhead-ms 3.31 \
     --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
     --json data/raw_c2b3_lan/wan_guard.json data/raw_c2b3_lan
 ```
-Run each line in its own window, as in B1: `serve_cloud.py` in window 1, `wan_watch.py` in
-window 3 (root), the guard in window 4 once the collection has started.
+If it stops (a WAN probe out of bounds): the Pi's power save on, then off; a new WAN check, alone
+(`wan_check_resume1.json`); the same collection command with `--resume`; the guard with
+`wan_guard_resume1.json`.
 
-**After:** the same checks as B1, on `data/raw_c2b3_lan`.
+**Mac, after** (pilot and full run): the closing WAN check first, while `serve_cloud.py` and the
+Pi's `serve_edge.py` still run, then the checks; after the full run, stop everything and the WAN
+(as in "Every session"):
+```bash
+D=data/raw_c2b3_lan
+venv/bin/python scripts/check_wan_emulation.py --bases 8100 --json $D/wan_check_after.json
+venv/bin/python scripts/check_lan_capture.py $D --json $D/lan_check.json
+venv/bin/python scripts/check_tls_capture.py $D --expect tls --json $D/tls_check.json
+venv/bin/python scripts/check_stream_integrity.py $D --json $D/stream_integrity.json
+venv/bin/python scripts/check_session_design.py $D --json $D/design_check.json
+```
 
 ## Afterwards (me, from a clean commit)
 
