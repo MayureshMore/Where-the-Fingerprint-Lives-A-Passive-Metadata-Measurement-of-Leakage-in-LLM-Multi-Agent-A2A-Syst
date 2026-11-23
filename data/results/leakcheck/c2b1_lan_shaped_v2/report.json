@@ -1,0 +1,743 @@
+{
+  "tool": "a2a-leakcheck",
+  "version": "0.3.0",
+  "created": "2026-11-22T17:51:18-0800",
+  "git_commit": "615db784719c7cd0ed55b9fbe8b281fc2596b87e",
+  "git_dirty": false,
+  "input": {
+    "folder": "data/raw_c2b1_shaped",
+    "label": "C2B1 lan_shaped, view v2",
+    "vantage": "v2"
+  },
+  "parameters": {
+    "attributes": [
+      "task_type",
+      "escalated",
+      "cloud_role",
+      "audit_null"
+    ],
+    "role_within": [],
+    "margin": 0.05,
+    "folds": 5,
+    "n_boot": 1000,
+    "permutations": 99,
+    "alpha": 0.05,
+    "min_per_class": 20,
+    "seed": 42,
+    "model": "gbt",
+    "null_model": "rf-light",
+    "jobs": -1,
+    "perm_unit": "group",
+    "perm_max": 0,
+    "perm_window": [
+      0.02,
+      0.2
+    ],
+    "match_margin": 0.05,
+    "rules": "default",
+    "strip": true,
+    "legacy_all_connections": false,
+    "keep_retransmissions": false
+  },
+  "collection": {
+    "folder": "data/raw_c2b1_shaped",
+    "vantage": "v2",
+    "pcaps": 500,
+    "traces": 500,
+    "skipped": [],
+    "stripped_copies": 500,
+    "group_source": {
+      "prompt_group": 500
+    },
+    "visible_agents": {
+      "edge_cloud": {
+        "traces": 500,
+        "roles": {
+          "diagnostics": 250,
+          "knowledge": 125
+        },
+        "never_seen": []
+      }
+    }
+  },
+  "extraction": {
+    "schema_version": 1,
+    "traces": 500,
+    "failed": [],
+    "role_samples": 375,
+    "empty_traces": 125,
+    "trace_dims": 195,
+    "role_dims": 35,
+    "measurement": "own connections: only TCP connections whose SYN is in the capture",
+    "retransmissions": "dropped: every payload byte counted once (TCP sequence numbers)",
+    "first_request": "Bytes of the first request message that reaches an agent, in TCP sequence space (each byte once; IP and TCP headers only): on each agent link the trace opened, after the TLS handshake (the client's bytes before the server's first data are the ClientHello, its next segment of at most 100 B the Finished), a request runs from the end of the previous one to the acknowledgment number of the first server data segment that acknowledges every client byte seen so far and that the client has received before it sends its next byte (its next data segment acknowledges it). A server answers only once it holds the whole request, and the client sends nothing more until it has the answer; a record the server sends mid-request (a TLS session ticket) acknowledges less than the client has sent, or the client goes on with the request without having received it. Per link the first request of at least 300 B; of those, the one that starts earliest."
+  },
+  "attributes": {
+    "task_type": {
+      "classes": [
+        "alert_triage",
+        "fault_diagnosis",
+        "procedure_lookup",
+        "sensor_analysis"
+      ],
+      "n": 500,
+      "n_groups": 498,
+      "chance": 0.25,
+      "margin": 0.05,
+      "threshold": 0.3,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "alert_triage": 125,
+            "fault_diagnosis": 125,
+            "procedure_lookup": 125,
+            "sensor_analysis": 125
+          },
+          "groups_per_class": {
+            "alert_triage": 125,
+            "fault_diagnosis": 125,
+            "procedure_lookup": 123,
+            "sensor_analysis": 125
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "unit": "group",
+          "groups": {
+            "groups": 498,
+            "within_groups": 0
+          },
+          "permutations_run": 99,
+          "observed_macro_f1": 0.5319749130981626,
+          "p_value": 0.01,
+          "null_mean": 0.24171910664005702,
+          "null_max": 0.3028517227752343,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 84,
+            "INCONCLUSIVE": 15
+          },
+          "false_positive_rate": 0.0
+        }
+      },
+      "analysis": {
+        "macro_f1": 0.5115901101281218,
+        "ci_lo": 0.4736821036778644,
+        "ci_hi": 0.5487917202790715,
+        "accuracy": 0.512,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "LEAK",
+      "reason": "CI lower bound 0.474 > chance + margin 0.300",
+      "prioritization": {
+        "effect_size": 0.34878681350416246,
+        "severity": "medium"
+      },
+      "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
+        "families": {
+          "sizes": {
+            "macro_f1": 0.5134129653969031,
+            "ci_lo": 0.47643902515449277,
+            "ci_hi": 0.5465599799562842,
+            "accuracy": 0.514,
+            "dims": 139,
+            "all_minus_this": {
+              "diff": -0.0018228552687812316,
+              "ci_lo": -0.04276819308022878,
+              "ci_hi": 0.03822633845520377,
+              "significant": false
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
+          },
+          "timing": {
+            "macro_f1": 0.4934077387818295,
+            "ci_lo": 0.4596189185434871,
+            "ci_hi": 0.5298376712649071,
+            "accuracy": 0.494,
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.01818237134629236,
+              "ci_lo": -0.02478902846132728,
+              "ci_hi": 0.0586878120803633,
+              "significant": false
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
+          },
+          "counts_direction": {
+            "macro_f1": 0.5420980989294942,
+            "ci_lo": 0.5047928864444585,
+            "ci_hi": 0.5799282519379095,
+            "accuracy": 0.542,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": -0.0305079888013724,
+              "ci_lo": -0.07712747459669529,
+              "ci_hi": 0.013915372765908629,
+              "significant": false
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
+          }
+        },
+        "top_family": "counts_direction",
+        "top_family_matches_all": true,
+        "top_family_no_detected_deficit": true,
+        "single_request_size": {
+          "feature": "first_request_bytes",
+          "macro_f1": 0.375,
+          "ci_lo": 0.360759323533415,
+          "ci_hi": 0.38797055001108055,
+          "accuracy": 0.5,
+          "all_minus_this": {
+            "diff": 0.13659011012812183,
+            "ci_lo": 0.09711961828032382,
+            "ci_hi": 0.17517196173427899,
+            "significant": true
+          },
+          "matches_all": false,
+          "no_detected_deficit": false
+        }
+      },
+      "mitigations": [
+        {
+          "id": "fix-message-counts",
+          "hint": "Message counts and direction carry the leak. Keep the number of calls per agent constant and add dummy calls (defense=rate)."
+        }
+      ]
+    },
+    "escalated": {
+      "classes": [
+        "no",
+        "yes"
+      ],
+      "n": 500,
+      "n_groups": 498,
+      "chance": 0.5,
+      "margin": 0.05,
+      "threshold": 0.55,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "no": 125,
+            "yes": 375
+          },
+          "groups_per_class": {
+            "no": 125,
+            "yes": 373
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "unit": "group",
+          "groups": {
+            "groups": 498,
+            "within_groups": 0
+          },
+          "permutations_run": 99,
+          "observed_macro_f1": 1.0,
+          "p_value": 0.01,
+          "null_mean": 0.4931304617419978,
+          "null_max": 0.5588211701666854,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 63,
+            "INCONCLUSIVE": 36
+          },
+          "false_positive_rate": 0.0
+        }
+      },
+      "analysis": {
+        "macro_f1": 1.0,
+        "ci_lo": 1.0,
+        "ci_hi": 1.0,
+        "accuracy": 1.0,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "LEAK",
+      "reason": "CI lower bound 1.000 > chance + margin 0.550",
+      "prioritization": {
+        "effect_size": 1.0,
+        "severity": "high"
+      },
+      "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
+        "families": {
+          "sizes": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
+          },
+          "timing": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
+          },
+          "counts_direction": {
+            "macro_f1": 1.0,
+            "ci_lo": 1.0,
+            "ci_hi": 1.0,
+            "accuracy": 1.0,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
+          }
+        },
+        "top_family": "sizes",
+        "top_family_matches_all": true,
+        "top_family_no_detected_deficit": true,
+        "single_request_size": {
+          "feature": "first_request_bytes",
+          "macro_f1": 1.0,
+          "ci_lo": 1.0,
+          "ci_hi": 1.0,
+          "accuracy": 1.0,
+          "all_minus_this": {
+            "diff": 0.0,
+            "ci_lo": 0.0,
+            "ci_hi": 0.0,
+            "significant": false
+          },
+          "matches_all": true,
+          "no_detected_deficit": true
+        }
+      },
+      "mitigations": [
+        {
+          "id": "hide-escalation",
+          "hint": "Whether the edge called the cloud is visible from the connections themselves, and padding cannot hide a call that did or did not happen. Make every task look alike upstream: dummy cloud calls at a fixed rate (cover traffic), or send every task to the cloud. Then re-run the audit."
+        }
+      ]
+    },
+    "cloud_role": {
+      "classes": [
+        "diagnostics",
+        "knowledge"
+      ],
+      "n": 375,
+      "n_groups": 373,
+      "chance": 0.5,
+      "margin": 0.05,
+      "threshold": 0.55,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "diagnostics": 250,
+            "knowledge": 125
+          },
+          "groups_per_class": {
+            "diagnostics": 250,
+            "knowledge": 123
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "unit": "group",
+          "groups": {
+            "groups": 373,
+            "within_groups": 0
+          },
+          "permutations_run": 99,
+          "observed_macro_f1": 0.5317756340414026,
+          "p_value": 0.23,
+          "null_mean": 0.5008081155045941,
+          "null_max": 0.576138147566719,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 50,
+            "INCONCLUSIVE": 49
+          },
+          "false_positive_rate": 0.0
+        }
+      },
+      "analysis": {
+        "macro_f1": 0.4999839352268346,
+        "ci_lo": 0.4532464635409376,
+        "ci_hi": 0.5541049143783381,
+        "accuracy": 0.5573333333333333,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "INCONCLUSIVE",
+      "reason": "CI [0.453, 0.554] straddles chance + margin 0.550",
+      "prioritization": {
+        "effect_size": -3.212954633080578e-05,
+        "severity": "none"
+      },
+      "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
+        "families": {
+          "sizes": {
+            "macro_f1": 0.5077650556680162,
+            "ci_lo": 0.4558632227593312,
+            "ci_hi": 0.5537178714020883,
+            "accuracy": 0.5573333333333333,
+            "dims": 139,
+            "all_minus_this": {
+              "diff": -0.0077811204411816215,
+              "ci_lo": -0.06132686157037959,
+              "ci_hi": 0.04890571350477442,
+              "significant": false
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
+          },
+          "timing": {
+            "macro_f1": 0.48793535535278243,
+            "ci_lo": 0.43689044528010307,
+            "ci_hi": 0.5376746015007651,
+            "accuracy": 0.5466666666666666,
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.012048579874052168,
+              "ci_lo": -0.036397412211589916,
+              "ci_hi": 0.06506883868950604,
+              "significant": false
+            },
+            "matches_all": false,
+            "no_detected_deficit": true
+          },
+          "counts_direction": {
+            "macro_f1": 0.5320840808913105,
+            "ci_lo": 0.4812963429019202,
+            "ci_hi": 0.5816779075959817,
+            "accuracy": 0.5493333333333333,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": -0.03210014566447594,
+              "ci_lo": -0.0903747686059856,
+              "ci_hi": 0.02806305792635272,
+              "significant": false
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
+          }
+        },
+        "top_family": "counts_direction",
+        "top_family_matches_all": true,
+        "top_family_no_detected_deficit": true,
+        "single_request_size": {
+          "feature": "first_request_bytes",
+          "macro_f1": 0.4,
+          "ci_lo": 0.3825944170771757,
+          "ci_hi": 0.4162754303599374,
+          "accuracy": 0.6666666666666666,
+          "all_minus_this": {
+            "diff": 0.09998393522683457,
+            "ci_lo": 0.051362749459198165,
+            "ci_hi": 0.15602127559085668,
+            "significant": true
+          },
+          "matches_all": false,
+          "no_detected_deficit": false
+        }
+      },
+      "mitigations": [
+        {
+          "id": "inconclusive",
+          "hint": "The interval straddles chance + margin: more traces will narrow it. Re-run before treating this attribute as safe."
+        }
+      ]
+    },
+    "audit_null": {
+      "classes": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ],
+      "n": 500,
+      "n_groups": 498,
+      "chance": 0.25,
+      "margin": 0.05,
+      "threshold": 0.3,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "a": 123,
+            "b": 134,
+            "c": 123,
+            "d": 120
+          },
+          "groups_per_class": {
+            "a": 123,
+            "b": 133,
+            "c": 122,
+            "d": 120
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "unit": "group",
+          "groups": {
+            "groups": 498,
+            "within_groups": 0
+          },
+          "permutations_run": 99,
+          "observed_macro_f1": 0.22017266209572928,
+          "p_value": 0.89,
+          "null_mean": 0.24557298192021337,
+          "null_max": 0.30114120845258296,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 76,
+            "INCONCLUSIVE": 23
+          },
+          "false_positive_rate": 0.0
+        }
+      },
+      "analysis": {
+        "macro_f1": 0.19806736761039534,
+        "ci_lo": 0.16322665648417511,
+        "ci_hi": 0.23227521312773305,
+        "accuracy": 0.2,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "NO LEAK",
+      "reason": "CI upper bound 0.232 <= chance + margin 0.300",
+      "prioritization": {
+        "effect_size": -0.06924350985280621,
+        "severity": "none"
+      },
+      "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
+        "families": {
+          "sizes": {
+            "macro_f1": 0.19895135635768185,
+            "ci_lo": 0.16292615393191875,
+            "ci_hi": 0.23716596103404297,
+            "accuracy": 0.2,
+            "dims": 139,
+            "all_minus_this": {
+              "diff": -0.0008839887472865127,
+              "ci_lo": -0.034922935185428834,
+              "ci_hi": 0.03302741136287923,
+              "significant": false
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
+          },
+          "timing": {
+            "macro_f1": 0.19946483370870757,
+            "ci_lo": 0.16472619088549678,
+            "ci_hi": 0.23589379881065886,
+            "accuracy": 0.2,
+            "dims": 30,
+            "all_minus_this": {
+              "diff": -0.0013974660983122333,
+              "ci_lo": -0.042794112901823125,
+              "ci_hi": 0.03745573521269961,
+              "significant": false
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
+          },
+          "counts_direction": {
+            "macro_f1": 0.23060107819171907,
+            "ci_lo": 0.1949787299962992,
+            "ci_hi": 0.2659843123659384,
+            "accuracy": 0.234,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": -0.03253371058132373,
+              "ci_lo": -0.06956347430328634,
+              "ci_hi": 0.005732651068424348,
+              "significant": false
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
+          }
+        },
+        "top_family": "counts_direction",
+        "top_family_matches_all": true,
+        "top_family_no_detected_deficit": true,
+        "single_request_size": {
+          "feature": "first_request_bytes",
+          "macro_f1": 0.17522647457233312,
+          "ci_lo": 0.14552170113393353,
+          "ci_hi": 0.20533041680694147,
+          "accuracy": 0.222,
+          "all_minus_this": {
+            "diff": 0.02284089303806222,
+            "ci_lo": -0.015748933061129688,
+            "ci_hi": 0.0628023167848802,
+            "significant": false
+          },
+          "matches_all": false,
+          "no_detected_deficit": true
+        }
+      },
+      "mitigations": []
+    }
+  },
+  "summary": {
+    "LEAK": [
+      "task_type",
+      "escalated"
+    ],
+    "NO LEAK": [
+      "audit_null"
+    ],
+    "INCONCLUSIVE": [
+      "cloud_role"
+    ]
+  },
+  "diff": {
+    "baseline": "data/results/leakcheck/c2b1_lan_padmax_v2/report.json",
+    "compatible": true,
+    "incompatible": [],
+    "changes": [
+      {
+        "attribute": "cloud_role",
+        "before": "LEAK",
+        "after": "INCONCLUSIVE"
+      }
+    ],
+    "new_leaks": [],
+    "needs_review": [
+      {
+        "attribute": "cloud_role",
+        "before": "LEAK",
+        "after": "INCONCLUSIVE",
+        "reason": "inconclusive"
+      }
+    ],
+    "resolved": []
+  },
+  "status": {
+    "audit_completed": true,
+    "verdicts": {
+      "LEAK": 2,
+      "NO LEAK": 1,
+      "INCONCLUSIVE": 1
+    },
+    "release_policy": {
+      "configured": true,
+      "checks": {
+        "baseline": "data/results/leakcheck/c2b1_lan_padmax_v2/report.json",
+        "fail_on_leak": false,
+        "strict": false,
+        "require": []
+      },
+      "satisfied": true,
+      "failures": [],
+      "exit_code": 0
+    },
+    "for_review": [
+      {
+        "attribute": "cloud_role",
+        "reason": "INCONCLUSIVE; LEAK in the baseline"
+      }
+    ]
+  },
+  "runtime": {
+    "total_s": 114.25987287494354,
+    "stages_s": {
+      "collection": 0.142676749965176,
+      "extraction": 3.221433416940272,
+      "analysis": 110.81244745803997
+    },
+    "analysis_by_attribute_s": {
+      "task_type": 31.212747582932934,
+      "escalated": 26.403450042009354,
+      "cloud_role": 25.129811500082724,
+      "audit_null": 27.088777874945663
+    },
+    "peak_rss_by_stage_mb": {
+      "collection": {
+        "main_mb": 168.34375
+      },
+      "extraction": {
+        "main_mb": 238.78125
+      },
+      "analysis:task_type": {
+        "main_mb": 261.4375,
+        "worker_mb": 262.390625
+      },
+      "analysis:escalated": {
+        "main_mb": 266.09375,
+        "worker_mb": 262.390625
+      },
+      "analysis:cloud_role": {
+        "main_mb": 267.578125,
+        "worker_mb": 262.390625
+      },
+      "analysis:audit_null": {
+        "main_mb": 269.0,
+        "worker_mb": 262.390625
+      }
+    },
+    "peak_rss_mb": 269.0,
+    "peak_rss_children_mb": 262.390625,
+    "workers": 14,
+    "python": "3.12.1",
+    "platform": "macOS-27.0.1-arm64-arm-64bit"
+  }
+}

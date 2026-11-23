@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leak check: C2B1 lan_shaped, view v1, escalated_only</title><style>
+:root { --bg:#ffffff; --fg:#1d2433; --muted:#5b6475; --line:#d9dee7; --leak:#b42318; --ok:#067647; --inc:#8a6100; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171c; --fg:#e7eaf0; --muted:#a3abb9; --line:#2c323c; --leak:#ff8a7a; --ok:#6ce9a6; --inc:#f5c451; }
+}
+body { background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; margin:0 auto; max-width:1100px; padding:24px 16px; }
+h1 { font-size:22px; margin:0 0 4px; } p.meta { color:var(--muted); margin:0 0 20px; }
+.wrap { overflow-x:auto; } table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
+th, td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+th { color:var(--muted); font-weight:600; font-size:13px; }
+.LEAK { color:var(--leak); font-weight:700; } .NO { color:var(--ok); font-weight:700; } .INCONCLUSIVE { color:var(--inc); font-weight:700; }
+ul { margin:4px 0 0; padding-left:18px; } li { margin:2px 0; }
+</style></head><body>
+<h1>Leak check: C2B1 lan_shaped, view v1, escalated_only</h1>
+<p class="meta">375 traces from 375 captures · a2a-leakcheck 0.3.0 ·
+2026-11-22T17:49:23-0800 · 32.5 s · peak memory 258 MB</p>
+<p><b>Audit completed</b>: 1 attributes, 0 LEAK, 0 NO LEAK, 1 INCONCLUSIVE.</p><p><b>Release policy satisfied</b> (baseline); exit 0.</p><p><b>For review</b>: task_type (INCONCLUSIVE; LEAK in the baseline).</p><div class="wrap"><table><thead><tr><th>Attribute</th><th>Verdict</th><th>Severity</th><th>macro-F1 [95% CI]</th>
+<th>Chance + margin</th><th>Permutation p</th><th>False positives (permuted)</th><th>Carried by</th><th>Why, and what to do</th></tr></thead>
+<tbody><tr><td>task_type</td><td class='INCONCLUSIVE'>INCONCLUSIVE</td><td>none</td><td>0.432 [0.380, 0.478]</td><td>0.383</td><td>0.010</td><td>0.00</td><td>—</td><td>CI [0.380, 0.478] straddles chance + margin 0.383<ul><li><b>inconclusive</b>: The interval straddles chance + margin: more traces will narrow it. Re-run before treating this attribute as safe.</li></ul></td></tr></tbody></table></div>
+<h2 style='font-size:16px'>Visible agents per topology</h2><div class='wrap'><table><thead><tr><th>Topology</th><th>Traces</th><th>diagnostics</th><th>knowledge</th><th>ticket</th></tr></thead><tbody><tr><td>edge_cloud</td><td>375</td><td>250</td><td>125</td><td>375</td></tr></tbody></table></div><p class='meta'>Traces in which each listed agent carries traffic; an agent never seen gives no role samples.</p>
+<p class="meta">Full numbers: report.json and report.md next to this file.</p>
+</body></html>

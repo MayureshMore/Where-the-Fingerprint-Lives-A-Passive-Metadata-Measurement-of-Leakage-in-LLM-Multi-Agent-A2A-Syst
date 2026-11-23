@@ -1,0 +1,236 @@
+{
+ "paper": "P2",
+ "round": 2,
+ "purpose": "B1 audits: per arm, view and part, with the baseline gate",
+ "seed": 42,
+ "git_commit": "615db784719c7cd0ed55b9fbe8b281fc2596b87e",
+ "git_dirty": false,
+ "created": "2026-11-22T17:52:17-0800",
+ "parameters": {
+  "views": [
+   "v1",
+   "v2"
+  ],
+  "parts": [
+   "pair"
+  ],
+  "prefix": "c2b1_c2b1x",
+  "baseline_arm": "lan_padmax",
+  "baseline_prefix": "c2b1",
+  "tool_defaults": "perm-unit group, match-margin 0.05, margin 0.05, 99 permutations, 1000 bootstraps, gbt, --strip"
+ },
+ "arms": {
+  "lan_shaped": {
+   "data_dir": [
+    "data/raw_c2b1_shaped",
+    "data/raw_c2b1x_shaped"
+   ],
+   "collection_id": [
+    "C2B1",
+    "C2B1X"
+   ],
+   "sources": [
+    {
+     "dir": "data/raw_c2b1_shaped",
+     "collection_id": "C2B1",
+     "traces": 500,
+     "per_task_type": {
+      "alert_triage": 125,
+      "fault_diagnosis": 125,
+      "procedure_lookup": 125,
+      "sensor_analysis": 125
+     }
+    },
+    {
+     "dir": "data/raw_c2b1x_shaped",
+     "collection_id": "C2B1X",
+     "traces": 2000,
+     "per_task_type": {
+      "alert_triage": 500,
+      "fault_diagnosis": 500,
+      "procedure_lookup": 500,
+      "sensor_analysis": 500
+     }
+    }
+   ]
+  }
+ },
+ "runs": {
+  "c2b1_c2b1x_lan_shaped_v1_pair": {
+   "report": "data/results/leakcheck/c2b1_c2b1x_lan_shaped_v1_pair/report.json",
+   "input": "data/subsets/c2b1_c2b1x_lan_shaped_pair",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b1_shaped",
+      "collection_id": "C2B1",
+      "traces": 500,
+      "per_task_type": {
+       "alert_triage": 125,
+       "fault_diagnosis": 125,
+       "procedure_lookup": 125,
+       "sensor_analysis": 125
+      }
+     },
+     {
+      "dir": "data/raw_c2b1x_shaped",
+      "collection_id": "C2B1X",
+      "traces": 2000,
+      "per_task_type": {
+       "alert_triage": 500,
+       "fault_diagnosis": 500,
+       "procedure_lookup": 500,
+       "sensor_analysis": 500
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ],
+    "traces": 1250,
+    "per_task_type": {
+     "fault_diagnosis": 625,
+     "sensor_analysis": 625
+    },
+    "per_collection": {
+     "C2B1": 250,
+     "C2B1X": 1000
+    }
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "INCONCLUSIVE",
+     "n": 1250,
+     "groups": 1250,
+     "classes": [
+      "fault_diagnosis",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.5437710825783946,
+     "ci": [
+      0.5167986848970123,
+      0.5710435987924425
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "-"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b1_lan_padmax_v1_pair/report.json",
+    "compatible": true,
+    "changes": [
+     {
+      "attribute": "task_type",
+      "before": "LEAK",
+      "after": "INCONCLUSIVE"
+     }
+    ],
+    "new_leaks": [],
+    "needs_review": [
+     {
+      "attribute": "task_type",
+      "before": "LEAK",
+      "after": "INCONCLUSIVE",
+      "reason": "inconclusive"
+     }
+    ],
+    "resolved": []
+   },
+   "exit_code": 0
+  },
+  "c2b1_c2b1x_lan_shaped_v2_pair": {
+   "report": "data/results/leakcheck/c2b1_c2b1x_lan_shaped_v2_pair/report.json",
+   "input": "data/subsets/c2b1_c2b1x_lan_shaped_pair",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b1_shaped",
+      "collection_id": "C2B1",
+      "traces": 500,
+      "per_task_type": {
+       "alert_triage": 125,
+       "fault_diagnosis": 125,
+       "procedure_lookup": 125,
+       "sensor_analysis": 125
+      }
+     },
+     {
+      "dir": "data/raw_c2b1x_shaped",
+      "collection_id": "C2B1X",
+      "traces": 2000,
+      "per_task_type": {
+       "alert_triage": 500,
+       "fault_diagnosis": 500,
+       "procedure_lookup": 500,
+       "sensor_analysis": 500
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ],
+    "traces": 1250,
+    "per_task_type": {
+     "fault_diagnosis": 625,
+     "sensor_analysis": 625
+    },
+    "per_collection": {
+     "C2B1": 250,
+     "C2B1X": 1000
+    }
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "NO LEAK",
+     "n": 1250,
+     "groups": 1250,
+     "classes": [
+      "fault_diagnosis",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.5143972029278889,
+     "ci": [
+      0.4847504037976493,
+      0.5399352226956206
+     ],
+     "threshold": 0.55,
+     "p": 0.26,
+     "carried_by": "-"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b1_lan_padmax_v2_pair/report.json",
+    "compatible": true,
+    "changes": [
+     {
+      "attribute": "task_type",
+      "before": "LEAK",
+      "after": "NO LEAK"
+     }
+    ],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": [
+     "task_type"
+    ]
+   },
+   "exit_code": 0
+  }
+ },
+ "collection_id": [
+  "C2B1",
+  "C2B1X"
+ ],
+ "data_dir": {
+  "lan_shaped": [
+   "data/raw_c2b1_shaped",
+   "data/raw_c2b1x_shaped"
+  ]
+ },
+ "runtime_s": 130.60608149995096
+}
