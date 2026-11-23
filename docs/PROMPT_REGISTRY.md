@@ -113,6 +113,8 @@ procedure_lookup and alert_triage pools repeat a few:
 C2B1X shares no prompt with C2 or B1: it continues B1's offset-31000 sequence from position 125 and
 skips every prompt in their sidecars and every repeat (session_meta.json `prompt_selection`).
 sensor_analysis and fault_diagnosis take positions 125–624 with nothing skipped; procedure_lookup
-takes 125–810, skipping 122 used and 64 repeats; alert_triage takes 125–661, skipping 27 and 10. Eleven procedure_lookup questions also occur in the offset-20000 draw of the
+takes 125–810, skipping 122 used and 64 repeats; alert_triage takes 125–661, skipping 27 and 10.
+In the collected sidecars (Nov 22), the 2,000 prompts are distinct and none is among the 1,460
+distinct prompts of C2's and B1's folders. Eleven procedure_lookup questions also occur in the offset-20000 draw of the
 superseded design, which was never collected (only its discarded smoke tests used items 0 of each
 condition).

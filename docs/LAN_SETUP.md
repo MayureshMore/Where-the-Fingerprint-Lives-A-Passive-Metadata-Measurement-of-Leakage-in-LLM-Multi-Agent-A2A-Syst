@@ -480,7 +480,8 @@ Paper 2's round-2 sessions on this testbed (reply shaping, jitter and server loa
 | Two ticket connections in one trace | a retry inside the edge agent, or a previous task still running: check the Pi's log |
 | `--wan-target` stops the session, or `check_wan_emulation.py` (b) fails | the emulation is off (a Mac restart clears it): `sudo bash scripts/wan_emulation.sh show`, then `on` |
 | `wan_emulation.sh on` refuses: config differs from the measurement | `C2_IFACE`, `C2_PI` or `C2_CLOUD` changed since `measure_cloud_rtt.py`: rerun it |
-| (b) fails high from the Pi but passes at the capture | the Wi-Fi round trip has grown since the measurement (power saving back on, `iw dev wlan0 get power_save`, or the Pi moved): measure again (section 8) |
+| (b) fails high from the Pi but passes at the capture | the Wi-Fi round trip has grown since the measurement (power saving back on, or the Pi moved): measure again (section 8) |
+| (b) fails high from the Pi, with connects near 100 ms between normal ones, while (c) is fast | the Pi's chip dozes although `iw dev wlan0 get power_save` says off: `sudo iw dev wlan0 set power_save on`, then `off`, and check `sudo dmesg \| tail -n 3` for `power save disabled` (docs/ROUND2_SESSIONS.md, "Every session") |
 | `check_wan_emulation.py` (a) fails, or the Pi loses the internet | `sudo bash scripts/wan_emulation.sh off`, check `ping 1.1.1.1` on the Pi, and use the Pi fallback (section 8) |
 | (b) passes in the probes but the capture's SYN → SYN-ACK is near zero | the delay is applied on the Pi (fallback) or before the capture point: check which emulation is on |
 | (c) fails at the capture: the Mac's address is delayed | the anchor's rules match more than the cloud alias: `sudo bash scripts/wan_emulation.sh show` |

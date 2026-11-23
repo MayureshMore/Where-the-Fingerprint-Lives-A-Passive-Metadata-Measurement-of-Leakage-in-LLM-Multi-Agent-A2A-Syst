@@ -14,7 +14,7 @@ it copies into a local directory instead of the Pi.
 |---|---|---|---|---|---|---|
 | B1 reply shaping | Nov 21 (done) | `lan_padmax` (8300), `lan_shaped` (8400) | 500 + 500 | 31000 | `OLLAMA_NUM_PARALLEL` 1, context 128k, as in C2 | 2.9 measured, plus a 4.3 h pause |
 | B3 second day | Nov 22, by day (Wi-Fi permitting) | `lan` (8100) | 1,000 | 33000 | 1, context 128k, as in C2 | about 1.9 |
-| C2B1X more shaped traces | Nov 22, overnight | `lan_shaped` (8400) | 2,000 | 31000, from position 125 | 1, context 128k, as in B1 | about 7.8 |
+| C2B1X more shaped traces | Nov 22 (done) | `lan_shaped` (8400) | 2,000 | 31000, from position 125 | 1, context 128k, as in B1 | 7.7 measured, plus a 4.0 h pause |
 | B2 jitter and load (paper 3) | later | `lan` (8100), `lan_jl` (8500) | 500 + 500 | 32000 | `OLLAMA_NUM_PARALLEL` 4, context 32k | about 2.5 |
 
 The hours come from C2's pace (6.9 s per trace): a shaped escalated task takes C2's time with
@@ -84,8 +84,20 @@ for B2. To change them, quit the Ollama app, run `launchctl setenv OLLAMA_NUM_PA
 `launchctl unsetenv OLLAMA_NUM_PARALLEL` (B1, B3), reopen the app, set Settings, Context length
 (32k for B2, 128k for B1 and B3), and check again. The context length is the app's own setting.
 
-**Pi, before** (in `tmux`): `iw dev wlan0 get power_save` must say off; then the session's
-`serve_edge.py` line, below.
+**Pi, before** (in a second `tmux` window, Ctrl-b c, never the one that runs `serve_edge.py`):
+Wi-Fi power save on, then off, so that the off reaches the driver:
+```bash
+sudo iw dev wlan0 set power_save on
+sudo iw dev wlan0 set power_save off
+sudo dmesg | tail -n 3
+```
+The last line must say `brcmfmac: brcmf_cfg80211_set_power_mgmt: power save disabled`. A plain
+`set power_save off` is not enough: cfg80211 skips a setting equal to the one it holds, and
+`iw dev wlan0 get power_save` can say off while the chip dozes (C2B1X, Nov 22). A dozing chip shows
+in the WAN probes to the cloud as connects near 100 ms (the beacon interval, 102.4 ms) between
+normal ones: the cloud's SYN-ACK comes 12 ms after the SYN, by when the chip may sleep until the
+next beacon, while the Mac's own address answers at once. Do the same before a resume. Then the
+session's `serve_edge.py` line, below, in its own window.
 
 **Mac, after:**
 ```bash
@@ -154,6 +166,11 @@ data/pilot2_c2b1/shaped)`, the shaping check with `data/pilot2_c2b1/shaped --con
 data/pilot2_c2b1/padmax`. `check_shaping.py` passes when every shaped reply has one size on the wire,
 every release time is within 50 ms of 14.75 s plus the 12 ms round trip, and nothing was cut or
 overran. Stop `serve_cloud.py`, `wan_watch.py` and the guard; the WAN stays on.
+
+The second pilot passed its checks (Nov 21, 13:56). Its closing WAN check
+(`data/pilot2_c2b1/padmax/wan_check_after.json`, 15:42) has no values: every cloud and ticket port
+refused, as `serve_cloud.py` had been stopped for the full run. The full run's opening check
+passed a minute later.
 
 ### B1 full run
 
@@ -325,6 +342,26 @@ The pilot passes with all of these:
   `serve_cloud.py` still runs).
 - The checks below on `P=(data/pilot2_c2b1x/shaped)`.
 
+### C2B1X pilot record (Nov 22)
+
+- 01:07: the opening WAN check failed at 92.1 ms end to end, while the capture saw the dummynet's
+  12.9 ms and the Pi reached the Mac's own address in 10.3 ms. The guard, started before the
+  collector, checked once and ended (`wan_guard.json`, 0 traces). The collector was started anyway
+  (01:08, 0b7acd27, clean); its round-0 probe read 58.3 ms (connects 18, 22, 19, 95, 21, 108, 95,
+  21, 105, 98 ms) and it stopped before the first trace.
+- 01:14: `wan_check_resume1.json` failed the same way (96.8 ms end to end, 13.1 ms at the capture).
+  `iw dev wlan0 get power_save` said off. Setting power save on, then off, reached the driver (the
+  kernel logged `power save enabled`, then `disabled`). Commands typed into `serve_edge.py`'s tmux
+  window stopped it twice in this hour: the collector refused at its network check, and one WAN
+  check could not connect and left no file.
+- 01:19: `wan_check_resume2.json` passed (22.0 ms end to end, 12.5 ms at the capture). The collector
+  resumed at 01:22 (0b7acd27, clean); its probe read 22.7 ms. The guard (`wan_guard_resume1.json`)
+  checked at 0 and 20 traces, OK, none suspect.
+- 20 of 20 traces, 0 failed, prompts from position 125 (procedure_lookup skipped 2 used before), 20
+  distinct and none among C2's and B1's 1,460. 15 shaped replies, each 16,902 B on the wire, median
+  release 14.768 s (expected 14.762), spread 10.7 ms, 0 cut. The closing WAN check passed (23.6 ms
+  end to end, 12.6 ms at the capture), and the five checks pass.
+
 ### C2B1X full run
 
 **Mac**, window 1: Ctrl-C, then:
@@ -370,6 +407,47 @@ venv/bin/python scripts/check_stream_integrity.py data/raw_c2b1x_shaped --json d
 venv/bin/python scripts/check_session_design.py "${P[@]}" --json data/raw_c2b1x_shaped/design_check.json
 venv/bin/python scripts/check_shaping.py data/raw_c2b1x_shaped --json data/raw_c2b1x_shaped/shaping_check.json
 ```
+
+### C2B1X record (Nov 22)
+
+Rounds are counted from 0, as in `session_meta.json`; the collector prints round 17 as `ROUND 18/20`.
+
+- 01:29: started from 0b7acd27 (clean). The opening WAN check passed (23.0 ms end to end, 12.6 ms at
+  the capture, 9.8 ms to the Mac's own address).
+- Rounds 0 to 16 ran to 07:59: 1,700 traces, 0 failed, round-start probes 21.3 to 24.2 ms. At the
+  start of round 17 the probe read 57.5 ms (connects 17, 21, 89, 21, 105, 98, 26, 102, 95, 24 ms;
+  11.0 ms to the Mac's own address), the Pi's chip dozing again, and the collector stopped before
+  the round's first trace. The guard: 35 checks to 1,700 traces, all OK, none suspect. The pipes
+  stayed at 6 ms with 0 drops throughout (`wan_watch.jsonl`).
+- The collection stood until 11:59. Power save was set on, then off, on the Pi (the kernel logged
+  both). `wan_check_resume1.json` then failed on its base check alone: the Pi's connects to the
+  Mac's own address had a median of 66.8 ms (most of the first 20 of 30 near 67 to 70 ms, the
+  last 10 mostly 8 to 10 ms), while the Mac answered them in 0.7 ms at the capture; the cloud was
+  22.2 ms end to end and 13.0 ms at the capture. The collector had been pasted with the check and
+  started without waiting for its result. Its own probe passed (22.6 ms; 8.6 ms to the Mac's own
+  address), and it resumed at 11:59:45 from 0b7acd27 (clean), recorded as a resume.
+- The guard (`wan_guard_resume1.json`) checked from 0 to 2,000 traces: 41 checks, all OK, none
+  suspect. Rounds 18 and 19 opened at 21.6 and 20.9 ms.
+- 13:08: 2,000 of 2,000 items, 0 failed attempts, 0 traces while the Pi was throttled; 1,500 shaped
+  replies, 0 cut, 0 overrun, 0 failed, released 14.000 to 14.033 s after the request by the
+  cloud's clock (2 after 14.010 s). The 2,000 prompts are distinct, and none is among C2's and
+  B1's 1,460.
+- The closing WAN check passed (23.2 ms end to end, 12.6 ms at the capture, 10.2 ms to the Mac's
+  own address).
+- The checks pass: capture (500 of 500 per task type), TLS (1.75 connections per trace, one
+  handshake each), stream integrity (0% cut; the largest reply 29 to 42 packets) and design (8192
+  bucket 1,500 of 1,500, largest first message 8,568 B, 0 leftover connections, `audit_null` in
+  2,000 of 2,000 sidecars).
+- The shaping check passes on size (every shaped reply 16,902 B on the wire, every request
+  10,116 B) and on cut and overrun, and fails on release time. The median release is 14.770 s
+  (expected 14.762). The 5th to 95th percentile is 14.7672 to 14.7753 s. 1,492 of 1,500 releases
+  lie within 18 ms of the median and 1,499 within 27 ms, against the check's 50 ms. One trace,
+  `sensor_analysis_edge_cloud_f60a76` (round 4, 03:23), ended 94.6 ms late. The cloud released it
+  on time (14.002 s by its clock), and its events left 50 ms apart until the Pi's ACK of one came
+  back 100 ms after it (the others within 7 ms); the reply's last 3,481 B left together 145 ms
+  after the event before them. The trace stays in the collection: its bytes match every other
+  reply's, and no trace is dropped after collection.
+- 7.7 h of collection, plus the 4.0 h pause.
 
 ## B2: jitter and server load (paper 3)
 
