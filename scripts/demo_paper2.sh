@@ -15,12 +15,14 @@
 #
 # Usage:
 #   bash scripts/demo_paper2.sh                 # reports in a temporary folder
-#   OUT=/tmp/demo OPEN=1 bash scripts/demo_paper2.sh   # keep the reports, open the HTML (macOS)
+#   OUT=/tmp/demo OPEN=1 bash scripts/demo_paper2.sh   # keep the reports, open the HTML (open or xdg-open)
 #   PYTHON=venv/bin/python bash scripts/demo_paper2.sh
 #
 set -u
 PY="${PYTHON:-python3}"
-OUT="${OUT:-$(mktemp -d -t leakcheck_demo)}"
+TMP="${TMPDIR:-/tmp}"
+OUT="${OUT:-$(mktemp -d "${TMP%/}/leakcheck_demo.XXXXXX")}"    # GNU and BSD mktemp alike
+[ -n "$OUT" ] || { echo "no output folder: mktemp failed; set OUT=folder" >&2; exit 1; }
 BASE="examples/expected/c2_ci_baseline_v2/report.json"
 ATTR="--vantage v2 --attributes task_type"
 cd "$(dirname "$0")/.." || exit 1
@@ -78,7 +80,10 @@ PY
 say "2. The HTML report"
 echo "$OUT/lan_padmax/report.html"
 echo "$OUT/lan/report.html"
-[ "${OPEN:-0}" = 1 ] && command -v open >/dev/null && open "$OUT/lan_padmax/report.html"
+if [ "${OPEN:-0}" = 1 ]; then            # macOS open; elsewhere xdg-open (Debian's open is openvt)
+    if [ "$(uname)" = Darwin ]; then open "$OUT/lan_padmax/report.html"
+    elif command -v xdg-open >/dev/null; then xdg-open "$OUT/lan_padmax/report.html"; fi
+fi
 
 say "3. CI gate: the unpadded audit against the earlier report ($BASE)"
 "$PY" -m a2a_leakcheck diff "$OUT/lan/report.json" "$BASE"

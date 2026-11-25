@@ -19,6 +19,7 @@ set -u
 SAMPLE_DIR="${A2A_SAMPLES_DIR:-$HOME/a2a-samples}/samples/python/agents/a2a_mcp"   # set A2A_SAMPLES_DIR to your a2a-samples checkout
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$REPO_DIR/data/raw_offtheshelf_inst2"          # APPEND to instance-2 (the binding test set)
+[ "$(uname)" = Darwin ] || { echo "macOS only: captures on lo0 and sizes pcaps with BSD stat" >&2; exit 1; }
 IFACE="lo0"; PORTS="10100-10105"
 N="${1:-80}"                                          # max trips to ATTEMPT (guards stop earlier)
 
