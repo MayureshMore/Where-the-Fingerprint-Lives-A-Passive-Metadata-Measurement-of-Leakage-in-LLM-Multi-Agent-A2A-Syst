@@ -395,9 +395,11 @@ the output folder must not exist).
 
 ## Paper 2 archive, version 1.1 (D3 and B3: collections C2B1, C2B1X and C2B3)
 
-**Zenodo:** a new version of the record above (all versions: https://doi.org/10.5281/zenodo.24238558).
-Version 1.1 keeps version 1.0's six files unchanged and adds the six below, uploaded from the build
-described here. Its version DOI is added here once published.
+**Zenodo:** https://doi.org/10.5281/zenodo.24542790 (version 1.1, published 2026-11-25; data CC BY 4.0),
+a new version of the record above (all versions: https://doi.org/10.5281/zenodo.24238558). It holds
+12 files: version 1.0's six, unchanged, and the six below, uploaded from the build described here;
+their MD5 checksums on the record match that build. Its related identifier is this repository at
+commit `c38e7728`.
 
 | File | Contents | Bytes | SHA-256 |
 |---|---|---|---|

@@ -118,7 +118,8 @@ reports both and does not claim that TLS lowers workflow leakage.
 **Data:** Zenodo [doi:10.5281/zenodo.24238558](https://doi.org/10.5281/zenodo.24238558) (all
 versions): version 1.0, [doi:10.5281/zenodo.24238559](https://doi.org/10.5281/zenodo.24238559), holds
 C2 and D1 (files and checksums in [DATA.md](DATA.md#paper-2-archive-collections-c2-and-the-tls-control));
-version 1.1 adds D3 (C2B1, C2B1X) and B3 (C2B3). Unzip the archives into the repository root, then
+version 1.1, [doi:10.5281/zenodo.24542790](https://doi.org/10.5281/zenodo.24542790), adds D3 (C2B1,
+C2B1X) and B3 (C2B3) ([DATA.md](DATA.md#paper-2-archive-version-11-d3-and-b3-collections-c2b1-c2b1x-and-c2b3)). Unzip the archives into the repository root, then
 `bash scripts/reproduce_paper2.sh` rebuilds the paper's numbers and compares each with the committed
 one, in four sections: the v1.0 path (the numbers made with 0.1.x's permutation test by sample),
 round 2, D3 and B3 (`--section d3,b3`: about 2 h; `--quick`: every section's fast part, about 5 h;
