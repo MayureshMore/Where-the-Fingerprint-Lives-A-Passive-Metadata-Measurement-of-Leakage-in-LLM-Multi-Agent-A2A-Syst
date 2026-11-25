@@ -1,5 +1,20 @@
 # Passive inference of topology, roles and workflows in LLM multi-agent systems from encrypted traffic
 
+> **SafeIoT Track 1 reviewers start here.** Paper 2 is **a2a-leakcheck**; the rest of this README before
+> [Paper 2](#paper-2-safeiot-track-1-a2a-leakcheck) is about paper 1 and can be skipped.
+>
+> | To | Run or read | Time |
+> |---|---|---|
+> | Install the tool alone (Python 3.11 to 3.13, no GPU) | `python3 -m venv venv-leakcheck && venv-leakcheck/bin/pip install -r requirements-leakcheck.txt` | 1 min |
+> | See it work: the C2 examples audited, the HTML report, the CI gate failing a build on a new leak | `PYTHON=venv-leakcheck/bin/python bash scripts/demo_paper2.sh` | under 1 min |
+> | Run the pipeline contribution: the five folders laid out as [safeiot-vuln-pipeline](https://github.com/systemsecurity-uiuc/safeiot-vuln-pipeline) expects, from the Zenodo download to a report | [`safeiot/`](safeiot/README.md): `bash safeiot/pipeline_harness/a2a-leakcheck/run.sh` | about 4 min |
+> | Find any number in the paper: its file and field | [docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md) | |
+> | Rebuild the paper's numbers from the released data and compare each with the committed one; it stops and names any missing archive | `bash scripts/reproduce_paper2.sh --section d3,b3` (shaping and the second day), `--quick` (every section's fast part), or no option (everything) | 2 h, 5 h, about two days |
+>
+> Data: Zenodo [doi:10.5281/zenodo.24238558](https://doi.org/10.5281/zenodo.24238558) (all versions;
+> D3 and B3 from version 1.1), header-only captures; checksums in [DATA.md](DATA.md). The tool's
+> manual: [docs/LEAKCHECK.md](docs/LEAKCHECK.md).
+
 Code, testbed, data pipeline and frozen results for three papers on what a passive observer learns
 from the **metadata** of encrypted agent-to-agent traffic (packet sizes, timing and direction,
 never payloads) in LLM multi-agent systems built on the official

@@ -1,5 +1,20 @@
 # START HERE — quickstart
 
+> **SafeIoT Track 1 reviewers start here.** Paper 2 is **a2a-leakcheck**; the steps below this box collect
+> paper 1's data and can be skipped.
+>
+> | To | Run or read | Time |
+> |---|---|---|
+> | Install the tool alone (Python 3.11 to 3.13, no GPU) | `python3 -m venv venv-leakcheck && venv-leakcheck/bin/pip install -r requirements-leakcheck.txt` | 1 min |
+> | See it work: the C2 examples audited, the HTML report, the CI gate failing a build on a new leak | `PYTHON=venv-leakcheck/bin/python bash scripts/demo_paper2.sh` | under 1 min |
+> | Run the pipeline contribution: the five folders laid out as [safeiot-vuln-pipeline](https://github.com/systemsecurity-uiuc/safeiot-vuln-pipeline) expects, from the Zenodo download to a report | [`safeiot/`](safeiot/README.md): `bash safeiot/pipeline_harness/a2a-leakcheck/run.sh` | about 4 min |
+> | Find any number in the paper: its file and field | [docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md) | |
+> | Rebuild the paper's numbers from the released data and compare each with the committed one; it stops and names any missing archive | `bash scripts/reproduce_paper2.sh --section d3,b3` (shaping and the second day), `--quick` (every section's fast part), or no option (everything) | 2 h, 5 h, about two days |
+>
+> Data: Zenodo [doi:10.5281/zenodo.24238558](https://doi.org/10.5281/zenodo.24238558) (all versions;
+> D3 and B3 from version 1.1), header-only captures; checksums in [DATA.md](DATA.md). The tool's
+> manual: [docs/LEAKCHECK.md](docs/LEAKCHECK.md).
+
 The fastest path from a clone to results. Each step is **one command**; deeper docs are
 linked where a step has more to it.
 
