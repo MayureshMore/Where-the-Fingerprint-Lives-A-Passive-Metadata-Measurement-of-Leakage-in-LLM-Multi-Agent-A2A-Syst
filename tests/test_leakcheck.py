@@ -410,6 +410,37 @@ def test_c2_rules_timing_after_padding_and_local_posts():
     assert _ids("task_type", _result(), {"vantage": "v1", "padded": False, "unpadded_in_view": False}) == ["pad-messages"]
 
 
+def _inconclusive(p, alpha=0.05):
+    r = _result(verdict="INCONCLUSIVE")
+    r["validation"]["permutation"] = {"p_value": p, "alpha": alpha} if p is not None else {}
+    return r
+
+
+def test_inconclusive_with_a_signal_and_an_unpadded_flow_in_view():
+    v1 = {"vantage": "v1", "padded": True, "unpadded_in_view": True}
+    v2 = {"vantage": "v2", "padded": True, "unpadded_in_view": False}
+    assert _ids("task_type", _inconclusive(0.01), v1) == ["inconclusive-unpadded-in-view", "inconclusive"]
+    assert _ids("task_type", _inconclusive(0.05), v1)[0] == "inconclusive-unpadded-in-view"     # p <= alpha
+    assert _ids("task_type", _inconclusive(0.06), v1) == ["inconclusive"]                       # no signal
+    assert _ids("task_type", _inconclusive(None), v1) == ["inconclusive"]                       # no test run
+    assert _ids("task_type", _inconclusive(0.01), v2) == ["inconclusive"]                       # nothing unpadded
+    assert _ids("task_type", _inconclusive(0.01)) == ["inconclusive"]                           # not padded
+
+
+def test_the_d3_v1_pair_gets_the_hint_and_v2_does_not():
+    """D3's pooled sensor vs fault (C2B1 + C2B1X shaped, 625 per class): at V1, INCONCLUSIVE with p 0.01 and
+    the unpadded ticket post in view; at V2, NO LEAK (p 0.26)."""
+    from pathlib import Path
+    d = Path(__file__).resolve().parent.parent / "data" / "results" / "leakcheck"
+    v1 = json.loads((d / "c2b1_c2b1x_lan_shaped_v1_pair" / "report.json").read_text())["attributes"]["task_type"]
+    v2 = json.loads((d / "c2b1_c2b1x_lan_shaped_v2_pair" / "report.json").read_text())["attributes"]["task_type"]
+    assert (v1["verdict"], v1["validation"]["permutation"]["p_value"]) == ("INCONCLUSIVE", 0.01)
+    assert "inconclusive-unpadded-in-view" in _ids("task_type", v1, {"vantage": "v1", "padded": True,
+                                                                     "unpadded_in_view": True})
+    assert "inconclusive-unpadded-in-view" not in _ids("task_type", v2, {"vantage": "v2", "padded": True,
+                                                                         "unpadded_in_view": False})
+
+
 def test_padding_context_from_sidecars(tmp_path):
     from a2a_leakcheck.collect import read_trace
     from a2a_leakcheck.rules import context

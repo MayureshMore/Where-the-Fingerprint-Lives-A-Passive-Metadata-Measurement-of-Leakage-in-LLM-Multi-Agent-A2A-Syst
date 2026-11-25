@@ -111,7 +111,8 @@ C2's rules key on the attribute, the observer view and the deployment's padding:
 
 Facts: `attribute`, `verdict`, `severity`, `top_family`, `top_family_matches_all`,
 `request_size_single_matches_all`, `family_matches_all.<sizes|timing|counts_direction>`,
-`too_few_samples`, and three about the audit as a whole:
+`too_few_samples`, `permutation_rejects` (the permutation test ran and p ≤ alpha), and three about
+the audit as a whole:
 - `vantage`: the view audited;
 - `padded`: every trace's sidecar has `pad_buckets`;
 - `unpadded_in_view`: padded, and the view also sees endpoints missing from `padded_endpoints`.

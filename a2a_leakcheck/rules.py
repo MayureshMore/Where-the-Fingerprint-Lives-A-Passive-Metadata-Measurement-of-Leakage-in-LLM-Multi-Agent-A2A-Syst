@@ -41,10 +41,19 @@ def facts(attribute: str, result: dict, ctx: dict | None = None) -> dict:
         "family_matches_all": {f: bool(v.get("matches_all", v["all_minus_this"]["ci_lo"] <= 0))
                                for f, v in fams.items()},
         "too_few_samples": not result["validation"]["min_samples"]["ok"],
+        "permutation_rejects": _rejects(result),
         "vantage": ctx.get("vantage"),
         "padded": bool(ctx.get("padded", False)),
         "unpadded_in_view": bool(ctx.get("unpadded_in_view", False)),
     }
+
+
+def _rejects(result: dict) -> bool:
+    """True when the label-permutation test ran and its p-value is at most its alpha: the labels carry a
+    signal, whatever the interval says."""
+    perm = result["validation"].get("permutation") or {}
+    p, alpha = perm.get("p_value"), perm.get("alpha")
+    return p is not None and alpha is not None and p <= alpha
 
 
 def _get(f: dict, dotted: str):
