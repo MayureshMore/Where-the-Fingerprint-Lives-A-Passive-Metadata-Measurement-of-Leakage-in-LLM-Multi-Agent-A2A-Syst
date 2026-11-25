@@ -81,10 +81,19 @@ def _vantage_md(report: dict) -> list[str]:
     v = report["input"].get("vantage")
     if not v:
         return []
-    n = report["extraction"].get("empty_traces", 0)
-    return [f"Vantage `{v}`: only the flows of the endpoints this observer sees (the sidecars' `vantages`). "
-            f"{n} of {report['extraction']['traces']} traces show no flow there; they stay in the analysis with "
-            "all-zero features, since seeing nothing is what this observer sees for them.", ""]
+    e = report["extraction"]
+    n = e.get("empty_traces", 0)
+    L = [f"Vantage `{v}`: only the flows of the endpoints this observer sees (the sidecars' `vantages`). "
+         f"{n} of {e['traces']} traces show no flow there"
+         + (f" ({e['empty_expected_silent']} expected: not escalated, per the sidecar, and this view sees only "
+            f"cloud agents; {e['empty_unexpected']} unexpectedly empty)" if "empty_unexpected" in e else "")
+         + "; they stay in the analysis with all-zero features, since seeing nothing is what this observer "
+           "sees for them.", ""]
+    if e.get("empty_unexpected"):
+        L += [f"**Check the capture**: {e['empty_unexpected']} traces are empty at this view although their "
+              "sidecars do not say the task stayed local (first: "
+              + ", ".join(f"`{r}`" for r in e.get("empty_unexpected_runs", [])[:5]) + ").", ""]
+    return L
 
 
 def _visible_md(c: dict) -> list[str]:
@@ -125,7 +134,10 @@ def write_markdown(report: dict, path: Path) -> None:
     c, rt, p = report["collection"], report["runtime"], report["parameters"]
     L = [f"# Leak check: {report['input']['label'] or report['input']['folder']}", "",
          f"{c['traces']} traces from {c['pcaps']} captures in `{c['folder']}` "
-         f"({len(c['skipped'])} skipped, {c['stripped_copies']} analysed as stripped copies). "
+         f"({len(c['skipped'])} skipped, {c['stripped_copies']} analysed as stripped copies"
+         + (f"; {c['other_host_packets']['packets']} packets of hosts not in agent_endpoints dropped from "
+            f"{c['other_host_packets']['captures']} captures" if (c.get("other_host_packets") or {}).get("packets") else "")
+         + "). "
          f"a2a-leakcheck {report['version']}, {report['created']}.", "",
          *status_lines(report),
          *_vantage_md(report),

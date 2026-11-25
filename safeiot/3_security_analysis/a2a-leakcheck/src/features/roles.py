@@ -17,10 +17,13 @@ from features.per_flow import compute_per_flow
 
 def role_vectors(extractor, packets: list[tuple[float, int, str, int]],
                  port_role: dict[str, str]) -> dict[str, tuple[str, np.ndarray, np.ndarray, np.ndarray]]:
-    """agent port → (role, 35-dim per-flow vector, burst sequence, gap sequence).
+    """agent → (role, 35-dim per-flow vector, burst sequence, gap sequence).
 
     packets: (ts, size, flow_key, direction) from FeatureExtractor._read_pcap;
-    port_role: "8101" → "executor" (from the sidecar's agent_endpoints).
+    port_role: "8101" → "executor" (from the sidecar's agent_endpoints), or "10.0.0.2:8101" → "executor":
+    a key with the host matches only that host's flows (a2a-leakcheck, a2a_leakcheck/endpoints.py), so two
+    agents on different hosts can share a port; a port alone matches the port on any host, as before.
+    The result is keyed the same way.
     """
     # Step 1: group individual TCP connections by flow key
     by_flow: dict[str, list[tuple[float, int, int]]] = defaultdict(list)
@@ -33,9 +36,10 @@ def role_vectors(extractor, packets: list[tuple[float, int, str, int]],
         parts = fk.split("→")
         if len(parts) != 2:
             continue
-        dst_port = parts[1].rsplit(":", 1)[-1]
-        if port_role.get(dst_port) is not None:
-            by_agent_port[dst_port].append((fk, pkts))
+        agent = parts[1]
+        key = agent if agent in port_role else agent.rsplit(":", 1)[-1]
+        if port_role.get(key) is not None:
+            by_agent_port[key].append((fk, pkts))
 
     # Step 3: per-flow features on the pooled view
     out = {}

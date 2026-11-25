@@ -1,10 +1,10 @@
 {
   "tool": "a2a-leakcheck",
-  "version": "0.3.0",
-  "created": "2026-11-20T08:00:43-0800",
-  "git_commit": "b53e9859eaf6cedd9b0771f86ac0503e27a1ca2a",
+  "version": "0.3.1",
+  "created": "2026-11-25T07:50:24-0800",
+  "git_commit": "4d0cdf467e34d6f0bdbc39c6da5e168d8ed63b1f",
   "git_dirty": false,
-  "source": "vendored copy of https://github.com/MayureshMore/Where-the-Fingerprint-Lives-A-Passive-Metadata-Measurement-of-Leakage-in-LLM-Multi-Agent-A2A-Syst at b53e9859",
+  "source": "vendored copy of https://github.com/MayureshMore/Where-the-Fingerprint-Lives-A-Passive-Metadata-Measurement-of-Leakage-in-LLM-Multi-Agent-A2A-Syst at 4d0cdf46",
   "input": {
     "folder": "1_analysis_object/a2a-leakcheck/downloads/data/raw_c2_padmax",
     "features": "2_preprocess/a2a-leakcheck/features/lan_padmax_v2",
@@ -48,6 +48,11 @@
     "traces": 1000,
     "skipped": [],
     "stripped_copies": 0,
+    "other_host_packets": {
+      "captures": 0,
+      "packets": 0,
+      "endpoints": {}
+    },
     "group_source": {
       "prompt_group": 1000
     },
@@ -68,6 +73,9 @@
     "failed": [],
     "role_samples": 750,
     "empty_traces": 250,
+    "empty_expected_silent": 250,
+    "empty_unexpected": 0,
+    "empty_unexpected_runs": [],
     "trace_dims": 195,
     "role_dims": 35,
     "measurement": "own connections: only TCP connections whose SYN is in the capture",
@@ -672,39 +680,39 @@
     "for_review": []
   },
   "runtime": {
-    "total_s": 159.275563083007,
+    "total_s": 187.2141254171729,
     "stages_s": {
-      "features": 0.0036617500009015203,
-      "analysis": 159.25438325002324
+      "features": 0.0039224999491125345,
+      "analysis": 187.19167620921507
     },
     "analysis_by_attribute_s": {
-      "task_type": 44.41635295806918,
-      "escalated": 35.023890375043266,
-      "cloud_role": 33.0480626670178,
-      "audit_null": 45.89592525002081
+      "task_type": 63.798685082932934,
+      "escalated": 45.715935125015676,
+      "cloud_role": 32.597645208006725,
+      "audit_null": 44.28813287499361
     },
     "peak_rss_by_stage_mb": {
       "analysis:task_type": {
-        "main_mb": 147.078125,
-        "worker_mb": 170.796875
+        "main_mb": 185.96875,
+        "worker_mb": 277.0625
       },
       "analysis:escalated": {
-        "main_mb": 148.640625,
-        "worker_mb": 170.796875
+        "main_mb": 190.828125,
+        "worker_mb": 277.0625
       },
       "analysis:cloud_role": {
-        "main_mb": 149.609375,
-        "worker_mb": 170.796875
+        "main_mb": 194.5625,
+        "worker_mb": 277.0625
       },
       "analysis:audit_null": {
-        "main_mb": 151.359375,
-        "worker_mb": 170.796875
+        "main_mb": 196.96875,
+        "worker_mb": 277.515625
       }
     },
-    "peak_rss_mb": 151.359375,
-    "peak_rss_children_mb": 170.796875,
+    "peak_rss_mb": 196.96875,
+    "peak_rss_children_mb": 277.515625,
     "workers": 14,
-    "python": "3.12.13",
+    "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"
   }
 }

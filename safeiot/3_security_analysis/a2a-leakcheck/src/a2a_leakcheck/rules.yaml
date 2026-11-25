@@ -19,6 +19,8 @@
 #                                     size; role: bytes the agent receives)
 #   family_matches_all.<family>       per family, as above
 #   too_few_samples                   true when the minimum-sample check failed
+#   permutation_rejects               true when the label-permutation test ran and p <= alpha: the
+#                                     labels carry a signal, whatever the interval says
 #   vantage                           the observer view audited (--vantage), or null
 #   padded                            every trace's sidecar has pad_buckets: the deployment pads
 #                                     its requests (scripts/collect_session.py, arm option pad=...)
@@ -107,6 +109,15 @@ rules:
     hint: >-
       Each agent's traffic profile identifies its role. Put agents behind one endpoint, or pad
       their requests and responses to common sizes.
+
+  - id: inconclusive-unpadded-in-view
+    when: {verdict: INCONCLUSIVE, too_few_samples: false, permutation_rejects: true, unpadded_in_view: true}
+    hint: >-
+      INCONCLUSIVE, yet the permutation test finds a signal (p at most alpha), and this view also sees
+      requests that are not padded, such as posts to a local service (in C2 at V1, the ticket post on
+      the building network). They may carry what is left: pad posts to local services too, or
+      compare with the audit of a view without them, then re-run. Do not treat this attribute as
+      safe.
 
   - id: collect-more
     when: {verdict: INCONCLUSIVE, too_few_samples: true}

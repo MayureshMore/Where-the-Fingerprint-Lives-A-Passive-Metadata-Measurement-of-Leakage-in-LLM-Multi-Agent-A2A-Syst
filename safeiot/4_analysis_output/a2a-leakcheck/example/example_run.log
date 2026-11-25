@@ -1,27 +1,27 @@
 $ ./pipeline_harness/a2a-leakcheck/run.sh quick
 ==> Python environment (3_security_analysis/a2a-leakcheck/.venv)
-    Python 3.12.13
-    (9 s)
+    Python 3.12.1
+    (8 s)
 ==> Stage 1: analysis object (Zenodo record 24238559)
 downloading c2-raw-pcaps-headers-only.zip (22 MB) from zenodo.org, record 24238559
 c2-raw-pcaps-headers-only.zip: sha256 matches SHA256SUMS.txt
   downloads/data/raw_c2: 1000 captures
   downloads/data/raw_c2_pad: 1000 captures
   downloads/data/raw_c2_padmax: 1000 captures
-    (45 s)
+    (49 s)
 ==> Stage 2: header-only check and features (lan_padmax:v2)
-1000 traces (250 with nothing in view), 750 role samples → 2_preprocess/a2a-leakcheck/features/lan_padmax_v2
-    (78 s)
+1000 traces (250 with nothing in view: 250 expected silent, 0 unexpectedly empty), 750 role samples → 2_preprocess/a2a-leakcheck/features/lan_padmax_v2
+    (87 s)
 ==> Stage 3: audit
 task_type: LEAK, escalated: LEAK, cloud_role: LEAK, audit_null: NO LEAK → 4_analysis_output/a2a-leakcheck/last_run/lan_padmax_v2/report.md
 Audit completed: 4 attributes, 3 LEAK, 1 NO LEAK, 0 INCONCLUSIVE.
 Release policy: none configured, so the run exits 0 whatever the verdicts (gate a release with --baseline, --fail-on-leak, --strict or --require).
-    (238 s)
+    (275 s)
 ==> Stage 4: reports
     4_analysis_output/a2a-leakcheck/last_run/lan_padmax_v2/report.md
     exit code 0
 
-real	3m58.490s
-user	19m41.270s
-sys	0m23.752s
+real	4m35.552s
+user	20m42.373s
+sys	0m25.031s
 exit 0

@@ -1,6 +1,6 @@
 # Leak check: example: leaky
 
-40 traces from 40 captures in `examples/leaky` (0 skipped, 0 analysed as stripped copies). a2a-leakcheck 0.3.0, 2026-11-20T07:52:13-0800.
+40 traces from 40 captures in `examples/leaky` (0 skipped, 0 analysed as stripped copies). a2a-leakcheck 0.3.1, 2026-11-25T07:46:59-0800.
 
 **Audit completed**: 3 attributes, 2 LEAK, 0 NO LEAK, 1 INCONCLUSIVE.
 
@@ -97,12 +97,12 @@ Permutation test (rf-light, 99 permutations, labels permuted by prompt group (40
 
 ## Runtime
 
-61.4 s in all (collection 0.0 s, extraction 2.9 s, analysis 58.4 s); peak memory 247 MB in the main process, up to 199 MB in each of 14 worker processes.
+53.1 s in all (collection 0.1 s, extraction 2.5 s, analysis 50.4 s); peak memory 246 MB in the main process, up to 199 MB in each of 14 worker processes.
 
 | Stage | Time (s) | Peak so far, main (MB) | Peak so far, one worker (MB) |
 |---|---|---|---|
-| collection | 0.0 | 170 | — |
-| extraction | 2.9 | 245 | — |
-| analysis:role | 20.1 | 247 | 180 |
-| analysis:workflow | 20.0 | 247 | 196 |
-| analysis:topology | 17.4 | 247 | 199 |
+| collection | 0.1 | 169 | — |
+| extraction | 2.5 | 242 | — |
+| analysis:role | 17.2 | 245 | 181 |
+| analysis:workflow | 15.9 | 246 | 199 |
+| analysis:topology | 16.5 | 246 | 199 |

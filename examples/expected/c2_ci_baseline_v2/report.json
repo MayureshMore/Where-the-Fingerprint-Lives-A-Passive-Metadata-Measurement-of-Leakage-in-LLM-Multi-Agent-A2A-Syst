@@ -1,8 +1,8 @@
 {
   "tool": "a2a-leakcheck",
-  "version": "0.3.0",
-  "created": "2026-11-20T07:53:59-0800",
-  "git_commit": "b53e9859eaf6cedd9b0771f86ac0503e27a1ca2a",
+  "version": "0.3.1",
+  "created": "2026-11-25T07:49:04-0800",
+  "git_commit": "4d0cdf467e34d6f0bdbc39c6da5e168d8ed63b1f",
   "git_dirty": false,
   "input": {
     "folder": "examples/c2_ci_baseline",
@@ -43,6 +43,11 @@
     "traces": 20,
     "skipped": [],
     "stripped_copies": 0,
+    "other_host_packets": {
+      "captures": 0,
+      "packets": 0,
+      "endpoints": {}
+    },
     "group_source": {
       "prompt_group": 20
     },
@@ -65,6 +70,9 @@
     "failed": [],
     "role_samples": 20,
     "empty_traces": 0,
+    "empty_expected_silent": 0,
+    "empty_unexpected": 0,
+    "empty_unexpected_runs": [],
     "trace_dims": 195,
     "role_dims": 35,
     "measurement": "own connections: only TCP connections whose SYN is in the capture",
@@ -150,28 +158,28 @@
     ]
   },
   "runtime": {
-    "total_s": 1.0260732079623267,
+    "total_s": 0.9656101670116186,
     "stages_s": {
-      "collection": 0.01118958299048245,
-      "extraction": 0.9595055829267949,
-      "analysis": 0.005976459011435509
+      "collection": 0.02567437500692904,
+      "extraction": 0.8832950829528272,
+      "analysis": 0.006029541837051511
     },
     "analysis_by_attribute_s": {
-      "task_type": 0.00022245908621698618
+      "task_type": 0.0002153341192752123
     },
     "peak_rss_by_stage_mb": {
       "collection": {
-        "main_mb": 168.984375
+        "main_mb": 169.21875
       },
       "extraction": {
-        "main_mb": 238.421875
+        "main_mb": 239.015625
       },
       "analysis:task_type": {
-        "main_mb": 238.640625,
+        "main_mb": 239.234375,
         "worker_mb": 0.0
       }
     },
-    "peak_rss_mb": 238.734375,
+    "peak_rss_mb": 239.234375,
     "peak_rss_children_mb": 5.90625,
     "workers": 14,
     "python": "3.12.1",

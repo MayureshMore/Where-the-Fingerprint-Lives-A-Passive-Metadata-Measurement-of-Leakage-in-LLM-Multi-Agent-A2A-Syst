@@ -1,6 +1,6 @@
 # Leak check: example: c2_ci_baseline, view v2
 
-20 traces from 20 captures in `examples/c2_ci_baseline` (0 skipped, 0 analysed as stripped copies). a2a-leakcheck 0.3.0, 2026-11-20T07:53:59-0800.
+20 traces from 20 captures in `examples/c2_ci_baseline` (0 skipped, 0 analysed as stripped copies). a2a-leakcheck 0.3.1, 2026-11-25T07:49:04-0800.
 
 **Audit completed**: 1 attributes, 0 LEAK, 0 NO LEAK, 1 INCONCLUSIVE.
 
@@ -8,7 +8,7 @@
 
 **For review**: task_type (INCONCLUSIVE).
 
-Vantage `v2`: only the flows of the endpoints this observer sees (the sidecars' `vantages`). 0 of 20 traces show no flow there; they stay in the analysis with all-zero features, since seeing nothing is what this observer sees for them.
+Vantage `v2`: only the flows of the endpoints this observer sees (the sidecars' `vantages`). 0 of 20 traces show no flow there (0 expected: not escalated, per the sidecar, and this view sees only cloud agents; 0 unexpectedly empty); they stay in the analysis with all-zero features, since seeing nothing is what this observer sees for them.
 
 Verdict: LEAK if the 95% CI lower bound of macro-F1 is above chance + 0.05; NO LEAK if the upper bound is at most chance + 0.05; INCONCLUSIVE otherwise, or when the minimum-sample check fails, or when a LEAK fails the label-permutation test (p > 0.05, 99 permutations scored with RF-LIGHT). 5-fold grouped CV, GBT, 1000 cluster-bootstrap resamples, seed 42.
 
@@ -32,10 +32,10 @@ Visible agents per topology: traces in which each agent listed in `agent_endpoin
 
 ## Runtime
 
-1.0 s in all (collection 0.0 s, extraction 1.0 s, analysis 0.0 s); peak memory 239 MB in the main process, up to 6 MB in each of 14 worker processes.
+1.0 s in all (collection 0.0 s, extraction 0.9 s, analysis 0.0 s); peak memory 239 MB in the main process, up to 6 MB in each of 14 worker processes.
 
 | Stage | Time (s) | Peak so far, main (MB) | Peak so far, one worker (MB) |
 |---|---|---|---|
 | collection | 0.0 | 169 | — |
-| extraction | 1.0 | 238 | — |
+| extraction | 0.9 | 239 | — |
 | analysis:task_type | 0.0 | 239 | 0 |

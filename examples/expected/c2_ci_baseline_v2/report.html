@@ -14,8 +14,8 @@ th { color:var(--muted); font-weight:600; font-size:13px; }
 ul { margin:4px 0 0; padding-left:18px; } li { margin:2px 0; }
 </style></head><body>
 <h1>Leak check: example: c2_ci_baseline, view v2</h1>
-<p class="meta">20 traces from 20 captures · a2a-leakcheck 0.3.0 ·
-2026-11-20T07:53:59-0800 · 1.0 s · peak memory 239 MB</p>
+<p class="meta">20 traces from 20 captures · a2a-leakcheck 0.3.1 ·
+2026-11-25T07:49:04-0800 · 1.0 s · peak memory 239 MB</p>
 <p><b>Audit completed</b>: 1 attributes, 0 LEAK, 0 NO LEAK, 1 INCONCLUSIVE.</p><p><b>Release policy</b>: none configured, so the run exits 0 whatever the verdicts (gate a release with --baseline, --fail-on-leak, --strict or --require).</p><p><b>For review</b>: task_type (INCONCLUSIVE).</p><div class="wrap"><table><thead><tr><th>Attribute</th><th>Verdict</th><th>Severity</th><th>macro-F1 [95% CI]</th>
 <th>Chance + margin</th><th>Permutation p</th><th>False positives (permuted)</th><th>Carried by</th><th>Why, and what to do</th></tr></thead>
 <tbody><tr><td>task_type</td><td class='INCONCLUSIVE'>INCONCLUSIVE</td><td>none</td><td>—</td><td>0.550</td><td>—</td><td>—</td><td>—</td><td>too few samples: fault_diagnosis: 10 samples &lt; 20; sensor_analysis: 10 samples &lt; 20<ul><li><b>collect-more</b>: Too few samples per class for a verdict: collect more traces (at least min_per_class per class, from at least as many prompt groups as folds).</li></ul></td></tr></tbody></table></div>

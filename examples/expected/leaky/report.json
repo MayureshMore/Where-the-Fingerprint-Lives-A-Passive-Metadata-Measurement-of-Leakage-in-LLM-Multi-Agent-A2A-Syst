@@ -1,8 +1,8 @@
 {
   "tool": "a2a-leakcheck",
-  "version": "0.3.0",
-  "created": "2026-11-20T07:52:13-0800",
-  "git_commit": "b53e9859eaf6cedd9b0771f86ac0503e27a1ca2a",
+  "version": "0.3.1",
+  "created": "2026-11-25T07:46:59-0800",
+  "git_commit": "4d0cdf467e34d6f0bdbc39c6da5e168d8ed63b1f",
   "git_dirty": false,
   "input": {
     "folder": "examples/leaky",
@@ -45,6 +45,11 @@
     "traces": 40,
     "skipped": [],
     "stripped_copies": 0,
+    "other_host_packets": {
+      "captures": 0,
+      "packets": 0,
+      "endpoints": {}
+    },
     "group_source": {
       "prompt_group": 40
     },
@@ -81,6 +86,9 @@
     "failed": [],
     "role_samples": 120,
     "empty_traces": 0,
+    "empty_expected_silent": 0,
+    "empty_unexpected": 0,
+    "empty_unexpected_runs": [],
     "trace_dims": 195,
     "role_dims": 35,
     "measurement": "own connections: only TCP connections whose SYN is in the capture",
@@ -554,39 +562,39 @@
     ]
   },
   "runtime": {
-    "total_s": 61.391922958078794,
+    "total_s": 53.1219866250176,
     "stages_s": {
-      "collection": 0.01959258399438113,
-      "extraction": 2.942955708014779,
-      "analysis": 58.374359625042416
+      "collection": 0.06281645898707211,
+      "extraction": 2.5224144582170993,
+      "analysis": 50.40754854190163
     },
     "analysis_by_attribute_s": {
-      "role": 20.123430042061955,
-      "workflow": 20.04112458403688,
-      "topology": 17.395188833936118
+      "role": 17.210842333966866,
+      "workflow": 15.909065208863467,
+      "topology": 16.504113500006497
     },
     "peak_rss_by_stage_mb": {
       "collection": {
-        "main_mb": 170.140625
+        "main_mb": 169.28125
       },
       "extraction": {
-        "main_mb": 244.8125
+        "main_mb": 242.125
       },
       "analysis:role": {
-        "main_mb": 246.65625,
-        "worker_mb": 180.5
+        "main_mb": 245.1875,
+        "worker_mb": 181.171875
       },
       "analysis:workflow": {
-        "main_mb": 247.125,
-        "worker_mb": 196.28125
+        "main_mb": 245.890625,
+        "worker_mb": 199.109375
       },
       "analysis:topology": {
-        "main_mb": 247.125,
-        "worker_mb": 198.90625
+        "main_mb": 245.953125,
+        "worker_mb": 199.109375
       }
     },
-    "peak_rss_mb": 247.125,
-    "peak_rss_children_mb": 198.90625,
+    "peak_rss_mb": 245.953125,
+    "peak_rss_children_mb": 199.109375,
     "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"

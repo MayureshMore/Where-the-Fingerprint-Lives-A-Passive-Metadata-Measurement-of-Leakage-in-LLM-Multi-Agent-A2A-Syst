@@ -1,12 +1,12 @@
 # Leak check: C2 lan_padmax, view v2
 
-1000 traces from 1000 captures in `1_analysis_object/a2a-leakcheck/downloads/data/raw_c2_padmax` (0 skipped, 0 analysed as stripped copies). a2a-leakcheck 0.3.0, 2026-11-20T08:00:43-0800.
+1000 traces from 1000 captures in `1_analysis_object/a2a-leakcheck/downloads/data/raw_c2_padmax` (0 skipped, 0 analysed as stripped copies). a2a-leakcheck 0.3.1, 2026-11-25T07:50:24-0800.
 
 **Audit completed**: 4 attributes, 3 LEAK, 1 NO LEAK, 0 INCONCLUSIVE.
 
 **Release policy**: none configured, so the run exits 0 whatever the verdicts (gate a release with --baseline, --fail-on-leak, --strict or --require).
 
-Vantage `v2`: only the flows of the endpoints this observer sees (the sidecars' `vantages`). 250 of 1000 traces show no flow there; they stay in the analysis with all-zero features, since seeing nothing is what this observer sees for them.
+Vantage `v2`: only the flows of the endpoints this observer sees (the sidecars' `vantages`). 250 of 1000 traces show no flow there (250 expected: not escalated, per the sidecar, and this view sees only cloud agents; 0 unexpectedly empty); they stay in the analysis with all-zero features, since seeing nothing is what this observer sees for them.
 
 Verdict: LEAK if the 95% CI lower bound of macro-F1 is above chance + 0.05; NO LEAK if the upper bound is at most chance + 0.05; INCONCLUSIVE otherwise, or when the minimum-sample check fails, or when a LEAK fails the label-permutation test (p > 0.05, 99 permutations scored with RF-LIGHT). 5-fold grouped CV, GBT, 1000 cluster-bootstrap resamples, seed 42.
 
@@ -111,11 +111,11 @@ Permutation test (rf-light, 99 permutations, labels permuted by prompt group (98
 
 ## Runtime
 
-159.3 s in all (features 0.0 s, analysis 159.3 s); peak memory 151 MB in the main process, up to 171 MB in each of 14 worker processes.
+187.2 s in all (features 0.0 s, analysis 187.2 s); peak memory 197 MB in the main process, up to 278 MB in each of 14 worker processes.
 
 | Stage | Time (s) | Peak so far, main (MB) | Peak so far, one worker (MB) |
 |---|---|---|---|
-| analysis:task_type | 44.4 | 147 | 171 |
-| analysis:escalated | 35.0 | 149 | 171 |
-| analysis:cloud_role | 33.0 | 150 | 171 |
-| analysis:audit_null | 45.9 | 151 | 171 |
+| analysis:task_type | 63.8 | 186 | 277 |
+| analysis:escalated | 45.7 | 191 | 277 |
+| analysis:cloud_role | 32.6 | 195 | 277 |
+| analysis:audit_null | 44.3 | 197 | 278 |

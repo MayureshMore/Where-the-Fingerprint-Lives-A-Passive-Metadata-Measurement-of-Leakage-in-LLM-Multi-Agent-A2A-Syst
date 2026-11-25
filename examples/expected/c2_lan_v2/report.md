@@ -1,12 +1,12 @@
 # Leak check: example: c2_lan, view v2
 
-40 traces from 40 captures in `examples/c2_lan` (0 skipped, 0 analysed as stripped copies). a2a-leakcheck 0.3.0, 2026-11-20T07:53:37-0800.
+40 traces from 40 captures in `examples/c2_lan` (0 skipped, 0 analysed as stripped copies). a2a-leakcheck 0.3.1, 2026-11-25T07:48:38-0800.
 
 **Audit completed**: 1 attributes, 1 LEAK, 0 NO LEAK, 0 INCONCLUSIVE.
 
 **Release policy**: none configured, so the run exits 0 whatever the verdicts (gate a release with --baseline, --fail-on-leak, --strict or --require).
 
-Vantage `v2`: only the flows of the endpoints this observer sees (the sidecars' `vantages`). 0 of 40 traces show no flow there; they stay in the analysis with all-zero features, since seeing nothing is what this observer sees for them.
+Vantage `v2`: only the flows of the endpoints this observer sees (the sidecars' `vantages`). 0 of 40 traces show no flow there (0 expected: not escalated, per the sidecar, and this view sees only cloud agents; 0 unexpectedly empty); they stay in the analysis with all-zero features, since seeing nothing is what this observer sees for them.
 
 Verdict: LEAK if the 95% CI lower bound of macro-F1 is above chance + 0.05; NO LEAK if the upper bound is at most chance + 0.05; INCONCLUSIVE otherwise, or when the minimum-sample check fails, or when a LEAK fails the label-permutation test (p > 0.05, 99 permutations scored with RF-LIGHT). 5-fold grouped CV, GBT, 1000 cluster-bootstrap resamples, seed 42.
 
@@ -44,10 +44,10 @@ Permutation test (rf-light, 99 permutations, labels permuted by prompt group (40
 
 ## Runtime
 
-21.1 s in all (collection 0.0 s, extraction 1.9 s, analysis 19.1 s); peak memory 241 MB in the main process, up to 197 MB in each of 14 worker processes.
+25.0 s in all (collection 0.0 s, extraction 1.5 s, analysis 23.3 s); peak memory 243 MB in the main process, up to 196 MB in each of 14 worker processes.
 
 | Stage | Time (s) | Peak so far, main (MB) | Peak so far, one worker (MB) |
 |---|---|---|---|
 | collection | 0.0 | 170 | — |
-| extraction | 1.9 | 240 | — |
-| analysis:task_type | 18.9 | 241 | 197 |
+| extraction | 1.5 | 241 | — |
+| analysis:task_type | 23.0 | 243 | 196 |

@@ -1,8 +1,8 @@
 {
   "tool": "a2a-leakcheck",
-  "version": "0.3.0",
-  "created": "2026-11-20T07:53:37-0800",
-  "git_commit": "b53e9859eaf6cedd9b0771f86ac0503e27a1ca2a",
+  "version": "0.3.1",
+  "created": "2026-11-25T07:48:38-0800",
+  "git_commit": "4d0cdf467e34d6f0bdbc39c6da5e168d8ed63b1f",
   "git_dirty": false,
   "input": {
     "folder": "examples/c2_lan",
@@ -43,6 +43,11 @@
     "traces": 40,
     "skipped": [],
     "stripped_copies": 0,
+    "other_host_packets": {
+      "captures": 0,
+      "packets": 0,
+      "endpoints": {}
+    },
     "group_source": {
       "prompt_group": 40
     },
@@ -65,6 +70,9 @@
     "failed": [],
     "role_samples": 40,
     "empty_traces": 0,
+    "empty_expected_silent": 0,
+    "empty_unexpected": 0,
+    "empty_unexpected_runs": [],
     "trace_dims": 195,
     "role_dims": 35,
     "measurement": "own connections: only TCP connections whose SYN is in the capture",
@@ -241,29 +249,29 @@
     "for_review": []
   },
   "runtime": {
-    "total_s": 21.1469300420722,
+    "total_s": 24.95985758281313,
     "stages_s": {
-      "collection": 0.022880917065776885,
-      "extraction": 1.927390749915503,
-      "analysis": 19.137026417069137
+      "collection": 0.047680624993517995,
+      "extraction": 1.4937775419093668,
+      "analysis": 23.284985041012987
     },
     "analysis_by_attribute_s": {
-      "task_type": 18.886166875017807
+      "task_type": 23.02368245786056
     },
     "peak_rss_by_stage_mb": {
       "collection": {
-        "main_mb": 170.0
+        "main_mb": 169.671875
       },
       "extraction": {
-        "main_mb": 239.8125
+        "main_mb": 241.03125
       },
       "analysis:task_type": {
-        "main_mb": 241.3125,
-        "worker_mb": 196.6875
+        "main_mb": 242.78125,
+        "worker_mb": 196.171875
       }
     },
-    "peak_rss_mb": 241.3125,
-    "peak_rss_children_mb": 196.6875,
+    "peak_rss_mb": 242.78125,
+    "peak_rss_children_mb": 196.171875,
     "workers": 14,
     "python": "3.12.1",
     "platform": "macOS-27.0.1-arm64-arm-64bit"
