@@ -78,25 +78,30 @@ shows the CI gate (exit code 3 on a new LEAK; exit codes and `--strict` in
 1 to 4 and a harness); `pipeline_harness/a2a-leakcheck/run.sh` goes from a fresh clone of that
 repository to a report in about 4 minutes.
 
-**Headline numbers** (`paper2_tool_eval_c2.json` for C2, `paper2_tool_eval.json` for D1; every
-number in the paper and its file: [docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md)):
+**Headline numbers** (a2a-leakcheck 0.3.0: the permutation test by prompt group, "matches all
+features" as non-inferiority; every number in the paper and its file:
+[docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md)):
 
-| Data | Result |
-|---|---|
-| C2: an edge-cloud deployment (3,000 traces, 1,000 per arm; the edge agent on a Raspberry Pi 5 gateway; observed on the building network, v1, and upstream, v2) | finds all 18 known leaks, recall 1.00 [0.82, 1.00]; no LEAK on 486 known non-leaks, false-positive rate 0.00 [0.00, 0.01] |
-| C2 with every cloud request padded to 8 KB | the task type still leaks, through timing: 0.90 [0.88, 0.92] at v1, 0.89 [0.87, 0.91] at v2 (the first-request rule falls to 0.38); whether the gateway called the cloud (`escalated`) stays LEAK upstream, 1.00 [1.00, 1.00] |
-| D1: the TLS control (paired cleartext and TLS arms, 864 traces) | recall 1.00 [0.61, 1.00] (6 of 6), false-positive rate 0.00 [0.00, 0.03] (0 of 120); TLS changes no verdict |
-| Traces an auditor needs | from 20 per class, recall 1.00 on C2 and 0.90 on D1 (0.99 at 30, 1.00 at 50); below 20 per class the verdict rule returns INCONCLUSIVE |
-| Cost of a full audit (one C2 arm and view, 1,000 traces) | 3 to 4 min on a laptop with 14 workers; 27 min on the Raspberry Pi 5 with 4 workers |
+| Data | Result | File |
+|---|---|---|
+| C2 (D2): an edge-cloud deployment, 3,000 traces (1,000 per padding level: none, power of two, 8 KB); the edge agent on a Raspberry Pi 5 gateway; observed on the building network (v1) and upstream (v2) | all 18 learned leaks (task type, sensor vs fault, the escalated task types; 6 cells each) and all 12 structural checks (escalated, cloud role) read LEAK; no LEAK on 486 known non-leaks (480 audits with labels permuted by prompt group, 6 injected `audit_null` labels); its permutation test rejects in 24 of the 480 (5.0%); 0 of 120 permuted four-attribute audits would block a release [0, 0.031], 54 (0.45) hold an INCONCLUSIVE to review | `paper2_round2.json`: `sections.a12`, `sections.a11.methods` |
+| Baselines in the same verdict rule | k-FP finds the same 18 and 12; the first-request size alone misses 8 of the 18 learned leaks | `paper2_round2.json`: `sections.a12.learned_by_task` |
+| C2 with every cloud request padded to 8 KB | the task type still leaks, through timing: 0.90 [0.88, 0.92] at v1, 0.89 [0.87, 0.91] at v2 (the first request alone 0.38); sensor vs fault, served by the same cloud agent, 0.77 and 0.79; `escalated` stays 1.00 upstream | `paper2_round2.json`: `sections.a7`, `sections.a3.learned`; `leakcheck/c2_lan_padmax_v2/report.json` |
+| D3 (C2B1 + C2B1X): 8 KB requests plus a reference reply-shaping defence (one reply size, one release time), 625 traces per class pooled over both shaped sessions | sensor vs fault reads NO LEAK upstream for the primary detector, 0.514 [0.485, 0.540], p 0.26, and the CI gate (`--baseline` against the padded arm) lists it as resolved; timing alone scores 0.539 [0.510, 0.569], across the 0.55 bound, so this is a large reduction, not proof the leak is closed; on the building network INCONCLUSIVE, 0.544 [0.517, 0.571], p 0.01, since v1 also sees the unpadded ticket post; `escalated` stays LEAK, 1.00. An escalated task's trace shrinks from 163.2 to 32.4 KB and takes 7.4 to 10.8 s longer | `b1_pair_pooled.json` (timing: `leakcheck/c2b1_c2b1x_lan_shaped_v2_pair/report.json`), `b1_audits.json`, `b1_shaping_overhead.json`, `c2b1x_shaping_overhead.json` |
+| B3 (C2B3): C2's unpadded arm again on another day, 1,000 traces, new prompts | the same verdicts as C2 in 12 of 12 cells, macro-F1 within 0.024; trained on one session and tested on the other, every verdict holds but the learned tasks lose 0.08 to 0.27 (sensor vs fault 0.66 to 0.73) | `b3_audits.json`, `b3_cross_session_*.json` |
+| D1: the TLS control (paired cleartext and TLS arms, 864 traces) | LEAK for role, workflow and topology in both arms (0.58 to 1.00); TLS changes no verdict | `leakcheck/tls_control_*_own/report.json` |
+| Traces an auditor needs | LEAK from 20 per class (v1.0 evaluation: recall 1.00 on C2's task type, escalated and cloud role); NO LEAK is harder: with no signal, a two-class attribute stays INCONCLUSIVE in 12 of 20 draws at 125 per class and 5 of 20 at 375 | `paper2_tool_eval_c2.json`: `summary.sample_size`; `b1_power.json`: `measured`, `pooled_check` |
+| Cost of a four-attribute audit (one C2 arm and view, 1,000 traces) | 230 s on a laptop with 14 workers (0.3.0); 26 min 38 s on the Raspberry Pi 5 with 4 workers (0.1.0) | `leakcheck/c2_lan_v1_v030_cost/report.json`; `leakcheck_pi/time_c2_lan_v1.txt` |
 
 D1 is measured as a2a-leakcheck measures, every payload byte counted once. Its TLS − cleartext
 workflow difference is −0.083 [−0.137, −0.025] that way and −0.046 [−0.105, +0.015] with TCP
 retransmissions counted ([`d1_dedup_comparison.md`](data/results/d1_dedup_comparison.md)); paper 2
 reports both and does not claim that TLS lowers workflow leakage.
 
-**Data:** Zenodo [doi:10.5281/zenodo.24238559](https://doi.org/10.5281/zenodo.24238559) (version
-1.0; files and checksums in [DATA.md](DATA.md#paper-2-archive-collections-c2-and-the-tls-control)).
-Unzip the archives into the repository root, then `bash scripts/reproduce_paper2.sh --quick`
+**Data:** Zenodo [doi:10.5281/zenodo.24238558](https://doi.org/10.5281/zenodo.24238558) (all
+versions): version 1.0, [doi:10.5281/zenodo.24238559](https://doi.org/10.5281/zenodo.24238559), holds
+C2 and D1 (files and checksums in [DATA.md](DATA.md#paper-2-archive-collections-c2-and-the-tls-control));
+version 1.1 adds D3 (C2B1, C2B1X) and B3 (C2B3). Unzip the archives into the repository root, then `bash scripts/reproduce_paper2.sh --quick`
 rebuilds the examples, the audits and the review checks (about 45 minutes) and compares every
 number with the committed one; without `--quick` it also runs the tool evaluations (hours).
 
