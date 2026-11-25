@@ -84,15 +84,18 @@ Download the archive from Zenodo and unzip it into the repository root (files an
 
   `scripts/evaluate_c1_revision.py` adds the first-request and padding analyses; it writes into
   `data/results/` directly, so run it in a separate clone.
-- **Paper 2** (C2 and the TLS control, [doi:10.5281/zenodo.24238559](https://doi.org/10.5281/zenodo.24238559)):
+- **Paper 2** (C2, the TLS control, D3 and B3, [doi:10.5281/zenodo.24238558](https://doi.org/10.5281/zenodo.24238558),
+  version 1.1):
 
   ```bash
-  bash scripts/reproduce_paper2.sh --quick
+  bash scripts/reproduce_paper2.sh --section d3,b3     # shaping and the second day, about 2 h
+  bash scripts/reproduce_paper2.sh --quick             # every section's fast part, about 5 h
   ```
 
-  Rebuilds the examples, the audits and the review checks (about 45 minutes) into a **sandbox**
-  (`data/results_paper2_demo/`) and compares every number with the committed one; without `--quick` it also runs the tool
-  evaluations (hours).
+  Rebuilds the paper's numbers into a **sandbox** (`data/results_paper2_demo/`) and compares each
+  with the committed one, in four sections: the v1.0 path, round 2, D3 and B3. Without `--quick` or
+  `--section` it runs everything, round 2's long parts and the tool evaluations included (about two
+  days). A missing archive stops it before anything runs.
 
 `bash scripts/reproduce.sh` reproduces the earlier, superseded suite into `data/results_demo/`;
 its inputs (deployment A's captures and features) are not in a published archive.

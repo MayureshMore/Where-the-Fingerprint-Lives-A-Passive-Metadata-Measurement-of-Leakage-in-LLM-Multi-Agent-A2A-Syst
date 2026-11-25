@@ -13,7 +13,8 @@ with a manifest of its sources: folder, collection id and traces per task type. 
 every other arm's report of a view and part is run with --baseline against that arm's report of the
 same view and part (the CI gate: exit code, changes, new leaks, needs_review, resolved).
 
-Each run writes data/results/leakcheck/<prefix>_<arm>_<view>[_<part>]/ (report.json, .md, .html);
+Each run writes data/results/leakcheck/<prefix>_<arm>_<view>[_<part>]/ (report.json, .md, .html), or
+the same under --reports (scripts/reproduce_paper2.sh writes into its sandbox);
 --out writes the summary (.json, .md): verdicts, macro-F1 and CI, p, carried by (matches all, the
 non-inferiority rule), the baseline comparisons, and paper, collection ids, data folders, commit and
 seed. Nothing is written over; uncommitted code is refused. --title names the summary (default "B1 audits").
@@ -150,7 +151,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--arm", action="append", required=True, metavar="NAME=DIR[,DIR...]")
     p.add_argument("--views", default="v1,v2")
     p.add_argument("--parts", default="all,pair,escalated_only")
-    p.add_argument("--prefix", required=True, help="report folders: data/results/leakcheck/<prefix>_<arm>_<view>[_<part>]")
+    p.add_argument("--prefix", required=True, help="report folders: <reports>/<prefix>_<arm>_<view>[_<part>]")
+    p.add_argument("--reports", default=str(REPORTS), help=f"where the reports go (default {REPORTS}); the "
+                   "baseline arm's earlier reports (--baseline-prefix) are read from here too")
     p.add_argument("--baseline-arm", default=None, dest="baseline_arm",
                    help="run every other arm with --baseline against this arm's report of the same view and part")
     p.add_argument("--baseline-prefix", default=None, dest="baseline_prefix",
@@ -177,14 +180,14 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--baseline-arm is not one of the arms: give --baseline-prefix of its earlier reports")
     order = sorted(arms, key=lambda x: x != a.baseline_arm)          # the baseline arm's reports first
     runs = [(arm, v, part) for arm in order for v in views for part in parts]
-    out = Path(a.out)
+    out, reports = Path(a.out), Path(a.reports)
     exist = [str(x) for x in (out.with_suffix(".json"), out.with_suffix(".md")) if x.exists()]
-    exist += [str(REPORTS / name(a.prefix, *r)) for r in runs if (REPORTS / name(a.prefix, *r)).exists()]
+    exist += [str(reports / name(a.prefix, *r)) for r in runs if (reports / name(a.prefix, *r)).exists()]
     if exist:
         raise SystemExit("results are not written over: " + ", ".join(exist))
     for arm, v, part in runs:
         if a.baseline_arm and arm != a.baseline_arm:
-            b = REPORTS / name(base_prefix, a.baseline_arm, v, part) / "report.json"
+            b = reports / name(base_prefix, a.baseline_arm, v, part) / "report.json"
             if a.baseline_arm not in arms and not b.exists():
                 raise SystemExit(f"no baseline report {b}")
     git = _git()
@@ -214,9 +217,9 @@ def main(argv: list[str] | None = None) -> int:
         else:
             folder = Path(a.subset_dir) / f"{a.prefix}_{arm}_{part}"
             manifest = subset(dirs, task_types, folder)
-        baseline = REPORTS / name(base_prefix, a.baseline_arm, v, part) / "report.json" \
+        baseline = reports / name(base_prefix, a.baseline_arm, v, part) / "report.json" \
             if a.baseline_arm and arm != a.baseline_arm else None
-        rep = REPORTS / name(a.prefix, arm, v, part)
+        rep = reports / name(a.prefix, arm, v, part)
         ids = "+".join(str(c) for c in res["arms"][arm]["collection_id"])
         label = f"{ids} {arm}, view {v}" + ("" if part == "all" else f", {part}")
         cmd = command(folder, rep, v, attrs, label, baseline, a.jobs)

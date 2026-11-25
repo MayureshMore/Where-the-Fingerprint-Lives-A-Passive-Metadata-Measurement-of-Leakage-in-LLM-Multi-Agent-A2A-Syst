@@ -340,7 +340,8 @@ zips (fixed timestamps and order): rebuilding the same files gives the same chec
 TLS-control capture archives hold the same files as the first build at `8dd4b74e`. The record also
 holds `SHA256SUMS.txt`. Unzip the archives into the repository root, then
 `bash scripts/reproduce_paper2.sh` rebuilds every paper 2 number and compares it with the
-committed one (docs/PAPER2_NUMBERS.md maps each number to its file).
+committed one (docs/PAPER2_NUMBERS.md maps each number to its file); its D3 and B3 sections need
+version 1.1's archives as well, and it stops, naming the archive, when one is missing.
 
 **D1 measured with every payload byte counted once (Nov 14).** The TLS-control features in this
 release drop TCP retransmissions, as a2a-leakcheck does; the earlier `processed_tlspair_*_own` sets

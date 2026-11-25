@@ -433,7 +433,7 @@ is `scripts/reproduce_paper2.sh` and its map, [docs/PAPER2_NUMBERS.md](docs/PAPE
 |---|---|---|---|
 | P1 on C1 (closed world, temporal, ablation, learning curve, k-FP) | `evaluate_c1.py` | `processed_c1_own`, `raw_c1` | `c1_evaluation_own.json`, `c1_evaluation_own.md` |
 | P1 first request, padding, capture checks | `evaluate_c1_revision.py` | `processed_c1_own`, `raw_c1` | `c1_revision.json`, `c1_revision.md` |
-| P2 (a2a-leakcheck on C2 and the TLS control) | `reproduce_paper2.sh` (`python -m a2a_leakcheck`, `evaluate_tls_control.py`, `evaluate_leakcheck.py`, …) | `raw_c2*`, `raw_tlspair_*`, `processed_tlspair_*_own_dedup` | `leakcheck/`, `tls_control_own.*`, `paper2_tool_eval*.*`, … ([docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md)) |
+| P2 (a2a-leakcheck on C2, the TLS control, D3 and B3) | `reproduce_paper2.sh` (`python -m a2a_leakcheck`, `evaluate_tls_control.py`, `evaluate_leakcheck.py`, `paper2_round2.py`, `b1_audits.py`, `check_shaping.py`, `b1_power.py`, `b1_size_check.py`, `evaluate_cross_session.py`, …) | `raw_c2*`, `raw_tlspair_*`, `processed_tlspair_*_own_dedup`, `raw_c2b1_*`, `raw_c2b1x_shaped`, `raw_c2b3_lan` | `leakcheck/`, `tls_control_own.*`, `paper2_tool_eval*.*`, `paper2_round2.*`, `b1_*.*`, `c2b1x_shaping_overhead.*`, `b3_*.*`, … ([docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md)) |
 | §1 closed-world | `evaluate.py --mode all` | `processed` | `closed_world/*` + `summary.json` |
 | §2 model-vs-logic | `evaluate_model_vs_logic.py` | A, amodel, blogic, B | `model_vs_logic.json` |
 | §2 cross-deployment A↔B | `evaluate_cross_deployment.py` | A, B | `cross_deployment.json` |
@@ -472,7 +472,7 @@ Other scripts: `train_models.py` (standalone model training),
 
 ```bash
 pytest -q                                  # the unit and regression tests
-bash scripts/reproduce_paper2.sh --quick   # paper 2: examples, audits, review checks into a sandbox, diff vs committed
+bash scripts/reproduce_paper2.sh --quick   # paper 2: every section's fast part into a sandbox, diff vs committed (about 5 h)
 bash scripts/reproduce.sh                  # the earlier suite: frozen features into a sandbox, diff vs committed
 ```
 

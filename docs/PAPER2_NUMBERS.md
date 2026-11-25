@@ -2,7 +2,8 @@
 
 Every number in paper 2 (a2a-leakcheck, SafeIoT Track 1) and the file that holds it. All files are
 under `data/results/` unless the path says otherwise. `scripts/reproduce_paper2.sh` rebuilds them
-from the released data and compares each with the committed one. `scripts/export_paper2_csv.py`
+from the released data and compares each with the committed one, in four sections: `v1.0` (the
+tables from "Data and setup" to "Review checks"), `round2`, `d3` and `b3`. `scripts/export_paper2_csv.py`
 writes the plotted ones to `data/results/paper2_csv/` for the paper's pgfplots figures.
 
 The paths use these placeholders:
