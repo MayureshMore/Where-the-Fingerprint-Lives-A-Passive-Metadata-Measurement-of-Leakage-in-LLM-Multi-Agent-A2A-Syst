@@ -1,0 +1,370 @@
+{
+ "paper": "P2",
+ "round": 2,
+ "check": "B3 cross-session transfer",
+ "seed": 42,
+ "git_commit": "8c2274118cca95ef94fd8d65cfe585012faa1c69",
+ "git_dirty": false,
+ "view": "v1",
+ "collection_id": {
+  "train": "C2B3",
+  "test": "C2"
+ },
+ "data_dir": {
+  "train": "data/raw_c2b3_lan",
+  "test": "data/raw_c2"
+ },
+ "train": {
+  "folder": "data/features_b3_cross/c2b3_lan_v1",
+  "rounds": null,
+  "meta": {
+   "input": {
+    "folder": "data/raw_c2b3_lan",
+    "vantage": "v1"
+   },
+   "parameters": {
+    "strip": true,
+    "legacy_all_connections": false,
+    "keep_retransmissions": false
+   },
+   "created": "2026-11-24T18:03:22-0800",
+   "git_commit": "8c2274118cca95ef94fd8d65cfe585012faa1c69"
+  }
+ },
+ "test": {
+  "folder": "data/features_b3_cross/c2_lan_v1",
+  "rounds": null,
+  "meta": {
+   "input": {
+    "folder": "data/raw_c2",
+    "vantage": "v1"
+   },
+   "parameters": {
+    "strip": true,
+    "legacy_all_connections": false,
+    "keep_retransmissions": false
+   },
+   "created": "2026-11-24T18:02:56-0800",
+   "git_commit": "8c2274118cca95ef94fd8d65cfe585012faa1c69"
+  }
+ },
+ "parameters": {
+  "permutations": 99,
+  "n_boot": 1000,
+  "margin": 0.05,
+  "alpha": 0.05,
+  "keep_shared": false,
+  "subsets": {
+   "pair": {
+    "attribute": "task_type",
+    "classes": [
+     "sensor_analysis",
+     "fault_diagnosis"
+    ]
+   },
+   "escalated_only": {
+    "attribute": "task_type",
+    "classes": [
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ]
+   }
+  }
+ },
+ "reference": {
+  "source": "data/results/paper2_round2.json",
+  "section": "a7",
+  "git_commit": "a9b9dd7689bd58dd0cdaf00679b4b125e6c91ef9",
+  "clean": true,
+  "collection_id": "C2",
+  "data_dir": "data/raw_c2",
+  "view": "v1",
+  "tasks": {
+   "task_type": {
+    "verdict": "LEAK",
+    "macro_f1": 0.9670276532937275,
+    "ci": [
+     0.9546009293992069,
+     0.9769310684895762
+    ],
+    "p": 0.01
+   },
+   "escalated": {
+    "verdict": "LEAK",
+    "macro_f1": 1.0,
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "p": 0.01
+   },
+   "cloud_role": {
+    "verdict": "LEAK",
+    "macro_f1": 0.9984984954924835,
+    "ci": [
+     0.9953237617265707,
+     1.0
+    ],
+    "p": 0.01
+   },
+   "audit_null": {
+    "verdict": "NO LEAK",
+    "macro_f1": 0.2500289360542252,
+    "ci": [
+     0.22248071620722853,
+     0.2752049173662056
+    ],
+    "p": 0.08
+   },
+   "pair": {
+    "verdict": "LEAK",
+    "macro_f1": 0.9339933993399341,
+    "ci": [
+     0.9119097956307258,
+     0.9540211967423151
+    ],
+    "p": 0.01
+   },
+   "escalated_only": {
+    "verdict": "LEAK",
+    "macro_f1": 0.9587774060964124,
+    "ci": [
+     0.9451648235074418,
+     0.9722578183401382
+    ],
+    "p": 0.01
+   }
+  }
+ },
+ "attributes": {
+  "task_type": {
+   "classes": [
+    "alert_triage",
+    "fault_diagnosis",
+    "procedure_lookup",
+    "sensor_analysis"
+   ],
+   "train": {
+    "n": 1000,
+    "groups": 978
+   },
+   "test": {
+    "n": 970,
+    "groups": 955,
+    "shared_prompts": 30,
+    "dropped_shared": 30
+   },
+   "transfer": {
+    "verdict": "LEAK",
+    "macro_f1": 0.8426110286928723,
+    "ci": [
+     0.8198539076201101,
+     0.8625745431823553
+    ],
+    "p": 0.01,
+    "null_mean": 0.24932109621457926,
+    "chance": 0.25
+   },
+   "within_test": {
+    "verdict": "LEAK",
+    "macro_f1": 0.9669723018085655,
+    "ci": [
+     0.9553047416701497,
+     0.9774454452315212
+    ],
+    "p": 0.01
+   },
+   "seconds": 153.22101445822045
+  },
+  "escalated": {
+   "classes": [
+    "no",
+    "yes"
+   ],
+   "train": {
+    "n": 1000,
+    "groups": 978
+   },
+   "test": {
+    "n": 970,
+    "groups": 955,
+    "shared_prompts": 30,
+    "dropped_shared": 30
+   },
+   "transfer": {
+    "verdict": "LEAK",
+    "macro_f1": 1.0,
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "p": 0.01,
+    "null_mean": 0.5364108825732945,
+    "chance": 0.5
+   },
+   "within_test": {
+    "verdict": "LEAK",
+    "macro_f1": 1.0,
+    "ci": [
+     1.0,
+     1.0
+    ],
+    "p": 0.01
+   },
+   "seconds": 76.00822404096834
+  },
+  "cloud_role": {
+   "classes": [
+    "diagnostics",
+    "knowledge"
+   ],
+   "train": {
+    "n": 750,
+    "groups": 734
+   },
+   "test": {
+    "n": 724,
+    "groups": 713,
+    "shared_prompts": 26,
+    "dropped_shared": 26
+   },
+   "transfer": {
+    "verdict": "LEAK",
+    "macro_f1": 0.995133700023525,
+    "ci": [
+     0.9897914366353756,
+     1.0
+    ],
+    "p": 0.01,
+    "null_mean": 0.5048017968883547,
+    "chance": 0.5
+   },
+   "within_test": {
+    "verdict": "LEAK",
+    "macro_f1": 0.9983819312678373,
+    "ci": [
+     0.9936664540227305,
+     1.0
+    ],
+    "p": 0.01
+   },
+   "seconds": 69.31874012504704
+  },
+  "audit_null": {
+   "classes": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ],
+   "train": {
+    "n": 1000,
+    "groups": 978
+   },
+   "test": {
+    "n": 970,
+    "groups": 955,
+    "shared_prompts": 30,
+    "dropped_shared": 30
+   },
+   "transfer": {
+    "verdict": "NO LEAK",
+    "macro_f1": 0.25538650509041905,
+    "ci": [
+     0.23000708157283647,
+     0.2828200174740335
+    ],
+    "p": 0.23,
+    "null_mean": 0.24606354185256382,
+    "chance": 0.25
+   },
+   "within_test": {
+    "verdict": "NO LEAK",
+    "macro_f1": 0.22576215219006102,
+    "ci": [
+     0.2011834875262366,
+     0.25205856868664006
+    ],
+    "p": 0.9
+   },
+   "seconds": 182.85630899993703
+  },
+  "pair": {
+   "classes": [
+    "fault_diagnosis",
+    "sensor_analysis"
+   ],
+   "train": {
+    "n": 500,
+    "groups": 500
+   },
+   "test": {
+    "n": 500,
+    "groups": 500,
+    "shared_prompts": 0,
+    "dropped_shared": 0
+   },
+   "transfer": {
+    "verdict": "LEAK",
+    "macro_f1": 0.6606275779251292,
+    "ci": [
+     0.6167551582615324,
+     0.7009921730504393
+    ],
+    "p": 0.01,
+    "null_mean": 0.4776505802251423,
+    "chance": 0.5
+   },
+   "within_test": {
+    "verdict": "LEAK",
+    "macro_f1": 0.9339933993399341,
+    "ci": [
+     0.9119097956307258,
+     0.9540211967423151
+    ],
+    "p": 0.01
+   },
+   "seconds": 60.07571683404967
+  },
+  "escalated_only": {
+   "classes": [
+    "fault_diagnosis",
+    "procedure_lookup",
+    "sensor_analysis"
+   ],
+   "train": {
+    "n": 750,
+    "groups": 734
+   },
+   "test": {
+    "n": 724,
+    "groups": 713,
+    "shared_prompts": 26,
+    "dropped_shared": 26
+   },
+   "transfer": {
+    "verdict": "LEAK",
+    "macro_f1": 0.7704126797260362,
+    "ci": [
+     0.7410294076029585,
+     0.7996766071162185
+    ],
+    "p": 0.01,
+    "null_mean": 0.3370917379775826,
+    "chance": 0.3333333333333333
+   },
+   "within_test": {
+    "verdict": "LEAK",
+    "macro_f1": 0.955959161575206,
+    "ci": [
+     0.9404437856755359,
+     0.9687003432342809
+    ],
+    "p": 0.01
+   },
+   "seconds": 114.27785254199989
+  }
+ },
+ "runtime_s": 655.8371399170719
+}

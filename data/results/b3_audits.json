@@ -1,0 +1,435 @@
+{
+ "paper": "P2",
+ "round": 2,
+ "purpose": "B3 audits: per arm, view and part, with the baseline gate",
+ "title": "B3 audits",
+ "seed": 42,
+ "git_commit": "8c2274118cca95ef94fd8d65cfe585012faa1c69",
+ "git_dirty": false,
+ "created": "2026-11-24T17:52:02-0800",
+ "parameters": {
+  "views": [
+   "v1",
+   "v2"
+  ],
+  "parts": [
+   "all",
+   "pair",
+   "escalated_only"
+  ],
+  "prefix": "c2b3",
+  "baseline_arm": null,
+  "baseline_prefix": null,
+  "tool_defaults": "perm-unit group, match-margin 0.05, margin 0.05, 99 permutations, 1000 bootstraps, gbt, --strip"
+ },
+ "arms": {
+  "lan": {
+   "data_dir": [
+    "data/raw_c2b3_lan"
+   ],
+   "collection_id": [
+    "C2B3"
+   ],
+   "sources": [
+    {
+     "dir": "data/raw_c2b3_lan",
+     "collection_id": "C2B3",
+     "traces": 1000,
+     "per_task_type": {
+      "alert_triage": 250,
+      "fault_diagnosis": 250,
+      "procedure_lookup": 250,
+      "sensor_analysis": 250
+     }
+    }
+   ]
+  }
+ },
+ "runs": {
+  "c2b3_lan_v1": {
+   "report": "data/results/leakcheck/c2b3_lan_v1/report.json",
+   "input": "data/raw_c2b3_lan",
+   "subset": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 978,
+     "classes": [
+      "alert_triage",
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.9599974398361495,
+     "ci": [
+      0.9481013523161523,
+      0.970773132038729
+     ],
+     "threshold": 0.3,
+     "p": 0.01,
+     "carried_by": "sizes (alone matches all)"
+    },
+    "escalated": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 978,
+     "classes": [
+      "no",
+      "yes"
+     ],
+     "macro_f1": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "counts_direction (alone matches all)"
+    },
+    "cloud_role": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 734,
+     "classes": [
+      "diagnostics",
+      "knowledge"
+     ],
+     "macro_f1": 0.9969939638794699,
+     "ci": [
+      0.9923296383951256,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "first_request_bytes alone"
+    },
+    "audit_null": {
+     "verdict": "NO LEAK",
+     "n": 1000,
+     "groups": 978,
+     "classes": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "macro_f1": 0.23783465647372173,
+     "ci": [
+      0.21240367519127126,
+      0.26283035301173147
+     ],
+     "threshold": 0.3,
+     "p": 0.81,
+     "carried_by": "-"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b3_lan_v1_pair": {
+   "report": "data/results/leakcheck/c2b3_lan_v1_pair/report.json",
+   "input": "data/subsets/c2b3_lan_pair",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b3_lan",
+      "collection_id": "C2B3",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ],
+    "traces": 500,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B3": 500
+    }
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 500,
+     "groups": 500,
+     "classes": [
+      "fault_diagnosis",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.9159986559784956,
+     "ci": [
+      0.8899784357734115,
+      0.937993799379938
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "sizes (alone matches all)"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b3_lan_v1_escalated_only": {
+   "report": "data/results/leakcheck/c2b3_lan_v1_escalated_only/report.json",
+   "input": "data/subsets/c2b3_lan_escalated_only",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b3_lan",
+      "collection_id": "C2B3",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ],
+    "traces": 750,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "procedure_lookup": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B3": 750
+    }
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 734,
+     "classes": [
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.9533331466659201,
+     "ci": [
+      0.9371993500604968,
+      0.967602202770604
+     ],
+     "threshold": 0.3833333333333333,
+     "p": 0.01,
+     "carried_by": "sizes (alone matches all)"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b3_lan_v2": {
+   "report": "data/results/leakcheck/c2b3_lan_v2/report.json",
+   "input": "data/raw_c2b3_lan",
+   "subset": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 978,
+     "classes": [
+      "alert_triage",
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.9559992959887358,
+     "ci": [
+      0.9433184480198203,
+      0.9679169357742542
+     ],
+     "threshold": 0.3,
+     "p": 0.01,
+     "carried_by": "sizes (alone matches all)"
+    },
+    "escalated": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 978,
+     "classes": [
+      "no",
+      "yes"
+     ],
+     "macro_f1": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "first_request_bytes alone"
+    },
+    "cloud_role": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 734,
+     "classes": [
+      "diagnostics",
+      "knowledge"
+     ],
+     "macro_f1": 0.9969939638794699,
+     "ci": [
+      0.9923296383951256,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "first_request_bytes alone"
+    },
+    "audit_null": {
+     "verdict": "NO LEAK",
+     "n": 1000,
+     "groups": 978,
+     "classes": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "macro_f1": 0.2389639583005251,
+     "ci": [
+      0.21433382242317023,
+      0.26559889434582334
+     ],
+     "threshold": 0.3,
+     "p": 0.96,
+     "carried_by": "-"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b3_lan_v2_pair": {
+   "report": "data/results/leakcheck/c2b3_lan_v2_pair/report.json",
+   "input": "data/subsets/c2b3_lan_pair",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b3_lan",
+      "collection_id": "C2B3",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ],
+    "traces": 500,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B3": 500
+    }
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 500,
+     "groups": 500,
+     "classes": [
+      "fault_diagnosis",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.9159986559784956,
+     "ci": [
+      0.8910492725303829,
+      0.937969977469095
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "sizes (alone matches all)"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b3_lan_v2_escalated_only": {
+   "report": "data/results/leakcheck/c2b3_lan_v2_escalated_only/report.json",
+   "input": "data/subsets/c2b3_lan_escalated_only",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b3_lan",
+      "collection_id": "C2B3",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ],
+    "traces": 750,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "procedure_lookup": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B3": 750
+    }
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 734,
+     "classes": [
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.947999791999168,
+     "ci": [
+      0.9312922159533525,
+      0.9627422945430889
+     ],
+     "threshold": 0.3833333333333333,
+     "p": 0.01,
+     "carried_by": "sizes (alone matches all)"
+    }
+   },
+   "exit_code": 0
+  }
+ },
+ "collection_id": [
+  "C2B3"
+ ],
+ "data_dir": {
+  "lan": [
+   "data/raw_c2b3_lan"
+  ]
+ },
+ "runtime_s": 629.2977000831161
+}
