@@ -4,7 +4,7 @@ import logging
 
 import pytest
 
-from scripts.collect_session import TOPOLOGIES, _DownstreamFailures, parse_arm
+from scripts.collect_session import TOPOLOGIES, _DownstreamFailures, arm_items, parse_arm
 
 
 def test_arm_defaults_and_ports_do_not_collide():
@@ -14,6 +14,26 @@ def test_arm_defaults_and_ports_do_not_collide():
     ports = [p for arm in (a, b) for t in TOPOLOGIES for p in arm.ports(t).values()]
     assert len(ports) == len(set(ports)) == 24
     assert a.ports("chain") == {"orchestrator": 8110, "executor": 8111, "retriever": 8112, "validator": 8113}
+
+
+def test_an_arm_can_run_an_even_subset_of_the_items():
+    arm = parse_arm("name=lan_padmax,ports=8300,pad=8192/16384,pad_expect=8192,n=250,out=/tmp/x", 0, "edge-cloud")
+    assert arm.n == 250 and parse_arm("name=s,ports=8400,out=/tmp/y", 1, "edge-cloud").n is None
+    items = arm_items(625, 250)                                  # C2B1M's control beside 625 shaped, 25 rounds
+    assert len(items) == 250
+    assert [sum(1 for i in items if r * 25 <= i < (r + 1) * 25) for r in range(25)] == [10] * 25
+    assert sorted(arm_items(10, 4)) == [2, 4, 7, 9] and arm_items(10, None) == arm_items(10, 10) == frozenset(range(10))
+    for bad in ("n=0", "n=-3", "n=x"):
+        with pytest.raises(SystemExit, match="n must be"):
+            parse_arm(f"name=c,ports=8300,{bad},out=/tmp/z", 0, "edge-cloud")
+
+
+def test_the_predecessor_flag_scales_with_the_task_types():
+    from scripts.check_session_design import flag_share, predecessor_flags
+    assert flag_share(4) == 0.40 and flag_share(2) == 0.75
+    two = predecessor_flags({"a": {"x": {"x": 0.55, "y": 0.45}}}, {"a": {"x": 100}}, 2)["a"]["x"]
+    four = predecessor_flags({"a": {"x": {"x": 0.45, "y": 0.55}}}, {"a": {"x": 100}}, 4)["a"]["x"]
+    assert not two["flag"] and four["flag"]                      # C2's four task types: unchanged
 
 
 def test_bad_arm_is_rejected():

@@ -64,6 +64,8 @@ their pool is large: 4,000 seeds give 4,000 distinct sensor_analysis and fault_d
 | C2B1X pilot (`pilot_c2b1x/shaped`, stopped by the guard at the start because the WAN was off, and `pilot2_c2b1x/shaped`; checks only, not analysed) | 31000, from position 125 | 5 per task type (C2B1X's first 5) | as C2B1X, `--n 5 --rounds 1` |
 | **C2B2** round 2, jitter and server load (`raw_c2b2_lan`, `raw_c2b2_jl`), IoT set | **32000** | 125 | as C2 (docs/ROUND2_SESSIONS.md) |
 | **C2B3** round 2, a second day of `lan` (`raw_c2b3_lan`), IoT set | **33000** | 250 | as C2 (docs/ROUND2_SESSIONS.md) |
+| **C2B1M** round 2, matched held-out shaping (`raw_c2b1m_padmax`, `raw_c2b1m_shaped`), sensor_analysis and fault_diagnosis only | **34000** | 625 (the control arm 250 of them, spread evenly, on the same prompts) | as C2B1, `--workflows sensor_analysis,fault_diagnosis --exclude-prompts` C2's, C2B1's, C2B1X's and C2B3's folders (docs/PREREG_C2B1M.md) |
+| C2B1M pilot (`pilot_c2b1m/padmax`, `pilot_c2b1m/shaped`; checks only, not analysed) | 34000 | 10 per task type (C2B1M's first 10; the control 4 of them) | as C2B1M, `--n 10 --rounds 1`, control `n=4` |
 | Round-2 loopback dry run (stand-in Ollama, discarded) | 99000 | 2 per task type | as C2, `--n 2 --rounds 1` |
 | *Superseded C2 design* (orchestrator on the Mac, specialists on the Pi; never collected) | 20000 | — | only two discarded loopback smoke tests (Nov 6) used it |
 
@@ -107,6 +109,11 @@ procedure_lookup and alert_triage pools repeat a few:
 | C2B1 (31000, 125) | 123, 18 | 125, 2 |
 | C2B2 (32000, 125) | 118, 14 | 125, 3 |
 | C2B3 (33000, 250) | 234, 23 | 244, 4 |
+
+C2B1M (34000, 625 per type, sensor_analysis and fault_diagnosis only), measured on Nov 25 before
+the session with `collect_session.select_prompts` against the 4,350 prompts in the sidecars of C2,
+C2B1, C2B1X and C2B3: positions 0 to 624 for both types, 0 skipped as used, 0 as repeats, 625
+distinct each.
 
 `scripts/evaluate_cross_session.py` drops the B3 test traces whose prompt also occurs in C2.
 

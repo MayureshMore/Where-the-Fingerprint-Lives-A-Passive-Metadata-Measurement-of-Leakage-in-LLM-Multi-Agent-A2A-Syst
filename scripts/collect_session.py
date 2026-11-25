@@ -12,6 +12,10 @@ and all arms instead of masquerading as one of them:
     condition owns a stretch of time (the round index is the temporal-holdout unit)
   * arms alternate trace by trace on the same prompt, never in parallel; the arm order
     is rotated item by item (counterbalanced)
+  * an arm with n=K (--arm ...,n=K) runs K of the --n items per condition, spread evenly over
+    the sequence (item i when floor((i+1)K/n) > floor(iK/n)), so every round gives it K/rounds
+    of them, on the same prompts as the other arms (C2B1M: a padded control of 250 per class
+    beside 625 shaped)
   * every arm starts one agent set per topology on its own ports at the start of each
     round, so conditions can interleave without restarting agents between traces
   * a trace in which any agent-to-agent call failed counts as failed and is retried once
@@ -160,6 +164,7 @@ class Arm:
     shape: str = ""                                 # reply shaping at the cloud agents (defense/shaping.py)
     jitter: str = ""                                # reply jitter at the cloud agents (MEAN_MS/SD_MS[/SEED])
     load: int = 0                                   # concurrent Ollama generations during this arm's tasks
+    n: int | None = None                            # items per condition, an even subset of --n; None = all
     sets: dict = field(default_factory=dict)        # topology → (agents, tasks)
 
     @property
@@ -281,7 +286,7 @@ def parse_arm(spec: str, k: int, placement: str = "local") -> Arm:
         if kv["tls"].lower() not in ("on", "1", "true", "yes") or "host" in kv or kv.get("defense", "none") != "none":
             raise SystemExit(f"bad --arm {spec!r}: edge-cloud arms are TLS on, without host= or defense=")
     unknown = set(kv) - {"name", "deployment", "model", "tls", "defense", "out", "ports", "pad", "host",
-                         "pad_expect", "shape", "jitter", "load"}
+                         "pad_expect", "shape", "jitter", "load", "n"}
     if unknown or not {"name", "deployment", "out"} <= set(kv):
         raise SystemExit(f"bad --arm {spec!r}: needs name, deployment, out; unknown keys {sorted(unknown)}")
     if kv["deployment"] not in DEPLOYMENTS and not (placement == "edge-cloud" and kv["deployment"] == EDGE_CLOUD):
@@ -311,12 +316,23 @@ def parse_arm(spec: str, k: int, placement: str = "local") -> Arm:
         jitter = jitter.replace(":", "/")
     if load < 0:
         raise SystemExit(f"bad --arm {spec!r}: load must be >= 0")
+    n = kv.get("n", "")
+    if n and (not n.isdigit() or int(n) < 1):
+        raise SystemExit(f"bad --arm {spec!r}: n must be a positive number of items per condition")
     return Arm(name=kv["name"], deployment=kv["deployment"],
                model=kv.get("model") or DEPLOYMENTS[kv["deployment"]]["default_model"],
                tls=kv.get("tls", "off").lower() in ("on", "1", "true", "yes"),
                defense=kv.get("defense", "none"), out=Path(kv["out"]),
                ports_base=int(kv.get("ports", 8100 + 100 * k)), host=kv.get("host") or None,
-               pad=pad, pad_expect=expect, shape=shape, jitter=jitter, load=load)
+               pad=pad, pad_expect=expect, shape=shape, jitter=jitter, load=load, n=int(n) if n else None)
+
+
+def arm_items(n: int, k: int | None) -> frozenset:
+    """The items an arm with n=k runs of the session's n per condition: k of them, spread evenly (item i when
+    floor((i+1)k/n) > floor(ik/n)); all n when k is None."""
+    if k is None or k >= n:
+        return frozenset(range(n))
+    return frozenset(i for i in range(n) if (i + 1) * k // n > i * k // n)
 
 
 class _DownstreamFailures(logging.Handler):
@@ -634,6 +650,9 @@ async def main(a: argparse.Namespace) -> None:
                              + "; ".join(c["detail"] for c in network["checks"] if not c["ok"]))
     if len({arm.name for arm in arms}) != len(arms) or len({arm.out for arm in arms}) != len(arms):
         raise SystemExit("arm names and output dirs must be unique")
+    if bad := [arm.name for arm in arms if arm.n is not None and arm.n > a.n]:
+        raise SystemExit(f"arms {bad}: n= is more than --n {a.n}")
+    runs = {arm.name: arm_items(a.n, arm.n) for arm in arms}       # the items each arm runs, per condition
     if any(arm.tls for arm in arms):
         tls.configure(a.tls_dir, default_on=False)
     num_predict = a.num_predict if a.num_predict > 0 else None
@@ -651,6 +670,9 @@ async def main(a: argparse.Namespace) -> None:
     resumed = meta is not None
     if meta is not None and meta["workflows"] != workflows:
         raise SystemExit(f"--resume: the session collected {meta['workflows']}, not {workflows}")
+    if meta is not None and {x["name"]: x.get("n", meta["n_per_condition"]) for x in meta["arms"]} != \
+            {arm.name: arm.n or a.n for arm in arms}:
+        raise SystemExit("--resume: the arms or their n= differ from the session's (session_meta.json arms)")
     excl_dirs = [d.strip() for d in (a.exclude_prompts or "").split(",") if d.strip()]
     if {Path(d).resolve() for d in excl_dirs} & {arm.out.resolve() for arm in arms}:
         raise SystemExit("--exclude-prompts lists an output folder of this session")
@@ -676,13 +698,14 @@ async def main(a: argparse.Namespace) -> None:
             "design": "arms collected in one session, one trace at a time; balanced rounds (every "
                       "condition of every arm gets n/rounds traces per round); all conditions "
                       "interleaved in a seeded random order within each round; arms share the "
-                      "prompt of an item and alternate with the order rotated per item; one agent "
+                      "prompt of an item and alternate with the order rotated per item (an arm with "
+                      "n=K runs K of the n items, spread evenly); one agent "
                       "set per arm and topology, restarted each round; a trace with any agent error "
                       "is failed and retried once; models warmed up outside capture",
             "arms": [{"name": x.name, "deployment": x.deployment, "model": x.model, "tls": x.tls,
                       "defense": x.defense, "out": str(x.out), "ports_base": x.ports_base,
                       "host": x.host, "pad_buckets": x.pad, "pad_expect": x.pad_expect, "shape": x.shape or None,
-                      "jitter": x.jitter or None, "load": x.load or None,
+                      "jitter": x.jitter or None, "load": x.load or None, "n": x.n or a.n,
                       "wan_target_rtt_ms": wan_targets.get(x.ports_base)}
                      for x in arms],
             "wan_target_file": a.wan_target, "reply_log": a.reply_log,
@@ -726,7 +749,8 @@ async def main(a: argparse.Namespace) -> None:
         items = [(t, w, i) for t in topologies for w in workflows
                  for i in range(bounds[rnd], bounds[rnd + 1])]
         random.Random(SEED + rnd).shuffle(items)
-        todo = [it for it in items if any((f"{it[0]}/{it[1]}/{it[2]}", arm.name) not in done for arm in arms)]
+        todo = [it for it in items if any(it[2] in runs[arm.name] and (f"{it[0]}/{it[1]}/{it[2]}", arm.name) not in done
+                                          for arm in arms)]
         if not todo:
             continue
         if deadline and time.time() > deadline:
@@ -775,7 +799,7 @@ async def main(a: argparse.Namespace) -> None:
                 item = f"{t}/{w}/{i}"
                 shift = (position + k) % len(arms)
                 for arm in arms[shift:] + arms[:shift]:
-                    if (item, arm.name) in done:
+                    if (item, arm.name) in done or i not in runs[arm.name]:
                         continue
                     if arm.model != last_model:
                         await warm_up(arm.model, a.ollama_url)
@@ -852,10 +876,13 @@ async def main(a: argparse.Namespace) -> None:
               f"deadline, {tally['failed']} failed")
     planned = a.n * len(topologies) * len(workflows)
     meta["complete_items"] = sum(1 for t in topologies for w in workflows for i in range(a.n)
-                                 if all((f"{t}/{w}/{i}", arm.name) in done for arm in arms))
+                                 if all((f"{t}/{w}/{i}", arm.name) in done for arm in arms if i in runs[arm.name]))
+    meta["traces_per_arm"] = {arm.name: {"planned": len(runs[arm.name]) * len(topologies) * len(workflows),
+                                         "done": sum(1 for _, x in done if x == arm.name)} for arm in arms}
     save()
-    print(f"\n{a.collection_id}: {meta['complete_items']} of {planned} items complete in every arm, "
+    print(f"\n{a.collection_id}: {meta['complete_items']} of {planned} items complete in every arm that runs them, "
           f"{meta['failures']} failed attempts → " + ", ".join(f"{x.out}/" for x in arms))
+    print("traces per arm: " + ", ".join(f"{k} {v['done']} of {v['planned']}" for k, v in meta["traces_per_arm"].items()))
     if meta["pace"]:
         print(f"pace: {meta['pace']['median_s_per_trace']:.1f} s per trace; 1,800 traces ≈ "
               f"{meta['pace']['projected_hours']['1800']:.1f} h, 1,200 ≈ {meta['pace']['projected_hours']['1200']:.1f} h"

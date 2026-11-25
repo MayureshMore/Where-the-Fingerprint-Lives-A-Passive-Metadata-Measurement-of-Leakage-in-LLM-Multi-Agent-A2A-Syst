@@ -8,7 +8,9 @@ the full collection:
                     connections on those ports are still closing; in the TLS control the
                     predecessor was fixed (100%) and its leftover packets leaked the workflow
                     (data/results/tls_control_gap.md). FLAG when a workflow's most common
-                    predecessor exceeds 40%; FAIL when a flagged share is also unlikely under a
+                    predecessor exceeds 40%, or 1.5 / the number of workflows when that is more
+                    (two task types, C2B1M: 75%, where chance alone gives about 50%); FAIL when a
+                    flagged share is also unlikely under a
                     random order (one-sided binomial test against 1/number of workflows,
                     Bonferroni over every arm × workflow × predecessor cell): one round of the
                     pilot gives about 30 traces per cell, and a 40% share then arises by chance
@@ -117,10 +119,16 @@ def _binom_sf(k: int, n: int, p: float) -> float:
     return float(sum(math.comb(n, i) * p ** i * (1 - p) ** (n - i) for i in range(k, n + 1)))
 
 
+def flag_share(n_wf: int) -> float:
+    """The predecessor share above which a cell is flagged: 40%, or 1.5 times a uniform share when that is more."""
+    return max(MAX_PREDECESSOR, 1.5 / n_wf)
+
+
 def predecessor_flags(pred: dict, counts: dict, n_wf: int) -> dict:
-    """Most common predecessor per arm and workflow: share, n, flag (> 40%) and the Bonferroni-
+    """Most common predecessor per arm and workflow: share, n, flag (> flag_share) and the Bonferroni-
     adjusted binomial p against a uniform predecessor."""
     cells = sum(len(w) for w in pred.values()) * n_wf
+    limit = flag_share(n_wf)
     out = {}
     for arm, w in pred.items():
         for wf, shares in w.items():
@@ -130,8 +138,8 @@ def predecessor_flags(pred: dict, counts: dict, n_wf: int) -> dict:
             k = round(share * n)
             p_adj = min(1.0, cells * _binom_sf(k, n, 1 / n_wf))
             out.setdefault(arm, {})[wf] = {"predecessor": top, "share": share, "n": n,
-                                           "flag": share > MAX_PREDECESSOR, "p_bonferroni": p_adj,
-                                           "fail": share > MAX_PREDECESSOR and p_adj < ALPHA}
+                                           "flag": share > limit, "p_bonferroni": p_adj,
+                                           "fail": share > limit and p_adj < ALPHA}
     return out
 
 
@@ -265,7 +273,8 @@ def main() -> None:
     git = {"git_commit": subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip(),
            "git_dirty": bool(subprocess.run(["git", "status", "--porcelain", "--", ".", ":(exclude)data"],
                                             capture_output=True, text=True).stdout.strip())}
-    out = {**git, "predecessors": pred, "most_common_predecessor": top, "max_predecessor_share": MAX_PREDECESSOR,
+    out = {**git, "predecessors": pred, "most_common_predecessor": top,
+           "max_predecessor_share": flag_share(len(meta["workflows"])),
            "alpha": ALPHA, "predecessor_failures": fails, "arms": arms,
            "ok": not fails and all(r["ok"] for r in arms)}
     for arm, w in top.items():

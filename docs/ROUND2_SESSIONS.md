@@ -1,6 +1,6 @@
-# Paper 2, round 2: sessions B1, B3 and C2B1X (Nov 21–24); B2 for paper 3
+# Paper 2, round 2: sessions B1, B3, C2B1X and C2B1M (Nov 21–25); B2 for paper 3
 
-Three collections on C2's testbed ([LAN_SETUP.md](LAN_SETUP.md): the Pi's edge agents, the Mac's
+Four collections on C2's testbed ([LAN_SETUP.md](LAN_SETUP.md): the Pi's edge agents, the Mac's
 cloud agents and ticket services, dummynet on the Mac, capture on `C2_IFACE`). Each one runs
 after the round-2 analysis chain has finished, from a clean commit, with nothing else running on
 the Mac. Every collection is started by hand. Ethics as in C2: `tcpdump -p`, filtered on the Pi and
@@ -15,6 +15,7 @@ it copies into a local directory instead of the Pi.
 | B1 reply shaping | Nov 21 (done) | `lan_padmax` (8300), `lan_shaped` (8400) | 500 + 500 | 31000 | `OLLAMA_NUM_PARALLEL` 1, context 128k, as in C2 | 2.9 measured, plus a 4.3 h pause |
 | B3 second day | Nov 24 (done) | `lan` (8100) | 1,000 | 33000 | 1, context 128k, as in C2 | 2.2 measured (8.3 s per trace) |
 | C2B1X more shaped traces | Nov 22 (done) | `lan_shaped` (8400) | 2,000 | 31000, from position 125 | 1, context 128k, as in B1 | 7.7 measured, plus a 4.0 h pause |
+| C2B1M matched held-out shaping ([PREREG_C2B1M.md](PREREG_C2B1M.md)) | Nov 25 | `lan_padmax` (8300, `n=250`), `lan_shaped` (8400); sensor_analysis and fault_diagnosis | 500 + 1,250 | 34000 | 1, context 128k, as in B1 | about 6.8 (C2B1's pace) |
 | B2 jitter and load (paper 3) | later | `lan` (8100), `lan_jl` (8500) | 500 + 500 | 32000 | `OLLAMA_NUM_PARALLEL` 4, context 32k | about 2.5 |
 
 The hours come from C2's pace (6.9 s per trace): a shaped escalated task takes C2's time with
@@ -27,6 +28,8 @@ Before each full session, a pilot on the real testbed: one short round per arm (
 with the session's checks run on it. The full session starts only if they pass. B2 moved to paper 3
 (Nov 21); its section below stays for that collection. C2B1X ([below](#c2b1x-more-shaped-traces-for-sensor-vs-fault-nov-22-overnight))
 adds shaped traces so that sensor vs fault can come out NO LEAK if the shaping removes the signal.
+C2B1M ([below](#c2b1m-a-matched-held-out-test-of-reply-shaping-nov-25-overnight)) tests that once
+more, pre-registered, with a padded control beside it.
 
 - **B1** `lan_shaped`: requests padded to 8 KB, as in `lan_padmax`. Every reply is released
   14 s after its request as 16 events of one size, 0.05 s apart, then an artifact of one size, on
@@ -670,6 +673,145 @@ venv/bin/python scripts/check_session_design.py $D --json $D/design_check.json
   C2 (29 B3 traces, 30 C2 traces), with the same prompt groups; the cross-session transfer drops
   them from its test side (docs/PROMPT_REGISTRY.md).
 
+## C2B1M: a matched held-out test of reply shaping (Nov 25, overnight)
+
+Pre-registered in [PREREG_C2B1M.md](PREREG_C2B1M.md), committed before any of its traces: the design,
+the primary check (the shaped pair at V2, NO LEAK if and only if the interval's upper bound is at most
+0.55 and p > 0.05), the control (the padded pair at V2 must read LEAK), the secondary checks (timing
+alone; the V1 pair) and what is reported whatever the outcome.
+
+- Two arms interleaved, as in B1: `lan_padmax` (8300) and `lan_shaped` (8400), with B1's padding and
+  shaping, WAN plan (`b1_wan.json`), guard and checks.
+- sensor_analysis and fault_diagnosis only (`--workflows sensor_analysis,fault_diagnosis`), the pair
+  one cloud agent serves.
+- 625 shaped traces per class (`--n 625`) and 250 padded per class (the control arm's `n=250`): 25
+  rounds, each with 25 shaped and 10 padded traces per class, the control on the same prompts as the
+  shaped arm for its items, spread evenly over the night.
+- New prompts: seed offset 34000, every prompt of C2, C2B1, C2B1X and B3 skipped. Measured before
+  the session (`select_prompts` at offset 34000, 625 per type, against those 4,350 prompts): positions
+  0 to 624 for both types, 0 skipped as used, 0 as repeats, 625 distinct each.
+- About 6.8 h: 1,250 shaped traces at C2B1's 15.9 s and 500 padded at 8.2 s (C2B1's start-to-start
+  medians for these two types), plus a WAN probe per round. With the pilot and the checks, start by
+  21:00 to finish by about 05:00.
+- `OLLAMA_NUM_PARALLEL` 1, context 128k, as in C2, B1 and B3. Start with "Every session", the Pi's
+  power save on, then off, and AWDL down included.
+
+**Pi** (`tmux`, a window of its own; stop B3's `serve_edge.py` first):
+```bash
+cd ~/a2a
+venv/bin/python scripts/serve_edge.py --bases 8300,8400 --tls-dir data/tls_lan --model llama3.2:1b --num-predict 128
+```
+**Mac**, window 2: B1's WAN plan, for the pilot and the full run (`sudo bash scripts/wan_emulation.sh
+off` first if B3's is still on):
+```bash
+mkdir -p data/pilot_c2b1m/padmax data/pilot_c2b1m/shaped data/raw_c2b1m_padmax data/raw_c2b1m_shaped
+sudo C2_BASES=8300,8400 bash scripts/wan_emulation.sh on data/results/b1_wan.json
+```
+
+### C2B1M pilot (about 7 minutes)
+
+10 shaped and 4 padded traces per class: the full run's first prompts, not analysed.
+
+**Mac**, window 1 (`tmux`): the cloud agents, shaping 8400 and logging into the pilot's folder:
+```bash
+venv/bin/python scripts/serve_cloud.py --bases 8300,8400 --shape 8400=2048/14/128/0.05/truncate \
+    --reply-log data/pilot_c2b1m/replies --tls-dir data/tls_lan
+```
+**Mac**, window 2: the WAN check, alone. Go on only if it ends with `PASS`:
+```bash
+venv/bin/python scripts/check_wan_emulation.py --target data/results/b1_wan.json --bases 8300,8400 \
+    --json data/pilot_c2b1m/padmax/wan_check_start.json
+```
+**Mac**, window 3 (`tmux`, root):
+```bash
+sudo venv/bin/python scripts/wan_watch.py --out data/pilot_c2b1m/padmax/wan_status.json --log data/pilot_c2b1m/padmax/wan_watch.jsonl
+```
+**Mac**, window 2: the pilot:
+```bash
+caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2B1M-pilot \
+    --n 10 --rounds 1 --seed-offset 34000 --workflows sensor_analysis,fault_diagnosis \
+    --exclude-prompts data/raw_c2,data/raw_c2_pad,data/raw_c2_padmax,data/raw_c2b1_padmax,data/raw_c2b1_shaped,data/raw_c2b1x_shaped,data/raw_c2b3_lan \
+    --tls-dir data/tls_lan --wan-target data/results/b1_wan.json --reply-log data/pilot_c2b1m/replies \
+    --arm name=lan_padmax,ports=8300,pad=8192/16384,pad_expect=8192,n=4,out=data/pilot_c2b1m/padmax \
+    --arm name=lan_shaped,ports=8400,pad=8192/16384,pad_expect=8192,shape=2048/14/128/0.05/truncate,out=data/pilot_c2b1m/shaped
+```
+**Mac**, window 4, once the collector has printed its `network ... ok` lines:
+```bash
+venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
+    --target data/results/b1_wan.json --bases 8300,8400 --status data/pilot_c2b1m/padmax/wan_status.json --pi-overhead-ms 3.31 \
+    --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
+    --json data/pilot_c2b1m/padmax/wan_guard.json data/pilot_c2b1m/padmax data/pilot_c2b1m/shaped
+```
+The pilot passes with all of these:
+- the collector's last lines: `lan_shaped: 20 cloud replies logged, 0 cut, 0 past the deadline, 0
+  failed`, `20 of 20 items complete in every arm that runs them`, `traces per arm: lan_padmax 8 of 8,
+  lan_shaped 20 of 20`;
+- the prompt lines from position 0, 0 skipped;
+- the guard OK;
+- the closing WAN check and the checks below with `A=data/pilot_c2b1m/padmax` and
+  `B=data/pilot_c2b1m/shaped`.
+
+Then stop `serve_cloud.py`, `wan_watch.py` and the guard (Ctrl-C); the WAN and the Pi's
+`serve_edge.py` stay.
+
+### C2B1M full run (about 6.8 h)
+
+**Mac**, window 1: Ctrl-C, then the cloud agents logging into the full run's folder:
+```bash
+venv/bin/python scripts/serve_cloud.py --bases 8300,8400 --shape 8400=2048/14/128/0.05/truncate \
+    --reply-log data/raw_c2b1m_replies --tls-dir data/tls_lan
+```
+**Mac**, window 2: the WAN check, alone. Go on only if it ends with `PASS`:
+```bash
+venv/bin/python scripts/check_wan_emulation.py --target data/results/b1_wan.json --bases 8300,8400 \
+    --json data/raw_c2b1m_padmax/wan_check_start.json
+```
+**Mac**, window 3 (root):
+```bash
+sudo venv/bin/python scripts/wan_watch.py --out data/raw_c2b1m_padmax/wan_status.json --log data/raw_c2b1m_padmax/wan_watch.jsonl
+```
+**Mac**, window 2: the collection:
+```bash
+caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2B1M \
+    --n 625 --rounds 25 --seed-offset 34000 --workflows sensor_analysis,fault_diagnosis \
+    --exclude-prompts data/raw_c2,data/raw_c2_pad,data/raw_c2_padmax,data/raw_c2b1_padmax,data/raw_c2b1_shaped,data/raw_c2b1x_shaped,data/raw_c2b3_lan \
+    --tls-dir data/tls_lan --wan-target data/results/b1_wan.json --reply-log data/raw_c2b1m_replies \
+    --arm name=lan_padmax,ports=8300,pad=8192/16384,pad_expect=8192,n=250,out=data/raw_c2b1m_padmax \
+    --arm name=lan_shaped,ports=8400,pad=8192/16384,pad_expect=8192,shape=2048/14/128/0.05/truncate,out=data/raw_c2b1m_shaped
+```
+**Mac**, window 4, once the collector has printed its `network ... ok` lines:
+```bash
+venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
+    --target data/results/b1_wan.json --bases 8300,8400 --status data/raw_c2b1m_padmax/wan_status.json --pi-overhead-ms 3.31 \
+    --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
+    --json data/raw_c2b1m_padmax/wan_guard.json data/raw_c2b1m_padmax data/raw_c2b1m_shaped
+```
+The collector must end with `lan_shaped: 1250 cloud replies logged, 0 cut, 0 past the deadline, 0
+failed` and `traces per arm: lan_padmax 500 of 500, lan_shaped 1250 of 1250`. If it stops (a WAN probe
+out of bounds): the Pi's power save on, then off; a new WAN check, alone (`wan_check_resume1.json`);
+the same collection command with `--resume`; the guard with `wan_guard_resume1.json`. Nothing is
+audited until the collection has ended (PREREG_C2B1M.md, "What we will not do").
+
+**Mac, after** (pilot and full run; for the pilot, `A=data/pilot_c2b1m/padmax` and
+`B=data/pilot_c2b1m/shaped`), window 2: the closing WAN check, alone, while `serve_cloud.py` and the
+Pi's `serve_edge.py` still run:
+```bash
+A=data/raw_c2b1m_padmax; B=data/raw_c2b1m_shaped
+venv/bin/python scripts/check_wan_emulation.py --target data/results/b1_wan.json --bases 8300,8400 --json $A/wan_check_after.json
+```
+Then the data checks; after the full run, stop everything and the WAN (as in "Every session"):
+```bash
+venv/bin/python scripts/check_lan_capture.py $A $B --json $A/lan_check.json
+venv/bin/python scripts/check_tls_capture.py $A --expect tls --json $A/tls_check.json
+venv/bin/python scripts/check_tls_capture.py $B --expect tls --json $B/tls_check.json
+venv/bin/python scripts/check_stream_integrity.py $A --json $A/stream_integrity.json
+venv/bin/python scripts/check_stream_integrity.py $B --json $B/stream_integrity.json
+venv/bin/python scripts/check_session_design.py $A $B --json $A/design_check.json
+venv/bin/python scripts/check_shaping.py $B --control $A --wan-ms 12 --json $B/shaping_check.json
+```
+Each must report OK or PASS. The design check flags a predecessor share only above 75% with two task
+types (about 50% arises by chance). Then the header-only check on a copy, as for B3.
+
 ## Afterwards (me, from a clean commit)
 
 The audits and the cross-session transfer. Each session writes its own results JSON with commit,
@@ -710,4 +852,12 @@ seed and data folders; nothing heavy runs beside them.
     venv/bin/python scripts/evaluate_cross_session.py --train data/features_b3_cross/c2b3_lan_$v \
         --test data/features_b3_cross/c2_lan_$v $S --out data/results/b3_cross_session_b3_to_c2_$v
   done
+  ```
+- **C2B1M:** exactly the analysis in [PREREG_C2B1M.md](PREREG_C2B1M.md), after the collection and its
+  checks, then the shaping check's overhead against the control:
+  ```bash
+  venv/bin/python scripts/b1_audits.py --arm lan_padmax=data/raw_c2b1m_padmax --arm lan_shaped=data/raw_c2b1m_shaped \
+      --parts pair --baseline-arm lan_padmax --prefix c2b1m --title "C2B1M audits" --out data/results/c2b1m_audits
+  venv/bin/python scripts/check_shaping.py data/raw_c2b1m_shaped --control data/raw_c2b1m_padmax --wan-ms 12 \
+      --out data/results/c2b1m_shaping_overhead
   ```
