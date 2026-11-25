@@ -79,7 +79,8 @@ One `NAME.pcap` and one `NAME.json` per trace. The sidecar fields read:
 
 | Field | Use |
 |---|---|
-| `agent_endpoints` | `{"executor": "10.0.0.2:8101", ...}`: the role behind each agent port (required) |
+| `agent_endpoints` | `{"executor": "10.0.0.2:8101", ...}`: each agent's host and port (required; see below) |
+| `escalated`, `cloud_role` | edge-cloud sidecars: whether the edge called a cloud agent (`yes`/`no`) and which one; with `--vantage`, they tell an expected empty trace from an unexpected one (below) |
 | `workflow_class` or `workflow`, `topology` | labels for those attributes |
 | any other key | a label, if named in `--attributes` |
 | `prompt_group`, else `input_prompt` | grouping key (the prompt's hash); without either, every trace is its own group, and the report says so under `collection.group_source` |
@@ -89,6 +90,17 @@ One `NAME.pcap` and one `NAME.json` per trace. The sidecar fields read:
 Captures are classic pcap (not pcapng) with link type BSD loopback, Ethernet, raw IP or Linux
 cooked. A packet *to* an agent port is a request, one *from* it a response; ports are never
 features.
+
+An endpoint is a host and a port (since 0.3.1; before, the port alone). A packet on an agent port
+counts only if its server side, the destination of a request or the source of a response, is that
+agent's host; another host's traffic on the same port is dropped before feature extraction, into a
+filtered copy, and the report's collection section counts it (`other_host_packets`). Two agents on
+different hosts may share a port, such as 443: each keeps its own role samples. Loopback is one
+host (127.0.0.1, ::1 and `localhost` match each other), and a host that is not an IP address is
+matched by its port alone. A sidecar that gives two agents one address, or a port both with and
+without a host, is skipped with the reason. On every collection of papers 1 and 2 (16,691 traces with
+sidecars) no packet is dropped, and on paper 2's (C2, C2B1, C2B1X and C2B3 at both views, the TLS
+control, the examples: 21 feature sets) the features are those of 0.3.0, bit for bit.
 
 ### Agents the capture does not see
 
@@ -117,7 +129,12 @@ observer sees (`"vantages": {"v1": ["diagnostics", "knowledge", "ticket"], "v2":
 `--vantage v2` keeps only those endpoints' flows before feature extraction. A trace in which the
 view sees nothing stays in the analysis with all-zero features and a first-request size of 0:
 at C2's upstream view every task answered on the gateway looks like that, and that the observer
-sees no traffic is what it learns. The report says how many traces were empty. Trace attributes
+sees no traffic is what it learns. The report says how many traces were empty, in two counts:
+*expected silent*, when the sidecar says the task was not escalated and the view sees only cloud
+agents (the agents the collection's sidecars name as `cloud_role`), and *unexpectedly empty*, when
+it says the task called the cloud or says nothing either way, so the capture or its filter may have
+missed the traffic (`extraction.empty_expected_silent`, `.empty_unexpected` and the first 20 run ids
+in `.empty_unexpected_runs`; the report asks to check the capture when there is any). Trace attributes
 missing from some sidecars (C2's `cloud_role`, set only for escalated tasks) are scored on the
 traces that have them.
 

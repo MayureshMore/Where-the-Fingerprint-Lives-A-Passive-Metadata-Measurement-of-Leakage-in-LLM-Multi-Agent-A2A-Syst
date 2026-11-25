@@ -28,7 +28,10 @@ FAST = ["--model", "rf", "--permutations", "9", "--alpha", "0.1", "--n-boot", "3
 
 
 def _pkt(t, sport, dport, flags, n):
-    p = Ether(src="02:00:00:00:00:01", dst="02:00:00:00:00:02") / IP(src="10.0.0.1", dst="10.0.0.2") / TCP(sport=sport, dport=dport, flags=flags)
+    # the client is 10.0.0.1, the agents 10.0.0.2 (agent_endpoints): a reply comes from the agent's address,
+    # as a2a-leakcheck checks since 0.3.1 (before, every packet here went 10.0.0.1 → 10.0.0.2)
+    src, dst = ("10.0.0.2", "10.0.0.1") if sport < 40000 else ("10.0.0.1", "10.0.0.2")
+    p = Ether(src="02:00:00:00:00:01", dst="02:00:00:00:00:02") / IP(src=src, dst=dst) / TCP(sport=sport, dport=dport, flags=flags)
     if n:
         p = p / Raw(b"\x17" * n)
     p.time = t
@@ -266,6 +269,16 @@ def test_diff_lists_a_missing_leak_for_review():
     st = release_policy(new, d)
     assert st["release_policy"]["exit_code"] == 0                      # listed for review, not a failure
     assert st["for_review"] == [{"attribute": "a", "reason": "missing; LEAK in the baseline"}]
+
+
+def test_leak_to_no_leak_is_listed_as_resolved(tmp_path, capsys):
+    old, new = tmp_path / "old.json", tmp_path / "new.json"
+    old.write_text(json.dumps(_report(workflow=LEAK, role=LEAK)))
+    new.write_text(json.dumps(_report(workflow=NO_LEAK, role=LEAK)))
+    assert main(["diff", str(new), str(old)]) == 0
+    out = capsys.readouterr().out
+    assert "workflow: LEAK → NO LEAK" in out and "resolved: workflow (LEAK in the baseline, NO LEAK now)" in out
+    assert "needs review" not in out
 
 
 def test_leak_to_inconclusive_does_not_fail_and_is_reported(tmp_path, capsys):

@@ -98,7 +98,7 @@ def visible_agents(traces: list, visible: list[list[str]]) -> dict:
     for tr, seen in zip(traces, visible):
         t = out.setdefault(tr.topology or "all", {"traces": 0, "roles": {}})
         t["traces"] += 1
-        for role in tr.port_role.values():
+        for role in (tr.endpoints.values() if tr.endpoints else tr.port_role.values()):
             t["roles"].setdefault(role, 0)
         for role in seen:
             t["roles"][role] += 1
@@ -122,7 +122,8 @@ def _collect_extract(a: argparse.Namespace, attributes: list[str], stages: dict,
     with tempfile.TemporaryDirectory(prefix="leakcheck_") as tmp:
         t = time.perf_counter()
         col = collect(Path(a.captures), [x for x in attributes if x != ROLE],
-                      strip_dir=Path(tmp) if a.strip else None, vantage=a.vantage, cleartext=a.cleartext)
+                      strip_dir=Path(tmp) if a.strip else None, vantage=a.vantage, cleartext=a.cleartext,
+                      filter_dir=Path(tmp))
         stages["collection"] = time.perf_counter() - t
         if not col["traces"]:
             reasons = sorted({x["reason"] for x in col["summary"]["skipped"]})
@@ -151,7 +152,9 @@ def extract_cmd(a: argparse.Namespace) -> int:
         "parameters": _extraction_parameters(a),
         "runtime": {"total_s": time.perf_counter() - t0, "stages_s": stages, "peak_rss_by_stage_mb": peaks,
                     "python": platform.python_version(), "platform": platform.platform()}})
-    print(f"{ext['summary']['traces']} traces ({ext['summary']['empty_traces']} with nothing in view), "
+    e = ext["summary"]
+    print(f"{e['traces']} traces ({e['empty_traces']} with nothing in view: {e['empty_expected_silent']} expected "
+          f"silent, {e['empty_unexpected']} unexpectedly empty), "
           f"{ext['summary']['role_samples']} role samples → {a.out}")
     return 0
 
@@ -275,6 +278,8 @@ def run(a: argparse.Namespace) -> int:
     if a.html:
         write_html(report, out / "report.html")
     print(f"{', '.join(f'{k}: {r['verdict']}' for k, r in results.items())} → {out}/report.md")
+    if (report.get("diff") or {}).get("resolved"):
+        print("resolved: " + ", ".join(report["diff"]["resolved"]) + " (LEAK in the baseline, NO LEAK now)")
     for line in status_lines(report):
         if line:
             print(line.replace("**", ""))
@@ -296,6 +301,8 @@ def diff_cmd(a: argparse.Namespace) -> int:
             print("no verdict changed")
         for x in d["needs_review"]:
             print(f"needs review: {x['attribute']} (LEAK → {x['after']}, {x['reason']})")
+        if d.get("resolved"):
+            print("resolved: " + ", ".join(d["resolved"]) + " (LEAK in the baseline, NO LEAK now)")
         if d["new_leaks"]:
             print("new LEAK: " + ", ".join(d["new_leaks"]))
     for f in st["release_policy"]["failures"]:

@@ -33,7 +33,7 @@ REPOSITORY = ("https://github.com/MayureshMore/Where-the-Fingerprint-Lives-A-Pas
               "of-Leakage-in-LLM-Multi-Agent-A2A-Syst")
 VENDOR = [
     "a2a_leakcheck/__init__.py", "a2a_leakcheck/__main__.py", "a2a_leakcheck/analyze.py", "a2a_leakcheck/cli.py",
-    "a2a_leakcheck/collect.py", "a2a_leakcheck/extract.py", "a2a_leakcheck/report.py", "a2a_leakcheck/rules.py",
+    "a2a_leakcheck/collect.py", "a2a_leakcheck/endpoints.py", "a2a_leakcheck/extract.py", "a2a_leakcheck/report.py", "a2a_leakcheck/rules.py",
     "a2a_leakcheck/rules.yaml",
     "evaluation/__init__.py", "evaluation/stats.py",
     "features/__init__.py", "features/burst.py", "features/connections.py", "features/extractor.py",

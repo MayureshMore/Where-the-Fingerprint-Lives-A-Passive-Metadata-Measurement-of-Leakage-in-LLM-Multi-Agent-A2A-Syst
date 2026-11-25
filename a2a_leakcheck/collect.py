@@ -3,7 +3,9 @@ Collection: a folder of header-only pcaps, each with a JSON label sidecar of the
 
 Sidecar fields read (anything else is ignored):
 
-    agent_endpoints   {"executor": "10.0.0.2:8101", ...}   role of every agent port (required)
+    agent_endpoints   {"executor": "10.0.0.2:8101", ...}   every agent's host and port (required): a packet
+                      counts for an agent only if its server side is that host and port; agents on
+                      different hosts may share a port (a2a_leakcheck/endpoints.py)
     workflow_class    or "workflow": the workflow label
     topology          the topology label (also used to count the visible agents per topology)
     <any other key>   a trace-level attribute, if asked for with --attributes
@@ -13,6 +15,10 @@ Sidecar fields read (anything else is ignored):
                       (there is no TLS handshake to skip); also for every trace with --cleartext
     pad_buckets, padded_endpoints   requests padded to these sizes, on these agents (session collector):
                       only for the mitigation rules (facts padded, unpadded_in_view); not in the report
+    escalated, cloud_role   edge-cloud sidecars: whether the edge called a cloud agent ("yes"/"no") and
+                      which one. With --vantage, a trace with nothing in view is counted as expected
+                      silent when it was not escalated and the view sees only cloud agents (those the
+                      sidecars' cloud_role names), else as unexpectedly empty (extract.py)
     vantages          {"v1": ["diagnostics", "knowledge", "ticket"], "v2": [...]}: the agent endpoints
                       each observer view sees (scripts/collect_session.py --placement edge-cloud).
                       With --vantage NAME only those endpoints' flows are kept, before feature
@@ -33,6 +39,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from a2a_leakcheck.endpoints import foreign_packets, parse_endpoints, role_keys, write_without
 from scripts.strip_payload import payload_bytes, strip_file
 
 ALIASES = {"workflow": ("workflow_class", "workflow")}
@@ -42,7 +49,7 @@ ALIASES = {"workflow": ("workflow_class", "workflow")}
 class Trace:
     run_id: str
     pcap: Path
-    port_role: dict[int, str]                     # agent port → role
+    port_role: dict[int, str]                     # agent port → role ("a+b" where agents on two hosts share it)
     labels: dict[str, str] = field(default_factory=dict)
     group: str = ""
     group_source: str = ""                        # prompt_group | input_prompt | run_id
@@ -50,6 +57,10 @@ class Trace:
     padded: bool = False                          # sidecar pad_buckets non-empty (rules only)
     unpadded_in_view: tuple = ()                  # padded deployment: endpoints in view not in padded_endpoints
     tls: bool = True                              # False: cleartext, no handshake for the first request to skip
+    endpoints: dict = field(default_factory=dict)  # (host, port) → role (endpoints.py)
+    role_keys: dict = field(default_factory=dict)  # "ip:port" or "port" → role, for features/roles.py
+    escalated: bool | None = None                 # sidecar escalated (edge-cloud): did the edge call the cloud
+    cloud_role: str | None = None                 # sidecar cloud_role: the cloud agent it called
 
 
 def _label(sidecar: dict, attribute: str) -> str | None:
@@ -75,20 +86,21 @@ def read_trace(pcap: Path, trace_attributes: list[str], vantage: str | None = No
     eps = sc.get("agent_endpoints") or {}
     if isinstance(eps, str):
         return None, "agent_endpoints is not an object"
-    port_role = {}
-    for role, addr in eps.items():
-        port = str(addr).rsplit(":", 1)[-1]
-        if port.isdigit():
-            port_role[int(port)] = role
-    if not port_role:
+    endpoints, why = parse_endpoints(eps)
+    if why:
+        return None, why
+    if not endpoints:
         return None, "no agent_endpoints"
     if vantage is not None:
         seen = (sc.get("vantages") or {}).get(vantage)
         if seen is None:
             return None, f"no vantage {vantage!r} in the sidecar"
-        port_role = {p: r for p, r in port_role.items() if r in seen}
-        if not port_role:
+        endpoints = {e: r for e, r in endpoints.items() if r in seen}
+        if not endpoints:
             return None, f"vantage {vantage!r} lists no endpoint of agent_endpoints"
+    port_role: dict[int, str] = {}
+    for (_, port), role in sorted(endpoints.items(), key=lambda x: (x[0][1], str(x[0][0]))):
+        port_role[port] = f"{port_role[port]}+{role}" if port in port_role else role
     if sc.get("prompt_group"):
         group, source = str(sc["prompt_group"]), "prompt_group"
     elif sc.get("input_prompt"):
@@ -97,22 +109,28 @@ def read_trace(pcap: Path, trace_attributes: list[str], vantage: str | None = No
         group, source = pcap.stem, "run_id"
     labels = {a: v for a in trace_attributes if (v := _label(sc, a)) is not None}
     padded = bool(sc.get("pad_buckets"))
-    unpadded = tuple(sorted(set(port_role.values()) - set(sc.get("padded_endpoints") or []))) if padded else ()
+    unpadded = tuple(sorted(set(endpoints.values()) - set(sc.get("padded_endpoints") or []))) if padded else ()
     return Trace(run_id=sc.get("run_id", pcap.stem), pcap=pcap, port_role=port_role,
                  labels=labels, group=group, group_source=source, topology=_label(sc, "topology"),
                  padded=padded, unpadded_in_view=unpadded,
-                 tls=not cleartext and sc.get("tls", True) is not False), ""
+                 tls=not cleartext and sc.get("tls", True) is not False, endpoints=endpoints,
+                 role_keys=role_keys(endpoints),
+                 escalated={"yes": True, "true": True, "no": False, "false": False}.get(str(sc.get("escalated")).lower()),
+                 cloud_role=sc.get("cloud_role") or None), ""
 
 
 def collect(folder: Path, trace_attributes: list[str], strip_dir: Path | None = None,
-            vantage: str | None = None, cleartext: bool = False) -> dict:
+            vantage: str | None = None, cleartext: bool = False, filter_dir: Path | None = None) -> dict:
     """Read every pcap + sidecar in folder. Captures must be header-only; with strip_dir, a
     header-only copy of each capture that still holds payload bytes is written there and used.
     vantage: an observer view from the sidecars' vantages (only its endpoints' flows are kept).
+    filter_dir: where a copy without other hosts' packets on an agent port is written (endpoints.py);
+    without it, a capture that has such packets stops the run.
     """
     folder = Path(folder)
     pcaps = sorted(folder.glob("*.pcap"))
     traces, skipped, with_payload, stripped = [], [], [], 0
+    other = {"captures": 0, "packets": 0, "endpoints": {}}
     for pcap in pcaps:
         tr, why = read_trace(pcap, trace_attributes, vantage, cleartext)
         if tr is None:
@@ -126,6 +144,19 @@ def collect(folder: Path, trace_attributes: list[str], strip_dir: Path | None = 
             strip_file(pcap, dst)
             tr.pcap = dst
             stripped += 1
+        drop, seen = foreign_packets(tr.pcap, tr.endpoints)
+        if drop:
+            if filter_dir is None:
+                raise SystemExit(f"{pcap.name}: {len(drop)} packets on an agent port of a host its sidecar's "
+                                 f"agent_endpoints do not list ({', '.join(sorted(seen))}); the leakcheck "
+                                 "command drops them into a filtered copy")
+            dst = Path(filter_dir) / "endpoints" / pcap.name
+            write_without(tr.pcap, dst, drop)
+            tr.pcap = dst
+            other["captures"] += 1
+            other["packets"] += len(drop)
+            for k, n in seen.items():
+                other["endpoints"][k] = other["endpoints"].get(k, 0) + n
         traces.append(tr)
     if with_payload:
         raise SystemExit(
@@ -136,5 +167,5 @@ def collect(folder: Path, trace_attributes: list[str], strip_dir: Path | None = 
     return {"traces": traces, "skipped": skipped,
             "summary": {"folder": str(folder), "vantage": vantage, "pcaps": len(pcaps), "traces": len(traces),
                         **({"cleartext_traces": n} if (n := sum(not t.tls for t in traces)) else {}),
-                        "skipped": skipped, "stripped_copies": stripped,
+                        "skipped": skipped, "stripped_copies": stripped, "other_host_packets": other,
                         "group_source": {s: groups.count(s) for s in sorted(set(groups))}}}

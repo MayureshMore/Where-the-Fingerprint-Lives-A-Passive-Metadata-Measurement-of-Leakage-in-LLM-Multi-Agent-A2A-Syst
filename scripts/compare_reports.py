@@ -29,6 +29,9 @@ import sys
 from pathlib import Path
 
 NOT_COMPARED = {"parameters": {"jobs", "rules"}, "collection": {"folder"}, "input": {"folder", "label", "features"}}
+# counts added in 0.3.1: compared when both reports have them
+ADDED_0_3_1 = {"collection": {"other_host_packets"},
+               "extraction": {"empty_expected_silent", "empty_unexpected", "empty_unexpected_runs"}}
 
 
 def walk(a, b, path: str, tol: float, skip: set[str], out: list) -> None:
@@ -101,6 +104,10 @@ def compare(a: dict, b: dict, tol: float = 0.0, ignore_hints: bool = False) -> d
         if section in NOT_COMPARED:
             x = {k: v for k, v in x.items() if k not in NOT_COMPARED[section]}
             y = {k: v for k, v in y.items() if k not in NOT_COMPARED[section]}
+        one_sided = {k for k in ADDED_0_3_1.get(section, ()) if (k in x) != (k in y)}
+        if one_sided:
+            x = {k: v for k, v in x.items() if k not in one_sided}
+            y = {k: v for k, v in y.items() if k not in one_sided}
         walk(x, y, section, tol, skip, diffs)
     hints = {}
     for attr in sorted(set(a.get("attributes", {})) | set(b.get("attributes", {}))):
