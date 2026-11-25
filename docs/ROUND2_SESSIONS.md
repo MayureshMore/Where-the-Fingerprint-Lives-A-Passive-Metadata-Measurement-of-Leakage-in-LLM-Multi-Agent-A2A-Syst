@@ -1,4 +1,4 @@
-# Paper 2, round 2: sessions B1, B3 and C2B1X (Nov 21–22); B2 for paper 3
+# Paper 2, round 2: sessions B1, B3 and C2B1X (Nov 21–24); B2 for paper 3
 
 Three collections on C2's testbed ([LAN_SETUP.md](LAN_SETUP.md): the Pi's edge agents, the Mac's
 cloud agents and ticket services, dummynet on the Mac, capture on `C2_IFACE`). Each one runs
@@ -13,7 +13,7 @@ it copies into a local directory instead of the Pi.
 | Session | Date | Arms (port base) | Traces | Seed offset | Ollama on the Mac | Hours |
 |---|---|---|---|---|---|---|
 | B1 reply shaping | Nov 21 (done) | `lan_padmax` (8300), `lan_shaped` (8400) | 500 + 500 | 31000 | `OLLAMA_NUM_PARALLEL` 1, context 128k, as in C2 | 2.9 measured, plus a 4.3 h pause |
-| B3 second day | Nov 22, from 22:00 | `lan` (8100) | 1,000 | 33000 | 1, context 128k, as in C2 | about 1.9 |
+| B3 second day | Nov 24 (done) | `lan` (8100) | 1,000 | 33000 | 1, context 128k, as in C2 | 2.2 measured (8.3 s per trace) |
 | C2B1X more shaped traces | Nov 22 (done) | `lan_shaped` (8400) | 2,000 | 31000, from position 125 | 1, context 128k, as in B1 | 7.7 measured, plus a 4.0 h pause |
 | B2 jitter and load (paper 3) | later | `lan` (8100), `lan_jl` (8500) | 500 + 500 | 32000 | `OLLAMA_NUM_PARALLEL` 4, context 32k | about 2.5 |
 
@@ -23,7 +23,7 @@ its cloud call replaced by the 14.75 s release. For `lan_jl`, the cloud's answer
 round's pace line settles it. Add about 20 minutes of setup per session.
 
 Before each full session, a pilot on the real testbed: one short round per arm (`--n 5 --rounds 1`,
-20 traces per arm), into `data/pilot2_c2b1/` (B1, second pilot), `data/pilot_c2b3/` or `data/pilot_c2b2/`, never into the raw data folders,
+20 traces per arm), into `data/pilot2_c2b1/` (B1, second pilot), `data/pilot_c2b3/` and `data/pilot2_c2b3/` (B3, two pilots) or `data/pilot_c2b2/`, never into the raw data folders,
 with the session's checks run on it. The full session starts only if they pass. B2 moved to paper 3
 (Nov 21); its section below stays for that collection. C2B1X ([below](#c2b1x-more-shaped-traces-for-sensor-vs-fault-nov-22-overnight))
 adds shaped traces so that sensor vs fault can come out NO LEAK if the shaping removes the signal.
@@ -77,8 +77,14 @@ sudo ifconfig "$C2_IFACE" alias "$C2_CLOUD" netmask 255.255.255.255
 sudo chgrp admin /dev/bpf* && sudo chmod g+r /dev/bpf*
 grep -o "OLLAMA_NUM_PARALLEL:[^ ]*" ~/.ollama/logs/server.log | tail -1
 grep -o "OLLAMA_CONTEXT_LENGTH:[^ ]*" ~/.ollama/logs/server.log | tail -1
+sudo ifconfig awdl0 down
+ifconfig awdl0 | grep status
 ```
-`git status --short` must print nothing. The last two lines must print the session's values:
+`git status --short` must print nothing. The last line must say `status: inactive`: AWDL (AirDrop,
+Handoff, Sidecar) takes the Mac's Wi-Fi radio off channel at intervals, and the Pi's connects to the
+cloud alias stall near 100 ms (B3's first pilot, Nov 22: 95.9 ms end to end, passing at 22.2 ms
+with AWDL down). macOS turns it back on by itself, so also set AirDrop to "Receiving Off" and
+Handoff off for the session; `sudo ifconfig awdl0 up` after it. The last two lines must print the session's values:
 `OLLAMA_NUM_PARALLEL:1` and `OLLAMA_CONTEXT_LENGTH:131072` for B1 and B3, as in C2; `4` and `32768`
 for B2. To change them, quit the Ollama app, run `launchctl setenv OLLAMA_NUM_PARALLEL 4` (B2) or
 `launchctl unsetenv OLLAMA_NUM_PARALLEL` (B1, B3), reopen the app, set Settings, Context length
@@ -89,9 +95,11 @@ Wi-Fi power save on, then off, so that the off reaches the driver:
 ```bash
 sudo iw dev wlan0 set power_save on
 sudo iw dev wlan0 set power_save off
-sudo dmesg | tail -n 3
+sudo dmesg | grep brcmf_cfg80211_set_power_mgmt | tail -n 2
 ```
-The last line must say `brcmfmac: brcmf_cfg80211_set_power_mgmt: power save disabled`. A plain
+The last line must say `brcmfmac: brcmf_cfg80211_set_power_mgmt: power save disabled` (the line
+before, `enabled`). The `grep` keeps UFW's `[UFW BLOCK]` lines, logged between the two settings,
+from pushing them out of a plain `dmesg | tail` (B3, Nov 22). A plain
 `set power_save off` is not enough: cfg80211 skips a setting equal to the one it holds, and
 `iw dev wlan0 get power_save` can say off while the chip dozes (C2B1X, Nov 22). A dozing chip shows
 in the WAN probes to the cloud as connects near 100 ms (the beacon interval, 102.4 ms) between
@@ -105,6 +113,7 @@ sudo bash scripts/wan_emulation.sh off
 sudo chmod g-r /dev/bpf* && sudo chgrp wheel /dev/bpf*
 ```
 Stop `serve_cloud.py`, `wan_watch.py` and the guard (Ctrl-C). On the Pi, stop `serve_edge.py`.
+`sudo ifconfig awdl0 up` if AirDrop is wanted again.
 After B2, also run `sudo bash scripts/wan_emulation_pi.sh off` on the Pi.
 
 ## B1: reply shaping (Nov 21)
@@ -534,7 +543,7 @@ venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/
 control's plus 0.5 percentage points. The Wi-Fi reorders some packets on its own: in C2, 0.06% of
 `lan`'s request segments.
 
-## B3: a second day of `lan` (Nov 22, from 22:00)
+## B3: a second day of `lan` (pilots Nov 22 and 24, full run Nov 24)
 
 C2's `lan` arm (8100) again, with new prompts (seed offset 33000), on C2's WAN plan
 (`data/results/c2_wan_emulation.json`, bases 8100, 8200 and 8300). `OLLAMA_NUM_PARALLEL` 1 and
@@ -586,7 +595,7 @@ The pilot passes with 20 of 20 traces and 0 failed, the guard OK, the closing WA
 checks below with `D=data/pilot_c2b3/lan`. Then stop `wan_watch.py` (Ctrl-C) and start it again for
 the full run's folder; the WAN, `serve_cloud.py` and `serve_edge.py` stay.
 
-### B3 full run (about 1.9 h)
+### B3 full run (2.2 h measured)
 
 **Mac**, window 2: the WAN check, alone. Go on only if it ends with `PASS`:
 ```bash
@@ -625,6 +634,42 @@ venv/bin/python scripts/check_stream_integrity.py $D --json $D/stream_integrity.
 venv/bin/python scripts/check_session_design.py $D --json $D/design_check.json
 ```
 
+### B3 pilot records (Nov 22 and Nov 24)
+
+- **First pilot** (`data/pilot_c2b3/lan`, Nov 22, from cb9534da, clean). The first WAN check
+  failed: 95.9 ms end to end against 22.6 [18.1, 27.1], with the Mac's own address at 16.5 ms and
+  the capture at 12.6 ms (`wan_check_start.json`). The Pi's power save had been toggled and
+  `dmesg` said disabled. The cause was the Mac's AWDL: with `sudo ifconfig awdl0 down` the check
+  passed at 22.2 ms (`wan_check_start2.json`). 20 of 20 traces, 0 failed, 21:11 to 21:13; the
+  round's probe passed at 21.6 ms (one connect of its ten at 127.8 ms); the guard OK at 0 and 20.
+  The closing WAN check was not run, and the full run did not start that night. The Pi left the
+  network on Nov 23 near 07:03 and was restarted on Nov 24. The four data checks pass (run Nov 24).
+- **Second pilot** (`data/pilot2_c2b3/lan`, Nov 24, from cb9534da, clean), after the restart: the
+  power save toggled (`dmesg` grep: disabled), AWDL down, `serve_cloud.py` restarted. WAN check
+  PASS at 21.1 ms; 20 of 20 traces, 0 failed, 12:57:47 to 13:00:28, 7.74 s per trace; the round's
+  probe 20.5 ms; the guard OK at 0 and 20; the closing WAN check PASS at 21.1 ms; the four data
+  checks pass.
+
+### B3 record (Nov 24)
+
+- 1,000 of 1,000 traces (250 per task type), 0 failed attempts, from cb9534da (clean), 13:12:37 to
+  15:24:21, one run with no stop or resume; 8.3 s per trace by the collector's pace line (the round
+  restarts and warm-ups included), 0 traces taken while the Pi was throttled. AWDL stayed down
+  throughout.
+- WAN: the opening check PASS at 21.3 ms (base 8.3 ms, capture 12.5 ms); the round probes 20.7,
+  20.4, 20.9, 21.4 and 20.4 ms; the guard's 21 checks, every 50 traces from 0 to 1,000, all OK,
+  pipes 1 and 2 at 6 ms with 0 drops; the closing check, run before anything was stopped, PASS at
+  21.6 ms (base 8.6 ms, IQR 2.0 ms; capture 13.2 ms).
+- Data checks pass: every expected call captured in 1,000 of 1,000 traces (`lan_check.json`); TLS
+  on every connection, 1.75 ClientHellos per trace (`tls_check.json`); 0 cut streams
+  (`stream_integrity.json`); predecessors balanced, 0 leftover connections, `audit_null` in 1,000
+  of 1,000 sidecars (`design_check.json`).
+- Header-only: `strip_payload.py --placeholder-macs` on a copy, then `--check`: 1,000 pcaps, 0 with
+  payload bytes, 0 with real MAC addresses (two placeholders, the Mac and the Pi).
+- Prompts: 978 distinct of 1,000. 23 `procedure_lookup` and 4 `alert_triage` prompts also occur in
+  C2 (29 B3 traces, 30 C2 traces), with the same prompt groups; the cross-session transfer drops
+  them from its test side (docs/PROMPT_REGISTRY.md).
+
 ## Afterwards (me, from a clean commit)
 
 The audits and the cross-session transfer. Each session writes its own results JSON with commit,
@@ -643,5 +688,26 @@ seed and data folders; nothing heavy runs beside them.
       --baseline-arm lan_padmax --baseline-prefix c2b1 --prefix c2b1_c2b1x --out data/results/b1_pair_pooled
   ```
 - **B2 (paper 3):** the same audits, per arm and view.
-- **B3:** `evaluate_cross_session.py --train` on C2's `lan` features, `--test` on B3's, at V1
-  and V2.
+- **B3:** its own audits, as C2's `lan` arm (task_type, escalated, cloud_role, audit_null; sensor
+  vs fault; the escalated task types), at V1 and V2; then the features of both sessions per view
+  and `evaluate_cross_session.py` both ways (train C2, test B3; train B3, test C2), each row beside
+  C2's within-session figure (`paper2_round2.json`, section a7):
+  ```bash
+  venv/bin/python scripts/b1_audits.py --arm lan=data/raw_c2b3_lan --prefix c2b3 --title "B3 audits" \
+      --out data/results/b3_audits
+  for v in v1 v2; do
+    venv/bin/python -m a2a_leakcheck extract data/raw_c2 --vantage $v --strip \
+        --attributes task_type,escalated,cloud_role,audit_null --out data/features_b3_cross/c2_lan_$v
+    venv/bin/python -m a2a_leakcheck extract data/raw_c2b3_lan --vantage $v --strip \
+        --attributes task_type,escalated,cloud_role,audit_null --out data/features_b3_cross/c2b3_lan_$v
+  done
+  S=(--subset pair=task_type:sensor_analysis,fault_diagnosis
+     --subset escalated_only=task_type:fault_diagnosis,procedure_lookup,sensor_analysis
+     --reference data/results/paper2_round2.json)
+  for v in v1 v2; do
+    venv/bin/python scripts/evaluate_cross_session.py --train data/features_b3_cross/c2_lan_$v \
+        --test data/features_b3_cross/c2b3_lan_$v $S --out data/results/b3_cross_session_c2_to_b3_$v
+    venv/bin/python scripts/evaluate_cross_session.py --train data/features_b3_cross/c2b3_lan_$v \
+        --test data/features_b3_cross/c2_lan_$v $S --out data/results/b3_cross_session_b3_to_c2_$v
+  done
+  ```

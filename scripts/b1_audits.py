@@ -16,13 +16,15 @@ same view and part (the CI gate: exit code, changes, new leaks, needs_review, re
 Each run writes data/results/leakcheck/<prefix>_<arm>_<view>[_<part>]/ (report.json, .md, .html);
 --out writes the summary (.json, .md): verdicts, macro-F1 and CI, p, carried by (matches all, the
 non-inferiority rule), the baseline comparisons, and paper, collection ids, data folders, commit and
-seed. Nothing is written over; uncommitted code is refused.
+seed. Nothing is written over; uncommitted code is refused. --title names the summary (default "B1 audits").
 
     python scripts/b1_audits.py --arm lan_padmax=data/raw_c2b1_padmax --arm lan_shaped=data/raw_c2b1_shaped \\
         --baseline-arm lan_padmax --prefix c2b1 --out data/results/b1_audits
     # after C2B1X: sensor vs fault on the shaped traces of both collections, against B1's lan_padmax
     python scripts/b1_audits.py --arm lan_shaped=data/raw_c2b1_shaped,data/raw_c2b1x_shaped --parts pair \\
         --baseline-arm lan_padmax --baseline-prefix c2b1 --prefix c2b1_c2b1x --out data/results/b1_pair_pooled
+    # B3: the second day of lan, audited as C2's lan arm
+    python scripts/b1_audits.py --arm lan=data/raw_c2b3_lan --prefix c2b3 --title "B3 audits" --out data/results/b3_audits
 """
 
 from __future__ import annotations
@@ -156,6 +158,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--subset-dir", default="data/subsets", dest="subset_dir")
     p.add_argument("--out", required=True, help="summary path without extension (.json, .md)")
     p.add_argument("--jobs", type=int, default=-1)
+    p.add_argument("--title", default="B1 audits", help="the summary's purpose and heading")
     p.add_argument("--allow-dirty", action="store_true", dest="allow_dirty")
     a = p.parse_args(argv)
 
@@ -189,7 +192,8 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("uncommitted code: commit first (or --allow-dirty for a test run)")
 
     t0 = time.perf_counter()
-    res = {"paper": "P2", "round": 2, "purpose": "B1 audits: per arm, view and part, with the baseline gate",
+    res = {"paper": "P2", "round": 2, "purpose": f"{a.title}: per arm, view and part, with the baseline gate",
+           "title": a.title,
            "seed": SEED, **git, "created": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
            "parameters": {"views": views, "parts": parts, "prefix": a.prefix, "baseline_arm": a.baseline_arm,
                           "baseline_prefix": base_prefix if a.baseline_arm else None,
@@ -238,7 +242,7 @@ def _f(x) -> str:
 
 
 def markdown(r: dict) -> str:
-    L = [f"# B1 audits ({', '.join(r['collection_id'])})", "",
+    L = [f"# {r.get('title', 'B1 audits')} ({', '.join(r['collection_id'])})", "",
          f"Commit {r['git_commit']} (dirty: {r['git_dirty']}), seed {r['seed']}; a2a-leakcheck defaults "
          f"({r['parameters']['tool_defaults']}).", "",
          "| Run | Attribute | Verdict | Macro-F1 [95% CI] | Threshold | p | Carried by |", "|---|---|---|---|---|---|---|"]
