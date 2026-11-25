@@ -16,6 +16,15 @@ Build the paper 2 data release (Zenodo 10.5281/zenodo.24238559, DATA.md) from a 
                                           payload byte once: scripts/extract_features.py --dedup)
     SHA256SUMS.txt, manifest.json         checksums; what was checked, cut and left out
 
+With --release round2, the new version's files instead (round 2's collections, docs/ROUND2_SESSIONS.md):
+    c2b1-raw-pcaps-headers-only.zip       data/raw_c2b1_padmax, raw_c2b1_shaped (500 each) and the shaping
+                                          agents' reply log data/raw_c2b1_replies (sizes and times, no text)
+    c2b1x-raw-pcaps-headers-only.zip      data/raw_c2b1x_shaped (2,000) and data/raw_c2b1x_replies
+    c2b3-raw-pcaps-headers-only.zip       data/raw_c2b3_lan (1,000)
+    round2-features.zip                   data/features_round2/<collection>_<arm>_<view>.npz
+    round2-SHA256SUMS.txt, round2-manifest.json
+The same changes and checks as below; every reply-log record must lie in its collection's window.
+
 Changes from data/ (recorded in manifest.json and DATA.md):
   - every pcap is stripped to its headers (scripts/strip_payload.py); timestamps and on-wire
     lengths are kept, so the features do not change (checked below);
@@ -39,6 +48,7 @@ Checks on the staged copy, before anything is zipped (any failure stops the buil
 Usage (never overwrites: OUT must not exist):
     python scripts/package_paper2_data.py --out dist/paper2
     python scripts/package_paper2_data.py --out dist/paper2 --no-tls-control
+    python scripts/package_paper2_data.py --release round2 --out dist/paper2_round2
 """
 
 from __future__ import annotations
@@ -77,6 +87,43 @@ LEFT_OUT = {"raw_c2": {"wan_status.json": "the WAN watcher's last state, written
 CUT = {"raw_c2": "wan_watch.jsonl"}
 SNAPLEN = 96
 TRACE_SIDECAR = re.compile(r"_[0-9a-f]{6}\.json$")
+WAN_STATUS = "the WAN watcher's last state, written after the collection"
+ROUND2_WAN = ("raw_c2b1_padmax", "raw_c2b1x_shaped", "raw_c2b3_lan")   # the folders the watcher wrote into
+
+
+def releases() -> dict:
+    """Per release: capture folders (name in the features, captures expected), log folders without captures
+    (each with the capture folder whose session window its records must lie in), what is left out or cut,
+    the features folder, the archives and the manifest's and checksums' names."""
+    return {
+        "v1": {"sets": {s: (C2_ARMS[s], C2_PER_ARM) for s in C2_SETS}, "logs": {},
+               "left_out": LEFT_OUT, "cut": CUT, "features_dir": "features_c2", "readme": FEATURES_README,
+               "zips": {"c2-raw-pcaps-headers-only.zip": list(C2_SETS), "c2-features.zip": ["features_c2"]},
+               "tls_control": True, "manifest": "manifest.json", "sums": "SHA256SUMS.txt"},
+        "round2": {"sets": {"raw_c2b1_padmax": ("c2b1_lan_padmax", 500), "raw_c2b1_shaped": ("c2b1_lan_shaped", 500),
+                            "raw_c2b1x_shaped": ("c2b1x_lan_shaped", 2000), "raw_c2b3_lan": ("c2b3_lan", 1000)},
+                   "logs": {"raw_c2b1_replies": "raw_c2b1_shaped", "raw_c2b1x_replies": "raw_c2b1x_shaped"},
+                   "left_out": {s: {"wan_status.json": WAN_STATUS} for s in ROUND2_WAN},
+                   "cut": {s: "wan_watch.jsonl" for s in ROUND2_WAN},
+                   "features_dir": "features_round2", "readme": ROUND2_FEATURES_README,
+                   "zips": {"c2b1-raw-pcaps-headers-only.zip": ["raw_c2b1_padmax", "raw_c2b1_shaped", "raw_c2b1_replies"],
+                            "c2b1x-raw-pcaps-headers-only.zip": ["raw_c2b1x_shaped", "raw_c2b1x_replies"],
+                            "c2b3-raw-pcaps-headers-only.zip": ["raw_c2b3_lan"],
+                            "round2-features.zip": ["features_round2"]},
+                   "tls_control": False, "manifest": "round2-manifest.json", "sums": "round2-SHA256SUMS.txt"},
+    }
+
+
+def check_log_window(src: Path, lo: float, hi: float) -> dict:
+    """A log folder's JSON-lines files: every record's time inside [lo, hi], else the build stops."""
+    out = {}
+    for f in sorted(src.glob("*.jsonl")):
+        times = [json.loads(x)["time"] for x in f.read_text().splitlines() if x.strip()]
+        outside = sum(not lo <= t <= hi for t in times)
+        if outside:
+            raise SystemExit(f"{f}: {outside} of {len(times)} records outside the collection window")
+        out[f.name] = {"records": len(times)}
+    return out
 
 
 def sha256(path: Path) -> str:
@@ -234,30 +281,32 @@ def main(a: argparse.Namespace) -> int:
     stage = out / "stage"
     if Path(a.data).is_absolute():
         raise SystemExit("--data must be a relative path (it is recorded in the released manifest)")
+    rel = releases()[a.release]
+    sets, tls = rel["sets"], rel["tls_control"] and not a.no_tls_control
     man: dict = {"created": dt.datetime.now().astimezone().isoformat(timespec="seconds"), **git_state(),
-                 "data": a.data, "sets": {}, "left_out": {}, "cut": {}}
+                 "release": a.release, "data": a.data, "sets": {}, "left_out": {}, "cut": {}}
     if man["git_dirty"]:
-        print("warning: uncommitted code; manifest.json records git_dirty: true")
+        print(f"warning: uncommitted code; {rel['manifest']} records git_dirty: true")
     macs = MacPlaceholders()
-    raw_sets = list(C2_SETS) + ([] if a.no_tls_control else list(TLS_RAW))
+    raw_sets = list(sets) + (list(TLS_RAW) if tls else [])
 
     # 1. stage: strip, rewrite addresses, cut the watcher log, leave out what is listed
     for s in raw_sets:
         src = data / s
         pcaps = sorted(src.glob("*.pcap"))
-        if s in C2_SETS and len(pcaps) != C2_PER_ARM:
-            raise SystemExit(f"{src}: {len(pcaps)} captures, expected {C2_PER_ARM}")
+        if s in sets and len(pcaps) != sets[s][1]:
+            raise SystemExit(f"{src}: {len(pcaps)} captures, expected {sets[s][1]}")
         removed = 0
         for p in pcaps:
-            removed += strip_file(p, stage / "data" / s / p.name, macs if s in C2_SETS else None)[1]
+            removed += strip_file(p, stage / "data" / s / p.name, macs if s in sets else None)[1]
         for f in sorted(src.iterdir()):
             if f.suffix == ".pcap" or not f.is_file() or f.name == ".DS_Store":
                 continue
-            if f.name in LEFT_OUT.get(s, {}):
-                man["left_out"][f"{s}/{f.name}"] = LEFT_OUT[s][f.name]
+            if f.name in rel["left_out"].get(s, {}):
+                man["left_out"][f"{s}/{f.name}"] = rel["left_out"][s][f.name]
                 continue
             dst = stage / "data" / s / f.name
-            if CUT.get(s) == f.name:
+            if rel["cut"].get(s) == f.name:
                 lo, hi, lo_s, hi_s = window(src / "session_meta.json")
                 man["cut"][f"{s}/{f.name}"] = {"window": [lo_s, hi_s], **cut_jsonl(f, dst, lo, hi),
                                                "rule": "records whose time is in the collection window "
@@ -266,6 +315,12 @@ def main(a: argparse.Namespace) -> int:
             shutil.copy2(f, dst)
         man["sets"][s] = {"pcaps": len(pcaps), "payload_bytes_removed": removed}
         print(f"staged data/{s}: {len(pcaps)} captures, {removed} payload bytes removed")
+    man["logs"] = {}
+    for s, owner in rel["logs"].items():
+        lo, hi, lo_s, hi_s = window(data / owner / "session_meta.json")
+        man["logs"][s] = {"window_of": owner, "window": [lo_s, hi_s], "files": check_log_window(data / s, lo, hi)}
+        shutil.copytree(data / s, stage / "data" / s, ignore=shutil.ignore_patterns(".DS_Store"))
+        print(f"staged data/{s}: {man['logs'][s]['files']}, every record inside {owner}'s window")
     man["mac_placeholders"] = macs.table()
     for row in macs.table():
         print(f"  MAC {row['placeholder']}: frames of {', '.join(row['ipv4'])}")
@@ -283,31 +338,31 @@ def main(a: argparse.Namespace) -> int:
                 problems[f"{s}/{p.name}"] = bad
     leaks = leaked_originals(stage, macs.originals())
     home = with_home(stage)
-    hosts = sorted({h for s in C2_SETS for side in (stage / "data" / s).glob("*.json")
+    hosts = sorted({h for s in sets for side in (stage / "data" / s).glob("*.json")
                     if TRACE_SIDECAR.search(side.name) for h in sidecar_hosts(side)})
     man["checks"] = {"pcaps_checked": sum(man["sets"][s]["pcaps"] for s in raw_sets),
                      "problems": problems, "files_with_an_original_mac": leaks, "files_with_the_home_path": home,
                      "c2_hosts_in_sidecars": hosts, "snaplen_max": SNAPLEN}
     if problems or leaks or home:
-        (out / "manifest.json").write_text(json.dumps(man, indent=2))
+        (out / rel["manifest"]).write_text(json.dumps(man, indent=2))
         raise SystemExit(f"checks failed: {len(problems)} captures, {len(leaks)} files with an original "
-                         f"address, {len(home)} with the home path; see {out / 'manifest.json'}")
+                         f"address, {len(home)} with the home path; see {out / rel['manifest']}")
     print(f"checked {man['checks']['pcaps_checked']} captures: snaplen ≤ {SNAPLEN}, headers only, "
           f"placeholder MACs only, hosts {hosts}; no original address in any file")
 
-    # 3. C2 features from the released captures, compared with those from data/
-    fdir = stage / "data" / "features_c2"
+    # 3. features from the released captures, compared with those from data/
+    fdir = stage / "data" / rel["features_dir"]
     fdir.mkdir(parents=True)
     names = np.array(FLAT_FEATURE_NAMES())
     man["features"] = {}
-    for s in C2_SETS:
+    for s in sets:
         for v in C2_VIEWS:
             new, old = features(stage / "data" / s, v), features(data / s, v)
             same = (np.array_equal(new["X"], old["X"]) and np.array_equal(new["first_request"], old["first_request"])
                     and np.array_equal(new["run_id"], old["run_id"]))
             if not same:
                 raise SystemExit(f"{s} at {v}: features from the released captures differ from data/")
-            name = f"{C2_ARMS[s]}_{v}"
+            name = f"{sets[s][0]}_{v}"
             np.savez_compressed(fdir / f"{name}.npz", X=new["X"], feature_names=names,
                                 first_request_bytes=new["first_request"], run_id=new["run_id"],
                                 **{k: new[k] for k in C2_LABELS})
@@ -316,15 +371,14 @@ def main(a: argparse.Namespace) -> int:
                                      "equal_to_data": True}
             print(f"features {name}: {len(new['run_id'])} traces × {new['X'].shape[1]}, "
                   f"{new['empty']} with nothing in view; equal to those from data/")
-    (fdir / "README.md").write_text(FEATURES_README)
+    (fdir / "README.md").write_text(rel["readme"])
     man["features_definition"] = {"measurement": new["summary"]["measurement"],
                                   "retransmissions": new["summary"]["retransmissions"],
                                   "first_request": new["summary"]["first_request"]}
 
     # 4. zips and checksums
-    zips = {"c2-raw-pcaps-headers-only.zip": [f"data/{s}" for s in C2_SETS],
-            "c2-features.zip": ["data/features_c2"]}
-    if not a.no_tls_control:
+    zips = {z: [f"data/{s}" for s in rels] for z, rels in rel["zips"].items()}
+    if tls:
         for s in TLS_FEATURES:
             if not (data / s).is_dir():
                 raise SystemExit(f"missing {data / s}")
@@ -337,14 +391,14 @@ def main(a: argparse.Namespace) -> int:
         man["archives"][z] = {"sha256": sha256(out / z), "bytes": (out / z).stat().st_size, "contents": rels}
     text = json.dumps(man, indent=2) + "\n"
     if str(Path.home()) in text:
-        raise SystemExit("manifest.json would contain the home path")
-    (out / "manifest.json").write_text(text)
-    with (out / "SHA256SUMS.txt").open("w") as f:
-        for z in list(zips) + ["manifest.json"]:
+        raise SystemExit(f"{rel['manifest']} would contain the home path")
+    (out / rel["manifest"]).write_text(text)
+    with (out / rel["sums"]).open("w") as f:
+        for z in list(zips) + [rel["manifest"]]:
             f.write(f"{sha256(out / z)}  {z}\n")
     shutil.rmtree(stage)
-    print((out / "SHA256SUMS.txt").read_text(), end="")
-    print(f"→ {out}: upload the zips, manifest.json and SHA256SUMS.txt; paste the checksums into DATA.md")
+    print((out / rel["sums"]).read_text(), end="")
+    print(f"→ {out}: upload the zips, {rel['manifest']} and {rel['sums']}; paste the checksums into DATA.md")
     return 0
 
 
@@ -367,6 +421,26 @@ Built by `scripts/package_paper2_data.py`, which checks that the features from t
 those from the original captures.
 """
 
+ROUND2_FEATURES_README = """# Round 2 features
+
+One file per collection, arm and observer view, as for C2 (`features_c2`): `c2b1_lan_padmax` and
+`c2b1_lan_shaped` (500 traces each), `c2b1x_lan_shaped` (2,000) and `c2b3_lan` (1,000), each at `v1`
+(building network: the edge host's flows to the cloud agents and to the local ticket service) and `v2`
+(upstream: its flows to the cloud agents only). Each holds what a2a-leakcheck computes from the released
+captures with `--vantage v1|v2`:
+
+| Key | Shape | Content |
+|---|---|---|
+| `X` | traces × 195 | trace features (`feature_names`); all zero for a task the view sees nothing of |
+| `feature_names` | 195 | `features.names.FLAT_FEATURE_NAMES()` |
+| `first_request_bytes` | traces | the first request's size in TCP sequence space (0 when nothing is in view) |
+| `run_id` | traces | the capture's name in its `data/raw_c2b*` folder |
+| `task_type`, `escalated`, `cloud_role`, `audit_null`, `prompt_group` | traces | labels from the sidecars (`cloud_role` is empty for tasks answered on the edge) |
+
+Built by `scripts/package_paper2_data.py --release round2`, which checks that the features from the
+released captures equal those from the original captures.
+"""
+
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
@@ -374,4 +448,6 @@ if __name__ == "__main__":
     p.add_argument("--out", required=True, help="new output folder (must not exist)")
     p.add_argument("--no-tls-control", action="store_true", dest="no_tls_control",
                    help="package C2 only")
+    p.add_argument("--release", choices=("v1", "round2"), default="v1",
+                   help="v1: version 1.0 (C2, the TLS control); round2: C2B1, C2B1X, C2B3 for the new version")
     sys.exit(main(p.parse_args()))

@@ -91,3 +91,26 @@ def test_with_home_finds_the_home_path(tmp_path):
     (tmp_path / "a.json").write_text(f'{{"data": "{Path.home()}/x"}}')
     (tmp_path / "b.json").write_text('{"data": "data/raw_c2"}')
     assert with_home(tmp_path) == ["a.json"]
+
+
+def test_the_round2_release_archives_every_folder_once_and_keeps_v1_as_it_was():
+    from scripts.package_paper2_data import C2_SETS, releases
+    r = releases()
+    v1, r2 = r["v1"], r["round2"]
+    assert v1["zips"] == {"c2-raw-pcaps-headers-only.zip": list(C2_SETS), "c2-features.zip": ["features_c2"]}
+    assert v1["manifest"] == "manifest.json" and v1["sums"] == "SHA256SUMS.txt" and v1["tls_control"]
+    zipped = [f for rels in r2["zips"].values() for f in rels]
+    assert sorted(zipped) == sorted([*r2["sets"], *r2["logs"], r2["features_dir"]])      # each once
+    assert {n for n, _ in r2["sets"].values()} == {"c2b1_lan_padmax", "c2b1_lan_shaped", "c2b1x_lan_shaped", "c2b3_lan"}
+    assert sum(c for _, c in r2["sets"].values()) == 4000
+    assert set(r2["logs"].values()) <= set(r2["sets"])
+    assert not set(r2["zips"]) & set(v1["zips"]) and r2["manifest"] != v1["manifest"] and r2["sums"] != v1["sums"]
+
+
+def test_a_reply_log_record_outside_the_window_stops_the_build(tmp_path):
+    import pytest
+    from scripts.package_paper2_data import check_log_window
+    (tmp_path / "replies_8401.jsonl").write_text("".join(json.dumps({"time": t}) + "\n" for t in (10, 15, 20)))
+    assert check_log_window(tmp_path, 10, 20) == {"replies_8401.jsonl": {"records": 3}}
+    with pytest.raises(SystemExit, match="1 of 3 records outside"):
+        check_log_window(tmp_path, 11, 20)
