@@ -13,6 +13,9 @@ pipeline_harness/a2a-leakcheck/      README, run.sh                     (clean c
 ```
 
 This README is not part of the contribution: copy the five folders into a clone of the pipeline.
+They were submitted upstream as
+[safeiot-vuln-pipeline#1](https://github.com/systemsecurity-uiuc/safeiot-vuln-pipeline/pull/1) on
+Nov 25, 2026, as of commit `c38e7728` (a2a-leakcheck 0.3.1).
 
 ## Keeping the copy current
 

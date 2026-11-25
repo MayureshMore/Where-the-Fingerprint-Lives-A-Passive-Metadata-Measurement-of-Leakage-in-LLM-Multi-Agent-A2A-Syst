@@ -91,7 +91,9 @@ shows the CI gate (exit code 3 on a new LEAK; exit codes and `--strict` in
 **SafeIoT pipeline:** [safeiot/](safeiot/README.md) holds the tool laid out as the
 [safeiot-vuln-pipeline](https://github.com/systemsecurity-uiuc/safeiot-vuln-pipeline) expects (stages
 1 to 4 and a harness); `pipeline_harness/a2a-leakcheck/run.sh` goes from a fresh clone of that
-repository to a report in about 4 minutes.
+repository to a report in about 4 minutes. Submitted upstream as
+[safeiot-vuln-pipeline#1](https://github.com/systemsecurity-uiuc/safeiot-vuln-pipeline/pull/1)
+(Nov 25, the five folders as of commit `c38e7728`).
 
 **Headline numbers** (a2a-leakcheck 0.3.0: the permutation test by prompt group, "matches all
 features" as non-inferiority; every number in the paper and its file:

@@ -393,6 +393,48 @@ it, and `manifest.json` records each change:
 To rebuild: `python scripts/package_paper2_data.py --out dist/paper2` (from a populated `data/`;
 the output folder must not exist).
 
+## Paper 2 archive, version 1.1 (D3 and B3: collections C2B1, C2B1X and C2B3)
+
+**Zenodo:** a new version of the record above (all versions: https://doi.org/10.5281/zenodo.24238558).
+Version 1.1 keeps version 1.0's six files unchanged and adds the six below, uploaded from the build
+described here. Its version DOI is added here once published.
+
+| File | Contents | Bytes | SHA-256 |
+|---|---|---|---|
+| `c2b1-raw-pcaps-headers-only.zip` | `data/raw_c2b1_padmax`, `raw_c2b1_shaped`: 500 captures each (125 per task type) with their sidecars and the session's check files; `data/raw_c2b1_replies`: the shaping cloud agents' log, 375 records | 5,424,310 (2,017 files) | `44f34ef21cbea4cc89890c4e85c6f72f3684d82ec322b8b9614f1dd9eb98cb29` |
+| `c2b1x-raw-pcaps-headers-only.zip` | `data/raw_c2b1x_shaped`: 2,000 captures with sidecars and check files; `data/raw_c2b1x_replies`, 1,500 records | 7,342,307 (4,014 files) | `c7b223e076fa6dfbe6be2aa6ab486c8d02812d3de99fd78b368763bf8d295788` |
+| `c2b3-raw-pcaps-headers-only.zip` | `data/raw_c2b3_lan`: 1,000 captures with sidecars and check files | 7,553,650 (2,009 files) | `70a0076232b9c388b6e2b88654367690df59d215116a8d13fe0cba2cba11ca25` |
+| `round2-features.zip` | `data/features_round2/<collection>_<arm>_<view>.npz`: the 195 trace features and the first-request size a2a-leakcheck computes, with the labels, for each collection and arm at V1 and V2 (8 sets; README inside) | 1,564,761 | `370c0a5472644447c53aa9d570dfd42b4e608d246a9e0094e87ad7229c3d4878` |
+| `round2-manifest.json` | what `scripts/package_paper2_data.py --release round2` checked, cut and left out, and its commit | 6,261 | `b8bbb81fc8a89ee7b5e27dff4928c25086762557e97bbe4ff8dc05be3be3428d` |
+| `round2-SHA256SUMS.txt` | the SHA-256 of the five files above | 468 | |
+
+Built by `scripts/package_paper2_data.py --release round2` at commit `c38e7728` (clean;
+`round2-manifest.json`), with deterministic zips: a first build at the same commit, counted dirty only
+because of an untracked folder, gave the same four zips byte for byte. The pilots
+(`data/pilot*_c2b1*`, `pilot*_c2b3`) are not released. The D3 and B3 sections of
+`bash scripts/reproduce_paper2.sh` read these folders.
+
+**How the release differs from the captures in `data/`**, as for version 1.0 (`round2-manifest.json`
+records each change):
+- **Headers only.** Payload bytes past each TCP header removed (TLS ciphertext): 2,031,974 B in
+  `raw_c2b1_padmax`, 520,014 B in `raw_c2b1_shaped`, 2,076,163 B in `raw_c2b1x_shaped`, 4,138,236 B in
+  `raw_c2b3_lan`.
+- **Hardware addresses** replaced by the same placeholders: 02:00:00:00:00:01 for the Mac
+  (10.0.0.228 and the cloud alias 172.30.0.100), 02:00:00:00:00:02 for the Pi (10.0.0.171).
+- **The WAN watcher's logs** cut to each collection's window (`session_meta.json`'s start and end,
+  one second either side): 862 of 924 records kept in `raw_c2b1_padmax`, 1,398 of 1,668 in
+  `raw_c2b1x_shaped`, 263 of 481 in `raw_c2b3_lan` (its log also held the Nov 22 pilot's records).
+- **Left out:** the three `wan_status.json` files, the watcher's last state, written after each collection.
+- **The reply logs** (`raw_c2b1_replies`, `raw_c2b1x_replies`) hold, per cloud reply, its time, port,
+  role, the task's random ids and the shaping record (its spec, encoded size, whether cut or late, the
+  release times); no reply text. Every record lies inside its collection's window (checked; the build
+  stops otherwise).
+
+**Checked before anything is zipped** (the build stops on any failure): 4,000 captures, snaplen at
+most 96, headers only, placeholder MACs only, and only the three testbed hosts the sidecars name;
+no original hardware address and no home path in any file; the features computed from the released
+captures equal those computed from `data/` in all 8 sets.
+
 ## Earlier archives (not published)
 
 > **Not published, and superseded.** These two archives were planned for the earlier draft and
