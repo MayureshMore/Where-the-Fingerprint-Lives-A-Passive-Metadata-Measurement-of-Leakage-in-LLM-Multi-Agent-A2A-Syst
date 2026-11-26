@@ -502,12 +502,14 @@ class _FixedTimeUpdater(TaskUpdater):
 class _JitterQueue:
     """The SDK's event queue behind a per-event delay (defense/shaping.py Jitter): events leave in
     order, each at max(the previous departure, its ready time + its delay). drain() before the
-    executor returns, so the stream does not end with events still waiting."""
+    executor returns, so the stream does not end with events still waiting. delays_ms are the waits
+    (depart − ready, the order constraint included); draws_ms the normal draws themselves, clipped at 0."""
 
     def __init__(self, queue: EventQueue, jitter) -> None:
         self._queue, self._jitter = queue, jitter
         self._pending: asyncio.Queue = asyncio.Queue()
         self.delays_ms: list[float] = []
+        self.draws_ms: list[float] = []
         self._sender = asyncio.ensure_future(self._send())
 
     async def enqueue_event(self, event) -> None:
@@ -518,6 +520,7 @@ class _JitterQueue:
             ready, event = item
             depart = self._jitter.departure(ready)
             self.delays_ms.append((depart - ready) * 1000)
+            self.draws_ms.append(self._jitter.last_draw_ms)
             await asyncio.sleep(max(0.0, depart - time.monotonic()))
             await self._queue.enqueue_event(event)
 
@@ -556,9 +559,11 @@ class _RoleExecutor(AgentExecutor):
         finally:
             if cfg.jitter:
                 await queue.drain()
-                d = queue.delays_ms
+                d, dr = queue.delays_ms, queue.draws_ms
+                # the waits (mean, max), and the draws as sums, so a session's mean and sd pool exactly
                 record["jitter"] = {"spec": cfg.jitter, "events": len(d), "mean_ms": sum(d) / len(d) if d else None,
-                                    "max_ms": max(d) if d else None}
+                                    "max_ms": max(d) if d else None,
+                                    "draws": {"n": len(dr), "sum_ms": sum(dr), "sumsq_ms2": sum(x * x for x in dr)}}
             if cfg.reply_log:
                 with open(cfg.reply_log, "a") as f:
                     f.write(json.dumps(record) + "\n")

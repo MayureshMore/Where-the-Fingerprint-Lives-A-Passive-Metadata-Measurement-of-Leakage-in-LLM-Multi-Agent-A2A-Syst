@@ -79,7 +79,10 @@ Arms are given as --arm name=...,deployment=...,model=...,tls=on|off,defense=...
                         generations on the Mac's Ollama (scripts/ollama_load.py; localhost, not on the
                         observed path), started before the capture and stopped after it, so other
                         arms never run under load; Ollama must serve requests in parallel
-                        (OLLAMA_NUM_PARALLEL; checked at the start)
+                        (OLLAMA_NUM_PARALLEL; checked at every start and resume, in
+                        session_meta.json load.parallel_checks), with the model wholly in GPU
+                        memory: checked at every round's start and at the end (gpu_checks); a round
+                        whose check fails stops the session, which --resume continues
 
 With --reply-log DIR (where serve_cloud.py --reply-log writes), each sidecar of a shaped or jittered
 arm gets the cloud agents' record of the task (cloud_replies: bytes, cut, overrun, release time,
@@ -728,6 +731,27 @@ async def main(a: argparse.Namespace) -> None:
 
     if network is not None:                                   # one per session (a --resume adds one)
         meta.setdefault("network_checks", []).append({"at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), **network})
+    if parallel is not None:                                  # every start and resume
+        meta["load"].setdefault("parallel_checks", []).append(
+            {"at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "resume": resumed, **parallel})
+    load_model = next((arm.model for arm in arms if arm.load), None)
+
+    async def gpu_check(rnd) -> None:
+        """The load arm's model wholly in GPU memory (ollama_load.gpu_state), loaded first if Ollama let it go."""
+        from scripts.ollama_load import gpu_state
+        g = await gpu_state(a.ollama_url, load_model)
+        if g["gpu"] is None:
+            await warm_up(load_model, a.ollama_url)
+            g = await gpu_state(a.ollama_url, load_model)
+        meta.setdefault("gpu_checks", []).append({"round": rnd, "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), **g})
+        save()
+        gpu = g["gpu"] or {}
+        logger.info("  GPU (%s): %s of %s GB in GPU memory, context %s", load_model, gpu.get("vram_gb"),
+                    gpu.get("size_gb"), gpu.get("context_length"))
+        if not g["fits"]:
+            raise SystemExit(f"{load_model} is not wholly in GPU memory ({gpu.get('vram_gb')} of {gpu.get('size_gb')} GB, "
+                             f"context {gpu.get('context_length')}): check Ollama's context length and "
+                             "OLLAMA_NUM_PARALLEL (scripts/ollama_load.py --check), then --resume")
     code = {"at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "resume": resumed, **git_state()}
     meta.setdefault("git", []).append(code)                  # every start and resume: the commit it ran from
     if code["git_dirty"] is not False:
@@ -760,6 +784,8 @@ async def main(a: argparse.Namespace) -> None:
         logger.info("  %s ROUND %d/%d — %d items × %d arm(s)", a.collection_id, rnd + 1, a.rounds,
                     len(todo), len(arms))
         logger.info("=" * 60)
+        if loads:
+            await gpu_check(rnd)
         try:
             for arm in arms:
                 if edge:
@@ -866,6 +892,8 @@ async def main(a: argparse.Namespace) -> None:
             logger.warning("deadline reached in round %d — stopping collection", rnd + 1)
             break
 
+    if loads:
+        await gpu_check("end")
     meta["finished"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     meta["stopped_at_deadline"] = stopped
     meta["pace"] = pace(meta)

@@ -1,6 +1,6 @@
-# Paper 2, round 2: sessions B1, B3, C2B1X and C2B1M (Nov 21–25); B2 for paper 3
+# Paper 2, round 2: sessions B1, B3, C2B1X, C2B1M and B2 (Nov 21–26)
 
-Four collections on C2's testbed ([LAN_SETUP.md](LAN_SETUP.md): the Pi's edge agents, the Mac's
+Five collections on C2's testbed ([LAN_SETUP.md](LAN_SETUP.md): the Pi's edge agents, the Mac's
 cloud agents and ticket services, dummynet on the Mac, capture on `C2_IFACE`). Each one runs
 after the round-2 analysis chain has finished, from a clean commit, with nothing else running on
 the Mac. Every collection is started by hand. Ethics as in C2: `tcpdump -p`, filtered on the Pi and
@@ -16,17 +16,19 @@ it copies into a local directory instead of the Pi.
 | B3 second day | Nov 24 (done) | `lan` (8100) | 1,000 | 33000 | 1, context 128k, as in C2 | 2.2 measured (8.3 s per trace) |
 | C2B1X more shaped traces | Nov 22 (done) | `lan_shaped` (8400) | 2,000 | 31000, from position 125 | 1, context 128k, as in B1 | 7.7 measured, plus a 4.0 h pause |
 | C2B1M matched held-out shaping ([PREREG_C2B1M.md](PREREG_C2B1M.md)) | Nov 25 | `lan_padmax` (8300, `n=250`), `lan_shaped` (8400); sensor_analysis and fault_diagnosis | 500 + 1,250 | 34000 | 1, context 128k, as in B1 | about 6.8 (C2B1's pace) |
-| B2 jitter and load (paper 3) | later | `lan` (8100), `lan_jl` (8500) | 500 + 500 | 32000 | `OLLAMA_NUM_PARALLEL` 4, context 32k | about 2.5 |
+| B2 WAN portability ([PREREG_C2B2.md](PREREG_C2B2.md)) | Nov 26 | `lan_padmax` (8100), `lan_padmax_jl` (8500) | 1,000 + 1,000 | 32000 | `OLLAMA_NUM_PARALLEL` 4, context 32k | about 6 (5.5 to 6.5) |
 
 The hours come from C2's pace (6.9 s per trace): a shaped escalated task takes C2's time with
-its cloud call replaced by the 14.75 s release. For `lan_jl`, the cloud's answers are assumed
-1.6 times slower under load, plus about 1.3 s per task to start and stop the load. The first
+its cloud call replaced by the 14.75 s release. For B2, from C2B1M's and B3's pace: `lan_padmax` about
+7.2 s a trace; `lan_padmax_jl` about 12.3 s, with the cloud's answers assumed 1.6 times slower under
+load and about 2 s per task to start and stop the load. The first
 round's pace line settles it. Add about 20 minutes of setup per session.
 
 Before each full session, a pilot on the real testbed: one short round per arm (`--n 5 --rounds 1`,
 20 traces per arm), into `data/pilot2_c2b1/` (B1, second pilot), `data/pilot_c2b3/` and `data/pilot2_c2b3/` (B3, two pilots) or `data/pilot_c2b2/`, never into the raw data folders,
 with the session's checks run on it. The full session starts only if they pass. B2 moved to paper 3
-(Nov 21); its section below stays for that collection. C2B1X ([below](#c2b1x-more-shaped-traces-for-sensor-vs-fault-nov-22-overnight))
+on Nov 21 and came back on Nov 26 as the WAN portability check, with both arms padded
+([below](#b2-c2b2-the-wan-portability-check)). C2B1X ([below](#c2b1x-more-shaped-traces-for-sensor-vs-fault-nov-22-overnight))
 adds shaped traces so that sensor vs fault can come out NO LEAK if the shaping removes the signal.
 C2B1M ([below](#c2b1m-a-matched-held-out-test-of-reply-shaping-nov-25-overnight)) tests that once
 more, pre-registered, with a padded control beside it.
@@ -36,15 +38,15 @@ more, pre-registered, with a padded control beside it.
   connections with TCP_NODELAY (the other arms keep uvicorn's default, Nagle on, as in C2). A
   reply over 2,048 JSON-encoded bytes is cut. In C2 none would have been: the largest reply is
   1,515 B and the longest cloud call 9.9 s (`data/results/b1_shape_calibration.json`).
-- **B2** `lan_jl`: both directions jittered, normal with mean 4 ms and sd 1.8 ms, plus 2 ms of
-  dummynet, so the mean one way stays 6 ms.
+- **B2** `lan_padmax_jl`: requests padded to 8 KB, as in `lan_padmax`. Both directions are
+  jittered, normal with mean 4 ms and sd 1.8 ms, plus 2 ms of dummynet, so the mean one way stays 6 ms.
   - The request side is netem with a rate on the Pi.
   - The reply side is the cloud agents, per SSE event and in order.
   - Draws below 0 are clipped to 0.
-  - During each `lan_jl` task, 2 concurrent generations load the Mac's Ollama.
-  - The interleaved `lan` arm is the control.
+  - During each `lan_padmax_jl` task, 2 concurrent generations load the Mac's Ollama.
+  - The interleaved `lan_padmax` arm, on C2's WAN, is the control.
 
-  Details are in `data/results/b2_wan_jitter.json`.
+  Details are in `data/results/b2_wan_jitter.json` and [PREREG_C2B2.md](PREREG_C2B2.md).
 - **B3**: C2's `lan` arm again, on another day, with new prompts from the same templates.
   `scripts/evaluate_cross_session.py` trains on C2's `lan` and tests on this session.
 
@@ -486,114 +488,273 @@ Rounds are counted from 0, as in `session_meta.json`; the collector prints round
   reply's, and no trace is dropped after collection.
 - 7.7 h of collection, plus the 4.0 h pause.
 
-## B2: jitter and server load (paper 3)
+## B2 (C2B2): the WAN portability check
 
-**Mac, first:** Ollama with parallel requests and a context that fits them, then the load check:
-```bash
-launchctl setenv OLLAMA_NUM_PARALLEL 4
-```
-Quit and reopen the Ollama app, set Settings, Context length to 32k, then:
-```bash
-grep -o "OLLAMA_NUM_PARALLEL:[^ ]*" ~/.ollama/logs/server.log | tail -1
-grep -o "OLLAMA_CONTEXT_LENGTH:[^ ]*" ~/.ollama/logs/server.log | tail -1
-venv/bin/python scripts/ollama_load.py --check
-```
-The `grep` lines must print `OLLAMA_NUM_PARALLEL:4` and `OLLAMA_CONTEXT_LENGTH:32768`. The check
-must report `"ok": true`: the two generations overlap and the model is wholly in GPU memory. Ollama
-keeps a cache of context length × parallel slots. At the app's 128k, 4 slots need 56 GB of cache for
-llama3.2:3b: 60.6 GB in all, 17 of 29 layers on the CPU of the 36 GB Mac, which would slow both
-arms. At 32k, 4 slots hold 16.7 GB, all on the GPU, as C2's 128k × 1 does. The prompts are far
-shorter than 32k tokens. The collector refuses `load=` unless the check passes.
+Pre-registered in [PREREG_C2B2.md](PREREG_C2B2.md), committed before any of its traces. It records the
+design, the manipulation checks, the primary (sensor vs fault at V2 on timing alone, in each arm), the
+control requirement, the secondaries and what is reported whatever the outcome.
 
-**Pi** (`tmux`): the request side's jitter, then the edge agents:
-```bash
-cd ~/a2a
-sudo bash scripts/wan_emulation_pi.sh jitter data/results/b2_wan_jitter.json
-venv/bin/python scripts/serve_edge.py --bases 8100,8500 --tls-dir data/tls_lan --model llama3.2:1b --num-predict 128
-```
-`jitter` prints the `prio` qdisc, `netem delay 4ms 1.8ms ... rate 1Gbit` on `1:4`, and two `u32`
-filters (ports 8501 and 8502).
+**The arms:**
+- `lan_padmax` (8100) is the control: requests padded to 8 KB, on C2's WAN.
+- `lan_padmax_jl` (8500) is the treatment: the same padding, plus the jitter and the load. The jitter is
+  2 ms of dummynet and N(4, 1.8) ms clipped at 0 each way: netem on the Pi for requests, and the cloud
+  agents per SSE event for replies. The load is 2 concurrent generations on the Mac's Ollama, during
+  its tasks only.
+- WAN plan: `data/results/b2_wan_jitter.json`, as written on Nov 21. Its base 8100 carries
+  `lan_padmax`; the plan's own names (`lan`, `lan_jl`) date from the earlier, unpadded design. The
+  per-arm targets are unchanged: 22.6 ms end to end and 12 ms at the capture for 8100; 18.6 ms and
+  4 ms for 8500.
 
-**Mac**, window 1 (`tmux`): the cloud agents, which jitter the 8500 arm's replies:
+**Size and prompts:**
+- The IoT set, 250 per task type per arm, on the same prompts, in 25 rounds: 80 traces a round.
+- Seed offset 32000. Every prompt of C2, C2B1, C2B1X, B3 and C2B1M is skipped: 250 new prompts per
+  type (docs/PROMPT_REGISTRY.md).
+- `OLLAMA_NUM_PARALLEL` 4 and context 32k for the whole session, both arms.
+
+**About 6 h** (5.5 to 6.5):
+- The control runs at about 7.2 s a trace (C2B1M's `lan_padmax` and B3's pace).
+- The treatment adds about 2 s per task to start and stop the load. It also adds 0.6 × the cloud
+  call (7.9 s fault, 4.2 s procedure, 8.8 s sensor in B3) if the load makes the cloud 1.6 times
+  slower: about 12.3 s a trace.
+- Add the rounds' probes, about 25 minutes. The pilot's pace line settles the estimate.
+- The pilot takes about 7 minutes, and setup and checks about 30.
+
+**Windows.** On the Mac:
+- 1: `serve_cloud.py`
+- 2: commands
+- 3: `wan_watch.py` (root)
+- 4: the guard
+- 5: the AWDL keeper (root)
+
+On the Pi:
+- 1: `serve_edge.py`
+- 2: commands
+
+Each block below goes alone; the block after a check runs only if the check passes.
+
+### C2B2 setup (once, after the commit with this section)
+
+**Mac**, window 2: the code and the WAN plan to the Pi:
+```bash
+. configs/c2_network.conf
+rsync -a --exclude data --exclude venv --exclude 'venv-*' --exclude .git --exclude dist --exclude .claude --exclude current_session_context --exclude graphify-out --exclude logs ./ "$C2_PI_USER@${C2_PI}:a2a/"
+scp data/results/b2_wan_jitter.json "$C2_PI_USER@${C2_PI}:a2a/data/results/"
+```
+**Pi**, window 2, check: `sha256sum ~/a2a/data/results/b2_wan_jitter.json`. It must match
+`shasum -a 256 data/results/b2_wan_jitter.json` on the Mac.
+
+### C2B2 session start
+
+1. "Every session", Mac before, with `OLLAMA_NUM_PARALLEL:4` and `OLLAMA_CONTEXT_LENGTH:32768` as the
+   session's values. To switch: quit the Ollama app, run `launchctl setenv OLLAMA_NUM_PARALLEL 4`,
+   reopen the app, and set Settings, Context length to 32k. Then the two `grep` lines.
+2. **Mac**, window 2, the GPU check, alone:
+   ```bash
+   venv/bin/python scripts/ollama_load.py --check
+   ```
+   It must end with `"ok": true`, the model wholly in GPU memory at context 32768. At 128k with 4
+   slots it is not: 17 of 29 layers ran on the CPU.
+3. **Mac**, window 5 (root), the AWDL keeper for the session:
+   ```bash
+   sudo sh -c 'while true; do ifconfig awdl0 down; sleep 30; done'
+   ```
+4. **Pi**, window 2: the Wi-Fi keeper, alone (as in "Every session"):
+   ```bash
+   systemctl is-active a2a-wifi-keeper
+   tail -n 1 /var/log/a2a-wifi-keeper.jsonl
+   ```
+   It must show `active`, and a line under a minute old with `"iw_ps": "off"`, `"fw_pm": 0` and
+   `"action": null`.
+5. **Pi**, window 2: netem for the treatment's requests, then the Pi's queues before the pilot:
+   ```bash
+   cd ~/a2a
+   sudo bash scripts/wan_emulation_pi.sh jitter data/results/b2_wan_jitter.json
+   tc -s qdisc show dev wlan0 > ~/c2b2_tc_pilot_start.txt
+   ```
+   `jitter` prints the `prio` qdisc, `netem delay 4ms 1.8ms ... rate 1Gbit` on `1:4`, and two `u32`
+   filters (ports 8501 and 8502).
+6. **Pi**, window 1: the edge agents:
+   ```bash
+   cd ~/a2a
+   venv/bin/python scripts/serve_edge.py --bases 8100,8500 --tls-dir data/tls_lan --model llama3.2:1b --num-predict 128
+   ```
+7. **Mac**, window 2: the WAN (pipes 1 and 2 at 6 ms, 3 and 4 at 2 ms), for the pilot and the full run:
+   ```bash
+   mkdir -p data/pilot_c2b2/padmax data/pilot_c2b2/padmax_jl data/raw_c2b2_padmax data/raw_c2b2_padmax_jl
+   sudo C2_BASES=8100,8500 bash scripts/wan_emulation.sh on data/results/b2_wan_jitter.json
+   ```
+
+### C2B2 pilot (about 7 minutes)
+
+5 items per task type in each arm, on the full run's first prompts. Not analysed.
+
+**Mac**, window 1: the cloud agents, jittering 8500 and logging into the pilot's folder:
+```bash
+venv/bin/python scripts/serve_cloud.py --bases 8100,8500 --jitter 8500=4/1.8/1 \
+    --reply-log data/pilot_c2b2/replies --tls-dir data/tls_lan
+```
+**Mac**, window 2: the WAN check, alone. Go on only if it ends with `PASS`:
+```bash
+venv/bin/python scripts/check_wan_emulation.py --target data/results/b2_wan_jitter.json --bases 8100,8500 \
+    --json data/pilot_c2b2/padmax/wan_check_start.json
+```
+**Mac**, window 3 (root):
+```bash
+sudo venv/bin/python scripts/wan_watch.py --out data/pilot_c2b2/padmax/wan_status.json --log data/pilot_c2b2/padmax/wan_watch.jsonl
+```
+**Mac**, window 2: the pilot:
+```bash
+caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2B2-pilot \
+    --n 5 --rounds 1 --seed-offset 32000 --workflows iot \
+    --exclude-prompts data/raw_c2,data/raw_c2_pad,data/raw_c2_padmax,data/raw_c2b1_padmax,data/raw_c2b1_shaped,data/raw_c2b1x_shaped,data/raw_c2b3_lan,data/raw_c2b1m_padmax,data/raw_c2b1m_shaped \
+    --tls-dir data/tls_lan --wan-target data/results/b2_wan_jitter.json --reply-log data/pilot_c2b2/replies \
+    --arm name=lan_padmax,ports=8100,pad=8192/16384,pad_expect=8192,out=data/pilot_c2b2/padmax \
+    --arm name=lan_padmax_jl,ports=8500,pad=8192/16384,pad_expect=8192,jitter=4/1.8,load=2,out=data/pilot_c2b2/padmax_jl
+```
+At its start the collector checks that Ollama serves in parallel with the model in GPU memory, and that
+both 8500 cloud agents' cards advertise the jitter. At every round's start it records the GPU check
+beside the WAN probes.
+
+**Mac**, window 4, once the collector has printed its `network ... ok` lines:
+```bash
+venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
+    --target data/results/b2_wan_jitter.json --bases 8100,8500 --status data/pilot_c2b2/padmax/wan_status.json --pi-overhead-ms 3.31 \
+    --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
+    --json data/pilot_c2b2/padmax/wan_guard.json data/pilot_c2b2/padmax data/pilot_c2b2/padmax_jl
+```
+The collector must end with:
+- `lan_padmax_jl: 15 cloud replies logged, 0 cut, 0 past the deadline, 0 failed`;
+- `20 of 20 items complete in every arm that runs them`;
+- `traces per arm: lan_padmax 20 of 20, lan_padmax_jl 20 of 20`.
+
+Then the closing checks below, for the pilot. The full run starts only if every one passes, the
+manipulation check included (`VALID`). After it, stop `serve_cloud.py`, `wan_watch.py` and the guard (Ctrl-C). The WAN,
+netem and the Pi's `serve_edge.py` stay.
+
+### C2B2 full run (about 6 h)
+
+**Mac**, window 1: Ctrl-C, then the cloud agents logging into the full run's folder:
 ```bash
 venv/bin/python scripts/serve_cloud.py --bases 8100,8500 --jitter 8500=4/1.8/1 \
     --reply-log data/raw_c2b2_replies --tls-dir data/tls_lan
 ```
-**Mac**, window 2: the WAN (pipes 1 and 2 at 6 ms, 3 and 4 at 2 ms) and its check, per arm:
+**Pi**, window 2: the Pi's queues before the full run:
 ```bash
-mkdir -p data/raw_c2b2_lan
-sudo C2_BASES=8100,8500 bash scripts/wan_emulation.sh on data/results/b2_wan_jitter.json
-C2_BASES=8100,8500 venv/bin/python scripts/check_wan_emulation.py --target data/results/b2_wan_jitter.json \
-    --json data/raw_c2b2_lan/wan_check_start.json
+tc -s qdisc show dev wlan0 > ~/c2b2_tc_start.txt
 ```
-For the 8500 edge, check (b) expects an 18.6 ms round trip and a 4 ms SYN → SYN-ACK at the capture.
-The 8100 edge keeps C2's 22.6 ms and 12 ms.
-
-**Mac**, window 3 (`tmux`, root):
+**Mac**, window 2: the WAN check, alone. Go on only if it ends with `PASS`:
 ```bash
-sudo venv/bin/python scripts/wan_watch.py --out data/raw_c2b2_lan/wan_status.json --log data/raw_c2b2_lan/wan_watch.jsonl
+venv/bin/python scripts/check_wan_emulation.py --target data/results/b2_wan_jitter.json --bases 8100,8500 \
+    --json data/raw_c2b2_padmax/wan_check_start.json
 ```
-**Mac**, window 2: the collection (the load runs only during `lan_jl` tasks):
+**Mac**, window 3 (root):
+```bash
+sudo venv/bin/python scripts/wan_watch.py --out data/raw_c2b2_padmax/wan_status.json --log data/raw_c2b2_padmax/wan_watch.jsonl
+```
+**Mac**, window 2: the collection:
 ```bash
 caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2B2 \
-    --n 125 --rounds 5 --seed-offset 32000 --workflows iot --tls-dir data/tls_lan \
-    --wan-target data/results/b2_wan_jitter.json --reply-log data/raw_c2b2_replies \
-    --arm name=lan,ports=8100,out=data/raw_c2b2_lan \
-    --arm name=lan_jl,ports=8500,jitter=4/1.8,load=2,out=data/raw_c2b2_jl
+    --n 250 --rounds 25 --seed-offset 32000 --workflows iot \
+    --exclude-prompts data/raw_c2,data/raw_c2_pad,data/raw_c2_padmax,data/raw_c2b1_padmax,data/raw_c2b1_shaped,data/raw_c2b1x_shaped,data/raw_c2b3_lan,data/raw_c2b1m_padmax,data/raw_c2b1m_shaped \
+    --tls-dir data/tls_lan --wan-target data/results/b2_wan_jitter.json --reply-log data/raw_c2b2_replies \
+    --arm name=lan_padmax,ports=8100,pad=8192/16384,pad_expect=8192,out=data/raw_c2b2_padmax \
+    --arm name=lan_padmax_jl,ports=8500,pad=8192/16384,pad_expect=8192,jitter=4/1.8,load=2,out=data/raw_c2b2_padmax_jl
 ```
-**Mac**, window 4 (`tmux`): the guard, per arm:
+**Mac**, window 4, once the collector has printed its `network ... ok` lines:
 ```bash
 venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
-    --target data/results/b2_wan_jitter.json --status data/raw_c2b2_lan/wan_status.json --pi-overhead-ms 3.31 \
+    --target data/results/b2_wan_jitter.json --bases 8100,8500 --status data/raw_c2b2_padmax/wan_status.json --pi-overhead-ms 3.31 \
     --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
-    --json data/raw_c2b2_lan/wan_guard.json data/raw_c2b2_lan data/raw_c2b2_jl
+    --json data/raw_c2b2_padmax/wan_guard.json data/raw_c2b2_padmax data/raw_c2b2_padmax_jl
+```
+The collector must end with:
+- `lan_padmax_jl: 750 cloud replies logged, 0 cut, 0 past the deadline, 0 failed`;
+- `1000 of 1000 items complete in every arm that runs them`;
+- `traces per arm: lan_padmax 1000 of 1000, lan_padmax_jl 1000 of 1000`.
+
+**If it stops,** don't restart blindly. It can stop on a WAN probe out of bounds, or on a GPU check with
+the model not wholly in GPU memory:
+1. Check the Pi's Wi-Fi keeper (session start, step 4) and AWDL (`ifconfig awdl0 | grep status`).
+2. After a GPU stop, run `venv/bin/python scripts/ollama_load.py --check`.
+3. Run a new WAN check, alone (`wan_check_resume1.json`).
+4. Rerun the same collection command with `--resume`.
+5. Start the guard with `--json data/raw_c2b2_padmax/wan_guard_resume1.json`.
+
+Nothing is audited until the collection has ended (PREREG_C2B2.md, "What we will not do").
+
+### C2B2 closing checks (pilot and full run)
+
+The Mac's blocks use three names; set them in window 2 first. After the pilot:
+```bash
+A=data/pilot_c2b2/padmax; B=data/pilot_c2b2/padmax_jl; T=c2b2_tc_pilot
+```
+After the full run:
+```bash
+A=data/raw_c2b2_padmax; B=data/raw_c2b2_padmax_jl; T=c2b2_tc
 ```
 
-**After:**
-1. **Mac:** the C2 checks, then reordering against the control:
+1. **Mac**, window 2: the closing WAN check, alone, while `serve_cloud.py` and the Pi's
+   `serve_edge.py` still run:
    ```bash
-   P=(data/raw_c2b2_lan data/raw_c2b2_jl)
-   venv/bin/python scripts/check_lan_capture.py "${P[@]}" --json data/raw_c2b2_lan/lan_check.json
-   for d in "${P[@]}"; do
-     venv/bin/python scripts/check_tls_capture.py $d --expect tls --json $d/tls_check.json
-     venv/bin/python scripts/check_stream_integrity.py $d --json $d/stream_integrity.json
-   done
-   venv/bin/python scripts/check_session_design.py "${P[@]}" --json data/raw_c2b2_lan/design_check.json
-   venv/bin/python scripts/check_reorder.py data/raw_c2b2_jl --control data/raw_c2b2_lan --json data/raw_c2b2_jl/reorder_check.json
-   C2_BASES=8100,8500 venv/bin/python scripts/check_wan_emulation.py --target data/results/b2_wan_jitter.json \
-       --json data/raw_c2b2_lan/wan_check_after.json
+   venv/bin/python scripts/check_wan_emulation.py --target data/results/b2_wan_jitter.json --bases 8100,8500 \
+       --json $A/wan_check_after.json
    ```
-2. **Mac:** the Pi's Wi-Fi keeper over the session's window, kept with the session. Copy the log,
-   then the check, alone:
+2. **Pi**, window 2: the Pi's queues after. After the pilot:
+   ```bash
+   tc -s qdisc show dev wlan0 > ~/c2b2_tc_pilot_end.txt
+   ```
+   After the full run:
+   ```bash
+   tc -s qdisc show dev wlan0 > ~/c2b2_tc_end.txt
+   ```
+3. **Mac**, window 2: the Pi's two queue snapshots and the keeper's log, copied into the session:
    ```bash
    . configs/c2_network.conf
+   scp "$C2_PI_USER@${C2_PI}:${T}_start.txt" $A/pi_tc_start.txt
+   scp "$C2_PI_USER@${C2_PI}:${T}_end.txt" $A/pi_tc_end.txt
    scp "$C2_PI_USER@${C2_PI}:/var/log/a2a-wifi-keeper.jsonl" data/wifi_keeper_pi.jsonl
    ```
+4. **Mac**, window 2: the data checks. Each must report OK or PASS:
    ```bash
-   venv/bin/python scripts/pi_wifi_keeper.py check data/wifi_keeper_pi.jsonl --session data/raw_c2b2_lan data/raw_c2b2_jl \
-       --json data/raw_c2b2_lan/wifi_keeper_check.json --cut data/raw_c2b2_lan/wifi_keeper.jsonl
+   venv/bin/python scripts/check_lan_capture.py $A $B --json $A/lan_check.json
+   venv/bin/python scripts/check_tls_capture.py $A --expect tls --json $A/tls_check.json
+   venv/bin/python scripts/check_tls_capture.py $B --expect tls --json $B/tls_check.json
+   venv/bin/python scripts/check_stream_integrity.py $A --json $A/stream_integrity.json
+   venv/bin/python scripts/check_stream_integrity.py $B --json $B/stream_integrity.json
+   venv/bin/python scripts/check_session_design.py $A $B --json $A/design_check.json
+   venv/bin/python scripts/check_reorder.py $B --control $A --json $B/reorder_check.json
    ```
-   It must end with `PASS`. That means:
-   - the keeper checked at least every 75 s from the session's `started` to its `finished`
-     (session_meta.json);
-   - it never had to re-disable power save;
-   - it saw no reconnect, no lost link and no error;
-   - it was not restarted.
+   With four task types, the design check flags a predecessor share only above 40%. Every first
+   request of both arms must land in the 8,192 B bucket.
+5. **Mac**, window 2: the keeper over the session, alone. It must end with `PASS`:
+   ```bash
+   venv/bin/python scripts/pi_wifi_keeper.py check data/wifi_keeper_pi.jsonl --session $A $B \
+       --json $A/wifi_keeper_check.json --cut $A/wifi_keeper.jsonl
+   ```
+6. **Mac**, window 2: the manipulation checks, alone. They must end with `VALID`:
+   ```bash
+   venv/bin/python scripts/check_b2_manipulation.py --control $A --treatment $B --target data/results/b2_wan_jitter.json \
+       --tc-start $A/pi_tc_start.txt --tc-end $A/pi_tc_end.txt --reorder $B/reorder_check.json \
+       --keeper $A/wifi_keeper_check.json --json $B/manipulation_check.json
+   ```
+   It prints each check, and these numbers:
+   - the SYN-ACK → ACK difference (expected 4.01 ± 1.5 ms);
+   - the reply jitter's mean and sd (expected 4.01 and 1.78 ms, ± 0.2);
+   - the cloud call per escalated type with and without the load (at least × 1.10).
 
-   `--cut` keeps the window's lines, plus 5 minutes on each side, with the session. **For the pilot**
-   (`data/pilot_c2b2/lan`, `data/pilot_c2b2/jl`), run the same check with
-   `--session data/pilot_c2b2/lan data/pilot_c2b2/jl --json data/pilot_c2b2/lan/wifi_keeper_check.json
-   --cut data/pilot_c2b2/lan/wifi_keeper.jsonl`. The full run starts only if it passes. A FAIL names
-   each event with its time. A re-disable means the chip drifted during the pilot, as in C2B1X and
-   C2B1M. A reconnect or a lost link with the chip at 0 points elsewhere (the access point, a scan),
-   not at power save.
-3. **Pi:** `sudo bash scripts/wan_emulation_pi.sh off`.
-4. **Mac:** quit Ollama, run `launchctl unsetenv OLLAMA_NUM_PARALLEL`, reopen Ollama and set
-   Settings, Context length back to 128k.
+   A FAIL in the pilot comes either from a setup fault (netem not on, Ollama not parallel, the model
+   off the GPU), or from a manipulation that is too weak (a slowdown under 1.10). A setup fault is fixed
+   and the pilot is run again into a new folder (`data/pilot2_c2b2/`). A manipulation that is too weak
+   ends C2B2, as registered.
 
-`check_reorder.py` passes when the jitter arm's request side has no more reordering than the
-control's plus 0.5 percentage points. The Wi-Fi reorders some packets on its own: in C2, 0.06% of
-`lan`'s request segments.
+**After the full run's checks**, stop everything:
+1. Mac, Ctrl-C: `serve_cloud.py`, `wan_watch.py`, the guard and the AWDL keeper.
+2. Pi: Ctrl-C `serve_edge.py`, then `sudo bash scripts/wan_emulation_pi.sh off`.
+3. Mac: "Every session", Mac after (`wan_emulation.sh off`, `/dev/bpf*` back).
+4. Switch Ollama back: quit the app, run `launchctl unsetenv OLLAMA_NUM_PARALLEL`, reopen the app,
+   set Settings, Context length back to 128k, and check with the two `grep` lines of "Every session".
+
+Then the header-only check on a copy (me), as for B3.
 
 ## B3: a second day of `lan` (pilots Nov 22 and 24, full run Nov 24)
 
@@ -935,7 +1096,17 @@ seed and data folders; nothing heavy runs beside them.
   venv/bin/python scripts/b1_audits.py --arm lan_shaped=data/raw_c2b1_shaped,data/raw_c2b1x_shaped --parts pair \
       --baseline-arm lan_padmax --baseline-prefix c2b1 --prefix c2b1_c2b1x --out data/results/b1_pair_pooled
   ```
-- **B2 (paper 3):** the same audits, per arm and view.
+- **C2B2:** exactly the analysis in [PREREG_C2B2.md](PREREG_C2B2.md), from a clean commit after the
+  collection and its checks:
+  ```bash
+  venv/bin/python scripts/b1_audits.py --arm lan_padmax=data/raw_c2b2_padmax --arm lan_padmax_jl=data/raw_c2b2_padmax_jl \
+      --parts all,pair,escalated_only --feature-sets all,timing --baseline-arm lan_padmax \
+      --prefix c2b2 --title "C2B2 audits" --out data/results/c2b2_audits
+  venv/bin/python scripts/check_b2_manipulation.py --control data/raw_c2b2_padmax --treatment data/raw_c2b2_padmax_jl \
+      --target data/results/b2_wan_jitter.json --tc-start data/raw_c2b2_padmax/pi_tc_start.txt \
+      --tc-end data/raw_c2b2_padmax/pi_tc_end.txt --reorder data/raw_c2b2_padmax_jl/reorder_check.json \
+      --keeper data/raw_c2b2_padmax/wifi_keeper_check.json --json data/results/c2b2_manipulation.json
+  ```
 - **B3:** its own audits, as C2's `lan` arm (task_type, escalated, cloud_role, audit_null; sensor
   vs fault; the escalated task types), at V1 and V2; then the features of both sessions per view
   and `evaluate_cross_session.py` both ways (train C2, test B3; train B3, test C2), each row beside

@@ -139,14 +139,11 @@ async def check_parallel(url: str = "http://127.0.0.1:11434", model: str = "llam
         await one(c, time.monotonic())                                   # the model loaded, outside the test
         t0 = time.monotonic()
         a, b = await asyncio.gather(one(c, t0), one(c, t0))
-        ps = (await c.get(f"{url.rstrip('/')}/api/ps")).json().get("models", [])
     early, late = sorted((a, b), key=lambda x: x["end_s"])
     parallel = late["first_token_s"] is not None and late["first_token_s"] < early["end_s"]
-    m = next((x for x in ps if model in (x.get("name"), x.get("model"))), None)
-    gpu = None if m is None else {"size_gb": round(m["size"] / 2**30, 2), "vram_gb": round(m.get("size_vram", 0) / 2**30, 2),
-                                  "share": round(m.get("size_vram", 0) / m["size"], 4) if m.get("size") else None,
-                                  "context_length": m.get("context_length")}
-    fits = gpu is not None and gpu["share"] is not None and gpu["share"] >= 0.999
+    state = await gpu_state(url, model)
+    gpu = state["gpu"]
+    fits = state["fits"]
     detail = ("the two generations overlapped" if parallel else
               "the second generation waited for the first: set OLLAMA_NUM_PARALLEL (> 1) and restart Ollama")
     if gpu is None:
@@ -157,6 +154,18 @@ async def check_parallel(url: str = "http://127.0.0.1:11434", model: str = "llam
     else:
         detail += f"; {model} wholly in GPU memory ({gpu['size_gb']} GB, context {gpu['context_length']})"
     return {"parallel": parallel, "fits": fits, "ok": parallel and fits, "gpu": gpu, "runs": [a, b], "detail": detail}
+
+
+async def gpu_state(url: str = "http://127.0.0.1:11434", model: str = "llama3.2:3b") -> dict:
+    """The model's place in memory now (/api/ps): size, the part in GPU memory, its share and the context
+    length; fits when the share is at least 0.999. gpu is None when the model is not loaded."""
+    async with httpx.AsyncClient(timeout=30) as c:
+        ps = (await c.get(f"{url.rstrip('/')}/api/ps")).json().get("models", [])
+    m = next((x for x in ps if model in (x.get("name"), x.get("model"))), None)
+    gpu = None if m is None else {"size_gb": round(m["size"] / 2**30, 2), "vram_gb": round(m.get("size_vram", 0) / 2**30, 2),
+                                  "share": round(m.get("size_vram", 0) / m["size"], 4) if m.get("size") else None,
+                                  "context_length": m.get("context_length")}
+    return {"model": model, "gpu": gpu, "fits": gpu is not None and gpu["share"] is not None and gpu["share"] >= 0.999}
 
 
 async def _main(a: argparse.Namespace) -> int:

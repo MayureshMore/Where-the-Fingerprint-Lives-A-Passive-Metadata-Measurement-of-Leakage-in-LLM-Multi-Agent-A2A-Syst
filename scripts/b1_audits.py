@@ -13,7 +13,15 @@ with a manifest of its sources: folder, collection id and traces per task type. 
 every other arm's report of a view and part is run with --baseline against that arm's report of the
 same view and part (the CI gate: exit code, changes, new leaks, needs_review, resolved).
 
-Each run writes data/results/leakcheck/<prefix>_<arm>_<view>[_<part>]/ (report.json, .md, .html), or
+--feature-sets all,timing also audits each arm, view and part on the timing family alone (B2): the
+traces are extracted (`a2a_leakcheck extract`, the same view, --strip and attributes) into
+--features-dir (data/features_audits, not committed), every column of the trace and role vectors
+outside features/families.py's timing family is set to 0 and so is the first-request size, and
+`run` audits that features folder: the full verdict (interval and permutation test) on timing alone,
+since a column that is 0 everywhere is never split on. Its report folder ends in _timing, and a
+baseline arm's timing report is the gate for the other arms' timing reports.
+
+Each run writes data/results/leakcheck/<prefix>_<arm>_<view>[_<part>][_timing]/ (report.json, .md, .html), or
 the same under --reports (scripts/reproduce_paper2.sh writes into its sandbox);
 --out writes the summary (.json, .md): verdicts, macro-F1 and CI, p, carried by (matches all, the
 non-inferiority rule), the baseline comparisons, and paper, collection ids, data folders, commit and
@@ -38,9 +46,13 @@ import sys
 import time
 from pathlib import Path
 
+import numpy as np
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from a2a_leakcheck.cli import _git  # noqa: E402
+from a2a_leakcheck.extract import FEATURES_JSON, FEATURES_NPZ  # noqa: E402
+from features.families import family_columns  # noqa: E402
 
 PAIR = ("fault_diagnosis", "sensor_analysis")
 ESCALATED = ("fault_diagnosis", "procedure_lookup", "sensor_analysis")
@@ -48,10 +60,57 @@ PARTS = {"all": (None, "task_type,escalated,cloud_role,audit_null"), "pair": (PA
          "escalated_only": (ESCALATED, "task_type")}
 REPORTS = Path("data/results/leakcheck")
 SEED = 42                                        # a2a-leakcheck's default --seed
+FEATURE_SETS = ("all", "timing")
 
 
-def name(prefix: str, arm: str, view: str, part: str) -> str:
-    return f"{prefix}_{arm}_{view}" + ("" if part == "all" else f"_{part}")
+def name(prefix: str, arm: str, view: str, part: str, fs: str = "all") -> str:
+    return f"{prefix}_{arm}_{view}" + ("" if part == "all" else f"_{part}") + ("" if fs == "all" else f"_{fs}")
+
+
+def only_family(src: Path, dst: Path, family: str) -> dict:
+    """A copy of the features folder src with every column outside the family set to 0 (trace and role
+    vectors) and the first-request size set to 0; features.json says so (feature_set)."""
+    meta = json.loads((src / FEATURES_JSON).read_text())
+    with np.load(src / FEATURES_NPZ, allow_pickle=False) as z:
+        arr = {k: z[k] for k in z.files}
+    keep_t, keep_r = family_columns(family, False), family_columns(family, True)
+    tx = np.zeros_like(arr["trace_X"])
+    tx[:, keep_t] = arr["trace_X"][:, keep_t]
+    rx = np.zeros_like(arr["role_X"])
+    if rx.size:
+        rx[:, keep_r] = arr["role_X"][:, keep_r]
+    arr.update(trace_X=tx, role_X=rx, first_request=np.zeros_like(arr["first_request"]))
+    fs = {"family": family, "trace_columns": int(len(keep_t)), "role_columns": int(len(keep_r)),
+          "source": str(src), "rule": f"every column outside features/families.py's {family} family, and the "
+                                      "first-request size, set to 0"}
+    dst.mkdir(parents=True)
+    np.savez_compressed(dst / FEATURES_NPZ, **arr)
+    (dst / FEATURES_JSON).write_text(json.dumps({**meta, "feature_set": fs}, indent=1))
+    return fs
+
+
+def extract_family(folder: Path, feats: Path, view: str, attrs: str, family: str) -> tuple[Path, dict]:
+    """Extract folder at the view into feats (reused if it holds the same input, view and attributes), then
+    the family-only copy beside it (feats + _family, made again from feats)."""
+    want = {"folder": str(folder), "vantage": view, "attributes": attrs.split(",")}
+    if feats.exists():
+        m = json.loads((feats / FEATURES_JSON).read_text()) if (feats / FEATURES_JSON).exists() else {}
+        have = {"folder": (m.get("input") or {}).get("folder"), "vantage": (m.get("input") or {}).get("vantage"),
+                "attributes": m.get("attributes")}
+        if have != want:
+            raise SystemExit(f"{feats} holds other features ({have}); remove it or pick --features-dir")
+    else:
+        cmd = [sys.executable, "-m", "a2a_leakcheck", "extract", str(folder), "--out", str(feats), "--strip",
+               "--vantage", view, "--attributes", attrs]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0 or not (feats / FEATURES_JSON).exists():
+            raise SystemExit(f"extract {folder} ({view}) exited {r.returncode}\n{r.stderr[-2000:]}")
+    dst = feats.with_name(f"{feats.name}_{family}")
+    if dst.exists():
+        for f in (FEATURES_JSON, FEATURES_NPZ):
+            (dst / f).unlink(missing_ok=True)
+        dst.rmdir()
+    return dst, only_family(feats, dst, family)
 
 
 def traces(folder: Path) -> list[tuple[Path, dict]]:
@@ -107,9 +166,12 @@ def subset(dirs: list[Path], task_types: tuple | None, folder: Path) -> dict:
     return manifest
 
 
-def command(folder: Path, out: Path, view: str, attrs: str, label: str, baseline: Path | None, jobs: int) -> list[str]:
-    cmd = [sys.executable, "-m", "a2a_leakcheck", "run", str(folder), "--out", str(out), "--strip", "--vantage", view,
-           "--attributes", attrs, "--label", label, "--html", "--jobs", str(jobs)]
+def command(folder: Path, out: Path, view: str, attrs: str, label: str, baseline: Path | None, jobs: int,
+            features: bool = False) -> list[str]:
+    """`run` on captures (--strip, --vantage), or on a features folder (extracted with them already)."""
+    cmd = [sys.executable, "-m", "a2a_leakcheck", "run", str(folder), "--out", str(out)]
+    cmd += [] if features else ["--strip", "--vantage", view]
+    cmd += ["--attributes", attrs, "--label", label, "--html", "--jobs", str(jobs)]
     return cmd + (["--baseline", str(baseline)] if baseline else [])
 
 
@@ -159,6 +221,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--baseline-prefix", default=None, dest="baseline_prefix",
                    help="the baseline arm's reports come from an earlier run with this prefix (default: --prefix)")
     p.add_argument("--subset-dir", default="data/subsets", dest="subset_dir")
+    p.add_argument("--feature-sets", default="all", dest="feature_sets",
+                   help="all (every feature, as before) and/or timing (the timing family alone), comma-separated")
+    p.add_argument("--features-dir", default="data/features_audits", dest="features_dir",
+                   help="where --feature-sets timing extracts (not committed)")
     p.add_argument("--out", required=True, help="summary path without extension (.json, .md)")
     p.add_argument("--jobs", type=int, default=-1)
     p.add_argument("--title", default="B1 audits", help="the summary's purpose and heading")
@@ -175,19 +241,22 @@ def main(argv: list[str] | None = None) -> int:
     parts = [x for x in a.parts.split(",") if x]
     if bad := set(parts) - set(PARTS):
         raise SystemExit(f"unknown parts {sorted(bad)}; choose from {list(PARTS)}")
+    fsets = [x for x in a.feature_sets.split(",") if x]
+    if not fsets or (bad := set(fsets) - set(FEATURE_SETS)):
+        raise SystemExit(f"--feature-sets: choose from {list(FEATURE_SETS)}")
     base_prefix = a.baseline_prefix or a.prefix
     if a.baseline_arm and a.baseline_arm not in arms and not a.baseline_prefix:
         raise SystemExit("--baseline-arm is not one of the arms: give --baseline-prefix of its earlier reports")
     order = sorted(arms, key=lambda x: x != a.baseline_arm)          # the baseline arm's reports first
-    runs = [(arm, v, part) for arm in order for v in views for part in parts]
+    runs = [(arm, v, part, fs) for arm in order for v in views for part in parts for fs in fsets]
     out, reports = Path(a.out), Path(a.reports)
     exist = [str(x) for x in (out.with_suffix(".json"), out.with_suffix(".md")) if x.exists()]
     exist += [str(reports / name(a.prefix, *r)) for r in runs if (reports / name(a.prefix, *r)).exists()]
     if exist:
         raise SystemExit("results are not written over: " + ", ".join(exist))
-    for arm, v, part in runs:
+    for arm, v, part, fs in runs:
         if a.baseline_arm and arm != a.baseline_arm:
-            b = reports / name(base_prefix, a.baseline_arm, v, part) / "report.json"
+            b = reports / name(base_prefix, a.baseline_arm, v, part, fs) / "report.json"
             if a.baseline_arm not in arms and not b.exists():
                 raise SystemExit(f"no baseline report {b}")
     git = _git()
@@ -198,7 +267,8 @@ def main(argv: list[str] | None = None) -> int:
     res = {"paper": "P2", "round": 2, "purpose": f"{a.title}: per arm, view and part, with the baseline gate",
            "title": a.title,
            "seed": SEED, **git, "created": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-           "parameters": {"views": views, "parts": parts, "prefix": a.prefix, "baseline_arm": a.baseline_arm,
+           "parameters": {"views": views, "parts": parts, **({"feature_sets": fsets} if fsets != ["all"] else {}),
+                          "prefix": a.prefix, "baseline_arm": a.baseline_arm,
                           "baseline_prefix": base_prefix if a.baseline_arm else None,
                           "tool_defaults": "perm-unit group, match-margin 0.05, margin 0.05, 99 permutations, "
                                            "1000 bootstraps, gbt, --strip"},
@@ -209,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
                             "sources": src}
     res["collection_id"] = sorted({str(c) for x in res["arms"].values() for c in x["collection_id"]})
     res["data_dir"] = {arm: x["data_dir"] for arm, x in res["arms"].items()}
-    for arm, v, part in runs:
+    for arm, v, part, fs in runs:
         task_types, attrs = PARTS[part]
         dirs = arms[arm]
         if task_types is None and len(dirs) == 1:
@@ -217,21 +287,27 @@ def main(argv: list[str] | None = None) -> int:
         else:
             folder = Path(a.subset_dir) / f"{a.prefix}_{arm}_{part}"
             manifest = subset(dirs, task_types, folder)
-        baseline = reports / name(base_prefix, a.baseline_arm, v, part) / "report.json" \
+        baseline = reports / name(base_prefix, a.baseline_arm, v, part, fs) / "report.json" \
             if a.baseline_arm and arm != a.baseline_arm else None
-        rep = reports / name(a.prefix, arm, v, part)
+        rep = reports / name(a.prefix, arm, v, part, fs)
         ids = "+".join(str(c) for c in res["arms"][arm]["collection_id"])
-        label = f"{ids} {arm}, view {v}" + ("" if part == "all" else f", {part}")
-        cmd = command(folder, rep, v, attrs, label, baseline, a.jobs)
-        print(f"[{time.strftime('%H:%M:%S')}] {name(a.prefix, arm, v, part)}: {folder}"
-              + (f" (baseline {baseline})" if baseline else ""), flush=True)
+        label = f"{ids} {arm}, view {v}" + ("" if part == "all" else f", {part}") + ("" if fs == "all" else f", {fs} alone")
+        family = None
+        if fs != "all":
+            src, family = extract_family(folder, Path(a.features_dir) / f"{a.prefix}_{arm}_{v}_{part}", v, attrs, fs)
+            cmd = command(src, rep, v, attrs, label, baseline, a.jobs, features=True)
+        else:
+            cmd = command(folder, rep, v, attrs, label, baseline, a.jobs)
+        print(f"[{time.strftime('%H:%M:%S')}] {name(a.prefix, arm, v, part, fs)}: {folder}"
+              + (f" ({fs} alone)" if fs != "all" else "") + (f" (baseline {baseline})" if baseline else ""), flush=True)
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode not in (0, 3, 4) or not (rep / "report.json").exists():
-            raise SystemExit(f"{name(a.prefix, arm, v, part)}: a2a_leakcheck exited {r.returncode}\n{r.stderr[-2000:]}")
+            raise SystemExit(f"{name(a.prefix, arm, v, part, fs)}: a2a_leakcheck exited {r.returncode}\n{r.stderr[-2000:]}")
         print("  " + r.stdout.strip().replace("\n", "\n  "), flush=True)
         row = {"report": str(rep / "report.json"), "input": str(folder), "subset": manifest,
+               **({"feature_set": fs, "family_only": family} if fsets != ["all"] else {}),   # as before without them
                "returncode": r.returncode, **summarize(json.loads((rep / "report.json").read_text()))}
-        res["runs"][name(a.prefix, arm, v, part)] = row
+        res["runs"][name(a.prefix, arm, v, part, fs)] = row
     res["runtime_s"] = time.perf_counter() - t0
     out.parent.mkdir(parents=True, exist_ok=True)
     out.with_suffix(".json").write_text(json.dumps(res, indent=1, default=str))
@@ -251,7 +327,8 @@ def markdown(r: dict) -> str:
          "| Run | Attribute | Verdict | Macro-F1 [95% CI] | Threshold | p | Carried by |", "|---|---|---|---|---|---|---|"]
     for run, x in r["runs"].items():
         for attr, v in x["attributes"].items():
-            L.append(f"| {run} | {attr} | {v['verdict']} | {_f(v['macro_f1'])} [{_f(v['ci'][0])}, {_f(v['ci'][1])}] | "
+            feats = f" ({x['feature_set']} alone)" if x.get("feature_set", "all") != "all" else ""
+            L.append(f"| {run} | {attr}{feats} | {v['verdict']} | {_f(v['macro_f1'])} [{_f(v['ci'][0])}, {_f(v['ci'][1])}] | "
                      f"{_f(v['threshold'])} | {_f(v['p'])} | {v['carried_by']} |")
     gates = [(run, x) for run, x in r["runs"].items() if x.get("baseline")]
     if gates:

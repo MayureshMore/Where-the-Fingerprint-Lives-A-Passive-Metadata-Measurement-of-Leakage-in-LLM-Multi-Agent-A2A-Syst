@@ -22,10 +22,10 @@ session: holes filled after more than --wifi-ms (0.1 ms) and within --retx-ms (2
 jitter would add, and the jitter arm's share of them may exceed the control's by at most --margin
 (0.5 percentage points; netem without a rate would reorder a large part of every multi-packet
 request). The cloud → Pi side must show no hole at all. Exit 1 otherwise. Compare arms whose requests
-are alike (B2: lan_jl against lan, both unpadded): larger requests give the Wi-Fi more to reorder (C2's
-lan_padmax shows 0.82% against lan's 0.06%).
+are alike (B2: lan_padmax_jl against lan_padmax, both padded to 8 KB): larger requests give the Wi-Fi
+more to reorder (C2's lan_padmax shows 0.82% against lan's 0.06%).
 
-    python scripts/check_reorder.py data/raw_c2b2_jl --control data/raw_c2b2_lan --json data/raw_c2b2_jl/reorder_check.json
+    python scripts/check_reorder.py data/raw_c2b2_padmax_jl --control data/raw_c2b2_padmax --json data/raw_c2b2_padmax_jl/reorder_check.json
 """
 
 from __future__ import annotations

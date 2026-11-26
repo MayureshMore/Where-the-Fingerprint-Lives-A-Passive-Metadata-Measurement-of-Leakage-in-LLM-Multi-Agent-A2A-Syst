@@ -180,9 +180,12 @@ class Jitter:
         self.cfg = cfg
         self.rng = random.Random(f"{cfg.seed}:{stream}")
         self.last = float("-inf")
+        self.last_draw_ms: float | None = None          # the latest draw, before the order constraint
 
     def draw_s(self) -> float:
-        return max(0.0, self.rng.gauss(self.cfg.mean_ms, self.cfg.sd_ms)) / 1000.0
+        d = max(0.0, self.rng.gauss(self.cfg.mean_ms, self.cfg.sd_ms))
+        self.last_draw_ms = d
+        return d / 1000.0
 
     def departure(self, ready: float) -> float:
         self.last = max(self.last, ready + self.draw_s())
