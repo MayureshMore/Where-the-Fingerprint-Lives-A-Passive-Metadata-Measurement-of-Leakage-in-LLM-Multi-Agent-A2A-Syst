@@ -12,6 +12,14 @@ scripts/check_wan_emulation.py, scripts/c2_guard.py and scripts/collect_session.
                         (with a rate, so packets keep their order) and on the reply side by the cloud
                         agents (every SSE event, in order; serve_cloud.py --jitter); draws below 0 are
                         clipped to 0 on both sides
+    c2b2_wan.json       B2 as collected (C2B2, Nov 26: lan_padmax on 8100, lan_padmax_jl on 8500, both
+                        padded): b2_wan_jitter.json with the pf rules fixed. In macOS pf a packet that
+                        comes back out of a dummynet pipe re-enters the ruleset at the rule after the
+                        one that sent it there, so with the general rules matching every port the
+                        jitter arm's packets went through pipes 3 and 4 and then 1 and 2 as well (the
+                        first C2B2 WAN check, Nov 26: SYN -> SYN-ACK 17.0 ms at the capture instead of
+                        4). Here the general rules match only the other arms' cloud ports. Every delay,
+                        target, jitter and load setting is b2_wan_jitter.json's
 B3 (a second day of C2's lan arm) uses c2_wan_emulation.json itself.
 
 The jitter's sd per direction comes from the two IQRs C2 measured: a normal's sd is IQR / 1.349; the
@@ -24,7 +32,7 @@ events get it; the cloud's other packets (TCP and TLS handshakes, ACKs, HTTP hea
 instead of 6. Its handshakes are therefore 4 ms shorter than the control's, for every task alike; the
 per-arm targets below say what the checks expect.
 
-    python scripts/round2_wan_plan.py            # → data/results/b1_wan.json, b2_wan_jitter.json
+    python scripts/round2_wan_plan.py            # → data/results/b1_wan.json, b2_wan_jitter.json, c2b2_wan.json
 
 Each plan records the session's collection_id, the measurement it comes from, the commit, and when it
 was written; an existing plan is never written over.
@@ -61,9 +69,11 @@ def jitter_sd(cloud_iqr: float, base_iqr: float) -> dict:
                     "per direction = that / √2"}
 
 
-def rules(e: dict, bases: list[int], jitter_ports: list[int]) -> list[str]:
-    """pf anchor rules, first match wins (quick): the jitter arm's ports into pipes 3 and 4, then
-    everything else between the Pi and the alias into pipes 1 and 2, then the port lock."""
+def rules(e: dict, bases: list[int], jitter_ports: list[int], control_ports: list[int] | None = None) -> list[str]:
+    """pf anchor rules: the jitter arm's ports into pipes 3 and 4, then the traffic between the Pi and the
+    alias into pipes 1 and 2 (only control_ports when given), then the port lock. A packet leaving a
+    dummynet pipe re-enters pf at the next rule, so without control_ports the jitter arm's packets
+    also reach pipes 1 and 2 (b2_wan_jitter.json, kept as written; c2b2_wan.json passes them)."""
     iface, pi, cloud, mac = e["iface"], e["pi"], e["cloud"], e["mac"]
     out = []
     if jitter_ports:
@@ -71,8 +81,9 @@ def rules(e: dict, bases: list[int], jitter_ports: list[int]) -> list[str]:
         out += [f"dummynet in quick on {iface} proto tcp from {pi} to {cloud} port {{ {jp} }} pipe 3",
                 f"dummynet out quick on {iface} proto tcp from {cloud} port {{ {jp} }} to {pi} pipe 4"]
     ports = " ".join(str(p) for p in lock_ports(bases))
-    return out + [f"dummynet in quick on {iface} proto tcp from {pi} to {cloud} pipe 1",
-                  f"dummynet out quick on {iface} proto tcp from {cloud} to {pi} pipe 2",
+    to = f" port {{ {' '.join(map(str, control_ports))} }}" if control_ports else ""
+    return out + [f"dummynet in quick on {iface} proto tcp from {pi} to {cloud}{to} pipe 1",
+                  f"dummynet out quick on {iface} proto tcp from {cloud}{to} to {pi} pipe 2",
                   f"pass in quick on {iface} proto tcp from {pi} to {{ {mac} {cloud} }} port {{ {ports} }}",
                   f"block in quick on {iface} proto tcp from any to {{ {mac} {cloud} }} port {{ {ports} }}"]
 
@@ -170,7 +181,22 @@ def plans(c2: dict) -> dict[str, dict]:
                         "port_lock": f"the Mac's ports {lock_ports(b2_bases)} on {e['mac']} and {e['cloud']} accept only "
                                      f"{e['pi']}",
                         "rules": b2_rules, "commands": mac_commands(pipes, b2_rules)}}
-    return {"b1_wan.json": b1, "b2_wan_jitter.json": b2}
+    control_ports = [b + k for b in b2_bases if b != jl for k in (1, 2)]
+    c2b2_rules = rules(e, b2_bases, jports, control_ports)
+    c2b2 = json.loads(json.dumps(b2))
+    c2b2.update({
+        "purpose": "the WAN portability check (docs/PREREG_C2B2.md): lan_padmax_jl (jitter and load) against "
+                   "lan_padmax (neither), both padded to 8 KB, interleaved",
+        "fixes": {"plan": "data/results/b2_wan_jitter.json",
+                  "what": f"the general rules into pipes 1 and 2 match only the control's cloud ports {control_ports}",
+                  "why": "in macOS pf a packet that comes back out of a dummynet pipe re-enters the ruleset at the "
+                         "next rule: with b2_wan_jitter.json's rules the jitter arm's packets went through pipes 3 "
+                         "and 4 and then 1 and 2 (C2B2's first WAN check, Nov 26: SYN -> SYN-ACK 17.0 ms at the "
+                         "capture instead of 4, 32.8 ms end to end instead of 18.6)",
+                  "unchanged": "every delay, pipe, target, the jitter, the load and the Pi's netem"}})
+    c2b2["arms"]["8100"]["name"], c2b2["arms"]["8500"]["name"] = "lan_padmax", "lan_padmax_jl"
+    c2b2["emulation"]["rules"], c2b2["emulation"]["commands"] = c2b2_rules, mac_commands(pipes, c2b2_rules)
+    return {"b1_wan.json": b1, "b2_wan_jitter.json": b2, "c2b2_wan.json": c2b2}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -183,9 +209,11 @@ def main(argv: list[str] | None = None) -> int:
     if git["git_dirty"] and not a.allow_dirty:
         raise SystemExit("uncommitted code: commit first (or --allow-dirty for a dry run)")
     todo = plans(json.loads(Path(a.c2).read_text()))
-    for name in todo:
-        if (Path(a.out_dir) / name).exists():
-            raise SystemExit(f"{Path(a.out_dir) / name} exists: results are never written over")
+    for name in [n for n in todo if (Path(a.out_dir) / n).exists()]:
+        print(f"{Path(a.out_dir) / name} exists: kept (results are never written over)")
+        del todo[name]
+    if not todo:
+        raise SystemExit("every plan exists already: results are never written over")
     created = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     for name, plan in todo.items():
         out = Path(a.out_dir) / name

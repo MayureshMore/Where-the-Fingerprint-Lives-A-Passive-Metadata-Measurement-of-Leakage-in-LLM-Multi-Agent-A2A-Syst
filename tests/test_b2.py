@@ -261,7 +261,7 @@ def test_the_cloud_agent_logs_its_draws_as_sums(tmp_path):
     assert d["n"] == j["events"] == len(ev)
     mean = d["sum_ms"] / d["n"]
     assert 15 < mean < 45 and d["sumsq_ms2"] >= d["sum_ms"] ** 2 / d["n"]
-    assert j["mean_ms"] >= mean - 1e-9                     # a wait is never shorter than its draw
+    assert j["mean_ms"] >= mean - 1e-6     # a wait is never shorter than its draw (monotonic seconds: ~1e-8 ms of rounding)
 
 
 def test_jitter_keeps_its_last_draw():
@@ -297,3 +297,41 @@ def test_gpu_state_reads_the_share_and_the_context(share, fits):
         th.join(timeout=5)
     assert r["fits"] is fits and r["gpu"]["share"] == share and r["gpu"]["context_length"] == 4096
     assert gone == {"model": "other", "gpu": None, "fits": False}
+
+
+def test_c2b2_s_plan_keeps_the_jitter_arm_out_of_pipes_1_and_2_and_changes_nothing_else():
+    """macOS pf sends a packet that leaves a dummynet pipe on to the next rule: the general rules must not
+    match the jitter arm's ports (C2B2's first WAN check: 17.0 ms at the capture instead of 4)."""
+    from scripts.round2_wan_plan import plans
+    c2 = json.loads((ROOT / "data/results/c2_wan_emulation.json").read_text())
+    p = plans(c2)
+    strip = lambda d: {k: v for k, v in d.items() if k not in ("git_commit", "git_dirty", "created")}
+    for name in ("b1_wan.json", "b2_wan_jitter.json"):                    # the committed plans, as written
+        assert strip(json.loads((ROOT / "data/results" / name).read_text())) == p[name]
+    old, new = p["b2_wan_jitter.json"], p["c2b2_wan.json"]
+    dn = [r for r in new["emulation"]["rules"] if r.startswith("dummynet")]
+    assert [r.split(" pipe ")[1] for r in dn] == ["3", "4", "1", "2"]
+    assert all("8501 8502" in r for r in dn[:2]) and all("{ 8101 8102 }" in r for r in dn[2:])
+    assert not any("8501" in r or "8502" in r for r in dn[2:])
+    assert [r for r in new["emulation"]["rules"] if not r.startswith("dummynet")] == \
+        [r for r in old["emulation"]["rules"] if not r.startswith("dummynet")]          # the port lock as before
+    for k in ("jitter", "load", "target_rtt_ms", "delay_ms", "jitter_ms"):
+        assert new[k] == old[k], k
+    assert new["emulation"]["pipes"] == old["emulation"]["pipes"] and new["emulation"]["bases"] == [8100, 8500]
+    for b in ("8100", "8500"):
+        assert {k: v for k, v in new["arms"][b].items() if k != "name"} == \
+            {k: v for k, v in old["arms"][b].items() if k != "name"}
+    assert (new["arms"]["8100"]["name"], new["arms"]["8500"]["name"]) == ("lan_padmax", "lan_padmax_jl")
+    assert new["fixes"]["plan"] == "data/results/b2_wan_jitter.json"
+
+
+def test_the_plan_script_writes_only_the_missing_plans(tmp_path):
+    from scripts import round2_wan_plan
+    assert round2_wan_plan.main(["--out-dir", str(tmp_path), "--allow-dirty"]) == 0
+    before = {n: (tmp_path / n).read_text() for n in ("b1_wan.json", "b2_wan_jitter.json")}
+    (tmp_path / "c2b2_wan.json").unlink()
+    assert round2_wan_plan.main(["--out-dir", str(tmp_path), "--allow-dirty"]) == 0
+    assert {n: (tmp_path / n).read_text() for n in before} == before                    # kept as they were
+    assert json.loads((tmp_path / "c2b2_wan.json").read_text())["fixes"]["plan"] == "data/results/b2_wan_jitter.json"
+    with pytest.raises(SystemExit, match="never written over"):
+        round2_wan_plan.main(["--out-dir", str(tmp_path), "--allow-dirty"])

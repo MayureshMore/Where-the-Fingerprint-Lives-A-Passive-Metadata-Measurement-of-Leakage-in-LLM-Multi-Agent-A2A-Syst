@@ -500,10 +500,17 @@ control requirement, the secondaries and what is reported whatever the outcome.
   2 ms of dummynet and N(4, 1.8) ms clipped at 0 each way: netem on the Pi for requests, and the cloud
   agents per SSE event for replies. The load is 2 concurrent generations on the Mac's Ollama, during
   its tasks only.
-- WAN plan: `data/results/b2_wan_jitter.json`, as written on Nov 21. Its base 8100 carries
-  `lan_padmax`; the plan's own names (`lan`, `lan_jl`) date from the earlier, unpadded design. The
-  per-arm targets are unchanged: 22.6 ms end to end and 12 ms at the capture for 8100; 18.6 ms and
-  4 ms for 8500.
+- WAN plan on the Mac: `data/results/c2b2_wan.json` (`scripts/round2_wan_plan.py`). It is Nov 21's
+  `b2_wan_jitter.json` with its pf rules fixed: the general rules into pipes 1 and 2 match only the
+  control's cloud ports (8101, 8102).
+  - Why: in macOS pf, a packet that comes back out of a dummynet pipe re-enters the ruleset at the
+    next rule. With the Nov 21 rules, the treatment's packets went through pipes 3 and 4 and then 1
+    and 2 as well. C2B2's first WAN check (Nov 26, before the pilot) read 17.0 ms at the capture
+    instead of 4, and 32.8 ms end to end instead of 18.6.
+  - Unchanged: every delay, pipe and target, the jitter, the load and the Pi's netem. The per-arm
+    targets are 22.6 ms end to end and 12 ms at the capture for 8100, and 18.6 ms and 4 ms for 8500.
+  - The Pi's netem, and the registered manipulation check's `--target`, keep reading
+    `b2_wan_jitter.json`; their netem, jitter and load values are identical.
 
 **Size and prompts:**
 - The IoT set, 250 per task type per arm, on the same prompts, in 25 rounds: 80 traces a round.
@@ -533,6 +540,12 @@ On the Pi:
 Each block below goes alone; the block after a check runs only if the check passes.
 
 ### C2B2 setup (once, after the commit with this section)
+
+**Mac**, window 2, from that clean commit: the fixed WAN plan (`data/results/c2b2_wan.json`, a committed
+result; the script keeps the existing plans and writes only the missing one):
+```bash
+venv/bin/python scripts/round2_wan_plan.py
+```
 
 **Mac**, window 2: the code and the WAN plan to the Pi:
 ```bash
@@ -581,7 +594,7 @@ scp data/results/b2_wan_jitter.json "$C2_PI_USER@${C2_PI}:a2a/data/results/"
 7. **Mac**, window 2: the WAN (pipes 1 and 2 at 6 ms, 3 and 4 at 2 ms), for the pilot and the full run:
    ```bash
    mkdir -p data/pilot_c2b2/padmax data/pilot_c2b2/padmax_jl data/raw_c2b2_padmax data/raw_c2b2_padmax_jl
-   sudo C2_BASES=8100,8500 bash scripts/wan_emulation.sh on data/results/b2_wan_jitter.json
+   sudo C2_BASES=8100,8500 bash scripts/wan_emulation.sh on data/results/c2b2_wan.json
    ```
 
 ### C2B2 pilot (about 7 minutes)
@@ -595,7 +608,7 @@ venv/bin/python scripts/serve_cloud.py --bases 8100,8500 --jitter 8500=4/1.8/1 \
 ```
 **Mac**, window 2: the WAN check, alone. Go on only if it ends with `PASS`:
 ```bash
-venv/bin/python scripts/check_wan_emulation.py --target data/results/b2_wan_jitter.json --bases 8100,8500 \
+venv/bin/python scripts/check_wan_emulation.py --target data/results/c2b2_wan.json --bases 8100,8500 \
     --json data/pilot_c2b2/padmax/wan_check_start.json
 ```
 **Mac**, window 3 (root):
@@ -607,7 +620,7 @@ sudo venv/bin/python scripts/wan_watch.py --out data/pilot_c2b2/padmax/wan_statu
 caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2B2-pilot \
     --n 5 --rounds 1 --seed-offset 32000 --workflows iot \
     --exclude-prompts data/raw_c2,data/raw_c2_pad,data/raw_c2_padmax,data/raw_c2b1_padmax,data/raw_c2b1_shaped,data/raw_c2b1x_shaped,data/raw_c2b3_lan,data/raw_c2b1m_padmax,data/raw_c2b1m_shaped \
-    --tls-dir data/tls_lan --wan-target data/results/b2_wan_jitter.json --reply-log data/pilot_c2b2/replies \
+    --tls-dir data/tls_lan --wan-target data/results/c2b2_wan.json --reply-log data/pilot_c2b2/replies \
     --arm name=lan_padmax,ports=8100,pad=8192/16384,pad_expect=8192,out=data/pilot_c2b2/padmax \
     --arm name=lan_padmax_jl,ports=8500,pad=8192/16384,pad_expect=8192,jitter=4/1.8,load=2,out=data/pilot_c2b2/padmax_jl
 ```
@@ -618,7 +631,7 @@ beside the WAN probes.
 **Mac**, window 4, once the collector has printed its `network ... ok` lines:
 ```bash
 venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
-    --target data/results/b2_wan_jitter.json --bases 8100,8500 --status data/pilot_c2b2/padmax/wan_status.json --pi-overhead-ms 3.31 \
+    --target data/results/c2b2_wan.json --bases 8100,8500 --status data/pilot_c2b2/padmax/wan_status.json --pi-overhead-ms 3.31 \
     --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
     --json data/pilot_c2b2/padmax/wan_guard.json data/pilot_c2b2/padmax data/pilot_c2b2/padmax_jl
 ```
@@ -644,7 +657,7 @@ tc -s qdisc show dev wlan0 > ~/c2b2_tc_start.txt
 ```
 **Mac**, window 2: the WAN check, alone. Go on only if it ends with `PASS`:
 ```bash
-venv/bin/python scripts/check_wan_emulation.py --target data/results/b2_wan_jitter.json --bases 8100,8500 \
+venv/bin/python scripts/check_wan_emulation.py --target data/results/c2b2_wan.json --bases 8100,8500 \
     --json data/raw_c2b2_padmax/wan_check_start.json
 ```
 **Mac**, window 3 (root):
@@ -656,14 +669,14 @@ sudo venv/bin/python scripts/wan_watch.py --out data/raw_c2b2_padmax/wan_status.
 caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cloud --collection-id C2B2 \
     --n 250 --rounds 25 --seed-offset 32000 --workflows iot \
     --exclude-prompts data/raw_c2,data/raw_c2_pad,data/raw_c2_padmax,data/raw_c2b1_padmax,data/raw_c2b1_shaped,data/raw_c2b1x_shaped,data/raw_c2b3_lan,data/raw_c2b1m_padmax,data/raw_c2b1m_shaped \
-    --tls-dir data/tls_lan --wan-target data/results/b2_wan_jitter.json --reply-log data/raw_c2b2_replies \
+    --tls-dir data/tls_lan --wan-target data/results/c2b2_wan.json --reply-log data/raw_c2b2_replies \
     --arm name=lan_padmax,ports=8100,pad=8192/16384,pad_expect=8192,out=data/raw_c2b2_padmax \
     --arm name=lan_padmax_jl,ports=8500,pad=8192/16384,pad_expect=8192,jitter=4/1.8,load=2,out=data/raw_c2b2_padmax_jl
 ```
 **Mac**, window 4, once the collector has printed its `network ... ok` lines:
 ```bash
 venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
-    --target data/results/b2_wan_jitter.json --bases 8100,8500 --status data/raw_c2b2_padmax/wan_status.json --pi-overhead-ms 3.31 \
+    --target data/results/c2b2_wan.json --bases 8100,8500 --status data/raw_c2b2_padmax/wan_status.json --pi-overhead-ms 3.31 \
     --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
     --json data/raw_c2b2_padmax/wan_guard.json data/raw_c2b2_padmax data/raw_c2b2_padmax_jl
 ```
@@ -696,7 +709,7 @@ A=data/raw_c2b2_padmax; B=data/raw_c2b2_padmax_jl; T=c2b2_tc
 1. **Mac**, window 2: the closing WAN check, alone, while `serve_cloud.py` and the Pi's
    `serve_edge.py` still run:
    ```bash
-   venv/bin/python scripts/check_wan_emulation.py --target data/results/b2_wan_jitter.json --bases 8100,8500 \
+   venv/bin/python scripts/check_wan_emulation.py --target data/results/c2b2_wan.json --bases 8100,8500 \
        --json $A/wan_check_after.json
    ```
 2. **Pi**, window 2: the Pi's queues after. After the pilot:
@@ -755,6 +768,20 @@ A=data/raw_c2b2_padmax; B=data/raw_c2b2_padmax_jl; T=c2b2_tc
    set Settings, Context length back to 128k, and check with the two `grep` lines of "Every session".
 
 Then the header-only check on a copy (me), as for B3.
+
+### C2B2 record
+
+**Changes after the registration (2171e4ba)**, each with its reason:
+- **Nov 26, before the pilot: the Mac's pf rules.** The first WAN check (`data/pilot_c2b2/padmax/wan_check_start.json`)
+  failed on the treatment's edge. It read 32.8 ms end to end (target 18.6) and 17.0 ms SYN → SYN-ACK at
+  the capture (target 4). The control's edge passed at 23.7 and 12.4 ms.
+  - The cause: macOS pf sends a packet that leaves a dummynet pipe on to the next rule, so
+    `b2_wan_jitter.json`'s rules put the treatment's packets through pipes 3 and 4 **and** 1 and 2:
+    2 + 6 + 2 + 6 = 16 ms instead of 4.
+  - The fix: `data/results/c2b2_wan.json`, whose general rules match only the control's ports. It
+    applies the registered design, 2 ms of dummynet for the treatment, and changes no delay, target,
+    jitter, load or netem setting.
+  - Nothing had been collected.
 
 ## B3: a second day of `lan` (pilots Nov 22 and 24, full run Nov 24)
 
