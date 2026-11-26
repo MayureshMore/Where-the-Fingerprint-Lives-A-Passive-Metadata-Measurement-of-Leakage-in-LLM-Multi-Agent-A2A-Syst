@@ -631,7 +631,7 @@ beside the WAN probes.
 **Mac**, window 4, once the collector has printed its `network ... ok` lines:
 ```bash
 venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
-    --target data/results/c2b2_wan.json --bases 8100,8500 --status data/pilot_c2b2/padmax/wan_status.json --pi-overhead-ms 3.31 \
+    --target data/results/c2b2_wan.json --bases 8100,8500 --tolerance 0.30 --status data/pilot_c2b2/padmax/wan_status.json --pi-overhead-ms 3.31 \
     --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
     --json data/pilot_c2b2/padmax/wan_guard.json data/pilot_c2b2/padmax data/pilot_c2b2/padmax_jl
 ```
@@ -676,7 +676,7 @@ caffeinate -dimsu venv/bin/python scripts/collect_session.py --placement edge-cl
 **Mac**, window 4, once the collector has printed its `network ... ok` lines:
 ```bash
 venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/collect_session.py')" \
-    --target data/results/c2b2_wan.json --bases 8100,8500 --status data/raw_c2b2_padmax/wan_status.json --pi-overhead-ms 3.31 \
+    --target data/results/c2b2_wan.json --bases 8100,8500 --tolerance 0.30 --status data/raw_c2b2_padmax/wan_status.json --pi-overhead-ms 3.31 \
     --calibration "$(python3 -c 'import json; print(json.dumps(json.load(open("data/raw_c2/wan_guard.json"))["calibration"]))')" \
     --json data/raw_c2b2_padmax/wan_guard.json data/raw_c2b2_padmax data/raw_c2b2_padmax_jl
 ```
@@ -782,6 +782,45 @@ Then the header-only check on a copy (me), as for B3.
     applies the registered design, 2 ms of dummynet for the treatment, and changes no delay, target,
     jitter, load or netem setting.
   - Nothing had been collected.
+- **Nov 26, after the pilot: the guard's tolerance, 0.30 instead of 0.20.**
+  - **The problem:** the guard estimates the Pi's connect to the cloud from the capture (SYN to the
+    Pi's ACK, plus 3.31 ms). For the treatment it read 14.84 ms on the pilot's 15 handshakes,
+    against 0.20's band [14.9, 22.3]. Every direct measurement of the same connect lay near the
+    18.6 ms target: 16.4 (opening WAN check), 17.8 (the collector's probe), 19.9 (closing WAN check).
+  - **Why it matters:** the capture-based estimate runs 2 to 4 ms low for the netem arm, so the
+    guard would stop the full run again and again, every 50 traces.
+  - **The change:** at 0.30 the bands are [13.0, 24.2] for the treatment and [15.8, 29.4] for the
+    control. The 4 ms capture check keeps its ±2 ms floor, and every guard check stays. Replayed on
+    the pilot (`c2_guard.py --replay`), 0.20 fails and 0.30 passes.
+  - The user decided. Every other check passed at its registered value.
+
+**Pilot (Nov 26, 06:47:55 to 06:54:27, `data/pilot_c2b2/`):**
+- **Collection:** 20 of 20 traces in each arm, 0 failed. The treatment's 15 cloud replies were
+  logged with 0 cut and 0 late; 0 traces were throttled. 8.7 s per trace: about 5.2 h for the full
+  run with the rounds' probes.
+- **GPU:** checked at round 0 and at the end, 16.49 of 16.49 GB at context 32768.
+- **WAN:**
+  - probes: 20.3 ms (control) and 17.8 ms (treatment);
+  - the WAN check, after the fix: PASS at 20.9 / 16.4 ms end to end and 12.5 / 5.2 ms at the
+    capture (`wan_check_start2.json`);
+  - the closing check: PASS at 23.8 / 19.9 and 13.3 / 4.9 ms.
+- **Data checks pass:**
+  - every call captured in 10 of 10 per type;
+  - TLS on every connection;
+  - 0% cut;
+  - design: every first request in the 8,192 B bucket (15 of 15 per arm), 0 leftover connections;
+  - reordering: 1.31% for the treatment against the control's 2.63%, and 0 holes on the cloud side.
+
+  The treatment's largest reply has about 250 packets against the control's 170: delaying each SSE
+  event on its own stops events sharing packets.
+- **Keeper:** PASS, 13 checks with the chip at 0. Since its start at 23:45, the keeper has never
+  had to act.
+- **Manipulation checks: VALID.**
+  - netem's packet count grew from 0 to 4,006.
+  - The Pi's ACK came 3.09 ms later in the treatment than in the control.
+  - Reply jitter: 3,900 draws, mean 4.030 ms, sd 1.819 ms.
+  - The cloud under load: × 1.60 fault, × 1.58 procedure, × 1.89 sensor.
+  - The load windows and the GPU pass.
 
 ## B3: a second day of `lan` (pilots Nov 22 and 24, full run Nov 24)
 
