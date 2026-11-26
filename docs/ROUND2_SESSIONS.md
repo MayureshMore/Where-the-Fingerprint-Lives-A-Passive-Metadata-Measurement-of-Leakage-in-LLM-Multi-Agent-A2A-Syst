@@ -812,6 +812,63 @@ venv/bin/python scripts/check_shaping.py $B --control $A --wan-ms 12 --json $B/s
 Each must report OK or PASS. The design check flags a predecessor share only above 75% with two task
 types (about 50% arises by chance). Then the header-only check on a copy, as for B3.
 
+**Record (Nov 25).** From b02990e8 (clean), in the afternoon and evening rather than overnight.
+- Pilot (12:40 to 12:47, `data/pilot_c2b1m/`): 28 traces (10 shaped and 4 padded per class), 0
+  failed, 20 replies clean, every data check passed. Its opening WAN check failed on the base: the
+  Pi's round trip to the Mac's own address had an IQR of 11.2 ms (`wan_check_start.json`). With
+  Syncthing paused on the Mac it passed two minutes later at 21.1 and 21.0 ms
+  (`wan_check_start2.json`). Its closing check failed at 95.9 and 97.3 ms end to end, with AWDL
+  active again (`wan_check_after.json`). It passed at 22.0 and 22.1 ms (`wan_check_after2.json`)
+  with AirDrop set to No One, Handoff and AirPlay Receiver off, `awdl0` down, and a root loop
+  (`while true; do ifconfig awdl0 down; sleep 30; done`) that kept it down for the rest of the session.
+- Full run, 12:57:09 to 23:20:26 (`session_meta.json`). The opening WAN check passed at 20.7 and
+  21.0 ms (base 8.5 ms, IQR 2.6 ms). The run stopped twice on a failed WAN probe, each time at a
+  round's start, before any trace of that round:
+  - 14:50, the 8th round (`round` 7): the `lan_padmax` probe's median was 40.5 ms (base 9.2 ms;
+    connects 17 to 72 ms), with 490 traces in. It resumed at 18:25, after the Pi's power save on,
+    then off, and a WAN check at 21.0 and 22.1 ms (`wan_check_resume1.json`; base 9.8 ms, IQR
+    2.0 ms), with `--resume` and a new guard (`wan_guard_resume1.json`).
+  - 22:26, the 23rd round (`round` 22): the `lan_padmax` probe's median was 38.2 ms (base 11.4 ms;
+    connects 19 to 140 ms), with 1,540 traces in. A ping to the Pi then averaged 14.4 ms (s.d.
+    8.8 ms), and 10.8 ms (s.d. 3.1 ms) after the power save on, then off. It resumed at 22:31 after
+    a WAN check at 21.1 and 22.1 ms (`wan_check_resume2.json`; base 8.6 ms, IQR 2.4 ms), with
+    `wan_guard_resume2.json`.
+- About 6.7 h of collection (15.7 s per trace, `session_meta.json` `pace`), plus 3.6 h of pauses.
+  The three guards checked 490, 1,540 and 1,750 traces cumulatively; every check was ok and 0
+  traces were suspect. 2 of the 52 WAN probes failed (the two above).
+- The closing WAN check ran before anything was stopped: PASS at 25.2 and 24.2 ms (base 12.4 ms,
+  IQR 4.1 ms; capture 13.2 and 12.6 ms).
+- The collector's tally: `lan_shaped: 1250 cloud replies logged, 0 cut, 0 past the deadline, 0
+  failed`; `traces per arm: lan_padmax 500 of 500, lan_shaped 1250 of 1250`; 0 traces while the Pi
+  was throttled.
+- Data checks pass:
+  - every expected call captured in 1,750 of 1,750 traces (`lan_check.json`);
+  - TLS on every connection, with 2 ClientHellos per trace in both arms (`tls_check.json`);
+  - 0 cut streams (`stream_integrity.json`); the largest reply has a median of 35 packets shaped,
+    170 and 171 padded;
+  - the design check is OK (`design_check.json`).
+- The shaping check (`data/raw_c2b1m_shaped/shaping_check.json`; `data/results/c2b1m_shaping_overhead.json`)
+  passes on size (every shaped reply 16,902 B on the wire, every request 10,116 B) and on cut and
+  overrun. It fails on release time, as C2B1X's did:
+  - The median release is 14.768 s (expected 14.762), and the 5th to 95th percentile is 14.7658 to
+    14.7709 s. 1,245 of the 1,250 releases lie within 18 ms of the median and 1,249 within 27 ms.
+  - One trace, `sensor_analysis_edge_cloud_46dc94` (the 15th round, 20:28), ended 1,156 ms late.
+    The cloud released it on time (14.002 s by its clock), and its first events left on time from
+    14.06 s. Then no ACK came from the Pi until 15.948 s, while the Mac retransmitted the first
+    unacknowledged segment at 14.44, 14.72, 15.08 and 15.61 s. The reply's remaining bytes left
+    together at 15.961 s. That is the Pi's link going silent for about 1.9 s, not the shaping.
+  - Without that trace, the spread is 25.9 ms. The trace stays: its bytes match every other reply's,
+    and no trace is dropped after collection ([PREREG_C2B1M.md](PREREG_C2B1M.md)).
+- Header-only: `strip_payload.py --placeholder-macs` on a copy, then `--check`: 1,750 pcaps (294,008
+  packets, 4,339,545 payload bytes removed), 0 with payload bytes. The only MAC addresses are the two
+  placeholders, and the only hosts are 10.0.0.171, 10.0.0.228 and 172.30.0.100.
+- The result as registered (`data/results/c2b1m_audits.{json,md}`, run from b02990e8):
+  - primary: INCONCLUSIVE, 0.520 [0.494, 0.547], p 0.050. The interval meets the 0.55 bound, but p
+    is not above 0.05;
+  - control: LEAK, 0.672 [0.630, 0.712], p 0.01;
+  - timing alone at V2: 0.512 [0.486, 0.538], below the bound;
+  - the V1 pair: INCONCLUSIVE, 0.571 [0.542, 0.598], p 0.01.
+
 ## Afterwards (me, from a clean commit)
 
 The audits and the cross-session transfer. Each session writes its own results JSON with commit,
