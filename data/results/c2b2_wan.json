@@ -1,0 +1,242 @@
+{
+  "paper": "P2",
+  "round": 2,
+  "session": "B2",
+  "collection_id": "C2B2",
+  "purpose": "the WAN portability check (docs/PREREG_C2B2.md): lan_padmax_jl (jitter and load) against lan_padmax (neither), both padded to 8 KB, interleaved",
+  "measurement": "data/results/c2_wan_emulation.json",
+  "measurement_collection_id": "C2",
+  "measured_at": "2026-11-11T19:02:41-0800",
+  "measurement_commit": "d6f059c224e6e63e8bb3b46fbec0f71b12e383ba",
+  "seed": null,
+  "endpoint": "https://ec2.us-west-1.amazonaws.com",
+  "cloud_rtt": {
+    "method": "curl time_connect from the Mac (TCP handshake, one round trip), sequential tries",
+    "tries": 30,
+    "failures": 0,
+    "time_connect_ms": [
+      50.042,
+      24.639000000000003,
+      17.139000000000003,
+      17.169,
+      24.048,
+      26.141000000000002,
+      25.146,
+      18.988999999999997,
+      29.468,
+      22.326999999999998,
+      20.01,
+      21.023,
+      21.54,
+      21.826,
+      19.465,
+      24.547,
+      19.829,
+      23.77,
+      17.35,
+      22.092,
+      19.077,
+      27.907,
+      23.171,
+      22.03,
+      26.293,
+      22.849999999999998,
+      29.362,
+      23.807,
+      28.330000000000002,
+      21.169
+    ],
+    "median_ms": 22.588499999999996,
+    "q1_ms": 19.964750000000002,
+    "q3_ms": 25.394750000000002,
+    "iqr_ms": 5.43,
+    "min_ms": 17.139000000000003,
+    "max_ms": 50.042
+  },
+  "base_rtt": {
+    "method": "ping from the Mac to the Pi (10.0.0.171), 40 echoes 0.25 s apart: the round trip the home network adds between the Pi and the Mac",
+    "rtt_ms": [
+      12.207,
+      12.965,
+      8.146,
+      12.771,
+      8.831,
+      12.817,
+      13.156,
+      13.202,
+      12.075,
+      8.778,
+      13.47,
+      12.727,
+      11.821,
+      9.16,
+      11.276,
+      13.699,
+      18.89,
+      8.833,
+      7.869,
+      10.538,
+      7.639,
+      10.848,
+      9.882,
+      7.539,
+      7.749,
+      7.892,
+      8.173,
+      12.33,
+      8.85,
+      12.096,
+      8.203,
+      7.208,
+      7.225,
+      9.584,
+      8.824,
+      10.857,
+      6.937,
+      10.245,
+      8.714
+    ],
+    "median_ms": 9.882,
+    "q1_ms": 8.173,
+    "q3_ms": 12.33,
+    "iqr_ms": 4.157,
+    "min_ms": 6.937,
+    "max_ms": 18.89
+  },
+  "total_delay_ms": 12.706499999999997,
+  "target_rtt_ms": 22.588499999999996,
+  "delay_ms": 12,
+  "jitter_ms": 1.8,
+  "jitter": {
+    "distribution": "normal, mean 4 ms, sd 1.8 ms per direction",
+    "negative_draws": "clipped to 0, on both sides: netem sends a packet whose drawn delay is negative at once (and with a rate never before the packet ahead of it); the cloud agents take max(0, draw) (defense/shaping.py Jitter)",
+    "clipped": {
+      "p_clipped": 0.013134145691021115,
+      "mean_ms": 4.0082559890994025,
+      "sd_ms": 1.7788629093349144
+    },
+    "derivation": {
+      "cloud_iqr_ms": 5.43,
+      "base_iqr_ms": 4.157,
+      "sd_cloud_ms": 4.025265023242709,
+      "sd_base_ms": 3.0815887111638935,
+      "internet_sd_rtt_ms": 2.5897045241819345,
+      "per_direction_sd_ms": 1.8311976303185273,
+      "used_sd_ms": 1.8,
+      "rule": "sd = IQR / 1.349 (normal); internet sd per round trip = sqrt(sd_cloud\u00b2 \u2212 sd_base\u00b2); per direction = that / \u221a2"
+    },
+    "request_side": {
+      "where": "Pi egress (wlan0), only packets to 172.30.0.100 ports [8501, 8502]: every packet the Pi sends on the jitter arm's cloud connections (requests and ACKs), before the capture",
+      "netem": "delay 4ms 1.8ms distribution normal rate 1gbit",
+      "order": "kept: with a rate, netem never sends a packet before the one ahead of it; check in a capture with scripts/check_reorder.py",
+      "burst_note": "packets that arrive together leave at the latest of their draws so far, so the later packets of a multi-packet request wait a little longer than the mean"
+    },
+    "reply_side": {
+      "where": "the cloud agents (serve_cloud.py --jitter 8500=4/1.8/SEED): every SSE event, in order, before the capture; the agent's other packets are not delayed",
+      "spec": "4/1.8"
+    },
+    "one_way_ms": {
+      "requests": 6.0082559890994025,
+      "reply_events": 6.0082559890994025,
+      "reply_other_packets": 2,
+      "control": 6
+    },
+    "pi_netem": {
+      "dev": "wlan0",
+      "tc_commands": [
+        "tc qdisc del dev wlan0 root 2>/dev/null || true",
+        "tc qdisc add dev wlan0 root handle 1: prio bands 4 priomap 1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1",
+        "tc qdisc add dev wlan0 parent 1:4 handle 40: netem delay 4ms 1.8ms distribution normal rate 1gbit",
+        "tc filter add dev wlan0 parent 1: protocol ip prio 1 u32 match ip dst 172.30.0.100/32 match ip protocol 6 0xff match ip dport 8501 0xffff flowid 1:4",
+        "tc filter add dev wlan0 parent 1: protocol ip prio 1 u32 match ip dst 172.30.0.100/32 match ip protocol 6 0xff match ip dport 8502 0xffff flowid 1:4"
+      ]
+    }
+  },
+  "load": {
+    "where": "the Mac's Ollama, localhost (never on the observed path), during every lan_jl task only",
+    "concurrency": 2,
+    "ollama": "OLLAMA_NUM_PARALLEL=4 (two load streams + the agents)",
+    "tool": "scripts/ollama_load.py; collect_session.py --arm ...,load=2"
+  },
+  "arms": {
+    "8100": {
+      "name": "lan_padmax",
+      "target_rtt_ms": 22.588499999999996,
+      "delay_ms": 12.0,
+      "pipes": [
+        1,
+        2
+      ]
+    },
+    "8500": {
+      "name": "lan_padmax_jl",
+      "target_rtt_ms": 18.5967559890994,
+      "delay_ms": 4.0,
+      "pipes": [
+        3,
+        4
+      ],
+      "jitter": "4/1.8",
+      "load": 2,
+      "targets_note": "SYN \u2192 SYN-ACK at the capture is pipes 3 + 4 (4 ms); the Pi's connect time is C2's target \u2212 12 + 4 + the netem delay on its SYN (4.01 ms mean)"
+    }
+  },
+  "emulation": {
+    "iface": "en0",
+    "pi": "10.0.0.171",
+    "cloud": "172.30.0.100",
+    "mac": "10.0.0.228",
+    "bases": [
+      8100,
+      8500
+    ],
+    "one_way_ms": 6,
+    "round_trip_ms": 12,
+    "jitter_ms": 0,
+    "pipes": [
+      [
+        1,
+        6
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        4,
+        2
+      ]
+    ],
+    "where": "Mac, pf dummynet in anchor com.apple/c2-wan on en0: the capture point is on the building side",
+    "port_lock": "the Mac's ports [8101, 8102, 8105, 8501, 8502, 8505] on 10.0.0.228 and 172.30.0.100 accept only 10.0.0.171",
+    "rules": [
+      "dummynet in quick on en0 proto tcp from 10.0.0.171 to 172.30.0.100 port { 8501 8502 } pipe 3",
+      "dummynet out quick on en0 proto tcp from 172.30.0.100 port { 8501 8502 } to 10.0.0.171 pipe 4",
+      "dummynet in quick on en0 proto tcp from 10.0.0.171 to 172.30.0.100 port { 8101 8102 } pipe 1",
+      "dummynet out quick on en0 proto tcp from 172.30.0.100 port { 8101 8102 } to 10.0.0.171 pipe 2",
+      "pass in quick on en0 proto tcp from 10.0.0.171 to { 10.0.0.228 172.30.0.100 } port { 8101 8102 8105 8501 8502 8505 }",
+      "block in quick on en0 proto tcp from any to { 10.0.0.228 172.30.0.100 } port { 8101 8102 8105 8501 8502 8505 }"
+    ],
+    "commands": [
+      "dnctl pipe 1 config delay 6",
+      "dnctl pipe 2 config delay 6",
+      "dnctl pipe 3 config delay 2",
+      "dnctl pipe 4 config delay 2",
+      "printf 'dummynet in quick on en0 proto tcp from 10.0.0.171 to 172.30.0.100 port { 8501 8502 } pipe 3\\ndummynet out quick on en0 proto tcp from 172.30.0.100 port { 8501 8502 } to 10.0.0.171 pipe 4\\ndummynet in quick on en0 proto tcp from 10.0.0.171 to 172.30.0.100 port { 8101 8102 } pipe 1\\ndummynet out quick on en0 proto tcp from 172.30.0.100 port { 8101 8102 } to 10.0.0.171 pipe 2\\npass in quick on en0 proto tcp from 10.0.0.171 to { 10.0.0.228 172.30.0.100 } port { 8101 8102 8105 8501 8502 8505 }\\nblock in quick on en0 proto tcp from any to { 10.0.0.228 172.30.0.100 } port { 8101 8102 8105 8501 8502 8505 }\\n' | pfctl -a com.apple/c2-wan -f -",
+      "pfctl -E"
+    ]
+  },
+  "fixes": {
+    "plan": "data/results/b2_wan_jitter.json",
+    "what": "the general rules into pipes 1 and 2 match only the control's cloud ports [8101, 8102]",
+    "why": "in macOS pf a packet that comes back out of a dummynet pipe re-enters the ruleset at the next rule: with b2_wan_jitter.json's rules the jitter arm's packets went through pipes 3 and 4 and then 1 and 2 (C2B2's first WAN check, Nov 26: SYN -> SYN-ACK 17.0 ms at the capture instead of 4, 32.8 ms end to end instead of 18.6)",
+    "unchanged": "every delay, pipe, target, the jitter, the load and the Pi's netem"
+  },
+  "git_commit": "6d228a42953d512006636fb9c1ba3b17ff8ff398",
+  "git_dirty": false,
+  "created": "2026-11-26T06:35:27-0800"
+}
