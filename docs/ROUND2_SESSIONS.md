@@ -93,8 +93,38 @@ for B2. To change them, quit the Ollama app, run `launchctl setenv OLLAMA_NUM_PA
 `launchctl unsetenv OLLAMA_NUM_PARALLEL` (B1, B3), reopen the app, set Settings, Context length
 (32k for B2, 128k for B1 and B3), and check again. The context length is the app's own setting.
 
-**Pi, before** (in a second `tmux` window, Ctrl-b c, never the one that runs `serve_edge.py`):
-Wi-Fi power save on, then off, so that the off reaches the driver:
+**Pi, before** (in a second `tmux` window, Ctrl-b c, never the one that runs `serve_edge.py`): the
+Wi-Fi keeper's state. The keeper is a service from Nov 26 on (`scripts/pi_wifi_keeper.py`;
+docs/LAN_SETUP.md, section 4):
+```bash
+systemctl is-active a2a-wifi-keeper
+tail -n 1 /var/log/a2a-wifi-keeper.jsonl
+```
+The first line must say `active`. The last line must be less than a minute old and show
+`"iw_ps": "off"`, `"fw_pm": 0` and `"action": null`.
+
+Why a keeper:
+- `iw dev wlan0 get power_save` reports cfg80211's setting, not the chip's. It said off while the
+  chip dozed (C2B1X, Nov 22; C2B1M, Nov 25).
+- A plain `set power_save off` does nothing, because cfg80211 skips a setting equal to the one it
+  holds.
+- Power save on, then off, did reach the chip, but it wore off after 4 to 6.5 h, mid-session:
+  C2B1X's round 17, and C2B1M's stop at 22:26.
+- NetworkManager's `wifi.powersave` 2 (disable), set on the Pi's connection since its setup, goes
+  through cfg80211 as well.
+
+So every 30 s the keeper reads the chip's own setting, through brcmfmac's vendor command (the dongle
+command GET_PM, 85). When the setting is not 0, it writes 0 straight to the chip (SET_PM, 86) and
+logs that it had to. Each check is one line of its log, with iw's and the chip's settings, the link,
+the signal and any reconnect. The log holds no SSID and no MAC address.
+
+A dozing chip shows in the WAN probes to the cloud as connects near 100 ms (the beacon interval,
+102.4 ms) between normal ones. The cloud's SYN-ACK comes 12 ms after the SYN, by when the chip may
+sleep until the next beacon, while the Mac's own address answers at once. Check the keeper before a
+resume too.
+
+Without the keeper (not `active`, or a log line with `"fw_read": false`), set power save on, then
+off, as before:
 ```bash
 sudo iw dev wlan0 set power_save on
 sudo iw dev wlan0 set power_save off
@@ -102,13 +132,8 @@ sudo dmesg | grep brcmf_cfg80211_set_power_mgmt | tail -n 2
 ```
 The last line must say `brcmfmac: brcmf_cfg80211_set_power_mgmt: power save disabled` (the line
 before, `enabled`). The `grep` keeps UFW's `[UFW BLOCK]` lines, logged between the two settings,
-from pushing them out of a plain `dmesg | tail` (B3, Nov 22). A plain
-`set power_save off` is not enough: cfg80211 skips a setting equal to the one it holds, and
-`iw dev wlan0 get power_save` can say off while the chip dozes (C2B1X, Nov 22). A dozing chip shows
-in the WAN probes to the cloud as connects near 100 ms (the beacon interval, 102.4 ms) between
-normal ones: the cloud's SYN-ACK comes 12 ms after the SYN, by when the chip may sleep until the
-next beacon, while the Mac's own address answers at once. Do the same before a resume. Then the
-session's `serve_edge.py` line, below, in its own window.
+from pushing them out of a plain `dmesg | tail` (B3, Nov 22). Then the session's `serve_edge.py`
+line, below, in its own window.
 
 **Mac, after:**
 ```bash
@@ -538,8 +563,32 @@ venv/bin/python scripts/c2_guard.py --collector-pid "$(pgrep -f 'Python scripts/
    C2_BASES=8100,8500 venv/bin/python scripts/check_wan_emulation.py --target data/results/b2_wan_jitter.json \
        --json data/raw_c2b2_lan/wan_check_after.json
    ```
-2. **Pi:** `sudo bash scripts/wan_emulation_pi.sh off`.
-3. **Mac:** quit Ollama, run `launchctl unsetenv OLLAMA_NUM_PARALLEL`, reopen Ollama and set
+2. **Mac:** the Pi's Wi-Fi keeper over the session's window, kept with the session. Copy the log,
+   then the check, alone:
+   ```bash
+   . configs/c2_network.conf
+   scp "$C2_PI_USER@${C2_PI}:/var/log/a2a-wifi-keeper.jsonl" data/wifi_keeper_pi.jsonl
+   ```
+   ```bash
+   venv/bin/python scripts/pi_wifi_keeper.py check data/wifi_keeper_pi.jsonl --session data/raw_c2b2_lan data/raw_c2b2_jl \
+       --json data/raw_c2b2_lan/wifi_keeper_check.json --cut data/raw_c2b2_lan/wifi_keeper.jsonl
+   ```
+   It must end with `PASS`. That means:
+   - the keeper checked at least every 75 s from the session's `started` to its `finished`
+     (session_meta.json);
+   - it never had to re-disable power save;
+   - it saw no reconnect, no lost link and no error;
+   - it was not restarted.
+
+   `--cut` keeps the window's lines, plus 5 minutes on each side, with the session. **For the pilot**
+   (`data/pilot_c2b2/lan`, `data/pilot_c2b2/jl`), run the same check with
+   `--session data/pilot_c2b2/lan data/pilot_c2b2/jl --json data/pilot_c2b2/lan/wifi_keeper_check.json
+   --cut data/pilot_c2b2/lan/wifi_keeper.jsonl`. The full run starts only if it passes. A FAIL names
+   each event with its time. A re-disable means the chip drifted during the pilot, as in C2B1X and
+   C2B1M. A reconnect or a lost link with the chip at 0 points elsewhere (the access point, a scan),
+   not at power save.
+3. **Pi:** `sudo bash scripts/wan_emulation_pi.sh off`.
+4. **Mac:** quit Ollama, run `launchctl unsetenv OLLAMA_NUM_PARALLEL`, reopen Ollama and set
    Settings, Context length back to 128k.
 
 `check_reorder.py` passes when the jitter arm's request side has no more reordering than the

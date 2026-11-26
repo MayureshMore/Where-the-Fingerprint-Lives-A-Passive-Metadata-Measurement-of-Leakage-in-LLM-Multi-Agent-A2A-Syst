@@ -131,6 +131,8 @@ refuse every other device (section 8). Stop `serve_cloud.py` after each session.
    sudo nmcli con mod "<connection>" 802-11-wireless.powersave 2       # 2 = disable, after reboots too
    iw dev wlan0 get power_save                                          # Power save: off
    ```
+   Neither setting holds on the chip itself: `iw` can say off while the chip dozes. Install the
+   Wi-Fi keeper (section 4), which reads the chip's own setting every 30 s and sets it back to off.
 
 ## 2. The cloud alias and the Pi's route to it
 
@@ -205,6 +207,25 @@ venv/bin/pip install "a2a-sdk[http-server]==0.3.26" "sse-starlette==3.6.0" "uvic
     "httpx==0.28.1" "httpx-sse==0.4.3" "pydantic==2.13.4" "starlette==1.2.1"
 venv/bin/python --version; venv/bin/pip freeze > ~/pi-freeze.txt    # keep both with the collection
 ```
+The Wi-Fi keeper (`scripts/pi_wifi_keeper.py`; standard library only, run by the system's Python as
+root) is a systemd service that keeps the chip's power save off. `install` writes the unit with the
+script's own path:
+```bash
+cd ~/a2a
+sudo python3 scripts/pi_wifi_keeper.py install
+sudo systemctl daemon-reload
+sudo systemctl enable --now a2a-wifi-keeper
+```
+Then check it, alone, after half a minute:
+```bash
+systemctl is-active a2a-wifi-keeper
+tail -n 2 /var/log/a2a-wifi-keeper.jsonl
+```
+These must show `active`, a `"event": "start"` line with `"fw_read": true` (the chip's setting is
+readable through brcmfmac's vendor command), and a check with `"fw_pm": 0`. After an rsync that
+changes the keeper, run `sudo systemctl restart a2a-wifi-keeper`. The log gets one line per check,
+about 0.7 MB a day. `pi_wifi_keeper.py check` reads it against a session's window
+(docs/ROUND2_SESSIONS.md, B2).
 
 ## 5. TLS certificates
 
@@ -481,7 +502,7 @@ Paper 2's round-2 sessions on this testbed (reply shaping, jitter and server loa
 | `--wan-target` stops the session, or `check_wan_emulation.py` (b) fails | the emulation is off (a Mac restart clears it): `sudo bash scripts/wan_emulation.sh show`, then `on` |
 | `wan_emulation.sh on` refuses: config differs from the measurement | `C2_IFACE`, `C2_PI` or `C2_CLOUD` changed since `measure_cloud_rtt.py`: rerun it |
 | (b) fails high from the Pi but passes at the capture | the Wi-Fi round trip has grown since the measurement (power saving back on, or the Pi moved): measure again (section 8) |
-| (b) fails high from the Pi, with connects near 100 ms between normal ones, while (c) is fast | the Pi's chip dozes although `iw dev wlan0 get power_save` says off: `sudo iw dev wlan0 set power_save on`, then `off`, and check `sudo dmesg \| grep brcmf_cfg80211_set_power_mgmt \| tail -n 2` for `power save disabled` (docs/ROUND2_SESSIONS.md, "Every session") |
+| (b) fails high from the Pi, with connects near 100 ms between normal ones, while (c) is fast | the Pi's chip dozes although `iw dev wlan0 get power_save` says off. Check the keeper (`systemctl is-active a2a-wifi-keeper`, `tail -n 1 /var/log/a2a-wifi-keeper.jsonl`, section 4). Without it, run `sudo iw dev wlan0 set power_save on`, then `off`, and check `sudo dmesg \| grep brcmf_cfg80211_set_power_mgmt \| tail -n 2` for `power save disabled` (docs/ROUND2_SESSIONS.md, "Every session") |
 | (b) fails high from the Pi, near 100 ms, although the Pi's power save is off and `dmesg` says disabled | the Mac's AWDL (AirDrop, Handoff) takes its radio off channel: `sudo ifconfig awdl0 down`, check `ifconfig awdl0 \| grep status` for `inactive`, set AirDrop to "Receiving Off" and Handoff off (B3, Nov 22; docs/ROUND2_SESSIONS.md, "Every session") |
 | `check_wan_emulation.py` (a) fails, or the Pi loses the internet | `sudo bash scripts/wan_emulation.sh off`, check `ping 1.1.1.1` on the Pi, and use the Pi fallback (section 8) |
 | (b) passes in the probes but the capture's SYN → SYN-ACK is near zero | the delay is applied on the Pi (fallback) or before the capture point: check which emulation is on |
