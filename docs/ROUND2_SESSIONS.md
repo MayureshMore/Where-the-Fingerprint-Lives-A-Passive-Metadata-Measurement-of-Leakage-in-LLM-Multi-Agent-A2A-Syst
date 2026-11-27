@@ -822,6 +822,58 @@ Then the header-only check on a copy (me), as for B3.
   - The cloud under load: × 1.60 fault, × 1.58 procedure, × 1.89 sensor.
   - The load windows and the GPU pass.
 
+**Full run (Nov 26, 08:23:26 to 19:33:23, `data/raw_c2b2_padmax`, `data/raw_c2b2_padmax_jl`), from
+01230d36 (clean) at every start:**
+- **Collection:** 1,000 of 1,000 traces per arm, all 1,000 items complete, 0 failed. The treatment's
+  750 cloud replies were logged with 0 cut, 0 late and 0 failed; 0 traces were throttled.
+- **Time:** 5.2 h of collection (8.4 s per trace), plus 5.9 h of pauses.
+- **GPU:** 30 checks (every round, each start and the end), all at 16.49 of 16.49 GB, context 32768.
+  The parallel check passed at every start.
+- **Stops:** 4 of 57 WAN probes failed. Each stopped the collector at a round's start, before any
+  trace of that round. All four came from the home Wi-Fi slowing down: the probe's base rose from
+  about 9.5 ms to 10.5 to 13.5 ms. The emulated part stayed in place, at 12.2 to 12.7 ms and 5.2 to
+  5.4 ms at the capture in every WAN check.
+  - **10:53, round 13:** the treatment's probe read 22.9 ms (bound 22.3; base 12.9). The run
+    resumed at 16:32 after a passing WAN check (`wan_check_resume1.json`: 22.3 / 19.5 ms, base
+    10.9). The Pi's transmit rate had dropped to 12 to 30 Mbit/s, from 88 in the morning.
+  - **18:14, round 21:** the control's probe read 28.0 ms (bound 27.1; base 10.5). The next WAN
+    check failed at 23.9 / 22.4 ms, base 13.1 (`wan_check_resume2.json`), and the one after passed at
+    22.9 / 20.3, base 11.8 (`wan_check_resume3.json`).
+  - **18:27 and 18:28, two restarts:** both stopped at round 21's treatment probe, at 22.8 ms (base
+    13.5) and 24.1 ms (base 12.0).
+  - **Then the user reconnected the Mac's Wi-Fi.** The Mac kept its addresses and the cloud alias,
+    and a ping to the Pi fell to 7.9 ms. The restart at 18:30 ran to the end. The Pi's link was never
+    interrupted: no reconnect in the keeper's log, and its connected time kept counting.
+  - **AWDL:** the keeper loop was restarted around 18:30, and AWDL read inactive at every check.
+- **Guards:** three runs at `--tolerance 0.30` (`wan_guard.json`, `wan_guard_resume1.json`,
+  `wan_guard_resume2.json`). Every check passed (21, 33 and 41), with 0 suspect traces.
+- **WAN checks:**
+  - opening: PASS at 23.0 / 18.2 ms end to end and 12.5 / 5.2 ms at the capture, base 9.9;
+  - closing (before anything stopped): PASS at 22.2 / 18.6 ms and 12.2 / 5.2 ms, base 11.1.
+- **Data checks pass:**
+  - every call captured in 2,000 of 2,000 traces;
+  - TLS on every connection;
+  - 0% cut. The largest reply has a median of about 168 packets in the control and 249 in the
+    treatment, from the per-event jitter;
+  - design OK: no predecessor share flagged, 0 leftover connections, every first request in the
+    8,192 B bucket (750 of 750 per arm, one size, 296 B overhead), `audit_null` in every sidecar;
+  - reordering: 0.62% for the treatment against the control's 0.38%, and 0 holes on the cloud side.
+- **Keeper:** PASS over the session's window, pauses included: 1,339 checks, the chip at 0
+  throughout, 0 re-disables, reconnects, lost links, errors or restarts. Its log runs from 23:45 on
+  Nov 25 without one action.
+- **Manipulation checks** (`data/raw_c2b2_padmax_jl/manipulation_check.json`): **VALID**.
+  - netem's packet count grew from 4,006 to 179,647, with 0 dropped.
+  - The Pi's ACK came 4.48 ms later in the treatment than in the control (9.57 against 5.10 ms).
+  - Reply jitter: 193,014 draws, mean 4.011 ms, sd 1.780 ms.
+  - The cloud under load: fault 6.90 → 11.43 s (× 1.66), procedure 3.79 → 5.64 s (× 1.49), sensor
+    7.04 → 11.76 s (× 1.67).
+  - The load windows, the GPU and the keeper pass.
+- **Header-only:** `strip_payload.py --placeholder-macs` on a copy, then `--check`: 2,000 pcaps
+  (640,539 packets, 9,700,255 payload bytes removed), 0 with payload bytes. The only MAC addresses
+  are the two placeholders, and the only hosts are 10.0.0.171, 10.0.0.228 and 172.30.0.100.
+- **Afterwards:** netem off on the Pi (`fq_codel` again), the Mac's WAN and port lock off, and
+  Ollama back to 1 slot and 128k. The Wi-Fi keeper stays on.
+
 ## B3: a second day of `lan` (pilots Nov 22 and 24, full run Nov 24)
 
 C2's `lan` arm (8100) again, with new prompts (seed offset 33000), on C2's WAN plan
@@ -1163,7 +1215,9 @@ seed and data folders; nothing heavy runs beside them.
       --baseline-arm lan_padmax --baseline-prefix c2b1 --prefix c2b1_c2b1x --out data/results/b1_pair_pooled
   ```
 - **C2B2:** exactly the analysis in [PREREG_C2B2.md](PREREG_C2B2.md), from a clean commit after the
-  collection and its checks:
+  collection and its checks; then `scripts/c2b2_results.py` puts the registered results in the
+  paper's order, with the deviations from the pre-registration
+  (`data/results/c2b2_results.{json,md}`):
   ```bash
   venv/bin/python scripts/b1_audits.py --arm lan_padmax=data/raw_c2b2_padmax --arm lan_padmax_jl=data/raw_c2b2_padmax_jl \
       --parts all,pair,escalated_only --feature-sets all,timing --baseline-arm lan_padmax \
@@ -1172,6 +1226,8 @@ seed and data folders; nothing heavy runs beside them.
       --target data/results/b2_wan_jitter.json --tc-start data/raw_c2b2_padmax/pi_tc_start.txt \
       --tc-end data/raw_c2b2_padmax/pi_tc_end.txt --reorder data/raw_c2b2_padmax_jl/reorder_check.json \
       --keeper data/raw_c2b2_padmax/wifi_keeper_check.json --json data/results/c2b2_manipulation.json
+  venv/bin/python scripts/c2b2_results.py --audits data/results/c2b2_audits.json \
+      --manipulation data/results/c2b2_manipulation.json --out data/results/c2b2_results
   ```
 - **B3:** its own audits, as C2's `lan` arm (task_type, escalated, cloud_role, audit_null; sensor
   vs fault; the escalated task types), at V1 and V2; then the features of both sessions per view
