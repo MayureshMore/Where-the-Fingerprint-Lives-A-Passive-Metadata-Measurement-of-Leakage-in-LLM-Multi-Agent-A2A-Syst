@@ -85,8 +85,8 @@ footer{font-size:13px;color:var(--muted)}
 </head>
 <body>
 <header class="band strip"><div class="wrap">
-<h1>Padding hides how much the agents say. Only shaping hides how long they take.</h1>
-<p>Replay of eight captured sessions from the edge-to-cloud testbed, one per task, padded and shaped. The observer decrypts nothing: it records each packet's size, time and direction, and a2a-leakcheck decides whether that is enough to tell the tasks apart.</p>
+<h1>Padded requests still give the task away through timing. Shaped replies bring it close to chance.</h1>
+<p>Replay of eight captured sessions from the edge-to-cloud testbed, one per task, with requests padded to 8 KB, first without and then with reply shaping. The observer decrypts nothing: it records each packet's size, time and direction, and a2a-leakcheck decides whether that is enough to tell the tasks apart.</p>
 </div></header>
 
 <main class="band"><div class="wrap">
@@ -120,7 +120,7 @@ footer{font-size:13px;color:var(--muted)}
 <div class="two">
   <section>
     <h2>What the observer can measure</h2>
-    <p class="sub">Filled in from the packets as they replay. Padding makes the replies about the same size; the finishing times still differ by task until shaping holds every reply to the same moment.</p>
+    <p class="sub">Filled in from the packets as they replay. Only requests are padded in this arm, so each reply's size and timing stay visible; shaping fixes both, capping every reply and releasing it at the same moment.</p>
     <div class="scroll"><table id="tbl">
       <thead><tr><th></th><th colspan="3" id="hp">Padded</th><th colspan="3" id="hs">Shaped</th></tr>
       <tr><th>Task</th><th class="pkc">Packets</th><th>Down</th><th>Ends at</th><th class="pkc">Packets</th><th>Down</th><th>Ends at</th></tr></thead>
@@ -140,7 +140,7 @@ footer{font-size:13px;color:var(--muted)}
 
 <section style="margin-top:34px">
   <h2>Verdicts on the hardest pair: sensor analysis vs fault diagnosis</h2>
-  <p class="sub">Both tasks go to the same cloud agent, so only timing can separate them once replies are padded. Macro-F1 upstream or on the building network, with its 95% interval where one was reported; chance is 0.50. The solid line is chance + 0.05: an interval entirely right of it is a leak.</p>
+  <p class="sub">Both tasks go to the same cloud agent. With only requests padded, the replies' sizes and timing still separate them, and timing alone is enough. Macro-F1 upstream or on the building network, with its 95% interval where one was reported; chance is 0.50. The solid line is chance + 0.05: an interval entirely right of it is a leak.</p>
   <div class="scale" id="scale"></div>
   <div class="cost">
     <div><b>163.2 → 32.4 KB</b><span>traffic per escalated task, padded vs shaped (D3)</span></div>
@@ -296,7 +296,7 @@ tbody.innerHTML = TASKS.map(tk => '<tr><td><span class="sw" style="background:va
 const updText = () => {
   $('clock').textContent = Math.min(st.t, AXIS).toFixed(2) + ' s';
   $('armname').textContent = st.arm === 'padded' ? 'Padded only' : 'Padded + shaped';
-  $('armdesc').textContent = st.arm === 'padded' ? 'replies padded to the largest size' : 'each reply capped and released 14 s after its request';
+  $('armdesc').textContent = st.arm === 'padded' ? 'every request padded to 8 KB' : 'requests padded; each reply capped and released 14 s after its request';
   let pk = 0, up = 0, dn = 0;
   for (const tk of TASKS) {
     const r = trace(st.arm, tk.id); let a = 0, u = 0, d = 0, last = 0;
