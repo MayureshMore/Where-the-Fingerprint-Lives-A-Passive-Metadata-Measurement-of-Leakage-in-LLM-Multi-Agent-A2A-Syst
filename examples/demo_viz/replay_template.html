@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leakcheck Traffic Replay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a lab instrument readout, exact and calm
+   IDEA an engineering datasheet for one measurement: what the wire showed, what the tool concluded
+   PICTURE the testbed drawn live, real captured packets flying past a passive tap, plus a four-lane trace
+   COLOUR white, black, cobalt title strip, pale cobalt zones; one hue per task; red/amber/green verdicts
+   TYPE Space Grotesk 600 + Inter
+   LAYOUT strip title; diagram beside controls and counters; full-width lanes; table and verdict scale below; stacks under 860px */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0a0d18);--ink:light-dark(#0b0d12,#e8ecf7);--muted:light-dark(#4a5168,#9aa3bd);--zone:light-dark(#eef2ff,#121a33);--rule:light-dark(#d5dcf0,#26304f);--cob:light-dark(#1240e0,#6f8cff);--strip:light-dark(#1240e0,#13246b);--t-alert:light-dark(#6b7280,#a3abbd);--t-fault:light-dark(#1240e0,#7d97ff);--t-proc:light-dark(#00a86b,#2fd394);--t-sensor:light-dark(#d9561a,#ff9a5c);--leak:light-dark(#c62f25,#ff6b5e);--inc:light-dark(#a86c12,#f2b84b);--ok:light-dark(#007a52,#34d399)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:"Space Grotesk",Inter,sans-serif;font-weight:600;letter-spacing:-.02em;line-height:1.05;margin:0}
+.band{padding:clamp(22px,3.4vw,48px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+.strip{background:var(--strip);color:#fff}
+.strip h1{font-size:clamp(28px,4.2vw,46px);text-wrap:balance;max-width:24ch}
+.strip p{margin:12px 0 0;max-width:68ch;color:#dfe6ff}
+.stage{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;margin-top:20px}
+.panel{background:var(--zone);border:1px solid var(--rule);border-radius:6px;padding:14px}
+.fig{position:relative;min-height:360px}
+.fig>canvas{position:absolute;inset:0;width:100%;height:100%}
+#lanes{min-height:240px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px}
+button,select{font:500 15px Inter,sans-serif;min-height:44px;padding:0 14px;border-radius:6px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);cursor:pointer}
+button[aria-pressed=true]{background:var(--cob);border-color:var(--cob);color:#fff}
+button:focus-visible,select:focus-visible{outline:3px solid var(--cob);outline-offset:2px}
+label{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.clock{font:600 clamp(36px,5vw,52px)/1 "Space Grotesk",sans-serif;font-variant-numeric:tabular-nums;margin:14px 0 2px}
+.armname{font-weight:600}
+.count{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.count div{background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:8px 10px}
+.count b{display:block;font:600 22px "Space Grotesk",sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+.count span{font-size:13px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);margin:10px 0 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips button{min-height:36px;font-size:14px;padding:0 10px}
+.chips button[aria-pressed=true]{background:var(--bg);color:var(--ink);border:2px solid var(--ink)}
+.chips button[aria-pressed=false]{opacity:.55}
+.sw{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:0}
+h2{font-size:clamp(24px,3vw,32px);margin-bottom:6px}
+.sub{color:var(--muted);margin:0 0 14px;max-width:72ch}
+.two{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px;margin-top:18px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:8px 8px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+th{font-weight:600;font-size:13px;color:var(--muted)}
+th:first-child,td:first-child{text-align:left}
+thead tr:first-child th{border-bottom:0;padding-bottom:0}
+.flow{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.flow li{background:var(--zone);border:1px solid var(--rule);border-radius:6px;padding:10px 12px}
+.flow b{font-family:"Space Grotesk",sans-serif}
+.flow p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+.scale{margin-top:16px}
+.row{display:grid;grid-template-columns:minmax(0,15rem) minmax(0,1fr) 9.5rem;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--rule)}
+.row .lab{font-size:14px}
+.row .lab small{display:block;color:var(--muted);font-size:13px}
+.track{position:relative;height:30px}
+.track .ci{position:absolute;top:13px;height:4px;border-radius:2px}
+.track .pt{position:absolute;top:7px;width:16px;height:16px;border-radius:50%;margin-left:-8px;border:2px solid var(--bg)}
+.track .ln{position:absolute;top:-9px;bottom:-9px;width:0;border-left:1px dashed var(--muted)}
+.track .ln.th{border-left:2px solid var(--ink)}
+.verd{font:600 14px Inter,sans-serif;text-align:right;white-space:nowrap}
+.verd small{display:block;font-weight:400;color:var(--muted);font-size:13px}
+.axis{display:grid;grid-template-columns:minmax(0,15rem) minmax(0,1fr) 9.5rem;gap:12px;font-size:13px;color:var(--muted)}
+.axis div{position:relative;height:20px}
+.axis span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.cost{display:grid;grid-template-columns:repeat(auto-fit,minmax(12em,1fr));gap:10px;margin-top:18px}
+.cost div{border-top:3px solid var(--cob);padding-top:8px}
+.cost b{display:block;font:600 24px "Space Grotesk",sans-serif;white-space:nowrap}
+.cost span{font-size:14px;color:var(--muted)}
+footer{font-size:13px;color:var(--muted)}
+@media(max-width:860px){.stage,.two{grid-template-columns:minmax(0,1fr)}.fig{min-height:300px}}
+@media(max-width:600px){table{font-size:13px}th,td{padding:6px 4px}.row,.axis{grid-template-columns:minmax(0,1fr) 7.5rem}.pkc{display:none}.row .lab{grid-column:1/-1}.axis div:first-child{display:none}.count b{font-size:18px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header class="band strip"><div class="wrap">
+<h1>Padding hides how much the agents say. Only shaping hides how long they take.</h1>
+<p>Replay of eight captured sessions from the edge-to-cloud testbed, one per task, padded and shaped. The observer decrypts nothing: it records each packet's size, time and direction, and a2a-leakcheck decides whether that is enough to tell the tasks apart.</p>
+</div></header>
+
+<main class="band"><div class="wrap">
+<div class="stage">
+  <div class="panel fig" id="netbox" aria-label="Testbed diagram with packets replayed from captures"><canvas id="net"></canvas></div>
+  <div class="panel">
+    <div class="ctl" role="group" aria-label="Which capture to replay">
+      <button id="b-both" aria-pressed="true">Padded, then shaped</button>
+      <button id="b-padded" aria-pressed="false">Padded</button>
+      <button id="b-shaped" aria-pressed="false">Shaped</button>
+    </div>
+    <div class="ctl" style="margin-top:8px">
+      <button id="b-play">Pause</button>
+      <button id="b-restart">Restart</button>
+      <label for="speed">Speed <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+    </div>
+    <div class="clock" id="clock">0.00 s</div>
+    <div><span class="armname" id="armname">Padded only</span> <span id="armdesc" style="color:var(--muted)"></span></div>
+    <div class="count">
+      <div><b id="c-pk">0</b><span>packets seen</span></div>
+      <div><b id="c-up">0.0 KB</b><span>upstream</span></div>
+      <div><b id="c-dn">0.0 KB</b><span>downstream</span></div>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Tasks shown"></div>
+    <p class="note">Each session starts at its own t = 0; the four are overlaid. Dot size follows the packet's TCP payload; bare ACKs are the small rings.</p>
+  </div>
+</div>
+
+<div class="panel fig" id="lanebox" style="margin-top:18px" aria-label="Per-task packet timeline"><canvas id="lanes"></canvas></div>
+
+<div class="two">
+  <section>
+    <h2>What the observer can measure</h2>
+    <p class="sub">Filled in from the packets as they replay. Padding makes the replies about the same size; the finishing times still differ by task until shaping holds every reply to the same moment.</p>
+    <div class="scroll"><table id="tbl">
+      <thead><tr><th></th><th colspan="3" id="hp">Padded</th><th colspan="3" id="hs">Shaped</th></tr>
+      <tr><th>Task</th><th class="pkc">Packets</th><th>Down</th><th>Ends at</th><th class="pkc">Packets</th><th>Down</th><th>Ends at</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+  <section>
+    <h2>What the tool does with it</h2>
+    <ol class="flow">
+      <li><b>Capture headers only</b><p>Per flow: packet sizes, inter-arrival times, direction, burst counts. Payloads stay encrypted.</p></li>
+      <li><b>Learn the attribute</b><p>Gradient-boosted trees under grouped cross-validation, so no prompt appears in both training and test folds.</p></li>
+      <li><b>Test against chance</b><p>Cluster-bootstrap confidence interval on macro-F1 and a permutation test by prompt group.</p></li>
+      <li><b>Give a verdict</b><p>LEAK if the interval's lower end clears chance + 0.05 and p &le; 0.05. NO LEAK if its upper end stays at or below that line and p &gt; 0.05. Anything else is INCONCLUSIVE.</p></li>
+    </ol>
+  </section>
+</div>
+
+<section style="margin-top:34px">
+  <h2>Verdicts on the hardest pair: sensor analysis vs fault diagnosis</h2>
+  <p class="sub">Both tasks go to the same cloud agent, so only timing can separate them once replies are padded. Macro-F1 upstream or on the building network, with its 95% interval where one was reported; chance is 0.50. The solid line is chance + 0.05: an interval entirely right of it is a leak.</p>
+  <div class="scale" id="scale"></div>
+  <div class="cost">
+    <div><b>163.2 → 32.4 KB</b><span>traffic per escalated task, padded vs shaped (D3)</span></div>
+    <div><b>+7.4 to 10.8 s</b><span>added latency per escalated task (D3)</span></div>
+    <div><b>0.784</b><span>sensor vs fault, upstream, timing features alone, padded (C2)</span></div>
+    <div><b>exit 0</b><span>regression gate run with --baseline against the padded arm</span></div>
+  </div>
+</section>
+<footer style="margin-top:30px"><p>Replay of captured C2B1 traces (header-only sizes and timing). Edge gateway: Raspberry Pi 5, Llama 3.2 1B. Cloud agents diagnostics and knowledge: Llama 3.2 3B. Ticket service on the local network. Verdict numbers from the paper's runs (B1, pooled D3, pre-registered C2B1M).</p></footer>
+</div></main>
+
+<script>
+{
+const DATA = __DATA__;
+const TASKS = [
+  {id:'alert_triage', name:'Alert triage', short:'Alert', v:'--t-alert'},
+  {id:'fault_diagnosis', name:'Fault diagnosis', short:'Fault', v:'--t-fault'},
+  {id:'procedure_lookup', name:'Procedure lookup', short:'Proc.', v:'--t-proc'},
+  {id:'sensor_analysis', name:'Sensor analysis', short:'Sensor', v:'--t-sensor'}
+];
+const AG = {d:'diagnostics', k:'knowledge', t:'ticket'};
+const AXIS = 16, TRAVEL = 0.38;
+const trace = (arm, task) => DATA.find(x => x.arm === arm && x.task === task);
+const fin = {};
+for (const r of DATA) {
+  const p = r.p; let up = 0, dn = 0;
+  for (const x of p) { if (x[2]) up += x[3]; else dn += x[3]; }
+  fin[r.arm + r.task] = {pk:p.length, up, dn, end:p[p.length-1][0], req:(p.find(x => x[1] !== 't' && x[2]) || [null])[0]};
+}
+const st = {mode:'both', arm:'padded', t:0, play:true, speed:1, done:{padded:false, shaped:false}, show:new Set(TASKS.map(x=>x.id)), pause:0};
+const $ = id => document.getElementById(id);
+const probe = document.createElement('span'); probe.style.display = 'none'; document.body.appendChild(probe);
+let C = {};
+const readCols = () => {
+  const n = ['--bg','--ink','--muted','--zone','--rule','--cob','--leak','--inc','--ok', ...TASKS.map(x=>x.v)];
+  for (const k of n) { probe.style.color = 'var(' + k + ')'; C[k] = getComputedStyle(probe).color; }
+};
+readCols();
+new MutationObserver(readCols).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readCols); } catch (e) {}
+const taskCol = id => C[TASKS.find(x => x.id === id).v];
+
+const fitCanvas = cv => {
+  const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  if (cv.width !== Math.round(r.width*d) || cv.height !== Math.round(r.height*d)) { cv.width = Math.round(r.width*d); cv.height = Math.round(r.height*d); }
+  const g = cv.getContext('2d'); g.setTransform(d,0,0,d,0,0); return [g, r.width, r.height];
+};
+const lbl = (g, s, x, y, col, font, align) => {
+  g.font = font; g.textAlign = align || 'left'; g.textBaseline = 'middle';
+  g.lineWidth = 4; g.strokeStyle = C['--zone']; g.strokeText(s, x, y); g.fillStyle = col; g.fillText(s, x, y);
+};
+const box = (g, x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
+
+const geo = (W, H) => {
+  const narrow = W < 520;
+  const gw = {x: W*0.13, y: H*0.52}, tap = {x: W*(narrow?0.36:0.35), y: H*0.52}, j = {x: W*0.55, y: H*0.52};
+  const tx = W*0.84;
+  const nodes = {d:{x:tx, y:H*0.2}, k:{x:tx, y:H*0.5}, t:{x:tx, y:H*0.8}};
+  return {narrow, gw, tap, j, nodes};
+};
+const along = (pts, f) => {
+  let L = 0; const seg = [];
+  for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i].x-pts[i-1].x, pts[i].y-pts[i-1].y); seg.push(d); L += d; }
+  let s = f*L;
+  for (let i = 0; i < seg.length; i++) { if (s <= seg[i]) { const q = s/seg[i]; return {x:pts[i].x+(pts[i+1].x-pts[i].x)*q, y:pts[i].y+(pts[i+1].y-pts[i].y)*q}; } s -= seg[i]; }
+  return pts[pts.length-1];
+};
+
+const drawNet = () => {
+  const [g, W, H] = fitCanvas($('net'));
+  const G = geo(W, H); g.clearRect(0, 0, W, H); const oy = G.narrow ? H*0.7 : H*0.84;
+  const path = a => [G.gw, G.tap, G.j, {x:G.j.x+ (G.nodes[a].x-G.j.x)*0.25, y:G.nodes[a].y}, G.nodes[a]];
+  g.strokeStyle = C['--rule']; g.lineWidth = 3; g.lineJoin = 'round';
+  for (const a of ['d','k','t']) { const p = path(a); g.beginPath(); g.moveTo(p[0].x, p[0].y); for (const q of p.slice(1)) g.lineTo(q.x, q.y); g.stroke(); }
+  // observer tap
+  g.setLineDash([4,4]); g.strokeStyle = C['--muted']; g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(G.tap.x, G.tap.y); g.lineTo(G.tap.x, oy); g.stroke(); g.setLineDash([]);
+  g.fillStyle = C['--ink']; g.beginPath(); g.arc(G.tap.x, G.tap.y, 6, 0, 7); g.fill();
+  box(g, G.tap.x-(G.narrow?52:66), oy, G.narrow?104:132, 34, 6); g.fillStyle = C['--bg']; g.fill(); g.strokeStyle = C['--ink']; g.lineWidth = 1.5; g.stroke();
+  lbl(g, 'Passive observer', G.tap.x, oy+17, C['--ink'], '600 '+(G.narrow?12:14)+'px Inter', 'center');
+  lbl(g, 'sizes · timing · direction', G.tap.x, oy+48, C['--muted'], (G.narrow?12:13)+'px Inter', 'center');
+  // packets
+  const seen = {d:0, k:0, t:0}, hold = [];
+  for (const tk of TASKS) {
+    if (!st.show.has(tk.id)) continue;
+    const r = trace(st.arm, tk.id); if (!r) continue; const col = taskCol(tk.id);
+    for (const x of r.p) {
+      if (x[0] > st.t) break;
+      const age = st.t - x[0];
+      if (age < 0.25) seen[x[1]] = Math.max(seen[x[1]], 1 - age/0.25);
+      if (age > TRAVEL) continue;
+      const f = age/TRAVEL, pt = along(path(x[1]), x[2] ? f : 1-f);
+      const rad = x[3] ? 2 + Math.sqrt(x[3])/7 : 2.2;
+      g.beginPath(); g.arc(pt.x, pt.y, rad, 0, 7);
+      if (x[3]) { g.globalAlpha = 0.85; g.fillStyle = col; g.fill(); g.globalAlpha = 1; }
+      else { g.strokeStyle = col; g.lineWidth = 1.2; g.stroke(); }
+    }
+    const fi = fin[st.arm+tk.id];
+    if (st.arm === 'shaped' && r.role && fi.req != null && st.t > fi.req && st.t < fi.req + 14) hold.push({a:r.role[0], f:(st.t-fi.req)/14, col});
+  }
+  // nodes
+  const nw = G.narrow ? 92 : 150, nh = 46;
+  const nodeBox = (c, title, sub, glow) => {
+    box(g, c.x-nw/2, c.y-nh/2, nw, nh, 6); g.fillStyle = C['--bg']; g.fill();
+    g.lineWidth = 1.5 + glow*2.5; g.strokeStyle = glow > 0.05 ? C['--cob'] : C['--rule']; g.stroke();
+    lbl(g, title, c.x, c.y-(sub?8:0), C['--ink'], '600 '+(G.narrow?12:14)+'px Inter', 'center');
+    if (sub) lbl(g, sub, c.x, c.y+11, C['--muted'], (G.narrow?11:12)+'px Inter', 'center');
+  };
+  nodeBox(G.gw, G.narrow ? 'Edge' : 'Edge gateway', G.narrow ? 'Pi 5' : 'Pi 5 · Llama 1B', 0);
+  nodeBox(G.nodes.d, 'diagnostics', G.narrow ? 'cloud' : 'cloud · Llama 3B', seen.d);
+  nodeBox(G.nodes.k, 'knowledge', G.narrow ? 'cloud' : 'cloud · Llama 3B', seen.k);
+  nodeBox(G.nodes.t, G.narrow ? 'tickets' : 'ticket service', 'local network', seen.t);
+  hold.forEach((h, i) => {
+    const c = G.nodes[h.a], cx = c.x - nw/2 - 16 - i*14, cy = c.y;
+    g.strokeStyle = C['--rule']; g.lineWidth = 4; g.beginPath(); g.arc(cx, cy, 10, 0, 7); g.stroke();
+    g.strokeStyle = h.col; g.beginPath(); g.arc(cx, cy, 10, -Math.PI/2, -Math.PI/2 + h.f*2*Math.PI); g.stroke();
+  });
+  if (hold.length && !G.narrow) { const a = hold[0].a; lbl(g, 'reply held until 14 s', G.nodes[a].x, G.nodes[a].y - nh/2 - 12, C['--ink'], '600 13px Inter', 'center'); }
+  lbl(g, st.arm === 'padded' ? 'Padded only' : 'Padded + shaped', 14, 18, C['--ink'], '600 14px Inter');
+};
+
+const drawLanes = () => {
+  const [g, W, H] = fitCanvas($('lanes'));
+  g.clearRect(0, 0, W, H);
+  const narrow = W < 520, L = narrow ? 58 : 132, R = narrow ? 44 : 64, top = 10, bot = 26;
+  const lh = (H - top - bot)/4, X = s => L + (s/AXIS)*(W - L - R);
+  g.font = '13px Inter'; g.fillStyle = C['--muted']; g.textAlign = 'center'; g.textBaseline = 'top';
+  for (let s = 0; s <= AXIS; s += (narrow ? 4 : 2)) { g.fillStyle = C['--muted']; g.fillText(s + ' s', X(s), H - bot + 8); g.fillStyle = C['--rule']; g.fillRect(X(s), top, 1, H - top - bot); }
+  const other = st.arm === 'padded' ? 'shaped' : 'padded';
+  TASKS.forEach((tk, i) => {
+    const y0 = top + i*lh, mid = y0 + lh/2, col = taskCol(tk.id), on = st.show.has(tk.id);
+    g.fillStyle = C['--rule']; g.fillRect(L, mid, W - L - R, 1);
+    lbl(g, narrow ? tk.short : tk.name, 4, mid - 8, on ? C['--ink'] : C['--muted'], '600 13px Inter');
+    if (!narrow) lbl(g, '▲ up  ▼ down', 4, mid + 10, C['--muted'], '12px Inter');
+    if (st.done[other]) { const e = fin[other+tk.id].end; g.setLineDash([3,3]); g.strokeStyle = C['--muted']; g.lineWidth = 1; g.beginPath(); g.moveTo(X(e), y0+6); g.lineTo(X(e), y0+lh-6); g.stroke(); g.setLineDash([]); }
+    if (!on) return;
+    const r = trace(st.arm, tk.id), amp = lh*0.42; g.fillStyle = col;
+    for (const x of r.p) {
+      if (x[0] > st.t) break;
+      const h = x[3] ? Math.max(2, Math.sqrt(x[3]/1448)*amp) : 1.5;
+      g.fillRect(X(x[0]) - 0.75, x[2] ? mid - h : mid + 1, 1.5, h);
+    }
+    const e = fin[st.arm+tk.id].end;
+    if (st.t >= e) lbl(g, e.toFixed(1) + ' s', Math.min(X(e) + 6, W - R + 4), mid - lh*0.3, col, '600 13px Inter');
+  });
+  g.fillStyle = C['--ink']; g.fillRect(X(Math.min(st.t, AXIS)), top, 2, H - top - bot);
+  if (st.done.padded && st.arm === 'shaped' && !narrow) lbl(g, 'dashed: where the padded run ended', W - R, H - bot - 6, C['--muted'], '12px Inter', 'right');
+};
+
+const kb = b => (b/1000).toFixed(1) + ' KB';
+const tbody = document.querySelector('#tbl tbody');
+tbody.innerHTML = TASKS.map(tk => '<tr><td><span class="sw" style="background:var(' + tk.v + ')"></span>' + tk.name + '</td>' + ['padded','shaped'].map(a => '<td class="pkc" id="' + a + '-' + tk.id + '-pk">–</td><td id="' + a + '-' + tk.id + '-dn">–</td><td id="' + a + '-' + tk.id + '-e">–</td>').join('') + '</tr>').join('');
+const updText = () => {
+  $('clock').textContent = Math.min(st.t, AXIS).toFixed(2) + ' s';
+  $('armname').textContent = st.arm === 'padded' ? 'Padded only' : 'Padded + shaped';
+  $('armdesc').textContent = st.arm === 'padded' ? 'replies padded to the largest size' : 'each reply capped and released 14 s after its request';
+  let pk = 0, up = 0, dn = 0;
+  for (const tk of TASKS) {
+    const r = trace(st.arm, tk.id); let a = 0, u = 0, d = 0, last = 0;
+    for (const x of r.p) { if (x[0] > st.t) break; a++; if (x[2]) u += x[3]; else d += x[3]; last = x[0]; }
+    if (st.show.has(tk.id)) { pk += a; up += u; dn += d; }
+    const e = fin[st.arm+tk.id].end, done = st.t >= e;
+    $(st.arm+'-'+tk.id+'-pk').textContent = a ? a : '–';
+    $(st.arm+'-'+tk.id+'-dn').textContent = a ? kb(d) : '–';
+    $(st.arm+'-'+tk.id+'-e').textContent = done ? e.toFixed(2) + ' s' : (a ? '…' : '–');
+  }
+  $('c-pk').textContent = pk; $('c-up').textContent = kb(up); $('c-dn').textContent = kb(dn);
+};
+const maxEnd = arm => Math.max(...TASKS.map(tk => fin[arm+tk.id].end));
+
+$('chips').innerHTML = TASKS.map(tk => '<button id="chip-' + tk.id + '" aria-pressed="true"><span class="sw" style="background:var(' + tk.v + ')"></span>' + tk.name + '</button>').join('');
+TASKS.forEach(tk => $('chip-' + tk.id).addEventListener('click', e => {
+  if (st.show.has(tk.id)) st.show.delete(tk.id); else st.show.add(tk.id);
+  e.currentTarget.setAttribute('aria-pressed', st.show.has(tk.id)); frame(0);
+}));
+const setMode = m => {
+  st.mode = m; st.arm = m === 'shaped' ? 'shaped' : 'padded'; st.t = 0; st.play = true; st.pause = 0;
+  if (m !== 'shaped') st.done = {padded:false, shaped:st.done.shaped && m === 'padded'};
+  for (const k of ['both','padded','shaped']) $('b-' + k).setAttribute('aria-pressed', k === m);
+  $('b-play').textContent = 'Pause';
+};
+$('b-both').addEventListener('click', () => { st.done = {padded:false, shaped:false}; setMode('both'); });
+$('b-padded').addEventListener('click', () => setMode('padded'));
+$('b-shaped').addEventListener('click', () => setMode('shaped'));
+$('b-restart').addEventListener('click', () => setMode(st.mode));
+$('b-play').addEventListener('click', () => { st.play = !st.play; $('b-play').textContent = st.play ? 'Pause' : 'Play'; });
+$('speed').addEventListener('change', e => { st.speed = +e.target.value; });
+
+let last = performance.now();
+const frame = dt => {
+  if (st.play) {
+    if (st.pause > 0) st.pause -= dt;
+    else {
+      st.t += dt*st.speed;
+      if (st.t > maxEnd(st.arm) + TRAVEL + 0.2) {
+        st.done[st.arm] = true; st.t = maxEnd(st.arm) + TRAVEL + 0.2;
+        if (st.mode === 'both' && st.arm === 'padded') { st.arm = 'shaped'; st.t = 0; st.pause = 1.5; }
+        else { st.play = false; $('b-play').textContent = 'Play'; }
+      }
+    }
+  }
+  drawNet(); drawLanes(); updText();
+};
+const loop = now => { const dt = Math.min(0.1, (now - last)/1000); last = now; frame(dt); requestAnimationFrame(loop); };
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) { st.play = false; $('b-play').textContent = 'Play'; }
+requestAnimationFrame(loop);
+
+// verdict scale
+const LO = 0.40, HI = 0.80, P = v => ((v - LO)/(HI - LO)*100).toFixed(2) + '%';
+const V = [
+  {l:'B1, padded only', s:'upstream (V2)', a:0.628, v:'LEAK'},
+  {l:'B1, shaped', s:'upstream (V2)', a:0.532, v:'INCONCLUSIVE'},
+  {l:'Pooled shaped sessions (D3)', s:'upstream (V2), p = 0.26', a:0.514, ci:[0.485,0.540], v:'NO LEAK'},
+  {l:'Pooled shaped sessions (D3)', s:'building network (V1)', a:0.544, v:'INCONCLUSIVE'},
+  {l:'Held-out replication, padded control', s:'pre-registered (C2B1M), V2', a:0.672, ci:[0.630,0.712], v:'LEAK'},
+  {l:'Held-out replication, shaped', s:'pre-registered (C2B1M), V2, p = 0.050', a:0.520, ci:[0.494,0.547], v:'INCONCLUSIVE'}
+];
+const vc = v => v === 'LEAK' ? 'var(--leak)' : v === 'NO LEAK' ? 'var(--ok)' : 'var(--inc)';
+$('scale').innerHTML = V.map(r => '<div class="row"><div class="lab">' + r.l + '<small>' + r.s + '</small></div><div class="track">' +
+  '<div class="ln" style="left:' + P(0.5) + '"></div><div class="ln th" style="left:' + P(0.55) + '"></div>' +
+  (r.ci ? '<div class="ci" style="left:' + P(r.ci[0]) + ';width:calc(' + P(r.ci[1]) + ' - ' + P(r.ci[0]) + ');background:' + vc(r.v) + '"></div>' : '') +
+  '<div class="pt" style="left:' + P(r.a) + ';background:' + vc(r.v) + '"></div></div>' +
+  '<div class="verd" style="color:' + vc(r.v) + '">' + r.v + '<small>' + r.a.toFixed(3) + (r.ci ? ' [' + r.ci[0].toFixed(3) + ', ' + r.ci[1].toFixed(3) + ']' : '') + '</small></div></div>').join('') +
+  '<div class="axis"><div></div><div>' + [0.4,0.5,0.6,0.7,0.8].map(v => '<span style="left:' + P(v) + '">' + (v === 0.5 ? 'chance 0.50' : v.toFixed(1)) + '</span>').join('') + '</div><div></div></div>';
+}
+</script>
+</body>
+</html>
