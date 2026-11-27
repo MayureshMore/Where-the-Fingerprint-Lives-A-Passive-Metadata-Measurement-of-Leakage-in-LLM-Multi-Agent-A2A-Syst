@@ -1,0 +1,274 @@
+{
+  "tool": "a2a-leakcheck",
+  "version": "0.3.1",
+  "created": "2026-11-26T20:01:21-0800",
+  "git_commit": "37e568015125df383cb2c7ff5080f40aa4f73e11",
+  "git_dirty": false,
+  "input": {
+    "folder": "data/subsets/c2b2_lan_padmax_escalated_only",
+    "features": "data/features_audits/c2b2_lan_padmax_v2_escalated_only_timing",
+    "label": "C2B2 lan_padmax, view v2, escalated_only, timing alone",
+    "vantage": "v2"
+  },
+  "parameters": {
+    "attributes": [
+      "task_type"
+    ],
+    "role_within": [],
+    "margin": 0.05,
+    "folds": 5,
+    "n_boot": 1000,
+    "permutations": 99,
+    "alpha": 0.05,
+    "min_per_class": 20,
+    "seed": 42,
+    "model": "gbt",
+    "null_model": "rf-light",
+    "jobs": -1,
+    "perm_unit": "group",
+    "perm_max": 0,
+    "perm_window": [
+      0.02,
+      0.2
+    ],
+    "match_margin": 0.05,
+    "rules": "default",
+    "strip": true,
+    "legacy_all_connections": false,
+    "keep_retransmissions": false
+  },
+  "collection": {
+    "folder": "data/subsets/c2b2_lan_padmax_escalated_only",
+    "vantage": "v2",
+    "pcaps": 750,
+    "traces": 750,
+    "skipped": [],
+    "stripped_copies": 750,
+    "other_host_packets": {
+      "captures": 0,
+      "packets": 0,
+      "endpoints": {}
+    },
+    "group_source": {
+      "prompt_group": 750
+    },
+    "visible_agents": {
+      "edge_cloud": {
+        "traces": 750,
+        "roles": {
+          "diagnostics": 500,
+          "knowledge": 250
+        },
+        "never_seen": []
+      }
+    }
+  },
+  "extraction": {
+    "schema_version": 1,
+    "traces": 750,
+    "failed": [],
+    "role_samples": 750,
+    "empty_traces": 0,
+    "empty_expected_silent": 0,
+    "empty_unexpected": 0,
+    "empty_unexpected_runs": [],
+    "trace_dims": 195,
+    "role_dims": 35,
+    "measurement": "own connections: only TCP connections whose SYN is in the capture",
+    "retransmissions": "dropped: every payload byte counted once (TCP sequence numbers)",
+    "first_request": "Bytes of the first request message that reaches an agent, in TCP sequence space (each byte once; IP and TCP headers only): on each agent link the trace opened, after the TLS handshake (the client's bytes before the server's first data are the ClientHello, its next segment of at most 100 B the Finished), a request runs from the end of the previous one to the acknowledgment number of the first server data segment that acknowledges every client byte seen so far and that the client has received before it sends its next byte (its next data segment acknowledges it). A server answers only once it holds the whole request, and the client sends nothing more until it has the answer; a record the server sends mid-request (a TLS session ticket) acknowledges less than the client has sent, or the client goes on with the request without having received it. Per link the first request of at least 300 B; of those, the one that starts earliest."
+  },
+  "attributes": {
+    "task_type": {
+      "classes": [
+        "fault_diagnosis",
+        "procedure_lookup",
+        "sensor_analysis"
+      ],
+      "n": 750,
+      "n_groups": 750,
+      "chance": 0.3333333333333333,
+      "margin": 0.05,
+      "threshold": 0.3833333333333333,
+      "validation": {
+        "min_samples": {
+          "ok": true,
+          "problems": [],
+          "min_per_class": 20,
+          "per_class": {
+            "fault_diagnosis": 250,
+            "procedure_lookup": 250,
+            "sensor_analysis": 250
+          },
+          "groups_per_class": {
+            "fault_diagnosis": 250,
+            "procedure_lookup": 250,
+            "sensor_analysis": 250
+          }
+        },
+        "permutation": {
+          "permutations": 99,
+          "alpha": 0.05,
+          "null_model": "rf-light",
+          "unit": "group",
+          "groups": {
+            "groups": 750,
+            "within_groups": 0
+          },
+          "permutations_run": 99,
+          "observed_macro_f1": 0.7770818052335166,
+          "p_value": 0.01,
+          "null_mean": 0.3293476525679043,
+          "null_max": 0.37217846133988974,
+          "null_verdicts": {
+            "LEAK": 0,
+            "NO LEAK": 85,
+            "INCONCLUSIVE": 14
+          },
+          "false_positive_rate": 0.0
+        }
+      },
+      "analysis": {
+        "macro_f1": 0.7448672565427713,
+        "ci_lo": 0.7177965879429866,
+        "ci_hi": 0.7740513993776381,
+        "accuracy": 0.7453333333333333,
+        "model": "gbt",
+        "folds": 5
+      },
+      "verdict": "LEAK",
+      "reason": "CI lower bound 0.718 > chance + margin 0.383",
+      "prioritization": {
+        "effect_size": 0.6173008848141569,
+        "severity": "high"
+      },
+      "attribution": {
+        "match_rule": {
+          "match_margin": 0.05,
+          "matches_all": "upper bound of the paired 95% CI of all \u2212 this <= match_margin",
+          "no_detected_deficit": "lower bound of that CI <= 0 (0.1.x's matches_all)"
+        },
+        "families": {
+          "sizes": {
+            "macro_f1": 0.16666666666666666,
+            "ci_lo": 0.15383299110198495,
+            "ci_hi": 0.1793372319688109,
+            "accuracy": 0.3333333333333333,
+            "dims": 139,
+            "all_minus_this": {
+              "diff": 0.5782005898761047,
+              "ci_lo": 0.5487533892541556,
+              "ci_hi": 0.6089541148944193,
+              "significant": true
+            },
+            "matches_all": false,
+            "no_detected_deficit": false
+          },
+          "timing": {
+            "macro_f1": 0.7448672565427713,
+            "ci_lo": 0.7177965879429866,
+            "ci_hi": 0.7740513993776381,
+            "accuracy": 0.7453333333333333,
+            "dims": 30,
+            "all_minus_this": {
+              "diff": 0.0,
+              "ci_lo": 0.0,
+              "ci_hi": 0.0,
+              "significant": false
+            },
+            "matches_all": true,
+            "no_detected_deficit": true
+          },
+          "counts_direction": {
+            "macro_f1": 0.16666666666666666,
+            "ci_lo": 0.15383299110198495,
+            "ci_hi": 0.1793372319688109,
+            "accuracy": 0.3333333333333333,
+            "dims": 26,
+            "all_minus_this": {
+              "diff": 0.5782005898761047,
+              "ci_lo": 0.5487533892541556,
+              "ci_hi": 0.6089541148944193,
+              "significant": true
+            },
+            "matches_all": false,
+            "no_detected_deficit": false
+          }
+        },
+        "top_family": "timing",
+        "top_family_matches_all": true,
+        "top_family_no_detected_deficit": true,
+        "single_request_size": {
+          "feature": "first_request_bytes",
+          "macro_f1": 0.16666666666666666,
+          "ci_lo": 0.15383299110198495,
+          "ci_hi": 0.1793372319688109,
+          "accuracy": 0.3333333333333333,
+          "all_minus_this": {
+            "diff": 0.5782005898761047,
+            "ci_lo": 0.5487533892541556,
+            "ci_hi": 0.6089541148944193,
+            "significant": true
+          },
+          "matches_all": false,
+          "no_detected_deficit": false
+        }
+      },
+      "mitigations": [
+        {
+          "id": "padding-not-enough-timing",
+          "hint": "The requests are padded, yet the attribute still leaks and timing carries it: padding is not enough. Shape the response timing as well (replies at a fixed rate or in batches, delays that do not follow the work done), then re-run the audit."
+        }
+      ]
+    }
+  },
+  "summary": {
+    "LEAK": [
+      "task_type"
+    ],
+    "NO LEAK": [],
+    "INCONCLUSIVE": []
+  },
+  "status": {
+    "audit_completed": true,
+    "verdicts": {
+      "LEAK": 1,
+      "NO LEAK": 0,
+      "INCONCLUSIVE": 0
+    },
+    "release_policy": {
+      "configured": false,
+      "checks": {
+        "baseline": null,
+        "fail_on_leak": false,
+        "strict": false,
+        "require": []
+      },
+      "satisfied": true,
+      "failures": [],
+      "exit_code": 0
+    },
+    "for_review": []
+  },
+  "runtime": {
+    "total_s": 37.98288029199466,
+    "stages_s": {
+      "features": 0.0026493340265005827,
+      "analysis": 37.927096042083576
+    },
+    "analysis_by_attribute_s": {
+      "task_type": 37.67599133308977
+    },
+    "peak_rss_by_stage_mb": {
+      "analysis:task_type": {
+        "main_mb": 210.828125,
+        "worker_mb": 277.1875
+      }
+    },
+    "peak_rss_mb": 210.828125,
+    "peak_rss_children_mb": 277.1875,
+    "workers": 14,
+    "python": "3.12.1",
+    "platform": "macOS-27.0.1-arm64-arm-64bit"
+  }
+}

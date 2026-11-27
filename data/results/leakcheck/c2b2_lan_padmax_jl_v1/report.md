@@ -1,0 +1,135 @@
+# Leak check: C2B2 lan_padmax_jl, view v1
+
+1000 traces from 1000 captures in `data/raw_c2b2_padmax_jl` (0 skipped, 1000 analysed as stripped copies). a2a-leakcheck 0.3.1, 2026-11-26T20:05:19-0800.
+
+**Audit completed**: 4 attributes, 3 LEAK, 0 NO LEAK, 1 INCONCLUSIVE.
+
+**Release policy satisfied** (baseline); exit 0.
+
+**For review**: audit_null (INCONCLUSIVE).
+
+Vantage `v1`: only the flows of the endpoints this observer sees (the sidecars' `vantages`). 0 of 1000 traces show no flow there (0 expected: not escalated, per the sidecar, and this view sees only cloud agents; 0 unexpectedly empty); they stay in the analysis with all-zero features, since seeing nothing is what this observer sees for them.
+
+Verdict: LEAK if the 95% CI lower bound of macro-F1 is above chance + 0.05; NO LEAK if the upper bound is at most chance + 0.05; INCONCLUSIVE otherwise, or when the minimum-sample check fails, or when a LEAK fails the label-permutation test (p > 0.05, 99 permutations scored with RF-LIGHT). 5-fold grouped CV, GBT, 1000 cluster-bootstrap resamples, seed 42.
+
+Visible agents per topology: traces in which each agent listed in `agent_endpoints` carries traffic. An agent never seen gives no role samples.
+
+| Topology | Traces | diagnostics | knowledge | ticket |
+|---|---|---|---|---|
+| edge_cloud | 1000 | 500 | 250 | 1000 |
+
+| Attribute | Verdict | Severity | macro-F1 [95% CI] | Chance + margin | Permutation p | False positives on permuted labels | Leak carried by |
+|---|---|---|---|---|---|---|---|
+| task_type | **LEAK** | high | 0.863 [0.843, 0.882] | 0.300 | 0.010 | 0.00 | timing (alone matches all) |
+| escalated | **LEAK** | high | 1.000 [1.000, 1.000] | 0.550 | 0.010 | 0.00 | first_request_bytes alone |
+| cloud_role | **LEAK** | high | 0.998 [0.995, 1.000] | 0.550 | 0.010 | 0.00 | timing (alone matches all) |
+| audit_null | **INCONCLUSIVE** | none | 0.282 [0.254, 0.309] | 0.300 | 0.080 | 0.00 | — |
+
+## task_type
+
+**LEAK**: CI lower bound 0.843 > chance + margin 0.300.
+
+1000 samples in 1000 groups; classes alert_triage 250, fault_diagnosis 250, procedure_lookup 250, sensor_analysis 250.
+
+| Features | Dims | macro-F1 [95% CI] | All − this | Matches all |
+|---|---|---|---|---|
+| all | 195 | 0.863 [0.843, 0.882] | — | — |
+| sizes only | 139 | 0.828 [0.808, 0.849] | +0.035 [+0.015, +0.056] | no |
+| timing only | 30 | 0.846 [0.826, 0.866] | +0.017 [-0.003, +0.036] | yes |
+| counts and direction only | 26 | 0.531 [0.503, 0.555] | +0.332 [+0.302, +0.365] | no |
+| first_request_bytes only | 1 | 0.375 [0.366, 0.385] | +0.488 [+0.465, +0.509] | no |
+
+A feature set matches all features when the upper bound of all − this is at most 0.05 (it is shown to be no more than that below all features).
+
+Effect size 0.82 (share of the way from chance to perfect); severity high.
+
+Permutation test (rf-light, 99 permutations, labels permuted by prompt group (1000 groups): macro-F1 0.871 on the real labels): p = 0.010; permuted-label macro-F1 mean 0.248, max 0.291; verdicts on permuted labels: 0 LEAK, 92 NO LEAK, 7 INCONCLUSIVE.
+
+- **padding-not-enough-timing**: The requests are padded, yet the attribute still leaks and timing carries it: padding is not enough. Shape the response timing as well (replies at a fixed rate or in batches, delays that do not follow the work done), then re-run the audit.
+
+- **pad-local-posts**: This view also sees requests that are not padded, such as posts to a local service (in C2, the ticket service on the building network). Pad posts to local services too, then re-run the audit; the audit of a view without them shows what they add.
+
+## escalated
+
+**LEAK**: CI lower bound 1.000 > chance + margin 0.550.
+
+1000 samples in 1000 groups; classes no 250, yes 750.
+
+| Features | Dims | macro-F1 [95% CI] | All − this | Matches all |
+|---|---|---|---|---|
+| all | 195 | 1.000 [1.000, 1.000] | — | — |
+| sizes only | 139 | 0.999 [0.996, 1.000] | +0.001 [+0.000, +0.004] | yes |
+| timing only | 30 | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] | yes |
+| counts and direction only | 26 | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] | yes |
+| first_request_bytes only | 1 | 1.000 [1.000, 1.000] | +0.000 [+0.000, +0.000] | yes |
+
+A feature set matches all features when the upper bound of all − this is at most 0.05 (it is shown to be no more than that below all features).
+
+Effect size 1.00 (share of the way from chance to perfect); severity high.
+
+Permutation test (rf-light, 99 permutations, labels permuted by prompt group (1000 groups): macro-F1 1.000 on the real labels): p = 0.010; permuted-label macro-F1 mean 0.497, max 0.544; verdicts on permuted labels: 0 LEAK, 86 NO LEAK, 13 INCONCLUSIVE.
+
+- **hide-escalation**: Whether the edge called the cloud is visible from the connections themselves, and padding cannot hide a call that did or did not happen. Make every task look alike upstream: dummy cloud calls at a fixed rate (cover traffic), or send every task to the cloud. Then re-run the audit.
+
+## cloud_role
+
+**LEAK**: CI lower bound 0.995 > chance + margin 0.550.
+
+750 samples in 750 groups; classes diagnostics 500, knowledge 250.
+
+| Features | Dims | macro-F1 [95% CI] | All − this | Matches all |
+|---|---|---|---|---|
+| all | 195 | 0.998 [0.995, 1.000] | — | — |
+| sizes only | 139 | 0.985 [0.975, 0.993] | +0.013 [+0.005, +0.024] | yes |
+| timing only | 30 | 0.998 [0.995, 1.000] | +0.000 [+0.000, +0.000] | yes |
+| counts and direction only | 26 | 0.574 [0.537, 0.611] | +0.424 [+0.388, +0.461] | no |
+| first_request_bytes only | 1 | 0.400 [0.388, 0.411] | +0.598 [+0.586, +0.611] | no |
+
+A feature set matches all features when the upper bound of all − this is at most 0.05 (it is shown to be no more than that below all features).
+
+Effect size 1.00 (share of the way from chance to perfect); severity high.
+
+Permutation test (rf-light, 99 permutations, labels permuted by prompt group (750 groups): macro-F1 0.997 on the real labels): p = 0.010; permuted-label macro-F1 mean 0.500, max 0.551; verdicts on permuted labels: 0 LEAK, 74 NO LEAK, 25 INCONCLUSIVE.
+
+- **one-cloud-front-end**: Each cloud agent has its own address and TLS server name, which tell an observer which agent served the task whatever the traffic's shape (this audit scores the shape alone). Put the cloud agents behind one front end, one address and server name, then re-run the audit to see whether the shape still gives the agent away.
+
+## audit_null
+
+**INCONCLUSIVE**: CI [0.254, 0.309] straddles chance + margin 0.300.
+
+1000 samples in 1000 groups; classes a 249, b 244, c 248, d 259.
+
+| Features | Dims | macro-F1 [95% CI] | All − this | Matches all |
+|---|---|---|---|---|
+| all | 195 | 0.282 [0.254, 0.309] | — | — |
+| sizes only | 139 | 0.277 [0.251, 0.306] | +0.005 [-0.022, +0.032] | yes |
+| timing only | 30 | 0.273 [0.245, 0.300] | +0.009 [-0.023, +0.044] | yes |
+| counts and direction only | 26 | 0.236 [0.209, 0.261] | +0.046 [+0.010, +0.081] | no |
+| first_request_bytes only | 1 | 0.221 [0.197, 0.248] | +0.061 [+0.024, +0.097] | no |
+
+A feature set matches all features when the upper bound of all − this is at most 0.05 (it is shown to be no more than that below all features).
+
+Effect size 0.04 (share of the way from chance to perfect); severity none.
+
+Permutation test (rf-light, 99 permutations, labels permuted by prompt group (1000 groups): macro-F1 0.274 on the real labels): p = 0.080; permuted-label macro-F1 mean 0.252, max 0.304; verdicts on permuted labels: 0 LEAK, 92 NO LEAK, 7 INCONCLUSIVE.
+
+- **inconclusive**: The interval straddles chance + margin: more traces will narrow it. Re-run before treating this attribute as safe.
+
+## Against the baseline
+
+Baseline: `data/results/leakcheck/c2b2_lan_padmax_v1/report.json`.
+
+- audit_null: NO LEAK → INCONCLUSIVE
+
+## Runtime
+
+236.5 s in all (collection 2.2 s, extraction 35.7 s, analysis 198.5 s); peak memory 314 MB in the main process, up to 321 MB in each of 14 worker processes.
+
+| Stage | Time (s) | Peak so far, main (MB) | Peak so far, one worker (MB) |
+|---|---|---|---|
+| collection | 2.2 | 173 | — |
+| extraction | 35.7 | 251 | — |
+| analysis:task_type | 54.2 | 304 | 311 |
+| analysis:escalated | 41.3 | 309 | 311 |
+| analysis:cloud_role | 38.1 | 314 | 311 |
+| analysis:audit_null | 63.9 | 314 | 321 |

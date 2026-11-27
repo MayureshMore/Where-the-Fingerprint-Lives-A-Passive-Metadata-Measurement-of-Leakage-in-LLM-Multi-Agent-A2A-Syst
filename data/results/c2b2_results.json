@@ -1,0 +1,182 @@
+{
+ "paper": "P2",
+ "round": 2,
+ "collection_id": "C2B2",
+ "purpose": "C2B2's registered results for the paper",
+ "git_commit": "7940f4745c37e43c0f45d2ee92c8db56c0aed8b3",
+ "git_dirty": false,
+ "created": "2026-11-27T00:36:31-0800",
+ "analysis_commit": "37e568015125df383cb2c7ff5080f40aa4f73e11",
+ "sources": {
+  "audits": "data/results/c2b2_audits.json",
+  "manipulation": "data/results/c2b2_manipulation.json",
+  "reorder": "data/raw_c2b2_padmax_jl/reorder_check.json"
+ },
+ "primary": {
+  "control": {
+   "run": "c2b2_lan_padmax_v2_pair_timing",
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v2_pair_timing/report.json",
+   "verdict": "LEAK",
+   "macro_f1": 0.6559779825908858,
+   "ci": [
+    0.6119751664106503,
+    0.6989286473385657
+   ],
+   "p": 0.01,
+   "n": 500,
+   "classes": [
+    "fault_diagnosis",
+    "sensor_analysis"
+   ]
+  },
+  "treatment": {
+   "run": "c2b2_lan_padmax_jl_v2_pair_timing",
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v2_pair_timing/report.json",
+   "verdict": "LEAK",
+   "macro_f1": 0.6817848865833303,
+   "ci": [
+    0.6379064635245609,
+    0.7180163818306814
+   ],
+   "p": 0.01,
+   "n": 500,
+   "classes": [
+    "fault_diagnosis",
+    "sensor_analysis"
+   ]
+  },
+  "control_requirement": {
+   "met": true,
+   "rule": "the control's timing-alone pair at V2 reads LEAK"
+  },
+  "reading": "the timing leak survives the WAN's jitter and the server load at this sample size"
+ },
+ "manipulation": {
+  "verdict": "VALID",
+  "failed": [],
+  "jitter": {
+   "draws": 193014,
+   "mean_ms": 4.010931232575216,
+   "sd_ms": 1.7798974569693062,
+   "expected": {
+    "mean_ms": 4.0082559890994025,
+    "sd_ms": 1.7788629093349144
+   }
+  },
+  "slowdown": {
+   "fault_diagnosis": 1.656,
+   "procedure_lookup": 1.49,
+   "sensor_analysis": 1.67
+  },
+  "reorder": {
+   "treatment_share": 0.006193174331268942,
+   "control_share": 0.0038218239325250396,
+   "margin": 0.005,
+   "ok": true
+  },
+  "netem": {
+   "ack_later_ms": 4.4754743576049805,
+   "expected_ms": 4.0082559890994025,
+   "netem_packets": 175641,
+   "captured_pi_to_cloud_packets": 170287
+  },
+  "keeper": true,
+  "gpu": true,
+  "load_windows": true
+ },
+ "secondary": {
+  "pair_all_v2": {
+   "lan_padmax": {
+    "run": "c2b2_lan_padmax_v2_pair",
+    "report": "data/results/leakcheck/c2b2_lan_padmax_v2_pair/report.json",
+    "verdict": "LEAK",
+    "macro_f1": 0.6879800307219661,
+    "ci": [
+     0.647859143657463,
+     0.7279608263589956
+    ],
+    "p": 0.01,
+    "n": 500,
+    "classes": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ]
+   },
+   "lan_padmax_jl": {
+    "run": "c2b2_lan_padmax_jl_v2_pair",
+    "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v2_pair/report.json",
+    "verdict": "LEAK",
+    "macro_f1": 0.7239602502760398,
+    "ci": [
+     0.68381433422866,
+     0.7610844743594507
+    ],
+    "p": 0.01,
+    "n": 500,
+    "classes": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ]
+   }
+  },
+  "all_all_v2": {
+   "lan_padmax": {
+    "run": "c2b2_lan_padmax_v2",
+    "report": "data/results/leakcheck/c2b2_lan_padmax_v2/report.json",
+    "verdict": "LEAK",
+    "macro_f1": 0.847148480227387,
+    "ci": [
+     0.8270727655311235,
+     0.8663749971768681
+    ],
+    "p": 0.01,
+    "n": 1000,
+    "classes": [
+     "alert_triage",
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ]
+   },
+   "lan_padmax_jl": {
+    "run": "c2b2_lan_padmax_jl_v2",
+    "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v2/report.json",
+    "verdict": "LEAK",
+    "macro_f1": 0.8669471788715486,
+    "ci": [
+     0.8479566849205852,
+     0.8864313120898729
+    ],
+    "p": 0.01,
+    "n": 1000,
+    "classes": [
+     "alert_triage",
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ]
+   }
+  }
+ },
+ "deviations": [
+  {
+   "when": "Nov 26, 2026, before the pilot (no trace collected)",
+   "commits": [
+    "6d228a42",
+    "fc103506"
+   ],
+   "what": "the Mac's pf rules: data/results/c2b2_wan.json, whose general dummynet rules match only the control's cloud ports (8101, 8102), in place of data/results/b2_wan_jitter.json's rules",
+   "why": "in macOS pf a packet that leaves a dummynet pipe re-enters the ruleset at the next rule, so the Nov 21 rules put the treatment's packets through pipes 3 and 4 and then 1 and 2 as well: the first WAN check read 17.0 ms SYN -> SYN-ACK at the capture instead of 4, and 32.8 ms end to end instead of 18.6",
+   "scope": "It makes the session apply the registered design (2 ms of dummynet each way for the treatment). Neither the analysis, the manipulation checks nor the primary changes, and neither does any delay, target, the jitter, the load or the Pi's netem"
+  },
+  {
+   "when": "Nov 26, 2026, after the pilot, before the full run",
+   "commits": [
+    "01230d36"
+   ],
+   "what": "the guard (scripts/c2_guard.py) run with --tolerance 0.30 instead of 0.20",
+   "why": "its capture-based estimate of the Pi's connect read 14.84 ms for the treatment against 0.20's lower bound of 14.9, while every direct measurement was near the 18.6 ms target (16.4, 17.8, 19.9 ms); it would have stopped the full run again and again. At 0.30 every guard check stays (bands [13.0, 24.2] and [15.8, 29.4]); replayed on the pilot, 0.20 fails and 0.30 passes. The user's decision",
+   "scope": "The guard only watches the WAN during the collection. Neither the analysis, the manipulation checks nor the primary changes, and neither do the collector's own WAN probes (their tolerance stayed 0.20)"
+  }
+ ]
+}

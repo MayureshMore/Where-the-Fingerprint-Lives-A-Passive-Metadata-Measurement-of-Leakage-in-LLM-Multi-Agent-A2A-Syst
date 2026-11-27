@@ -437,6 +437,51 @@ most 96, headers only, placeholder MACs only, and only the three testbed hosts t
 no original hardware address and no home path in any file; the features computed from the released
 captures equal those computed from `data/` in all 8 sets.
 
+## Paper 2 archive, version 1.2 (collections C2B1M and C2B2)
+
+**Zenodo:** to be published as a new version of the record above (all versions:
+https://doi.org/10.5281/zenodo.24238558); its DOI goes here once it is. It is to hold version 1.1's 12
+files, unchanged, and the five below, uploaded from the build described here. C2B1M and C2B2 are both
+pre-registered: docs/PREREG_C2B1M.md and docs/PREREG_C2B2.md.
+
+| File | Contents | Bytes | SHA-256 |
+|---|---|---|---|
+| `c2b1m-raw-pcaps-headers-only.zip` | `data/raw_c2b1m_padmax` (500 captures, 250 per class) and `raw_c2b1m_shaped` (1,250, 625 per class), sensor_analysis and fault_diagnosis only, with their sidecars and the session's check files; `data/raw_c2b1m_replies`: the shaping cloud agent's log, 1,250 records | 10,620,078 (3,518 files) | `3d63aca53be3ac20f70f93eb7b5c3d62b7553bd30c321233534c5b504019d84a` |
+| `c2b2-raw-pcaps-headers-only.zip` | `data/raw_c2b2_padmax` and `raw_c2b2_padmax_jl`: 1,000 captures each (250 per task type) with sidecars and check files, the Pi's netem snapshots (`pi_tc_start.txt`, `pi_tc_end.txt`), the Wi-Fi keeper's log for the session and its check, and the manipulation check; `data/raw_c2b2_replies`: the jittering cloud agents' log, 750 records | 17,099,970 (4,025 files) | `0afdda74c4a1b75726dbe055948d4ac8c8a90d569450ab68130b7c0c4015e488` |
+| `v1.2-features.zip` | `data/features_v1_2/<collection>_<arm>_<view>.npz`: the 195 trace features and the first-request size a2a-leakcheck computes, with the labels, for each collection and arm at V1 and V2 (8 sets; README inside) | 1,687,388 | `210d79707b95e083103da29f3afd8d4b6cefe909965bdbed85deca0acedd231d` |
+| `v1.2-manifest.json` | what `scripts/package_paper2_data.py --release v1.2` checked, cut and left out, and its commit | 5,654 | `95d8d2f3bbe4e81b3f726da1421b59ca8adae70a5a87be1e8102e5f73f7407ee` |
+| `v1.2-SHA256SUMS.txt` | the SHA-256 of the four files above | 366 | |
+
+Built by `scripts/package_paper2_data.py --release v1.2` at commit `7940f474` (clean;
+`v1.2-manifest.json`), with deterministic zips: a trial build of the same code before it was committed
+gave the same three zips byte for byte. The pilots (`data/pilot_c2b1m`, `data/pilot_c2b2`) are not released.
+
+**How the release differs from the captures in `data/`**, as for versions 1.0 and 1.1
+(`v1.2-manifest.json` records each change):
+- **Headers only.** Payload bytes past each TCP header removed (TLS ciphertext): 2,718,115 B in
+  `raw_c2b1m_padmax`, 1,621,430 B in `raw_c2b1m_shaped`, 3,970,478 B in `raw_c2b2_padmax`, 5,729,777 B in
+  `raw_c2b2_padmax_jl`.
+- **Hardware addresses** replaced by the same placeholders: 02:00:00:00:00:01 for the Mac (10.0.0.228
+  and the cloud alias 172.30.0.100), 02:00:00:00:00:02 for the Pi (10.0.0.171).
+- **The WAN watcher's logs** cut to each collection's window (`session_meta.json`'s start and end, one
+  second either side): 1,245 of 1,265 records kept in `raw_c2b1m_padmax`, 1,338 of 1,347 in
+  `raw_c2b2_padmax`.
+- **Left out:** the two `wan_status.json` files, the watcher's last state, written after each collection.
+- **The reply logs** (`raw_c2b1m_replies`, `raw_c2b2_replies`) hold, per cloud reply, its time, port,
+  role, the task's random ids, and either the shaping record (C2B1M: spec, sizes, whether cut or late,
+  the release times) or the jitter record (C2B2: spec, events, the waits' mean and maximum, the draws'
+  count, sum and sum of squares). They hold no reply text. Every record lies inside its collection's
+  window (checked; the build stops otherwise).
+- **The Wi-Fi keeper's log** (`raw_c2b2_padmax/wifi_keeper.jsonl`): the Pi's Wi-Fi state every 30 s
+  (iw's and the chip's power save, the link, the signal), over the session's window plus five minutes
+  on each side. It holds no SSID and no MAC address.
+
+**Checked before anything is zipped** (the build stops on any failure):
+- 3,750 captures, snaplen at most 96, headers only, placeholder MACs only, and only the three testbed
+  hosts the sidecars name;
+- no original hardware address and no home path in any file;
+- the features computed from the released captures equal those computed from `data/` in all 8 sets.
+
 ## Earlier archives (not published)
 
 > **Not published, and superseded.** These two archives were planned for the earlier draft and

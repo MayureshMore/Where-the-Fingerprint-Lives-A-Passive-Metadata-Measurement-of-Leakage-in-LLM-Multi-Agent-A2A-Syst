@@ -191,6 +191,41 @@ C2's unpadded arm (8100) again, 1,000 traces on Nov 24, new prompts (seed offset
 | Test traces dropped because their prompt is in the training session (29 or 30; 25 or 26 among escalated tasks) | same | `attributes.<attr>.test.dropped_shared` |
 | The test session's own figure without those traces; C2's a7 figure | same | `attributes.<attr>.within_test`; `reference.tasks.<task>` |
 
+## C2B1M: a matched, held-out test of reply shaping (pre-registered)
+
+One collection on Nov 25, pre-registered in docs/PREREG_C2B1M.md (def5d6a0). sensor_analysis and
+fault_diagnosis only: 625 shaped traces per class (`lan_shaped`) and 250 padded per class (`lan_padmax`),
+interleaved on the same new prompts (seed offset 34000). Not in draft 1.1.
+
+| Number | File | Field |
+|---|---|---|
+| Primary: the shaped pair at V2, INCONCLUSIVE 0.520 [0.494, 0.547], p 0.050 | `c2b1m_audits.json`; `leakcheck/c2b1m_lan_shaped_v2_pair/report.json` | `runs.c2b1m_lan_shaped_v2_pair.attributes.task_type` (`verdict`, `macro_f1`, `ci`, `p`) |
+| Control: the padded pair at V2, LEAK 0.672 [0.630, 0.712], p 0.01 | `c2b1m_audits.json` | `runs.c2b1m_lan_padmax_v2_pair.attributes.task_type` |
+| Secondary: timing alone on the shaped pair at V2, 0.512 [0.486, 0.538]; sizes 0.509, counts 0.509 | `leakcheck/c2b1m_lan_shaped_v2_pair/report.json` | `attributes.task_type.attribution.families.<family>` (`macro_f1`, `ci_lo`, `ci_hi`) |
+| Secondary: the shaped pair at V1, INCONCLUSIVE 0.571 [0.542, 0.598], p 0.01 | `c2b1m_audits.json` | `runs.c2b1m_lan_shaped_v1_pair.attributes.task_type` |
+| Descriptive: the padded pair at V1, LEAK 0.694 [0.652, 0.733]; the CI gate LEAK to INCONCLUSIVE at both views, exit 0 | `c2b1m_audits.json` | `runs.c2b1m_lan_padmax_v1_pair.attributes.task_type`; `runs.c2b1m_lan_shaped_<view>_pair.baseline`, `.exit_code` |
+| Shaping: replies 16,902 B on the wire, 0 cut or late; release median 14.768 s, the latest 1.15 s after it (one trace, kept); trace bytes 32.3 against 163.1 KB, 7.6 to 7.9 s longer | `c2b1m_shaping_overhead.json` | `checks.identical`, `checks.cut_overrun`, `checks.release` (`median_s`, `max_s`, `spread_ms`, `ok`); `overhead.<type>.trace_bytes`, `.total_s` |
+
+## C2B2: the WAN portability check (pre-registered)
+
+One collection on Nov 26, pre-registered in docs/PREREG_C2B2.md (2171e4ba). The IoT set, 250 per task
+type in each arm, interleaved on the same new prompts (seed offset 32000):
+- `lan_padmax`: 8 KB requests on C2's WAN (6 ms each way);
+- `lan_padmax_jl`: the same padding, with 2 ms of dummynet plus N(4, 1.8) ms clipped at 0 each way
+  (requests through netem on the Pi, reply events delayed by the cloud agents), and 2 concurrent
+  Ollama generations during its tasks only.
+
+Two deviations from the pre-registration are listed in `c2b2_results.md`. Not in draft 1.1.
+
+| Number | File | Field |
+|---|---|---|
+| Primary: sensor vs fault at V2 on timing alone; control LEAK 0.656 [0.612, 0.699], treatment LEAK 0.682 [0.638, 0.718], p 0.01 each; the control requirement met; the registered reading | `c2b2_results.json` (from `c2b2_audits.json`) | `primary.control`, `primary.treatment` (`verdict`, `macro_f1`, `ci`, `p`), `primary.control_requirement.met`, `primary.reading` |
+| Manipulation checks VALID: reply jitter mean 4.01 ms, sd 1.78 (193,014 draws); the cloud × 1.66, × 1.49, × 1.67 under load; reordering 0.62% against 0.38%; the Pi's ACK 4.48 ms later; keeper PASS | `c2b2_results.json`; every check in `c2b2_manipulation.json` | `manipulation.verdict`, `.jitter`, `.slowdown`, `.reorder`, `.netem`, `.keeper`; `checks.<check>` |
+| All features at V2, control / treatment: the pair LEAK 0.688 / 0.724, task_type over four types LEAK 0.847 / 0.867 | `c2b2_results.json` | `secondary.pair_all_v2.<arm>`, `secondary.all_all_v2.<arm>` |
+| Every audit: both arms at V1 and V2, parts all, pair and escalated_only, all features and timing alone, with the CI gate | `c2b2_audits.json`; reports in `leakcheck/c2b2_*` | `runs.c2b2_<arm>_<view>[_<part>][_timing].attributes.<attr>`, `.baseline`, `.exit_code` |
+| The deviations: the pf rules (6d228a42, fc103506) and the guard's tolerance 0.30 (01230d36) | `c2b2_results.json` | `deviations[]` (`when`, `commits`, `what`, `why`, `scope`) |
+| The WAN as applied | `c2b2_wan.json` | `emulation.pipes`, `emulation.rules`, `arms`, `jitter`, `load` |
+
 ## Draft 1.1 (Nov 24), number by number
 
 Every number in `Paper2-SafeIoT-draft1.1`, in the order it appears, with the file and field it

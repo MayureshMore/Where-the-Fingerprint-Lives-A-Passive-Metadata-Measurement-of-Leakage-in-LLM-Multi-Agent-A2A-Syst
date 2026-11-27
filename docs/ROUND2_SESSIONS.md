@@ -873,6 +873,16 @@ Then the header-only check on a copy (me), as for B3.
   are the two placeholders, and the only hosts are 10.0.0.171, 10.0.0.228 and 172.30.0.100.
 - **Afterwards:** netem off on the Pi (`fq_codel` again), the Mac's WAN and port lock off, and
   Ollama back to 1 slot and 128k. The Wi-Fi keeper stays on.
+- **The result as registered** (`data/results/c2b2_results.{json,md}`; the audits and the manipulation
+  checks run from 37e56801, clean):
+  - **Primary,** sensor vs fault at V2 on timing alone: control LEAK 0.656 [0.612, 0.699], p 0.01;
+    treatment LEAK 0.682 [0.638, 0.718], p 0.01. The control requirement is met. The registered
+    reading: the timing leak survives the WAN's jitter and the server load at this sample size.
+  - **Manipulation checks:** VALID.
+  - **All features at V2,** control / treatment: the pair LEAK 0.688 / 0.724; task_type over four
+    types LEAK 0.847 / 0.867.
+  - `audit_null` never reads LEAK. It reads INCONCLUSIVE in the treatment's all-features audits
+    (0.282, p 0.08 at V1; 0.260, p 0.05 at V2) and NO LEAK everywhere else.
 
 ## B3: a second day of `lan` (pilots Nov 22 and 24, full run Nov 24)
 

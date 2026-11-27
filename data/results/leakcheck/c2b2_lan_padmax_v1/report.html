@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leak check: C2B2 lan_padmax, view v1</title><style>
+:root { --bg:#ffffff; --fg:#1d2433; --muted:#5b6475; --line:#d9dee7; --leak:#b42318; --ok:#067647; --inc:#8a6100; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171c; --fg:#e7eaf0; --muted:#a3abb9; --line:#2c323c; --leak:#ff8a7a; --ok:#6ce9a6; --inc:#f5c451; }
+}
+body { background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; margin:0 auto; max-width:1100px; padding:24px 16px; }
+h1 { font-size:22px; margin:0 0 4px; } p.meta { color:var(--muted); margin:0 0 20px; }
+.wrap { overflow-x:auto; } table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
+th, td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+th { color:var(--muted); font-weight:600; font-size:13px; }
+.LEAK { color:var(--leak); font-weight:700; } .NO { color:var(--ok); font-weight:700; } .INCONCLUSIVE { color:var(--inc); font-weight:700; }
+ul { margin:4px 0 0; padding-left:18px; } li { margin:2px 0; }
+</style></head><body>
+<h1>Leak check: C2B2 lan_padmax, view v1</h1>
+<p class="meta">1000 traces from 1000 captures · a2a-leakcheck 0.3.1 ·
+2026-11-26T19:44:06-0800 · 230.3 s · peak memory 305 MB</p>
+<p><b>Audit completed</b>: 4 attributes, 3 LEAK, 1 NO LEAK, 0 INCONCLUSIVE.</p><p><b>Release policy</b>: none configured, so the run exits 0 whatever the verdicts (gate a release with --baseline, --fail-on-leak, --strict or --require).</p><div class="wrap"><table><thead><tr><th>Attribute</th><th>Verdict</th><th>Severity</th><th>macro-F1 [95% CI]</th>
+<th>Chance + margin</th><th>Permutation p</th><th>False positives (permuted)</th><th>Carried by</th><th>Why, and what to do</th></tr></thead>
+<tbody><tr><td>task_type</td><td class='LEAK'>LEAK</td><td>high</td><td>0.837 [0.816, 0.857]</td><td>0.300</td><td>0.010</td><td>0.00</td><td>sizes (alone matches all)</td><td>CI lower bound 0.816 &gt; chance + margin 0.300<ul><li><b>pad-messages</b>: Message sizes carry the leak, beyond any single request. Pad streamed response events to fixed cells (defense=pad) as well as request bodies to buckets.</li><li><b>pad-local-posts</b>: This view also sees requests that are not padded, such as posts to a local service (in C2, the ticket service on the building network). Pad posts to local services too, then re-run the audit; the audit of a view without them shows what they add.</li></ul></td></tr><tr><td>escalated</td><td class='LEAK'>LEAK</td><td>high</td><td>1.000 [1.000, 1.000]</td><td>0.550</td><td>0.010</td><td>0.00</td><td>first_request_bytes alone</td><td>CI lower bound 1.000 &gt; chance + margin 0.550<ul><li><b>hide-escalation</b>: Whether the edge called the cloud is visible from the connections themselves, and padding cannot hide a call that did or did not happen. Make every task look alike upstream: dummy cloud calls at a fixed rate (cover traffic), or send every task to the cloud. Then re-run the audit.</li></ul></td></tr><tr><td>cloud_role</td><td class='LEAK'>LEAK</td><td>high</td><td>0.994 [0.987, 0.999]</td><td>0.550</td><td>0.010</td><td>0.00</td><td>timing (alone matches all)</td><td>CI lower bound 0.987 &gt; chance + margin 0.550<ul><li><b>one-cloud-front-end</b>: Each cloud agent has its own address and TLS server name, which tell an observer which agent served the task whatever the traffic&#x27;s shape (this audit scores the shape alone). Put the cloud agents behind one front end, one address and server name, then re-run the audit to see whether the shape still gives the agent away.</li></ul></td></tr><tr><td>audit_null</td><td class='NO'>NO LEAK</td><td>none</td><td>0.229 [0.202, 0.255]</td><td>0.300</td><td>0.780</td><td>0.00</td><td>—</td><td>CI upper bound 0.255 &lt;= chance + margin 0.300</td></tr></tbody></table></div>
+<h2 style='font-size:16px'>Visible agents per topology</h2><div class='wrap'><table><thead><tr><th>Topology</th><th>Traces</th><th>diagnostics</th><th>knowledge</th><th>ticket</th></tr></thead><tbody><tr><td>edge_cloud</td><td>1000</td><td>500</td><td>250</td><td>1000</td></tr></tbody></table></div><p class='meta'>Traces in which each listed agent carries traffic; an agent never seen gives no role samples.</p>
+<p class="meta">Full numbers: report.json and report.md next to this file.</p>
+</body></html>

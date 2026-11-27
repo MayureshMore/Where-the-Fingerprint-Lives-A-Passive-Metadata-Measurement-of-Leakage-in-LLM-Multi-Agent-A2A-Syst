@@ -1,0 +1,128 @@
+{
+ "collection_id": "C2B2",
+ "control": "data/raw_c2b2_padmax",
+ "treatment": "data/raw_c2b2_padmax_jl",
+ "traces": {
+  "control": 1000,
+  "treatment": 1000
+ },
+ "checks": {
+  "netem_pi": {
+   "start": {
+    "handle": "40:",
+    "delay_ms": 4.0,
+    "jitter_ms": 1.8,
+    "packets": 4006
+   },
+   "end": {
+    "handle": "40:",
+    "delay_ms": 4.0,
+    "jitter_ms": 1.8,
+    "packets": 179647
+   },
+   "netem_packets": 175641,
+   "captured_pi_to_cloud_packets": 170287,
+   "rule": "netem with delay 4 ms, jitter 1.8 ms before and after; its packets grew by at least 0.9 x the treatment's Pi -> cloud packets in the captures",
+   "ok": true
+  },
+  "netem_capture": {
+   "control_median_ms": 5.095481872558594,
+   "treatment_median_ms": 9.570956230163574,
+   "n": [
+    750,
+    750
+   ],
+   "difference_ms": 4.4754743576049805,
+   "expected_ms": 4.0082559890994025,
+   "tolerance_ms": 1.5,
+   "rule": "the cloud's SYN-ACK -> the Pi's ACK at the capture: treatment median - control median within the netem mean +- 1.5 ms",
+   "ok": true
+  },
+  "reorder": {
+   "file": "data/raw_c2b2_padmax_jl/reorder_check.json",
+   "ok": true
+  },
+  "jitter_log": {
+   "draws": 193014,
+   "mean_ms": 4.010931232575216,
+   "sd_ms": 1.7798974569693062,
+   "expected": {
+    "mean_ms": 4.0082559890994025,
+    "sd_ms": 1.7788629093349144
+   },
+   "tolerance_ms": 0.2,
+   "escalated_traces_with_record": 750,
+   "escalated_traces_without_record": [],
+   "n_without_record": 0,
+   "wrong_spec": [],
+   "control_traces_with_jitter": [],
+   "n_control_with_jitter": 0,
+   "ok": true
+  },
+  "load_windows": {
+   "treatment_traces": 1000,
+   "not_under_load": [],
+   "n_not_under_load": 0,
+   "control_with_load": [],
+   "control_overlapping_a_load": [],
+   "n_control_overlapping": 0,
+   "load_tokens_per_s_median": 104.24639133247548,
+   "ok": true
+  },
+  "load_slowdown": {
+   "per_task_type": {
+    "fault_diagnosis": {
+     "control_median_s": 6.9035885319899535,
+     "treatment_median_s": 11.433976255488233,
+     "ratio": 1.656236637294546,
+     "n": [
+      250,
+      250
+     ],
+     "ok": true
+    },
+    "procedure_lookup": {
+     "control_median_s": 3.7875266565097263,
+     "treatment_median_s": 5.644694964008522,
+     "ratio": 1.490338016316487,
+     "n": [
+      250,
+      250
+     ],
+     "ok": true
+    },
+    "sensor_analysis": {
+     "control_median_s": 7.043675691500539,
+     "treatment_median_s": 11.761285950997262,
+     "ratio": 1.6697653989364343,
+     "n": [
+      250,
+      250
+     ],
+     "ok": true
+    }
+   },
+   "rule": "treatment median / control median >= 1.1 per escalated task type",
+   "ok": true
+  },
+  "gpu": {
+   "parallel_checks": 5,
+   "parallel_ok": true,
+   "rounds_checked": 25,
+   "rounds_without_check": [],
+   "rounds_failed": [],
+   "end_ok": true,
+   "context": 32768,
+   "rule": "every parallel check ok; the last GPU check of every round and the end check: share >= 0.999, context 32768",
+   "ok": true
+  },
+  "keeper": {
+   "file": "data/raw_c2b2_padmax/wifi_keeper_check.json",
+   "ok": true
+  }
+ },
+ "valid": true,
+ "created": "2026-11-26T20:23:49-0800",
+ "git_commit": "37e568015125df383cb2c7ff5080f40aa4f73e11",
+ "git_dirty": false
+}

@@ -1,0 +1,1819 @@
+{
+ "paper": "P2",
+ "round": 2,
+ "purpose": "C2B2 audits: per arm, view and part, with the baseline gate",
+ "title": "C2B2 audits",
+ "seed": 42,
+ "git_commit": "37e568015125df383cb2c7ff5080f40aa4f73e11",
+ "git_dirty": false,
+ "created": "2026-11-26T19:40:14-0800",
+ "parameters": {
+  "views": [
+   "v1",
+   "v2"
+  ],
+  "parts": [
+   "all",
+   "pair",
+   "escalated_only"
+  ],
+  "feature_sets": [
+   "all",
+   "timing"
+  ],
+  "prefix": "c2b2",
+  "baseline_arm": "lan_padmax",
+  "baseline_prefix": "c2b2",
+  "tool_defaults": "perm-unit group, match-margin 0.05, margin 0.05, 99 permutations, 1000 bootstraps, gbt, --strip"
+ },
+ "arms": {
+  "lan_padmax": {
+   "data_dir": [
+    "data/raw_c2b2_padmax"
+   ],
+   "collection_id": [
+    "C2B2"
+   ],
+   "sources": [
+    {
+     "dir": "data/raw_c2b2_padmax",
+     "collection_id": "C2B2",
+     "traces": 1000,
+     "per_task_type": {
+      "alert_triage": 250,
+      "fault_diagnosis": 250,
+      "procedure_lookup": 250,
+      "sensor_analysis": 250
+     }
+    }
+   ]
+  },
+  "lan_padmax_jl": {
+   "data_dir": [
+    "data/raw_c2b2_padmax_jl"
+   ],
+   "collection_id": [
+    "C2B2"
+   ],
+   "sources": [
+    {
+     "dir": "data/raw_c2b2_padmax_jl",
+     "collection_id": "C2B2",
+     "traces": 1000,
+     "per_task_type": {
+      "alert_triage": 250,
+      "fault_diagnosis": 250,
+      "procedure_lookup": 250,
+      "sensor_analysis": 250
+     }
+    }
+   ]
+  }
+ },
+ "runs": {
+  "c2b2_lan_padmax_v1": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v1/report.json",
+   "input": "data/raw_c2b2_padmax",
+   "subset": null,
+   "feature_set": "all",
+   "family_only": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "alert_triage",
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.8370000000000001,
+     "ci": [
+      0.8162379171200842,
+      0.8571544092222092
+     ],
+     "threshold": 0.3,
+     "p": 0.01,
+     "carried_by": "sizes (alone matches all)"
+    },
+    "escalated": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "no",
+      "yes"
+     ],
+     "macro_f1": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "first_request_bytes alone"
+    },
+    "cloud_role": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "diagnostics",
+      "knowledge"
+     ],
+     "macro_f1": 0.99398792775894,
+     "ci": [
+      0.9868566674804028,
+      0.9985474053208799
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "audit_null": {
+     "verdict": "NO LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "macro_f1": 0.22918727355065627,
+     "ci": [
+      0.2019986008290035,
+      0.2553663690811267
+     ],
+     "threshold": 0.3,
+     "p": 0.78,
+     "carried_by": "-"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_v1_timing": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v1_timing/report.json",
+   "input": "data/raw_c2b2_padmax",
+   "subset": null,
+   "feature_set": "timing",
+   "family_only": {
+    "family": "timing",
+    "trace_columns": 30,
+    "role_columns": 5,
+    "source": "data/features_audits/c2b2_lan_padmax_v1_all",
+    "rule": "every column outside features/families.py's timing family, and the first-request size, set to 0"
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "alert_triage",
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.8011234586027999,
+     "ci": [
+      0.7798158088007359,
+      0.821886640685251
+     ],
+     "threshold": 0.3,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "escalated": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "no",
+      "yes"
+     ],
+     "macro_f1": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "cloud_role": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "diagnostics",
+      "knowledge"
+     ],
+     "macro_f1": 0.9879514201259478,
+     "ci": [
+      0.9791640208280417,
+      0.9954493106834468
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "audit_null": {
+     "verdict": "NO LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "macro_f1": 0.2435148628708294,
+     "ci": [
+      0.21755697209816385,
+      0.2688811785918971
+     ],
+     "threshold": 0.3,
+     "p": 0.75,
+     "carried_by": "-"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_v1_pair": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v1_pair/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_pair",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ],
+    "traces": 500,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 500
+    }
+   },
+   "feature_set": "all",
+   "family_only": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 500,
+     "groups": 500,
+     "classes": [
+      "fault_diagnosis",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.677998711994848,
+     "ci": [
+      0.637225107153154,
+      0.7197183689864505
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "sizes (alone matches all)"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_v1_pair_timing": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v1_pair_timing/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_pair",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ],
+    "traces": 500,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 500
+    }
+   },
+   "feature_set": "timing",
+   "family_only": {
+    "family": "timing",
+    "trace_columns": 30,
+    "role_columns": 5,
+    "source": "data/features_audits/c2b2_lan_padmax_v1_pair",
+    "rule": "every column outside features/families.py's timing family, and the first-request size, set to 0"
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 500,
+     "groups": 500,
+     "classes": [
+      "fault_diagnosis",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.6317879098360656,
+     "ci": [
+      0.587674262087554,
+      0.6718151642032959
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_v1_escalated_only": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v1_escalated_only/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_escalated_only",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ],
+    "traces": 750,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "procedure_lookup": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 750
+    }
+   },
+   "feature_set": "all",
+   "family_only": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.7803111041103188,
+     "ci": [
+      0.7525390244002776,
+      0.8083369866031074
+     ],
+     "threshold": 0.3833333333333333,
+     "p": 0.01,
+     "carried_by": "sizes (alone matches all)"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_v1_escalated_only_timing": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v1_escalated_only_timing/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_escalated_only",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ],
+    "traces": 750,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "procedure_lookup": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 750
+    }
+   },
+   "feature_set": "timing",
+   "family_only": {
+    "family": "timing",
+    "trace_columns": 30,
+    "role_columns": 5,
+    "source": "data/features_audits/c2b2_lan_padmax_v1_escalated_only",
+    "rule": "every column outside features/families.py's timing family, and the first-request size, set to 0"
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.7237162825109391,
+     "ci": [
+      0.6946411894811875,
+      0.7557188277062673
+     ],
+     "threshold": 0.3833333333333333,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_v2": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v2/report.json",
+   "input": "data/raw_c2b2_padmax",
+   "subset": null,
+   "feature_set": "all",
+   "family_only": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "alert_triage",
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.847148480227387,
+     "ci": [
+      0.8270727655311235,
+      0.8663749971768681
+     ],
+     "threshold": 0.3,
+     "p": 0.01,
+     "carried_by": "sizes (alone matches all)"
+    },
+    "escalated": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "no",
+      "yes"
+     ],
+     "macro_f1": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "first_request_bytes alone"
+    },
+    "cloud_role": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "diagnostics",
+      "knowledge"
+     ],
+     "macro_f1": 0.9954863778884674,
+     "ci": [
+      0.989488937113027,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "audit_null": {
+     "verdict": "NO LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "macro_f1": 0.24455305191527804,
+     "ci": [
+      0.21885667792846372,
+      0.26972824296221676
+     ],
+     "threshold": 0.3,
+     "p": 0.43,
+     "carried_by": "-"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_v2_timing": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v2_timing/report.json",
+   "input": "data/raw_c2b2_padmax",
+   "subset": null,
+   "feature_set": "timing",
+   "family_only": {
+    "family": "timing",
+    "trace_columns": 30,
+    "role_columns": 5,
+    "source": "data/features_audits/c2b2_lan_padmax_v2_all",
+    "rule": "every column outside features/families.py's timing family, and the first-request size, set to 0"
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "alert_triage",
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.8137061628362592,
+     "ci": [
+      0.7936281489138437,
+      0.8348480976803567
+     ],
+     "threshold": 0.3,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "escalated": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "no",
+      "yes"
+     ],
+     "macro_f1": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "cloud_role": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "diagnostics",
+      "knowledge"
+     ],
+     "macro_f1": 0.9909635650944608,
+     "ci": [
+      0.98293729716709,
+      0.9970234315468631
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "audit_null": {
+     "verdict": "NO LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "macro_f1": 0.248146478514277,
+     "ci": [
+      0.2218306298509434,
+      0.273445615214841
+     ],
+     "threshold": 0.3,
+     "p": 0.18,
+     "carried_by": "-"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_v2_pair": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v2_pair/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_pair",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ],
+    "traces": 500,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 500
+    }
+   },
+   "feature_set": "all",
+   "family_only": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 500,
+     "groups": 500,
+     "classes": [
+      "fault_diagnosis",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.6879800307219661,
+     "ci": [
+      0.647859143657463,
+      0.7279608263589956
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "sizes (alone matches all)"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_v2_pair_timing": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v2_pair_timing/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_pair",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ],
+    "traces": 500,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 500
+    }
+   },
+   "feature_set": "timing",
+   "family_only": {
+    "family": "timing",
+    "trace_columns": 30,
+    "role_columns": 5,
+    "source": "data/features_audits/c2b2_lan_padmax_v2_pair",
+    "rule": "every column outside features/families.py's timing family, and the first-request size, set to 0"
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 500,
+     "groups": 500,
+     "classes": [
+      "fault_diagnosis",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.6559779825908858,
+     "ci": [
+      0.6119751664106503,
+      0.6989286473385657
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_v2_escalated_only": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v2_escalated_only/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_escalated_only",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ],
+    "traces": 750,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "procedure_lookup": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 750
+    }
+   },
+   "feature_set": "all",
+   "family_only": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.7883941947397733,
+     "ci": [
+      0.7613515617738944,
+      0.816016353019798
+     ],
+     "threshold": 0.3833333333333333,
+     "p": 0.01,
+     "carried_by": "sizes (alone matches all)"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_v2_escalated_only_timing": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_v2_escalated_only_timing/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_escalated_only",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ],
+    "traces": 750,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "procedure_lookup": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 750
+    }
+   },
+   "feature_set": "timing",
+   "family_only": {
+    "family": "timing",
+    "trace_columns": 30,
+    "role_columns": 5,
+    "source": "data/features_audits/c2b2_lan_padmax_v2_escalated_only",
+    "rule": "every column outside features/families.py's timing family, and the first-request size, set to 0"
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.7448672565427713,
+     "ci": [
+      0.7177965879429866,
+      0.7740513993776381
+     ],
+     "threshold": 0.3833333333333333,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    }
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_jl_v1": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v1/report.json",
+   "input": "data/raw_c2b2_padmax_jl",
+   "subset": null,
+   "feature_set": "all",
+   "family_only": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "alert_triage",
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.862921618852459,
+     "ci": [
+      0.8425412944077355,
+      0.881575877740514
+     ],
+     "threshold": 0.3,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "escalated": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "no",
+      "yes"
+     ],
+     "macro_f1": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "first_request_bytes alone"
+    },
+    "cloud_role": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "diagnostics",
+      "knowledge"
+     ],
+     "macro_f1": 0.9984984954924835,
+     "ci": [
+      0.9953676533837221,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "audit_null": {
+     "verdict": "INCONCLUSIVE",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "macro_f1": 0.28185546775195547,
+     "ci": [
+      0.2544659250625342,
+      0.30879551905809866
+     ],
+     "threshold": 0.3,
+     "p": 0.08,
+     "carried_by": "-"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b2_lan_padmax_v1/report.json",
+    "compatible": true,
+    "changes": [
+     {
+      "attribute": "audit_null",
+      "before": "NO LEAK",
+      "after": "INCONCLUSIVE"
+     }
+    ],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": []
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_jl_v1_timing": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v1_timing/report.json",
+   "input": "data/raw_c2b2_padmax_jl",
+   "subset": null,
+   "feature_set": "timing",
+   "family_only": {
+    "family": "timing",
+    "trace_columns": 30,
+    "role_columns": 5,
+    "source": "data/features_audits/c2b2_lan_padmax_jl_v1_all",
+    "rule": "every column outside features/families.py's timing family, and the first-request size, set to 0"
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "alert_triage",
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.8462405146470594,
+     "ci": [
+      0.8256081062890223,
+      0.8658179797876975
+     ],
+     "threshold": 0.3,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "escalated": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "no",
+      "yes"
+     ],
+     "macro_f1": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "cloud_role": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "diagnostics",
+      "knowledge"
+     ],
+     "macro_f1": 0.9984984954924835,
+     "ci": [
+      0.9953676533837221,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "audit_null": {
+     "verdict": "NO LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "macro_f1": 0.27312162544728785,
+     "ci": [
+      0.24458365092654283,
+      0.29951053998715677
+     ],
+     "threshold": 0.3,
+     "p": 0.78,
+     "carried_by": "-"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b2_lan_padmax_v1_timing/report.json",
+    "compatible": true,
+    "changes": [],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": []
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_jl_v1_pair": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v1_pair/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_jl_pair",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax_jl",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ],
+    "traces": 500,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 500
+    }
+   },
+   "feature_set": "all",
+   "family_only": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 500,
+     "groups": 500,
+     "classes": [
+      "fault_diagnosis",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.688,
+     "ci": [
+      0.6477193004847449,
+      0.7259469432666469
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b2_lan_padmax_v1_pair/report.json",
+    "compatible": true,
+    "changes": [],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": []
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_jl_v1_pair_timing": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v1_pair_timing/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_jl_pair",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax_jl",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ],
+    "traces": 500,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 500
+    }
+   },
+   "feature_set": "timing",
+   "family_only": {
+    "family": "timing",
+    "trace_columns": 30,
+    "role_columns": 5,
+    "source": "data/features_audits/c2b2_lan_padmax_jl_v1_pair",
+    "rule": "every column outside features/families.py's timing family, and the first-request size, set to 0"
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 500,
+     "groups": 500,
+     "classes": [
+      "fault_diagnosis",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.6878201844262295,
+     "ci": [
+      0.6454508826745822,
+      0.727023393536331
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b2_lan_padmax_v1_pair_timing/report.json",
+    "compatible": true,
+    "changes": [],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": []
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_jl_v1_escalated_only": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v1_escalated_only/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_jl_escalated_only",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax_jl",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ],
+    "traces": 750,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "procedure_lookup": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 750
+    }
+   },
+   "feature_set": "all",
+   "family_only": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.8214798627190548,
+     "ci": [
+      0.794692200069038,
+      0.8474470438805306
+     ],
+     "threshold": 0.3833333333333333,
+     "p": 0.01,
+     "carried_by": "timing"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b2_lan_padmax_v1_escalated_only/report.json",
+    "compatible": true,
+    "changes": [],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": []
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_jl_v1_escalated_only_timing": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v1_escalated_only_timing/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_jl_escalated_only",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax_jl",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ],
+    "traces": 750,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "procedure_lookup": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 750
+    }
+   },
+   "feature_set": "timing",
+   "family_only": {
+    "family": "timing",
+    "trace_columns": 30,
+    "role_columns": 5,
+    "source": "data/features_audits/c2b2_lan_padmax_jl_v1_escalated_only",
+    "rule": "every column outside features/families.py's timing family, and the first-request size, set to 0"
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.7868720524736782,
+     "ci": [
+      0.7591783836528854,
+      0.8131315991929834
+     ],
+     "threshold": 0.3833333333333333,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b2_lan_padmax_v1_escalated_only_timing/report.json",
+    "compatible": true,
+    "changes": [],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": []
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_jl_v2": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v2/report.json",
+   "input": "data/raw_c2b2_padmax_jl",
+   "subset": null,
+   "feature_set": "all",
+   "family_only": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "alert_triage",
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.8669471788715486,
+     "ci": [
+      0.8479566849205852,
+      0.8864313120898729
+     ],
+     "threshold": 0.3,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "escalated": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "no",
+      "yes"
+     ],
+     "macro_f1": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "first_request_bytes alone"
+    },
+    "cloud_role": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "diagnostics",
+      "knowledge"
+     ],
+     "macro_f1": 0.9984984954924835,
+     "ci": [
+      0.9953676533837221,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "audit_null": {
+     "verdict": "INCONCLUSIVE",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "macro_f1": 0.25969592592537555,
+     "ci": [
+      0.23278348314712644,
+      0.2867905897041248
+     ],
+     "threshold": 0.3,
+     "p": 0.05,
+     "carried_by": "-"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b2_lan_padmax_v2/report.json",
+    "compatible": true,
+    "changes": [
+     {
+      "attribute": "audit_null",
+      "before": "NO LEAK",
+      "after": "INCONCLUSIVE"
+     }
+    ],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": []
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_jl_v2_timing": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v2_timing/report.json",
+   "input": "data/raw_c2b2_padmax_jl",
+   "subset": null,
+   "feature_set": "timing",
+   "family_only": {
+    "family": "timing",
+    "trace_columns": 30,
+    "role_columns": 5,
+    "source": "data/features_audits/c2b2_lan_padmax_jl_v2_all",
+    "rule": "every column outside features/families.py's timing family, and the first-request size, set to 0"
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "alert_triage",
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.8501110307570274,
+     "ci": [
+      0.8298272991322908,
+      0.8701965035931554
+     ],
+     "threshold": 0.3,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "escalated": {
+     "verdict": "LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "no",
+      "yes"
+     ],
+     "macro_f1": 1.0,
+     "ci": [
+      1.0,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "cloud_role": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "diagnostics",
+      "knowledge"
+     ],
+     "macro_f1": 0.9984984954924835,
+     "ci": [
+      0.9953676533837221,
+      1.0
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    },
+    "audit_null": {
+     "verdict": "NO LEAK",
+     "n": 1000,
+     "groups": 1000,
+     "classes": [
+      "a",
+      "b",
+      "c",
+      "d"
+     ],
+     "macro_f1": 0.23286305263434776,
+     "ci": [
+      0.2063549196964126,
+      0.25923508465485273
+     ],
+     "threshold": 0.3,
+     "p": 0.76,
+     "carried_by": "-"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b2_lan_padmax_v2_timing/report.json",
+    "compatible": true,
+    "changes": [],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": []
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_jl_v2_pair": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v2_pair/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_jl_pair",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax_jl",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ],
+    "traces": 500,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 500
+    }
+   },
+   "feature_set": "all",
+   "family_only": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 500,
+     "groups": 500,
+     "classes": [
+      "fault_diagnosis",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.7239602502760398,
+     "ci": [
+      0.68381433422866,
+      0.7610844743594507
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b2_lan_padmax_v2_pair/report.json",
+    "compatible": true,
+    "changes": [],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": []
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_jl_v2_pair_timing": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v2_pair_timing/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_jl_pair",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax_jl",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "sensor_analysis"
+    ],
+    "traces": 500,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 500
+    }
+   },
+   "feature_set": "timing",
+   "family_only": {
+    "family": "timing",
+    "trace_columns": 30,
+    "role_columns": 5,
+    "source": "data/features_audits/c2b2_lan_padmax_jl_v2_pair",
+    "rule": "every column outside features/families.py's timing family, and the first-request size, set to 0"
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 500,
+     "groups": 500,
+     "classes": [
+      "fault_diagnosis",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.6817848865833303,
+     "ci": [
+      0.6379064635245609,
+      0.7180163818306814
+     ],
+     "threshold": 0.55,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b2_lan_padmax_v2_pair_timing/report.json",
+    "compatible": true,
+    "changes": [],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": []
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_jl_v2_escalated_only": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v2_escalated_only/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_jl_escalated_only",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax_jl",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ],
+    "traces": 750,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "procedure_lookup": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 750
+    }
+   },
+   "feature_set": "all",
+   "family_only": null,
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.815981731506484,
+     "ci": [
+      0.7888135620887614,
+      0.8417384744313062
+     ],
+     "threshold": 0.3833333333333333,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b2_lan_padmax_v2_escalated_only/report.json",
+    "compatible": true,
+    "changes": [],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": []
+   },
+   "exit_code": 0
+  },
+  "c2b2_lan_padmax_jl_v2_escalated_only_timing": {
+   "report": "data/results/leakcheck/c2b2_lan_padmax_jl_v2_escalated_only_timing/report.json",
+   "input": "data/subsets/c2b2_lan_padmax_jl_escalated_only",
+   "subset": {
+    "sources": [
+     {
+      "dir": "data/raw_c2b2_padmax_jl",
+      "collection_id": "C2B2",
+      "traces": 1000,
+      "per_task_type": {
+       "alert_triage": 250,
+       "fault_diagnosis": 250,
+       "procedure_lookup": 250,
+       "sensor_analysis": 250
+      }
+     }
+    ],
+    "task_types": [
+     "fault_diagnosis",
+     "procedure_lookup",
+     "sensor_analysis"
+    ],
+    "traces": 750,
+    "per_task_type": {
+     "fault_diagnosis": 250,
+     "procedure_lookup": 250,
+     "sensor_analysis": 250
+    },
+    "per_collection": {
+     "C2B2": 750
+    }
+   },
+   "feature_set": "timing",
+   "family_only": {
+    "family": "timing",
+    "trace_columns": 30,
+    "role_columns": 5,
+    "source": "data/features_audits/c2b2_lan_padmax_jl_v2_escalated_only",
+    "rule": "every column outside features/families.py's timing family, and the first-request size, set to 0"
+   },
+   "returncode": 0,
+   "attributes": {
+    "task_type": {
+     "verdict": "LEAK",
+     "n": 750,
+     "groups": 750,
+     "classes": [
+      "fault_diagnosis",
+      "procedure_lookup",
+      "sensor_analysis"
+     ],
+     "macro_f1": 0.8161775148777322,
+     "ci": [
+      0.7900617705918744,
+      0.8425999902104606
+     ],
+     "threshold": 0.3833333333333333,
+     "p": 0.01,
+     "carried_by": "timing (alone matches all)"
+    }
+   },
+   "baseline": {
+    "against": "data/results/leakcheck/c2b2_lan_padmax_v2_escalated_only_timing/report.json",
+    "compatible": true,
+    "changes": [],
+    "new_leaks": [],
+    "needs_review": [],
+    "resolved": []
+   },
+   "exit_code": 0
+  }
+ },
+ "collection_id": [
+  "C2B2"
+ ],
+ "data_dir": {
+  "lan_padmax": [
+   "data/raw_c2b2_padmax"
+  ],
+  "lan_padmax_jl": [
+   "data/raw_c2b2_padmax_jl"
+  ]
+ },
+ "runtime_s": 2611.720022666035
+}

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leak check: C2B2 lan_padmax_jl, view v2, timing alone</title><style>
+:root { --bg:#ffffff; --fg:#1d2433; --muted:#5b6475; --line:#d9dee7; --leak:#b42318; --ok:#067647; --inc:#8a6100; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171c; --fg:#e7eaf0; --muted:#a3abb9; --line:#2c323c; --leak:#ff8a7a; --ok:#6ce9a6; --inc:#f5c451; }
+}
+body { background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; margin:0 auto; max-width:1100px; padding:24px 16px; }
+h1 { font-size:22px; margin:0 0 4px; } p.meta { color:var(--muted); margin:0 0 20px; }
+.wrap { overflow-x:auto; } table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
+th, td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+th { color:var(--muted); font-weight:600; font-size:13px; }
+.LEAK { color:var(--leak); font-weight:700; } .NO { color:var(--ok); font-weight:700; } .INCONCLUSIVE { color:var(--inc); font-weight:700; }
+ul { margin:4px 0 0; padding-left:18px; } li { margin:2px 0; }
+</style></head><body>
+<h1>Leak check: C2B2 lan_padmax_jl, view v2, timing alone</h1>
+<p class="meta">1000 traces from 1000 captures · a2a-leakcheck 0.3.1 ·
+2026-11-26T20:19:33-0800 · 149.5 s · peak memory 237 MB</p>
+<p><b>Audit completed</b>: 4 attributes, 3 LEAK, 1 NO LEAK, 0 INCONCLUSIVE.</p><p><b>Release policy satisfied</b> (baseline); exit 0.</p><div class="wrap"><table><thead><tr><th>Attribute</th><th>Verdict</th><th>Severity</th><th>macro-F1 [95% CI]</th>
+<th>Chance + margin</th><th>Permutation p</th><th>False positives (permuted)</th><th>Carried by</th><th>Why, and what to do</th></tr></thead>
+<tbody><tr><td>task_type</td><td class='LEAK'>LEAK</td><td>high</td><td>0.850 [0.830, 0.870]</td><td>0.300</td><td>0.010</td><td>0.00</td><td>timing (alone matches all)</td><td>CI lower bound 0.830 &gt; chance + margin 0.300<ul><li><b>padding-not-enough-timing</b>: The requests are padded, yet the attribute still leaks and timing carries it: padding is not enough. Shape the response timing as well (replies at a fixed rate or in batches, delays that do not follow the work done), then re-run the audit.</li></ul></td></tr><tr><td>escalated</td><td class='LEAK'>LEAK</td><td>high</td><td>1.000 [1.000, 1.000]</td><td>0.550</td><td>0.010</td><td>0.00</td><td>timing (alone matches all)</td><td>CI lower bound 1.000 &gt; chance + margin 0.550<ul><li><b>hide-escalation</b>: Whether the edge called the cloud is visible from the connections themselves, and padding cannot hide a call that did or did not happen. Make every task look alike upstream: dummy cloud calls at a fixed rate (cover traffic), or send every task to the cloud. Then re-run the audit.</li></ul></td></tr><tr><td>cloud_role</td><td class='LEAK'>LEAK</td><td>high</td><td>0.998 [0.995, 1.000]</td><td>0.550</td><td>0.010</td><td>0.00</td><td>timing (alone matches all)</td><td>CI lower bound 0.995 &gt; chance + margin 0.550<ul><li><b>one-cloud-front-end</b>: Each cloud agent has its own address and TLS server name, which tell an observer which agent served the task whatever the traffic&#x27;s shape (this audit scores the shape alone). Put the cloud agents behind one front end, one address and server name, then re-run the audit to see whether the shape still gives the agent away.</li></ul></td></tr><tr><td>audit_null</td><td class='NO'>NO LEAK</td><td>none</td><td>0.233 [0.206, 0.259]</td><td>0.300</td><td>0.760</td><td>0.00</td><td>—</td><td>CI upper bound 0.259 &lt;= chance + margin 0.300</td></tr></tbody></table></div>
+<h2 style='font-size:16px'>Visible agents per topology</h2><div class='wrap'><table><thead><tr><th>Topology</th><th>Traces</th><th>diagnostics</th><th>knowledge</th></tr></thead><tbody><tr><td>edge_cloud</td><td>1000</td><td>500</td><td>250</td></tr></tbody></table></div><p class='meta'>Traces in which each listed agent carries traffic; an agent never seen gives no role samples.</p>
+<p class="meta">Full numbers: report.json and report.md next to this file.</p>
+</body></html>
