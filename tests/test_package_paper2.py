@@ -114,3 +114,18 @@ def test_a_reply_log_record_outside_the_window_stops_the_build(tmp_path):
     assert check_log_window(tmp_path, 10, 20) == {"replies_8401.jsonl": {"records": 3}}
     with pytest.raises(SystemExit, match="1 of 3 records outside"):
         check_log_window(tmp_path, 11, 20)
+
+
+def test_the_v1_2_release_archives_c2b1m_and_c2b2_each_folder_once():
+    from scripts.package_paper2_data import releases
+    r = releases()
+    v12, others = r["v1.2"], (r["v1"], r["round2"])
+    zipped = [f for rels in v12["zips"].values() for f in rels]
+    assert sorted(zipped) == sorted([*v12["sets"], *v12["logs"], v12["features_dir"]])     # each once
+    assert {n: c for n, c in v12["sets"].values()} == {"c2b1m_lan_padmax": 500, "c2b1m_lan_shaped": 1250,
+                                                        "c2b2_lan_padmax": 1000, "c2b2_lan_padmax_jl": 1000}
+    assert set(v12["logs"].values()) <= set(v12["sets"])
+    assert set(v12["cut"]) == set(v12["left_out"]) == {"raw_c2b1m_padmax", "raw_c2b2_padmax"}
+    for o in others:                                                        # no name shared with 1.0 or 1.1
+        assert not set(v12["zips"]) & set(o["zips"]) and v12["manifest"] != o["manifest"] and v12["sums"] != o["sums"]
+        assert not set(v12["sets"]) & set(o["sets"])

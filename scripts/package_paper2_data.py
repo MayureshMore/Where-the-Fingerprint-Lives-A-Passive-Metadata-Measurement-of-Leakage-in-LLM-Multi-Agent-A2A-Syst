@@ -25,6 +25,15 @@ With --release round2, the new version's files instead (round 2's collections, d
     round2-SHA256SUMS.txt, round2-manifest.json
 The same changes and checks as below; every reply-log record must lie in its collection's window.
 
+With --release v1.2, version 1.2's files (C2B1M and C2B2, docs/PREREG_C2B1M.md, docs/PREREG_C2B2.md):
+    c2b1m-raw-pcaps-headers-only.zip      data/raw_c2b1m_padmax (500), raw_c2b1m_shaped (1,250) and the
+                                          shaping agent's reply log data/raw_c2b1m_replies
+    c2b2-raw-pcaps-headers-only.zip       data/raw_c2b2_padmax (1,000), raw_c2b2_padmax_jl (1,000) with the
+                                          Pi's netem snapshots and the Wi-Fi keeper's log cut to the session,
+                                          and the jittering agents' reply log data/raw_c2b2_replies
+    v1.2-features.zip                     data/features_v1_2/<collection>_<arm>_<view>.npz
+    v1.2-SHA256SUMS.txt, v1.2-manifest.json
+
 Changes from data/ (recorded in manifest.json and DATA.md):
   - every pcap is stripped to its headers (scripts/strip_payload.py); timestamps and on-wire
     lengths are kept, so the features do not change (checked below);
@@ -49,6 +58,7 @@ Usage (never overwrites: OUT must not exist):
     python scripts/package_paper2_data.py --out dist/paper2
     python scripts/package_paper2_data.py --out dist/paper2 --no-tls-control
     python scripts/package_paper2_data.py --release round2 --out dist/paper2_round2
+    python scripts/package_paper2_data.py --release v1.2 --out dist/paper2_v1_2
 """
 
 from __future__ import annotations
@@ -89,6 +99,7 @@ SNAPLEN = 96
 TRACE_SIDECAR = re.compile(r"_[0-9a-f]{6}\.json$")
 WAN_STATUS = "the WAN watcher's last state, written after the collection"
 ROUND2_WAN = ("raw_c2b1_padmax", "raw_c2b1x_shaped", "raw_c2b3_lan")   # the folders the watcher wrote into
+V1_2_WAN = ("raw_c2b1m_padmax", "raw_c2b2_padmax")
 
 
 def releases() -> dict:
@@ -111,6 +122,16 @@ def releases() -> dict:
                             "c2b3-raw-pcaps-headers-only.zip": ["raw_c2b3_lan"],
                             "round2-features.zip": ["features_round2"]},
                    "tls_control": False, "manifest": "round2-manifest.json", "sums": "round2-SHA256SUMS.txt"},
+        "v1.2": {"sets": {"raw_c2b1m_padmax": ("c2b1m_lan_padmax", 500), "raw_c2b1m_shaped": ("c2b1m_lan_shaped", 1250),
+                          "raw_c2b2_padmax": ("c2b2_lan_padmax", 1000), "raw_c2b2_padmax_jl": ("c2b2_lan_padmax_jl", 1000)},
+                 "logs": {"raw_c2b1m_replies": "raw_c2b1m_shaped", "raw_c2b2_replies": "raw_c2b2_padmax_jl"},
+                 "left_out": {s: {"wan_status.json": WAN_STATUS} for s in V1_2_WAN},
+                 "cut": {s: "wan_watch.jsonl" for s in V1_2_WAN},
+                 "features_dir": "features_v1_2", "readme": V1_2_FEATURES_README,
+                 "zips": {"c2b1m-raw-pcaps-headers-only.zip": ["raw_c2b1m_padmax", "raw_c2b1m_shaped", "raw_c2b1m_replies"],
+                          "c2b2-raw-pcaps-headers-only.zip": ["raw_c2b2_padmax", "raw_c2b2_padmax_jl", "raw_c2b2_replies"],
+                          "v1.2-features.zip": ["features_v1_2"]},
+                 "tls_control": False, "manifest": "v1.2-manifest.json", "sums": "v1.2-SHA256SUMS.txt"},
     }
 
 
@@ -441,6 +462,26 @@ Built by `scripts/package_paper2_data.py --release round2`, which checks that th
 released captures equal those from the original captures.
 """
 
+V1_2_FEATURES_README = """# Version 1.2 features
+
+One file per collection, arm and observer view, as for C2 (`features_c2`): `c2b1m_lan_padmax` (500 traces)
+and `c2b1m_lan_shaped` (1,250), sensor_analysis and fault_diagnosis only; `c2b2_lan_padmax` and
+`c2b2_lan_padmax_jl` (1,000 each, the IoT set). Each is at `v1` (building network: the edge host's flows to the
+cloud agents and to the local ticket service) and `v2` (upstream: its flows to the cloud agents only), and
+holds what a2a-leakcheck computes from the released captures with `--vantage v1|v2`:
+
+| Key | Shape | Content |
+|---|---|---|
+| `X` | traces × 195 | trace features (`feature_names`); all zero for a task the view sees nothing of |
+| `feature_names` | 195 | `features.names.FLAT_FEATURE_NAMES()` |
+| `first_request_bytes` | traces | the first request's size in TCP sequence space (0 when nothing is in view) |
+| `run_id` | traces | the capture's name in its `data/raw_c2b1m_*` or `data/raw_c2b2_*` folder |
+| `task_type`, `escalated`, `cloud_role`, `audit_null`, `prompt_group` | traces | labels from the sidecars (`cloud_role` is empty for tasks answered on the edge) |
+
+Built by `scripts/package_paper2_data.py --release v1.2`, which checks that the features from the released
+captures equal those from the original captures.
+"""
+
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
@@ -448,6 +489,7 @@ if __name__ == "__main__":
     p.add_argument("--out", required=True, help="new output folder (must not exist)")
     p.add_argument("--no-tls-control", action="store_true", dest="no_tls_control",
                    help="package C2 only")
-    p.add_argument("--release", choices=("v1", "round2"), default="v1",
-                   help="v1: version 1.0 (C2, the TLS control); round2: C2B1, C2B1X, C2B3 for the new version")
+    p.add_argument("--release", choices=("v1", "round2", "v1.2"), default="v1",
+                   help="v1: version 1.0 (C2, the TLS control); round2: version 1.1 (C2B1, C2B1X, C2B3); "
+                        "v1.2: version 1.2 (C2B1M, C2B2)")
     sys.exit(main(p.parse_args()))
