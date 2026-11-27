@@ -9,7 +9,8 @@ the registered analysis's outputs and computes nothing new:
      sd, the cloud's slowdown under load, the reordering against the control, the netem delay, the keeper
   3. the all-features pair and task_type at V2, both arms
 
-and the deviations from the pre-registration, each with when, why and what it does not touch.
+and the deviations from the pre-registration, each with when, why, and that neither changes the analysis,
+the manipulation checks or the primary.
 
     python scripts/c2b2_results.py --audits data/results/c2b2_audits.json \\
         --manipulation data/results/c2b2_manipulation.json --out data/results/c2b2_results
@@ -42,9 +43,9 @@ DEVIATIONS = [
      "why": "in macOS pf a packet that leaves a dummynet pipe re-enters the ruleset at the next rule, so the Nov 21 "
             "rules put the treatment's packets through pipes 3 and 4 and then 1 and 2 as well: the first WAN check "
             "read 17.0 ms SYN -> SYN-ACK at the capture instead of 4, and 32.8 ms end to end instead of 18.6",
-     "does_not_touch": "it applies the registered design (2 ms of dummynet each way for the treatment); every "
-                       "delay, target, the jitter, the load, the Pi's netem, the analysis, the manipulation "
-                       "checks and the primary as registered"},
+     "scope": "It makes the session apply the registered design (2 ms of dummynet each way for the treatment). "
+              "Neither the analysis, the manipulation checks nor the primary changes, and neither does any delay, "
+              "target, the jitter, the load or the Pi's netem"},
     {"when": "Nov 26, 2026, after the pilot, before the full run",
      "commits": ["01230d36"],
      "what": "the guard (scripts/c2_guard.py) run with --tolerance 0.30 instead of 0.20",
@@ -52,8 +53,9 @@ DEVIATIONS = [
             "bound of 14.9, while every direct measurement was near the 18.6 ms target (16.4, 17.8, 19.9 ms); it "
             "would have stopped the full run again and again. At 0.30 every guard check stays (bands [13.0, 24.2] "
             "and [15.8, 29.4]); replayed on the pilot, 0.20 fails and 0.30 passes. The user's decision",
-     "does_not_touch": "the guard only watches the WAN during the collection; the analysis, the manipulation "
-                       "checks, the primary and the collector's own WAN probes (their tolerance stayed 0.20)"},
+     "scope": "The guard only watches the WAN during the collection. Neither the analysis, the manipulation "
+              "checks nor the primary changes, and neither do the collector's own WAN probes (their tolerance "
+              "stayed 0.20)"},
 ]
 
 
@@ -137,8 +139,7 @@ def markdown(r: dict) -> str:
          f"treatment {_cell(s['all_all_v2'][TREATMENT])}.", "",
          "## Deviations from the pre-registration", ""]
     for d in r["deviations"]:
-        L.append(f"- **{d['when']}** ({', '.join(d['commits'])}): {d['what']}. Why: {d['why']}. It does not touch "
-                 f"{d['does_not_touch']}.")
+        L.append(f"- **{d['when']}** ({', '.join(d['commits'])}): {d['what']}. Why: {d['why']}. {d['scope']}.")
     return "\n".join(L) + "\n"
 
 

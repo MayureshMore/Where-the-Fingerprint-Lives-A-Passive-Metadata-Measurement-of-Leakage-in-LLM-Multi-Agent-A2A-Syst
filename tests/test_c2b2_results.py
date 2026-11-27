@@ -76,6 +76,9 @@ def test_the_markdown_keeps_the_paper_s_order_and_the_deviations(tmp_path):
     i1, i2, i3, i4 = (md.index(s) for s in ("1. **Primary**", "2. **Manipulation checks: VALID**",
                                              "3. **All features at V2**", "## Deviations from the pre-registration"))
     assert i1 < i2 < i3 < i4 and "1.30% against the control's 2.00%" in md and "01230d36" in md
+    dev = md[i4:]
+    assert dev.count("Neither the analysis, the manipulation checks nor the primary changes") == 2
+    assert "does not touch" not in md and ". ." not in md
     assert json.loads(out.with_suffix(".json").read_text())["analysis_commit"] == "abc"
     with pytest.raises(SystemExit, match="never written over"):
         cr.main(["--audits", str(tmp_path / "a.json"), "--manipulation", str(tmp_path / "m.json"),
