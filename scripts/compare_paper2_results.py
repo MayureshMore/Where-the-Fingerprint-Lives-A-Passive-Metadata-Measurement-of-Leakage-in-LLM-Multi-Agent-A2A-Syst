@@ -38,6 +38,7 @@ RUN_KEYS = {
     "LOKY_MAX_CPU_COUNT", "peak_rss_mb", "peak_rss_children_mb", "workers", "jobs", "parts", "tool",
     "tool_report_commits",      # paper2_review.json: the commit of the reports it read
     "title",                    # b1_audits.py's label (--title, since 8c227411): not in the files made before it
+    "analysis_commit",          # c2b2_results.py: the commit its audits ran from (a rebuild's own)
 }
 PATH_PREFIXES = ("data/", "examples/", "logs/", "dist/", "/")
 TOLERANCE = {"null_mean": 0.01}

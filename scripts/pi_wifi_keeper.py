@@ -280,7 +280,11 @@ def check_log(records: list[dict], t0: float, t1: float, max_gap_s: float) -> di
                                        if k in r}} for r in inside if pred(r)]
 
     keepers = [r for r in records if r.get("event") == "start" and r["t"] <= t1]
-    fw_read = keepers[-1].get("fw_read") if keepers else None
+    if keepers:
+        fw_read = keepers[-1].get("fw_read")
+    else:          # a log cut to the session (--cut) holds no start line: the checks show whether the chip was read
+        read = [r.get("fw_pm") is not None for r in inside if "event" not in r and "error" not in r]
+        fw_read = True if read and all(read) else None
     out = {
         "checks_in_window": sum(1 for r in inside if "event" not in r and "error" not in r),
         "coverage": {"ok": starts_ok and ends_ok and not gaps, "running_at_start": starts_ok,

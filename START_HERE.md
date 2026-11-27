@@ -9,10 +9,11 @@
 > | See it work: the C2 examples audited, the HTML report, the CI gate failing a build on a new leak | `PYTHON=venv-leakcheck/bin/python bash scripts/demo_paper2.sh` | under 1 min |
 > | Run the pipeline contribution: the five folders laid out as [safeiot-vuln-pipeline](https://github.com/systemsecurity-uiuc/safeiot-vuln-pipeline) expects, from the Zenodo download to a report | [`safeiot/`](safeiot/README.md): `bash safeiot/pipeline_harness/a2a-leakcheck/run.sh` | about 4 min |
 > | Find any number in the paper: its file and field | [docs/PAPER2_NUMBERS.md](docs/PAPER2_NUMBERS.md) | |
-> | Rebuild the paper's numbers from the released data and compare each with the committed one; it stops and names any missing archive | `bash scripts/reproduce_paper2.sh --section d3,b3` (shaping and the second day), `--quick` (every section's fast part), or no option (everything) | 2 h, 5 h, about two days |
+> | Rebuild the paper's numbers from the released data and compare each with the committed one; it stops and names any missing archive | `bash scripts/reproduce_paper2.sh --section c2b1m,c2b2` (the two pre-registered sessions), `--section d3,b3` (shaping and the second day), `--quick` (every section's fast part), or no option (everything) | 1 h, 2 h, 6 h, about two days |
 >
 > Data: Zenodo [doi:10.5281/zenodo.24238558](https://doi.org/10.5281/zenodo.24238558) (all versions;
-> D3 and B3 from version 1.1), header-only captures; checksums in [DATA.md](DATA.md). The tool's
+> D3 and B3 from version 1.1, C2B1M and C2B2 from version 1.2), header-only captures; checksums in
+> [DATA.md](DATA.md). The tool's
 > manual: [docs/LEAKCHECK.md](docs/LEAKCHECK.md).
 
 The fastest path from a clone to results. Each step is **one command**; deeper docs are
@@ -99,16 +100,18 @@ Download the archive from Zenodo and unzip it into the repository root (files an
 
   `scripts/evaluate_c1_revision.py` adds the first-request and padding analyses; it writes into
   `data/results/` directly, so run it in a separate clone.
-- **Paper 2** (C2, the TLS control, D3 and B3, [doi:10.5281/zenodo.24238558](https://doi.org/10.5281/zenodo.24238558),
-  version 1.1):
+- **Paper 2** (C2, the TLS control, D3, B3, C2B1M and C2B2, [doi:10.5281/zenodo.24238558](https://doi.org/10.5281/zenodo.24238558),
+  version 1.2):
 
   ```bash
-  bash scripts/reproduce_paper2.sh --section d3,b3     # shaping and the second day, about 2 h
-  bash scripts/reproduce_paper2.sh --quick             # every section's fast part, about 5 h
+  bash scripts/reproduce_paper2.sh --section c2b1m,c2b2   # the two pre-registered sessions, about 1 h
+  bash scripts/reproduce_paper2.sh --section d3,b3        # shaping and the second day, about 2 h
+  bash scripts/reproduce_paper2.sh --quick                # every section's fast part, about 6 h
   ```
 
   Rebuilds the paper's numbers into a **sandbox** (`data/results_paper2_demo/`) and compares each
-  with the committed one, in four sections: the v1.0 path, round 2, D3 and B3. Without `--quick` or
+  with the committed one, in six sections: the v1.0 path, round 2, D3, B3, C2B1M and C2B2 (C2B1M and
+  C2B2 need version 1.2's archives). Without `--quick` or
   `--section` it runs everything, round 2's long parts and the tool evaluations included (about two
   days). A missing archive stops it before anything runs.
 

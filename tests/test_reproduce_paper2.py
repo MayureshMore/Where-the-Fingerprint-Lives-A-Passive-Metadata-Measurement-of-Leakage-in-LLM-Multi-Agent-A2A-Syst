@@ -38,12 +38,29 @@ def test_only_the_missing_inputs_are_listed(tmp_path):
 
 
 def test_every_section_names_its_inputs(tmp_path):
-    r = _run(tmp_path)                                   # all four sections
+    r = _run(tmp_path)                                   # all six sections
     assert r.returncode == 2
     for p in ("data/raw_tlspair_tls", "data/processed_tlspair_tls_own_dedup", "data/raw_c2", "data/raw_c2b1_shaped",
-              "data/raw_c2b3_lan"):
+              "data/raw_c2b3_lan", "data/raw_c2b1m_shaped", "data/raw_c2b2_padmax_jl"):
         assert f"  {p}   (from Zenodo version 1." in r.stderr
     assert r.stderr.count("  data/raw_c2   ") == 1           # listed once though three sections need it
+
+
+def test_the_pre_registered_sessions_need_version_1_2(tmp_path):
+    r = _run(tmp_path, "--section", "c2b1m,c2b2")
+    assert r.returncode == 2 and "PASS" not in r.stdout + r.stderr
+    for p, z in (("data/raw_c2b1m_padmax", "c2b1m"), ("data/raw_c2b1m_shaped", "c2b1m"), ("data/raw_c2b2_padmax", "c2b2"),
+                 ("data/raw_c2b2_padmax_jl", "c2b2"), ("data/raw_c2b2_padmax/wifi_keeper.jsonl", "c2b2"),
+                 ("data/raw_c2b2_padmax/pi_tc_start.txt", "c2b2")):
+        assert f"  {p}   (from Zenodo version 1.2, {z}-raw-pcaps-headers-only.zip)" in r.stderr
+    assert "  data/results/c2b2_results.json   (from the repository (git checkout))" in r.stderr
+    assert "data/raw_c2b1_shaped" not in r.stderr                          # only these two sections' inputs
+
+
+def test_a_rebuilt_summary_s_analysis_commit_is_not_compared():
+    old = {"analysis_commit": "37e56801", "primary": {"control": {"verdict": "LEAK", "macro_f1": 0.656}}}
+    new = {"analysis_commit": "beefcafe", "primary": {"control": {"verdict": "LEAK", "macro_f1": 0.656}}}
+    assert compare(new, old) == []
 
 
 @pytest.mark.parametrize("args, env, msg", [

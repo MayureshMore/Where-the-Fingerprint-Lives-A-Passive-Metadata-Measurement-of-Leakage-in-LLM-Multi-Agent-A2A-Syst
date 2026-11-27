@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# reproduce_paper2.sh — rebuild the numbers of paper 2 (a2a-leakcheck; draft 1.1) from the released data
+# reproduce_paper2.sh — rebuild the numbers of paper 2 (a2a-leakcheck; draft 1.2) from the released data
 # and compare each with the committed one. Like scripts/reproduce.sh it writes to a sandbox and never to
 # data/results/. docs/PAPER2_NUMBERS.md maps every number in the paper to its file and field.
 #
-# Four sections (--section NAME[,NAME...]; all four by default):
+# Six sections (--section NAME[,NAME...]; all six by default):
 #
 #   v1.0    The v1.0 path: the numbers draft 1.1 still quotes from the first evaluation, made with
 #           a2a-leakcheck 0.1.x and its permutation test by sample (these audits pin --perm-unit sample):
@@ -35,9 +35,16 @@
 #           the timing family alone included); b1_size_check                                        ~1 h
 #   b3      A second day of lan, C2B3: b3_audits and its 6 reports (leakcheck/c2b3_*); the features of
 #           both sessions per view; the four cross-session runs (b3_cross_session_*)                ~1 h
+#   c2b1m   The matched, held-out test of reply shaping (pre-registered, docs/PREREG_C2B1M.md):
+#           c2b1m_audits and its 4 reports (leakcheck/c2b1m_*); the shaping check and its overhead
+#           (c2b1m_shaping_overhead)                                                               ~5 min
+#   c2b2    The WAN portability check (pre-registered, docs/PREREG_C2B2.md): c2b2_audits and its 24
+#           reports (leakcheck/c2b2_*, all features and the timing family alone); the reorder check and
+#           the Wi-Fi keeper's check rebuilt from the released captures and log; the manipulation checks
+#           (c2b2_manipulation); the results in the paper's order (c2b2_results)                 ~50 min
 #
-# --quick: v1.0's stages 1 to 4, round 2's a3, a8, a9 and A6, then d3 and b3: about 5 h. The final line
-# names what --quick does not rebuild.
+# --quick: v1.0's stages 1 to 4, round 2's a3, a8, a9 and A6, then d3, b3, c2b1m and c2b2: about 6 h. The
+# final line names what --quick does not rebuild.
 #
 # Every input a section needs is checked first; if one is missing the script stops with the list and
 # where each comes from (exit 2), before running anything. A stage that fails, or a number that differs,
@@ -55,19 +62,20 @@
 # (leakcheck/c2_lan_v1_v030_cost).
 #
 # Inputs: the paper 2 data release (DATA.md), unzipped into the repository root: Zenodo version 1.0 for
-# C2 and the TLS control, version 1.1 for C2B1, C2B1X and C2B3.
+# C2 and the TLS control, version 1.1 for C2B1, C2B1X and C2B3, version 1.2 for C2B1M and C2B2.
 #
 # Usage:
 #   bash scripts/reproduce_paper2.sh                       # every section, in full (about two days)
-#   bash scripts/reproduce_paper2.sh --quick               # about 5 h
+#   bash scripts/reproduce_paper2.sh --quick               # about 6 h
 #   bash scripts/reproduce_paper2.sh --section d3,b3       # some sections (about 2 h)
+#   bash scripts/reproduce_paper2.sh --section c2b1m,c2b2  # the two pre-registered sessions (about 1 h)
 #   A2A_RESULTS_DIR=data/results_p2 PYTHON=venv/bin/python bash scripts/reproduce_paper2.sh --section v1.0
 #
 set -u
 
 PY="${PYTHON:-python3}"
 QUICK=0
-SECTIONS="v1.0,round2,d3,b3"
+SECTIONS="v1.0,round2,d3,b3,c2b1m,c2b2"
 while [ $# -gt 0 ]; do
     case "$1" in
         --quick) QUICK=1 ;;
@@ -78,7 +86,8 @@ while [ $# -gt 0 ]; do
     shift
 done
 for s in $(echo "$SECTIONS" | tr ',' ' '); do
-    case "$s" in v1.0|round2|d3|b3) ;; *) echo "unknown section: $s (v1.0, round2, d3, b3)" >&2; exit 2 ;; esac
+    case "$s" in v1.0|round2|d3|b3|c2b1m|c2b2) ;;
+        *) echo "unknown section: $s (v1.0, round2, d3, b3, c2b1m, c2b2)" >&2; exit 2 ;; esac
 done
 want() { case ",$SECTIONS," in *",$1,"*) return 0 ;; *) return 1 ;; esac; }
 
@@ -89,7 +98,7 @@ case "${SANDBOX%/}/" in
 esac
 
 # ── the inputs every selected section needs ──────────────────────────────────────────────────────────
-V10="Zenodo version 1.0"; V11="Zenodo version 1.1"
+V10="Zenodo version 1.0"; V11="Zenodo version 1.1"; V12="Zenodo version 1.2"
 from_where() {   # from_where PATH: where a missing input comes from
     case "$1" in
         data/raw_c2|data/raw_c2_pad|data/raw_c2_padmax) echo "$V10, c2-raw-pcaps-headers-only.zip" ;;
@@ -98,6 +107,8 @@ from_where() {   # from_where PATH: where a missing input comes from
         data/raw_c2b1_padmax|data/raw_c2b1_shaped) echo "$V11, c2b1-raw-pcaps-headers-only.zip" ;;
         data/raw_c2b1x_shaped) echo "$V11, c2b1x-raw-pcaps-headers-only.zip" ;;
         data/raw_c2b3_lan) echo "$V11, c2b3-raw-pcaps-headers-only.zip" ;;
+        data/raw_c2b1m_*) echo "$V12, c2b1m-raw-pcaps-headers-only.zip" ;;
+        data/raw_c2b2_*) echo "$V12, c2b2-raw-pcaps-headers-only.zip" ;;
         *) echo "the repository (git checkout)" ;;
     esac
 }
@@ -113,6 +124,11 @@ want round2 && NEED="$NEED $C2 $D1 $CANON/leakcheck/c2_lan_v1/report.json $CANON
     $CANON/paper2_review.json $CANON/paper2_round2.json $CANON/paper2_pvalue_mac.json"
 want d3 && NEED="$NEED $C2 data/raw_c2b1_padmax data/raw_c2b1_shaped data/raw_c2b1x_shaped $CANON/b1_audits.json"
 want b3 && NEED="$NEED data/raw_c2 data/raw_c2b3_lan $CANON/paper2_round2.json $CANON/b3_audits.json"
+want c2b1m && NEED="$NEED data/raw_c2b1m_padmax data/raw_c2b1m_shaped $CANON/c2b1m_audits.json $CANON/c2b1m_shaping_overhead.json"
+want c2b2 && NEED="$NEED data/raw_c2b2_padmax data/raw_c2b2_padmax_jl data/raw_c2b2_padmax/pi_tc_start.txt
+    data/raw_c2b2_padmax/pi_tc_end.txt data/raw_c2b2_padmax/wifi_keeper.jsonl data/raw_c2b2_padmax/wifi_keeper_check.json
+    data/raw_c2b2_padmax_jl/reorder_check.json $CANON/b2_wan_jitter.json $CANON/c2b2_audits.json
+    $CANON/c2b2_manipulation.json $CANON/c2b2_results.json"
 MISSING=""
 for p in $NEED; do
     case " $MISSING " in *" $p "*) continue ;; esac
@@ -317,6 +333,48 @@ if want b3; then
             --out "$RUN/b3_cross_session_b3_to_c2_$v" \
             && compare "$RUN/b3_cross_session_b3_to_c2_$v.json" "$CANON/b3_cross_session_b3_to_c2_$v.json"
     done
+fi
+
+# ── C2B1M ────────────────────────────────────────────────────────────────────────────────────────────
+if want c2b1m; then
+    echo "== C2B1M: the matched, held-out test of reply shaping (pre-registered)"
+    run "c2b1m_audits (about 4 min)" "$PY" scripts/b1_audits.py --arm lan_padmax=data/raw_c2b1m_padmax \
+        --arm lan_shaped=data/raw_c2b1m_shaped --parts pair --baseline-arm lan_padmax --prefix c2b1m \
+        --title "C2B1M audits" --reports "$RUN/leakcheck" --subset-dir "$RUN/subsets" --out "$RUN/c2b1m_audits" \
+        --allow-dirty \
+        && compare "$RUN/c2b1m_audits.json" "$CANON/c2b1m_audits.json" \
+        && compare_reports "c2b1m_"
+    run_check c2b1m_shaping_overhead "$RUN/c2b1m_shaping_overhead.json" "$PY" scripts/check_shaping.py \
+        data/raw_c2b1m_shaped --control data/raw_c2b1m_padmax --wan-ms 12 --out "$RUN/c2b1m_shaping_overhead" \
+        --allow-dirty \
+        && compare "$RUN/c2b1m_shaping_overhead.json" "$CANON/c2b1m_shaping_overhead.json"
+fi
+
+# ── C2B2 ─────────────────────────────────────────────────────────────────────────────────────────────
+if want c2b2; then
+    echo "== C2B2: the WAN portability check (pre-registered)"
+    run "c2b2_audits (about 45 min)" "$PY" scripts/b1_audits.py --arm lan_padmax=data/raw_c2b2_padmax \
+        --arm lan_padmax_jl=data/raw_c2b2_padmax_jl --parts all,pair,escalated_only --feature-sets all,timing \
+        --baseline-arm lan_padmax --prefix c2b2 --title "C2B2 audits" --reports "$RUN/leakcheck" \
+        --subset-dir "$RUN/subsets" --features-dir "$RUN/features_audits" --out "$RUN/c2b2_audits" --allow-dirty \
+        && compare "$RUN/c2b2_audits.json" "$CANON/c2b2_audits.json" \
+        && compare_reports "c2b2_"
+    run_check c2b2_reorder "$RUN/c2b2_reorder_check.json" "$PY" scripts/check_reorder.py data/raw_c2b2_padmax_jl \
+        --control data/raw_c2b2_padmax --json "$RUN/c2b2_reorder_check.json" \
+        && compare "$RUN/c2b2_reorder_check.json" data/raw_c2b2_padmax_jl/reorder_check.json
+    run_check c2b2_wifi_keeper "$RUN/c2b2_wifi_keeper_check.json" "$PY" scripts/pi_wifi_keeper.py check \
+        data/raw_c2b2_padmax/wifi_keeper.jsonl --session data/raw_c2b2_padmax data/raw_c2b2_padmax_jl \
+        --json "$RUN/c2b2_wifi_keeper_check.json" \
+        && compare "$RUN/c2b2_wifi_keeper_check.json" data/raw_c2b2_padmax/wifi_keeper_check.json
+    run_check c2b2_manipulation "$RUN/c2b2_manipulation.json" "$PY" scripts/check_b2_manipulation.py \
+        --control data/raw_c2b2_padmax --treatment data/raw_c2b2_padmax_jl --target "$CANON/b2_wan_jitter.json" \
+        --tc-start data/raw_c2b2_padmax/pi_tc_start.txt --tc-end data/raw_c2b2_padmax/pi_tc_end.txt \
+        --reorder "$RUN/c2b2_reorder_check.json" --keeper "$RUN/c2b2_wifi_keeper_check.json" \
+        --json "$RUN/c2b2_manipulation.json" \
+        && compare "$RUN/c2b2_manipulation.json" "$CANON/c2b2_manipulation.json"
+    run c2b2_results "$PY" scripts/c2b2_results.py --audits "$RUN/c2b2_audits.json" \
+        --manipulation "$RUN/c2b2_manipulation.json" --out "$RUN/c2b2_results" --allow-dirty \
+        && compare "$RUN/c2b2_results.json" "$CANON/c2b2_results.json"
 fi
 
 if [ "$FAIL" -ne 0 ]; then

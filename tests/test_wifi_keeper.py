@@ -210,3 +210,12 @@ def test_the_unit_names_this_file_and_the_log_and_restarts(capsys):
     unit = capsys.readouterr().out
     assert "pi_wifi_keeper.py run --iface wlan0 --every 30.0 --log /var/log/a2a-wifi-keeper.jsonl" in unit
     assert "Restart=always" in unit and "WantedBy=multi-user.target" in unit
+
+
+def test_a_log_cut_to_the_session_still_says_whether_the_chip_was_read():
+    recs = _log(1000, 40)[1:]                         # the cut: no start line
+    assert check_log(recs, 1010, 1900, 75)["fw_read"] is True
+    for r in recs:
+        r["fw_pm"] = None
+    assert check_log(recs, 1010, 1900, 75)["fw_read"] is None
+    assert check_log(_log(1000, 40), 1010, 1900, 75)["fw_read"] is True      # from the start line, as before
