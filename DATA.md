@@ -439,10 +439,12 @@ captures equal those computed from `data/` in all 8 sets.
 
 ## Paper 2 archive, version 1.2 (collections C2B1M and C2B2)
 
-**Zenodo:** to be published as a new version of the record above (all versions:
-https://doi.org/10.5281/zenodo.24238558); its DOI goes here once it is. It is to hold version 1.1's 12
-files, unchanged, and the five below, uploaded from the build described here. C2B1M and C2B2 are both
-pre-registered: docs/PREREG_C2B1M.md and docs/PREREG_C2B2.md.
+**Zenodo:** https://doi.org/10.5281/zenodo.24582646 (version 1.2, published 2026-11-27; data CC BY 4.0),
+a new version of the record above (all versions: https://doi.org/10.5281/zenodo.24238558). It holds
+17 files: version 1.1's 12, unchanged, and the five below, uploaded from the build described here;
+their MD5 checksums on the record match that build. Its related identifier is this repository at
+commit `7940f474`. C2B1M and C2B2 are both pre-registered: docs/PREREG_C2B1M.md and
+docs/PREREG_C2B2.md.
 
 | File | Contents | Bytes | SHA-256 |
 |---|---|---|---|
@@ -455,6 +457,7 @@ pre-registered: docs/PREREG_C2B1M.md and docs/PREREG_C2B2.md.
 Built by `scripts/package_paper2_data.py --release v1.2` at commit `7940f474` (clean;
 `v1.2-manifest.json`), with deterministic zips: a trial build of the same code before it was committed
 gave the same three zips byte for byte. The pilots (`data/pilot_c2b1m`, `data/pilot_c2b2`) are not released.
+The C2B1M and C2B2 sections of `bash scripts/reproduce_paper2.sh` read these folders.
 
 **How the release differs from the captures in `data/`**, as for versions 1.0 and 1.1
 (`v1.2-manifest.json` records each change):
